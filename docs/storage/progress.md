@@ -1,5 +1,7 @@
 # Execution ledger — docs/superpowers/plans/2026-11-07-storage.md
 
+Resume scope: MASTER PR13 comment6708160404 and Issue14 comment6708160604. Reproduced run collapse/exclusive-fetch failure, then implemented migration005 run/evidence observations + attempt fencing. Implemented initial dry-run-only lifecycle, disk gate, snapshot scan/logical quarantine/metrics and measured restore reporting via migration006. Reviewer found empty-run attribution, protected-path aliases and extensible backup evidence sets; all three reproduced failing tests and fixed. Current branch full suite51 PASS with real PG18.4, no raw deletion. Exact APIs documented in run-provenance-lifecycle.md; compatibility snapshot and final publication follow.
+
 Ruling: use the dedicated clone on workstream/b-integrity, already isolated from all other agent checkouts; no extra worktree needed.
 Ruling: user explicitly authorized implementation after approving design; continue inline without another plan approval round.
 Pre-flight: models -> Store -> operations -> crash/backup tests share envelope 1.0 and schema tester_storage; integration signatures documented in contract.

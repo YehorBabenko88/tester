@@ -3,6 +3,7 @@ import copy
 import hashlib
 import os
 import time
+import uuid
 from decimal import Decimal
 
 import psycopg
@@ -20,6 +21,14 @@ VALIDATOR='storage-1.0'
 
 class DataConflict(ValueError):
     """Same exchange identity, different semantic data. Original data is preserved."""
+
+
+class LostRecoveryClaim(ValueError):
+    """An old acquisition attempt no longer owns publication rights."""
+
+
+class AcquisitionPaused(RuntimeError):
+    """Configured acquisition storage has insufficient available disk space."""
 
 
 def scope_key(record):
@@ -62,8 +71,15 @@ def validate_evidence(evidence):
 
 
 class Store:
-    def __init__(self,dsn=None):
+    def __init__(self,dsn=None,*,storage_root=None,min_free_bytes=1024**3):
         self._dsn=dsn if dsn is not None else os.getenv('TESTER_STORAGE_DSN','')
+        self._storage_root=storage_root if storage_root is not None else os.getenv('TESTER_STORAGE_ROOT')
+        self._min_free_bytes=integer(min_free_bytes,'minimum free bytes')
+
+    def acquisition_status(self):
+        if self._storage_root is None: return dict(allowed=True,state='UNCONFIGURED',free_bytes=None)
+        from .lifecycle import StorageLifecycle
+        return StorageLifecycle(self,self._storage_root).acquisition_gate(self._min_free_bytes)
 
     def connect(self):
         return psycopg.connect(self._dsn,connect_timeout=8,options='-c timezone=UTC',row_factory=dict_row)
@@ -72,14 +88,19 @@ class Store:
     def _lock(c,key):
         c.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',('tester_storage:'+key,))
 
-    def ingest(self,records,evidence,job_key,checkpoint=None):
+    def ingest(self,records,evidence,job_key,checkpoint=None,*,run_id=None,_attempt_token=None):
         """Stream one atomic batch. A checkpoint is published only with all records/evidence.
 
         Successful replay is a no-op for raw data. Exceptions roll back the entire batch.
         Failed semantic replay writes a finding in a separate transaction AFTER rollback.
         """
         e,expected_count=validate_evidence(evidence); scope=scope_key(e)
+        if not self.acquisition_status()['allowed']: raise AcquisitionPaused('acquisition paused by disk gate')
         if not isinstance(job_key,str) or not job_key: raise ValueError('job_key required')
+        run_origin='caller' if run_id is not None else 'legacy_job'
+        run_id=run_id if run_id is not None else 'legacy-job:'+job_key
+        if not isinstance(run_id,str) or not 1<=len(run_id)<=300: raise ValueError('invalid ingestion run_id')
+        if run_origin=='caller' and run_id.startswith('legacy-job:'): raise ValueError('reserved legacy run namespace')
         try:
             with self.connect() as c:
                 self._lock(c,scope)
@@ -92,8 +113,10 @@ class Store:
                     archive_sha=available['sha256']
                     archive_complete=(archive['row_count']==expected_count and archive['start_ms']==e['start_ms'] and archive['end_ms']==e['end_ms'])
                 request={k:e[k] for k in (*SCOPE,'start_ms','end_ms')}
-                old=c.execute('SELECT request FROM tester_storage.download_jobs WHERE job_key=%s FOR UPDATE',(job_key,)).fetchone()
+                old=c.execute('SELECT request,attempt_token FROM tester_storage.download_jobs WHERE job_key=%s FOR UPDATE',(job_key,)).fetchone()
                 if old and old['request']!=request: raise ValueError('job key reused for different request')
+                if (_attempt_token is not None and (not old or old['attempt_token']!=_attempt_token)) or (old and old['attempt_token'] and old['attempt_token']!=_attempt_token):
+                    raise LostRecoveryClaim('publication attempt no longer owns job')
                 previous=c.execute('SELECT checkpoint FROM tester_storage.ingestion_checkpoints WHERE job_key=%s',(job_key,)).fetchone()
                 previous=previous['checkpoint'] if previous else {}
                 next_checkpoint=copy.deepcopy(previous if checkpoint is None else checkpoint)
@@ -112,6 +135,11 @@ class Store:
                 c.execute('''INSERT INTO tester_storage.download_jobs(job_key,scope_key,symbol,request,state)
                     VALUES(%s,%s,%s,%s,'running') ON CONFLICT(job_key) DO UPDATE SET state='running',updated_at=now()''',
                     (job_key,scope,e['symbol'],Jsonb(request)))
+                c.execute('INSERT INTO tester_storage.ingestion_runs(run_id,run_origin) VALUES(%s,%s) ON CONFLICT DO NOTHING',(run_id,run_origin))
+                if c.execute('SELECT run_origin FROM tester_storage.ingestion_runs WHERE run_id=%s',(run_id,)).fetchone()['run_origin']!=run_origin:
+                    raise ValueError('run origin cannot be changed')
+                c.execute('INSERT INTO tester_storage.ingestion_run_jobs(run_id,job_key) VALUES(%s,%s) ON CONFLICT DO NOTHING',(run_id,job_key))
+                observed_sources=[]
                 count=0; composite=False; candle_rows=[]; observation_times=[]; rolling=hashlib.sha256(); seen=set()
                 for raw in records:
                     r=normalize(raw)
@@ -135,9 +163,13 @@ class Store:
                         c.execute('INSERT INTO tester_storage.raw_records('+','.join(columns)+',payload) VALUES('+','.join(['%s']*(len(vals)+1))+')',
                                   (*vals,Jsonb(r['payload'])))
                     source_id=digest([r['record_key'],r['source'],raw])
+                    source_kind=r['source'].get('source_kind',raw.get('source_kind','unknown'))
+                    if source_kind not in ('rest','archive','import','unknown'): raise ValueError('unsupported source_kind')
+                    if run_origin=='caller' and source_kind=='unknown': raise ValueError('explicit run requires source.source_kind')
                     c.execute('''INSERT INTO tester_storage.record_sources(source_id,record_key,symbol,source,raw_envelope)
                         VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',
                         (source_id,r['record_key'],r['symbol'],Jsonb(r['source']),Jsonb(raw)))
+                    observed_sources.append(dict(source_id=source_id,source_kind=source_kind,timestamp_precision=r['timestamp_precision']))
                     rolling.update(r['content_hash'].encode('ascii')); count+=1
                 if count!=expected_count: raise ValueError('page record count mismatch')
                 checks={'values':True,'identity':True,'utc_bounds':True,'closed_candles':True,'contiguous':True}
@@ -163,6 +195,13 @@ class Store:
                 c.execute('''INSERT INTO tester_storage.pagination_evidence(evidence_id,job_key,scope_key,symbol,start_ms,end_ms,status,record_count,evidence,validator_version,verified)
                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',
                     (evidence_id,job_key,scope,e['symbol'],e['start_ms'],e['end_ms'],e['status'],count,Jsonb(e),VALIDATOR,verified))
+                c.execute('INSERT INTO tester_storage.ingestion_run_evidence(run_id,job_key,evidence_id) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING',
+                          (run_id,job_key,evidence_id))
+                for observed in observed_sources:
+                    observation_id=digest([observed['source_id'],run_id,job_key,evidence_id])
+                    c.execute('''INSERT INTO tester_storage.source_observations(observation_id,source_id,run_id,job_key,evidence_id,source_kind,timestamp_precision)
+                        VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',
+                        (observation_id,observed['source_id'],run_id,job_key,evidence_id,observed['source_kind'],observed['timestamp_precision']))
                 for state in ['requested']+(['downloaded'] if count else ['unknown'])+(['available','verified'] if verified else []):
                     self._coverage(c,e,state,evidence_id,'ingest '+e['status'])
                 if verified:
@@ -182,9 +221,9 @@ class Store:
                 c.execute('''INSERT INTO tester_storage.ingestion_checkpoints(job_key,checkpoint,commit_hash) VALUES(%s,%s,%s)
                     ON CONFLICT(job_key) DO UPDATE SET checkpoint=EXCLUDED.checkpoint,commit_hash=EXCLUDED.commit_hash,updated_at=now()''',
                     (job_key,Jsonb(next_checkpoint),evidence_id))
-                c.execute("UPDATE tester_storage.download_jobs SET state='committed',updated_at=now() WHERE job_key=%s",(job_key,))
+                c.execute("UPDATE tester_storage.download_jobs SET state='committed',attempt_token=NULL,last_error_code=NULL,updated_at=now() WHERE job_key=%s",(job_key,))
                 self._audit(c,e,'ingest',dict(job_key=job_key,evidence_id=evidence_id,count=count,verified=verified))
-            return dict(count=count,verified=verified,evidence_id=evidence_id)
+            return dict(count=count,verified=verified,evidence_id=evidence_id,run_id=run_id)
         except DataConflict:
             self.mark_range(e,'corrupt','conflicting source identity',code='identity_conflict')
             raise
@@ -235,11 +274,28 @@ class Store:
         query+=' ORDER BY timestamp_ms,record_key LIMIT %s'; params.append(limit)
         with self.connect() as c:
             rows=c.execute(query,params).fetchall()
+            from .provenance import resolve
+            provenance=resolve(c,[row['record_key'] for row in rows])
         for row in rows:
+            row['provenance']=provenance[row['record_key']]
+            row['sources']=[o['source'] for o in row['provenance']['observations']]
             row.pop('inserted_at',None)
             for k,v in row.items():
                 if isinstance(v,Decimal): row[k]=str(v)
         return rows
+
+    def provenance(self,record_keys):
+        from .provenance import resolve
+        with self.connect() as c: return resolve(c,record_keys)
+
+    def coverage_evidence(self,venue,category,symbol,dataset,interval,start_ms,end_ms):
+        e=dict(venue=venue,category=category,symbol=symbol,dataset=dataset,interval=interval)
+        with self.connect() as c:
+            return c.execute('''SELECT p.evidence_id,p.job_key,p.start_ms,p.end_ms,p.status,p.verified,p.validator_version,p.evidence,
+                ARRAY(SELECT DISTINCT o.run_id FROM tester_storage.ingestion_run_evidence o WHERE o.evidence_id=p.evidence_id ORDER BY o.run_id) AS run_ids,
+                ARRAY(SELECT o.observation_id FROM tester_storage.source_observations o WHERE o.evidence_id=p.evidence_id ORDER BY o.observation_id) AS observation_refs
+                FROM tester_storage.pagination_evidence p WHERE scope_key=%s AND start_ms<%s AND end_ms>%s
+                ORDER BY start_ms,evidence_id''',(scope_key(e),end_ms,start_ms)).fetchall()
 
     def coverage(self,venue,category,symbol,dataset,interval,start_ms,end_ms):
         e=dict(venue=venue,category=category,symbol=symbol,dataset=dataset,interval=interval); key=scope_key(e)
@@ -364,6 +420,8 @@ class Store:
         confirmed records and schedule another attempt; only fresh verified data resolves findings.
         """
         integer(max_jobs,'max_jobs'); integer(retry_delay_ms,'retry_delay_ms')
+        gate=self.acquisition_status()
+        if not gate['allowed']: return [dict(state='paused_low_disk',gate=gate)]
         results=[]
         due=[]; now=time.time_ns()//1000000
         for job in self.recovery_jobs(venue,category,symbol,dataset,interval):
@@ -372,22 +430,37 @@ class Store:
             if schedule['next_attempt_ms']<=now: due.append((schedule['next_attempt_ms'],schedule['attempt_count'],job['job_key'],job))
         for _,_,_,job in sorted(due,key=lambda item:item[:3])[:max_jobs]:
             key=job['job_key']; now=time.time_ns()//1000000
-            with self.connect() as c:
-                row=c.execute('SELECT next_attempt_ms FROM tester_storage.download_jobs WHERE job_key=%s',(key,)).fetchone()
-                if row['next_attempt_ms']>now: continue
-                c.execute('UPDATE tester_storage.download_jobs SET attempt_count=attempt_count+1 WHERE job_key=%s',(key,))
+            # Session lock is held across network fetch; connection loss/crash releases it.
+            # Persisted token fences publication and late failure updates after takeover.
+            claim=self.connect(); claim.autocommit=True
+            lock_name='tester_recovery:'+key
+            token=uuid.uuid4().hex
+            locked=False
             try:
-                records,evidence,checkpoint=fetcher(copy.deepcopy(job))
-                e=copy.deepcopy(evidence); e['resolves']=job['resolves']
-                result=self.ingest(records,e,key,checkpoint)
-                if not result['verified']: raise ValueError('recovery did not verify range')
-                results.append(dict(job_key=key,state='verified'))
-            except Exception as exc:
-                # Exception text can include URLs/credentials; persist only a safe class code.
-                code=type(exc).__name__
-                with self.connect() as c:
-                    c.execute("UPDATE tester_storage.download_jobs SET state='retry',next_attempt_ms=%s,last_error_code=%s,updated_at=now() WHERE job_key=%s",
-                              (time.time_ns()//1000000+retry_delay_ms,code,key))
-                    self._audit(c,job['request'],'retry',dict(job_key=key,error_code=code,attempt_ms=now))
-                results.append(dict(job_key=key,state='retry',error_code=code))
+                locked=claim.execute('SELECT pg_try_advisory_lock(hashtextextended(%s,0)) AS locked',(lock_name,)).fetchone()['locked']
+                if not locked: continue
+                claim.execute("SELECT set_config('application_name',%s,false)",('tester_recovery:'+token,))
+                with claim.transaction():
+                    row=claim.execute('SELECT state,next_attempt_ms FROM tester_storage.download_jobs WHERE job_key=%s FOR UPDATE',(key,)).fetchone()
+                    if row['state']=='committed' or row['next_attempt_ms']>now: continue
+                    claim.execute("UPDATE tester_storage.download_jobs SET state='running',attempt_count=attempt_count+1,attempt_token=%s WHERE job_key=%s",(token,key))
+                try:
+                    records,evidence,checkpoint=fetcher(copy.deepcopy(job)|dict(attempt_token=token))
+                    claim.execute('SELECT 1')  # A lost lease must not publish through another connection.
+                    e=copy.deepcopy(evidence); e['resolves']=job['resolves']
+                    result=self.ingest(records,e,key,checkpoint,run_id='recovery:'+token,_attempt_token=token)
+                    if not result['verified']: raise ValueError('recovery did not verify range')
+                    results.append(dict(job_key=key,state='verified'))
+                except Exception as exc:
+                    code=type(exc).__name__
+                    with self.connect() as c:
+                        changed=c.execute("UPDATE tester_storage.download_jobs SET state='retry',attempt_token=NULL,next_attempt_ms=%s,last_error_code=%s,updated_at=now() WHERE job_key=%s AND attempt_token=%s AND state='running' RETURNING job_key",
+                            (time.time_ns()//1000000+retry_delay_ms,code,key,token)).fetchone()
+                        if changed: self._audit(c,job['request'],'retry',dict(job_key=key,error_code=code,attempt_token=token,attempt_ms=now))
+                    results.append(dict(job_key=key,state='retry' if changed else 'superseded',error_code=code))
+            finally:
+                try:
+                    if locked and not claim.closed: claim.execute('SELECT pg_advisory_unlock(hashtextextended(%s,0))',(lock_name,))
+                except psycopg.Error: pass
+                claim.close()
         return results

@@ -1,5 +1,9 @@
 # Local verification — 2026-11-07
 
+Latest authorized MASTER follow-up (PR13 comment6708160404, Issue14 comment6708160604): **51 storage tests, 11.086s, OK, zero skips**, and **60 tests, 11.066s, OK, zero skips** in the separate main+B compatibility snapshot. Covers original checks plus actual distinct run observations, EMPTY-run evidence links, explicit source-kind rejection, no read-generated runs, exclusive fetch, terminated claim takeover/late failure fencing, immutable backup evidence coverage, protected-path alias rejection, dry-run reference/backup gates, low-disk fetch/publication pause, forged raw/orphan detection, concurrent scan/read and scan/backup. All material review findings were reproduced with failing regressions and then fixed; targeted independent rereview reported no remaining material issue in those fixes.
+
+Measured small fixtures (branch run): raw table122880 bytes, WAL33554432 bytes, snapshot scan33ms, one intentional corrupt-cache finding, dump77742 bytes, RPO54ms/RTO225ms. Compatibility run: scan31ms, dump77560 bytes, RPO45ms/RTO220ms. These are fixture observations, not production throughput or recovery promises. Detailed API/limits: run-provenance-lifecycle.md. Earlier verification history follows.
+
 Environment: Windows, PostgreSQL **18.4**, Python **3.14.0**, psycopg **3.3.8**. PostgreSQL was a separate synthetic loopback cluster, not the existing local server. fsync, synchronous_commit and full_page_writes enabled; runtime role tested under SCRAM authentication. No production credentials/data or real Bybit downloads used.
 
 Command: `python -m unittest discover -v` with TESTER_TEST_ADMIN_DSN set to the synthetic administrator. Result: **40 tests, 10.455s, OK; zero failures/errors/skips**. Also `python -m compileall -q src/storage src/quality tests/storage` and `git diff --check` passed.

@@ -7,6 +7,7 @@ import tempfile
 import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import psycopg
@@ -89,17 +90,28 @@ class RecoveryTests(support.PostgresTests):
     def test_backup_restore_into_new_database_preserves_data_and_migrations(self):
         self.assertIsNotNone(shutil.which('pg_dump'),'pg_dump required for acceptance')
         self.assertIsNotNone(shutil.which('pg_restore'),'pg_restore required for acceptance')
-        self.store.ingest([self.record()],self.ev(),self.symbol,checkpoint={'offset':1})
+        evidence=self.store.ingest([self.record()],self.ev(),self.symbol,checkpoint={'offset':1},run_id='backup-run:'+self.symbol)
+        with self.store.connect() as c:
+            cutoff_ms=int(c.execute('SELECT extract(epoch FROM updated_at)*1000 AS ms FROM tester_storage.download_jobs WHERE job_key=%s',(self.symbol,)).fetchone()['ms'])
         restored='tester_b_restore_'+uuid.uuid4().hex[:12]
         env=os.environ.copy(); params=psycopg.conninfo.conninfo_to_dict(self.dsn)
         for k,target in [('host','PGHOST'),('port','PGPORT'),('user','PGUSER'),('password','PGPASSWORD')]:
             if k in params: env[target]=params[k]
         with tempfile.TemporaryDirectory() as tmp:
+            from src.storage.lifecycle import StorageLifecycle
+            lifecycle=StorageLifecycle(self.store,tmp)
             backup=str(Path(tmp)/'backup.dump')
-            subprocess.run(['pg_dump','--format=custom','--no-owner','--no-privileges','--file',backup,'--dbname',self.database],env=env,check=True,capture_output=True,timeout=30)
+            backup_start_ms=time.time_ns()//1000000
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                scan=pool.submit(lifecycle.scan)
+                subprocess.run(['pg_dump','--format=custom','--no-owner','--no-privileges','--file',backup,'--dbname',self.database],env=env,check=True,capture_output=True,timeout=30)
+                scan_report=scan.result(timeout=10)
+                self.assertFalse(scan_report['truncated'])
+            backup_end_ms=time.time_ns()//1000000
             try:
                 with psycopg.connect(self.admin,autocommit=True) as c:
                     c.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(restored)))
+                restore_start_ms=time.time_ns()//1000000
                 subprocess.run(['pg_restore','--exit-on-error','--no-owner','--no-privileges','--dbname',restored,backup],env=env,check=True,capture_output=True,timeout=30)
                 with psycopg.connect(psycopg.conninfo.make_conninfo(self.admin,dbname=restored)) as c:
                     support.migrate(c)
@@ -107,6 +119,12 @@ class RecoveryTests(support.PostgresTests):
                     self.assertEqual(row[0]['price'],'123.000000000000000001')
                     self.assertEqual(c.execute('SELECT checkpoint FROM tester_storage.ingestion_checkpoints WHERE job_key=%s',(self.symbol,)).fetchone()[0],{'offset':1})
                     self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.record_sources WHERE symbol=%s',(self.symbol,)).fetchone()[0],1)
+                    self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.source_observations o JOIN tester_storage.record_sources s USING(source_id) WHERE s.symbol=%s',(self.symbol,)).fetchone()[0],1)
+                restore_end_ms=time.time_ns()//1000000
+                report=lifecycle.record_backup('measured:'+self.symbol,backup,[evidence['evidence_id']],restored=True,
+                    data_cutoff_ms=cutoff_ms,backup_start_ms=backup_start_ms,backup_end_ms=backup_end_ms,
+                    restore_start_ms=restore_start_ms,restore_end_ms=restore_end_ms)
+                print('MEASURED_RESTORE',{'rpo_ms':report['rpo_ms'],'rto_ms':report['rto_ms'],'dump_bytes':report['manifest']['bytes']})
             finally:
                 with psycopg.connect(self.admin,autocommit=True) as c:
                     c.execute(sql.SQL('DROP DATABASE IF EXISTS {} WITH (FORCE)').format(sql.Identifier(restored)))

@@ -176,11 +176,26 @@ class PostgresTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 shutil.copy(Path(__file__).parents[2]/'src/storage/migrations/001_initial.sql',tmp)
                 with psycopg.connect(target) as c: migrate(c,directory=tmp)
-            Store(target).ingest([self.record()],self.ev(),job_key=self.symbol)
+            # Seed a genuine v1-format record before applying later migrations;
+            # a current writer must not be used against an unmigrated schema.
+            from src.storage.models import normalize,digest
+            from psycopg.types.json import Jsonb
+            raw=self.record(); n=normalize(raw)
+            with psycopg.connect(target) as c:
+                c.execute('INSERT INTO tester_storage.instruments(venue,category,symbol) VALUES(%s,%s,%s)',('bybit','linear',self.symbol))
+                c.execute('''INSERT INTO tester_storage.raw_records(record_key,venue,category,symbol,dataset,interval,schema_version,
+                    timestamp_ms,timestamp_precision,trade_id,id_origin,payload,content_hash)
+                    VALUES(%s,'bybit','linear',%s,'trades','','1.0',%s,'ms',%s,'exchange',%s,%s)''',
+                    (n['record_key'],self.symbol,n['timestamp_ms'],n['trade_id'],Jsonb(n['payload']),n['content_hash']))
+                c.execute('INSERT INTO tester_storage.record_sources VALUES(%s,%s,%s,%s,%s,now())',
+                    (digest([n['record_key'],n['source'],raw]),n['record_key'],self.symbol,Jsonb(n['source']),Jsonb(raw)))
             with psycopg.connect(target) as c:
                 migrate(c)
                 self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.raw_records').fetchone()[0],1)
-                self.assertEqual(c.execute('SELECT max(version) FROM tester_storage.schema_migrations').fetchone()[0],4)
+                self.assertEqual(c.execute('SELECT max(version) FROM tester_storage.schema_migrations').fetchone()[0],6)
+            provenance=Store(target).provenance([n['record_key']])[n['record_key']]
+            self.assertFalse(provenance['authentic'])
+            self.assertEqual(len(provenance['unlinked_sources']),1)
         finally:
             with psycopg.connect(self.admin,autocommit=True) as c:
                 c.execute(sql.SQL('DROP DATABASE {} WITH (FORCE)').format(sql.Identifier(database)))

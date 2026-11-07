@@ -14,7 +14,7 @@ def trade(**changes):
     record = dict(schema_version='1.0', venue='bybit', category='linear', symbol='BTCUSDT',
                   dataset='trades', timestamp_ms=1700000000123, interval='',
                   payload=dict(trade_id='original-1', price='123.000000000000000001', size='0.01', side='Buy'),
-                  source=dict(url='https://public.bybit.com/trading/BTCUSDT/a.csv.gz',
+                  source=dict(source_kind='archive',url='https://public.bybit.com/trading/BTCUSDT/a.csv.gz',
                               fetched_at='2026-11-07T12:00:00Z'))
     record.update(changes)
     return record

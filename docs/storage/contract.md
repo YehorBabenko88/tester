@@ -1,5 +1,7 @@
 # Storage contract 1.0 (approved)
 
+Current follow-up contract (run identity/source observations, fenced recovery and lifecycle API): see [run-provenance-lifecycle.md](run-provenance-lifecycle.md). Explicit acquisition runs require source.source_kind; legacy reads do not invent missing run provenance. Migrate through 006 before using the updated writer.
+
 PostgreSQL schema `tester_storage`. Python package `src.storage`. Configure `TESTER_STORAGE_DSN` or libpq environment/service; do not commit credentials. `migrate(conn)` is an explicitly privileged setup operation; normal Store does not run DDL.
 
 Envelope: `schema_version="1.0"`, `venue="bybit"`, `category`, `symbol`, `dataset` (trades, candles, mark, index, premium, open_interest, funding, ratio), `timestamp_ms` (integer UTC epoch ms), `interval` for periodic series, `payload` (decimal strings), `source` (url, fetched_at UTC ISO8601, optional sha256). Trade payload: trade_id, price, size, side (Buy/Sell), optional timestamp_ns and timestamp_precision (ms/us/ns); timestamp_ns is populated only for genuine ns input. Original source payload is preserved. Missing trade_id requires source record_key and a documented composite identity, tagged composite; such records cannot independently prove completeness.
