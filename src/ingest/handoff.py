@@ -40,7 +40,23 @@ def record_key(record):
     return canonical([record.get(k,'') for k in fields])
 
 def semantic_hash(record):
-    return digest({k:record.get(k) for k in ('schema_version','timestamp_ms','timestamp_ns','timestamp_us','timestamp_precision','trade_id','id_origin','payload')})
+    value={k:record.get(k) for k in ('schema_version','timestamp_ms','timestamp_ns','timestamp_us','timestamp_precision','trade_id','id_origin','payload')}
+    if record.get('dataset')=='trades' and isinstance(value['payload'],dict):
+        payload=value['payload']
+        try:
+            # Match the named economic fields handed to B, not CSV spelling or
+            # ancillary raw columns. Raw envelopes/hashes are never rewritten.
+            fields={}
+            for name,raw in [('price',payload.get('price')),('size',payload.get('size',payload.get('volume')))]:
+                if not isinstance(raw,str): raise ValueError('Invalid exact trade value')
+                n=Decimal(raw)
+                if not n.is_finite() or n<=0 or n.adjusted()>131071 or n.as_tuple().exponent < -16383: raise ValueError('Invalid trade value')
+                text=format(n,'f')  # Decimal.normalize() can round under context.prec.
+                fields[name]=text.rstrip('0').rstrip('.') if '.' in text else text
+            value['payload']={**fields,'side':payload.get('side')}
+        except (ValueError,DecimalException):
+            pass  # Invalid/unknown values retain exact raw semantics and errors.
+    return digest(value)
 
 def official_kind(source):
     p=urlsplit(source.get('url',''))
@@ -179,7 +195,16 @@ def build_bundle(runs,tasks,evidence,versions,links):
         if s is None or item['quarantined']: continue
         key=tuple(s[k] for k in ('venue','category','symbol','dataset','interval'))+(item['ingestion_run'],)
         batch_groups.setdefault(key,[]).append(item)
+    publication_groups=[]
     for scope,values in batch_groups.items():
+        by_identity={}
+        for item in values: by_identity.setdefault(record_key(item['raw_record']),[]).append(item)
+        # B rejects duplicate identities within one batch. Publish equivalent
+        # source versions in separate layers so every provenance observation
+        # reaches B while its single economic record remains idempotent.
+        for position in range(max(map(len,by_identity.values()))):
+            publication_groups.append((scope,[items[position] for items in by_identity.values() if position<len(items)]))
+    for scope,values in publication_groups:
         unique={record_key(v['raw_record']):v for v in values}; records=[v['storage_record'] for v in unique.values()]
         refs=sorted({ref for v in values for ref in v['evidence_refs']})
         a=min(v['coverage']['start_ms'] for v in values); b=max(v['coverage']['end_ms'] for v in values)

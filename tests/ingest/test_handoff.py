@@ -4,17 +4,48 @@ import json
 import tempfile
 import unittest
 import requests
+from decimal import localcontext
 from pathlib import Path
 from unittest.mock import Mock
 
 from src.ingest.archive import iter_trade_records
 from src.ingest.journal import Journal
 from src.ingest.rest import Backfill
+from src.ingest.handoff import semantic_hash
 from tests.ingest.test_pipeline import response
 
 URL='https://api.bybit.com/v5/market/kline'
 
 class HandoffTests(unittest.TestCase):
+    def test_equivalent_trade_decimals_preserve_both_source_observations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); j=Journal(root/'j.sqlite')
+            run=j.start_run('archive_pair_fixture')
+            for name,price,size in [('first','1.0','2.00'),('second','1.00','2.0')]:
+                path=root/(name+'.csv.gz')
+                path.write_bytes(gzip.compress(('timestamp,symbol,side,size,price,trdMatchID\n1704067200.123,BTCUSDT,Buy,'+size+','+price+',same-id\n').encode()))
+                records=iter_trade_records(path,'linear','BTCUSDT',{'url':'https://public.bybit.com/trading/BTCUSDT/'+name+'.csv.gz','ingestion_run':run})
+                j.save(name,'observed',{},records,run_id=run)
+            j.finish_run(run,'PARTIAL'); j.export(root/'handoff.json'); j.close()
+            bundle=json.loads((root/'handoff.json').read_text())
+            self.assertFalse(bundle['conflicts'])
+            self.assertEqual(len(bundle['raw_record_versions']),2)
+            self.assertEqual({r['raw_record']['payload']['price'] for r in bundle['records']},{'1.0','1.00'})
+            self.assertEqual({r['raw_record']['payload']['size'] for r in bundle['records']},{'2.00','2.0'})
+            self.assertEqual(len({semantic_hash(r['raw_record']) for r in bundle['records']}),1)
+            self.assertEqual(len(bundle['storage_batches']),2)
+            self.assertEqual([len(b['records']) for b in bundle['storage_batches']],[1,1])
+            self.assertEqual({b['records'][0]['payload']['trade_id'] for b in bundle['storage_batches']},{'same-id'})
+            self.assertEqual(len({b['records'][0]['source']['sha256'] for b in bundle['storage_batches']}),2)
+
+    def test_trade_decimal_comparison_does_not_round_with_decimal_context(self):
+        base={'schema_version':'1.0','dataset':'trades','timestamp_ms':1704067200123,'timestamp_ns':None,'timestamp_precision':'ms','trade_id':'same','id_origin':'exchange','payload':{'price':'12345678901234567890123456789.000','size':'0.00000000000000000000000000010','side':'Buy'}}
+        equivalent={**base,'payload':{**base['payload'],'price':'12345678901234567890123456789','size':'0.0000000000000000000000000001'}}
+        changed={**equivalent,'payload':{**equivalent['payload'],'price':'12345678901234567890123456788'}}
+        with localcontext() as context:
+            context.prec=3
+            self.assertEqual(semantic_hash(base),semantic_hash(equivalent))
+            self.assertNotEqual(semantic_hash(base),semantic_hash(changed))
     def test_second_window_failure_keeps_exact_failure_bounds(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); j=Journal(root/'j.sqlite'); api=Mock()

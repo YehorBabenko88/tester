@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import inspect
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -23,6 +24,47 @@ CONTRACT_SHA='9766c0093e2608280875ac56db074414a3d62c69'
 STORAGE_SHA='5154efab05d44b96f4aa83819672396d75679f2e'
 STORAGE_RUN_SHA='47fd36f32389174377682a13862f5b36c7a886da'
 URL='https://api.bybit.com/v5/market/kline'
+
+def decimal_fixture(root,second_price='1.00'):
+    """Synthetic parser/consumer fixture; these URLs are not availability claims."""
+    root.mkdir(parents=True,exist_ok=True); j=Journal(root/'decimal.sqlite')
+    run=j.start_run('synthetic_decimal_fixture')
+    try:
+        for name,price,size in [('first','1.0','2.00'),('second',second_price,'2.0')]:
+            path=root/(name+'.csv.gz')
+            path.write_bytes(gzip.compress(('timestamp,symbol,side,size,price,trdMatchID\n1704067200.123,BTCUSDT,Buy,'+size+','+price+',decimal-fixture-id\n').encode()))
+            records=iter_trade_records(path,'linear','BTCUSDT',{'url':'https://public.bybit.com/trading/BTCUSDT/fixture-'+name+'.csv.gz','ingestion_run':run})
+            j.save(name,'observed',{},records,run_id=run)
+        j.finish_run(run,'PARTIAL'); j.export(root/'decimal.json')
+    finally: j.close()
+    return json.loads((root/'decimal.json').read_text())
+
+def verify_decimal_store(dsn,root):
+    """Explicitly isolated PG fixture only; no downloads or real trader identities."""
+    from src.storage.store import Store
+    from src.storage.models import normalize
+    bundle=decimal_fixture(root/'equivalent')
+    if bundle['conflicts'] or len(bundle['storage_batches'])!=2: raise AssertionError('Equivalent versions must both publish')
+    options={'storage_root':root.resolve()} if 'storage_root' in inspect.signature(Store).parameters else {}
+    store=Store(dsn,**options)
+    for batch in bundle['storage_batches']:
+        kwargs={'run_id':batch['ingestion_run']} if 'run_id' in inspect.signature(store.ingest).parameters else {}
+        store.ingest(batch['records'],batch['evidence'],batch['batch_id'],batch['checkpoint'],**kwargs)
+    rows=store.read('trades','bybit','linear','BTCUSDT',1704067200123,1704067200124,limit=100)
+    assert len(rows)==1
+    observations=rows[0]['provenance']['observations']
+    assert len(observations)==2 and len({o['source_id'] for o in observations})==2
+    for batch in bundle['storage_batches']:
+        kwargs={'run_id':batch['ingestion_run']} if 'run_id' in inspect.signature(store.ingest).parameters else {}
+        store.ingest(batch['records'],batch['evidence'],batch['batch_id'],batch['checkpoint'],**kwargs)
+    replay=store.read('trades','bybit','linear','BTCUSDT',1704067200123,1704067200124,limit=100)
+    assert len(replay)==1 and len(replay[0]['provenance']['observations'])==2
+    changed=decimal_fixture(root/'changed','1.01')
+    assert len(changed['conflicts'])==1 and not changed['storage_batches']
+    assert len({normalize(r['storage_record'])['content_hash'] for r in changed['records']})==2
+    report={'fixture_kind':'synthetic_decimal_parser_and_B_store','economic_executions':1,'source_observations':2,'replay_economic_executions':1,'replay_source_observations':2,'changed_value_conflicts':1,'changed_value_publication_batches':0,'raw_versions_preserved':len(bundle['raw_record_versions']),'raw_source_hashes':len({r['raw_record']['source']['sha256'] for r in bundle['records']})}
+    (root/'decimal-store-report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+    return report
 
 def prepare_references(root,storage_sha=STORAGE_SHA):
     repo=Path(__file__).resolve().parents[2]
@@ -80,6 +122,23 @@ class PinnedHandoffTests(unittest.TestCase):
             self.assertIsNone(rows['ms']['contract_record']['timestamp_ns'])
             self.assertEqual(rows['ns']['raw_record']['payload']['size'],'0.400')
 
+    def test_equivalent_decimal_sources_match_B_economics_but_remain_distinct(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); bundle=decimal_fixture(root/'equivalent')
+            self.validate_bundle(bundle)
+            self.assertFalse(bundle['conflicts'])
+            self.assertEqual(len(bundle['records']),2)
+            values=[self.normalize(b['records'][0]) for b in bundle['storage_batches']]
+            self.assertEqual(len(values),2)
+            self.assertEqual(values[0]['record_key'],values[1]['record_key'])
+            self.assertEqual(values[0]['content_hash'],values[1]['content_hash'])
+            self.assertEqual(len({r['source']['sha256'] for r in values}),2)
+            changed=decimal_fixture(root/'changed','1.01')
+            self.validate_bundle(changed)
+            self.assertEqual(len(changed['conflicts']),1)
+            self.assertFalse(changed['storage_batches'])
+            self.assertEqual(len({self.normalize(r['storage_record'])['content_hash'] for r in changed['records']}),2)
+
     def test_rest_named_payload_and_dataset_mapping(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); j=Journal(root/'journal.sqlite')
@@ -132,9 +191,14 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--references',type=Path,required=True)
     parser.add_argument('--storage-sha',default=STORAGE_SHA,choices=[STORAGE_SHA,STORAGE_RUN_SHA])
+    parser.add_argument('--postgres-dsn',help='Only an explicitly isolated migrated scratch database')
+    parser.add_argument('--fixture-output',type=Path)
     args=parser.parse_args(); prepare_references(args.references.resolve(),args.storage_sha)
     suite=unittest.defaultTestLoader.loadTestsFromTestCase(PinnedHandoffTests)
     result=unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful(): raise SystemExit(1)
+    if args.postgres_dsn:
+        if args.fixture_output is None: parser.error('--fixture-output required with PostgreSQL')
+        print(json.dumps(verify_decimal_store(args.postgres_dsn,args.fixture_output.resolve()),indent=2))
 
 if __name__=='__main__': main()

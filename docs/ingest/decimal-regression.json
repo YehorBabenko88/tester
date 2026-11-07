@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-11-07T15:18:41.612105+00:00",
+  "base_sha": "39645a64ed424270401de3b1f35767b1fd7c3d74",
+  "review_comment": "https://github.com/YehorBabenko88/tester/pull/10#issuecomment-6708786351",
+  "unit_tests_passed": 42,
+  "baseline_consumer_tests_passed": 5,
+  "current_consumer_tests_passed": 5,
+  "contract_sha": "9766c0093e2608280875ac56db074414a3d62c69",
+  "baseline_B_sha": "5154efab05d44b96f4aa83819672396d75679f2e",
+  "current_B_sha": "47fd36f32389174377682a13862f5b36c7a886da",
+  "regressions": "Equivalent decimal false conflict reproduced RED, then GREEN; low Decimal context retains exact distinct values; true economic changes stay quarantined",
+  "postgres": {
+    "fixture_kind": "synthetic_decimal_parser_and_B_store",
+    "economic_executions": 1,
+    "source_observations": 2,
+    "replay_economic_executions": 1,
+    "replay_source_observations": 2,
+    "changed_value_conflicts": 1,
+    "changed_value_publication_batches": 0,
+    "raw_versions_preserved": 2,
+    "raw_source_hashes": 2,
+    "checked_at": "2026-11-07T15:17:24.620261+00:00",
+    "postgres_version": "postgres (PostgreSQL) 18.4",
+    "storage_sha": "47fd36f32389174377682a13862f5b36c7a886da",
+    "network_acquisition": false,
+    "cluster_scope": "New isolated scratch cluster; existing user DBs untouched",
+    "scratch_server_stopped": true
+  },
+  "independent_review": "No blocker found; reviewer independently passed42 A and5 consumer tests per B pin",
+  "scope": "Standalone tester A ingestion only; synthetic decimal fixture, no market/TI downloads, no trader attribution, no merge/deploy",
+  "source_sha256": {
+    "src/ingest/handoff.py": "b99c86fc14ed219d31d563bc644189156de3274da06cef5f3711187d666286b1",
+    "tests/ingest/test_handoff.py": "bfa37879c745ff533c8c05aa903e6ed4361e3470ef8baf03721a09fcb513169d",
+    "tests/ingest/verify_handoff.py": "bc77f7563905898a08ee5f1ad83b2192b1a97ad7a42d498656526cc449510037"
+  }
+}
