@@ -18,7 +18,7 @@
     "evidence": "System-origin heartbeat envelope received with matching automation_id; actual continuation executed tools in configured worktree",
     "worktree": "existing dedicated work/master-supervisor; Git fallback after native operation stalled",
     "first_invocation_at": "2026-11-07T14:40:23.454Z",
-    "prompt_revision": "Issue25 standalone/P0-first source gate; actual config readback confirmed",
+    "prompt_revision": "Issue27 current-PC isolated physical test scope; official view and local config readback confirmed ACTIVE",
     "prompt_update_verified": true,
     "last_invocation_at": "2026-11-07T16:20:23.859Z",
     "last_invocation_evidence": "Fifth matching actual system heartbeat; GitHub refresh, safe error fix and independent PG adverse proof executed in existing worktree"
@@ -681,10 +681,14 @@
     "issue": 27,
     "branch": "physical/master-windows-test",
     "checkpoint": "docs/physical-test/CHECKPOINT.json",
-    "status": "PREPARING_SCOPED_INSTALLER",
+    "status": "AWAITING_WINDOWS_ADMINISTRATOR_UAC",
     "service_installed": false,
     "owned_database_prepared": true,
     "own_cluster_stopped": true,
-    "acceptance": "NOT_ACCEPTED"
+    "acceptance": "NOT_ACCEPTED",
+    "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+    "draft_pr": "https://github.com/YehorBabenko88/tester/pull/29",
+    "uac_pending": true,
+    "next_checkpoint": "Inspect existing UAC launcher32968/starttime17:33:05Z and runtime/uac-operation-*.json; never duplicate pending prompt"
   }
 }

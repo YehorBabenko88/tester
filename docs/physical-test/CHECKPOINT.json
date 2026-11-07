@@ -4,8 +4,8 @@
   "issue": 27,
   "installation_id": "f23dab63-92c6-4e56-9027-4213c6b4dc60",
   "host_fingerprint": "658ac47c38eb17a6",
-  "phase": "SNAPSHOT",
-  "status": "PREPARING_SCOPED_INSTALLER",
+  "phase": "INSTALL",
+  "status": "AWAITING_WINDOWS_ADMINISTRATOR_UAC",
   "root": "C:/ProgramData/TesterPhysicalTest20261107",
   "services": [
     "TesterPhysicalTest20261107",
@@ -32,12 +32,13 @@
   "repair_failures": {},
   "acceptance": "NOT_ACCEPTED",
   "next": [
-    "Publish separate physical Draft PR and exact candidate",
-    "Freeze checksummed release and application config; externally Verify",
-    "Invoke bounded normal-UAC registration only; retain permission denial if unavailable",
-    "Observe actual SCM then authorized start/test/upgrade/crash recovery; no acceptance until proved"
+    "Inspect existing UAC launcher32968/starttime17:33:05Z and runtime/uac-operation-*.json; never duplicate pending prompt",
+    "If OS consent completes, inspect actual own SCM registrations/account/image/dependency, native logs, process/API/DB identity",
+    "If consent is denied, retain OS error and wait for human administrator action; never bypass policy or repeatedly elevate",
+    "Run service stop/update/recovery/data backup-restore/ten-instrument financial/API/UI acceptance only after native readiness",
+    "Keep optional missing C/F/G/TI bindings explicit, follow existing Issues and exact-SHA CI; preserve all data"
   ],
-  "checked_at": "2026-11-07T17:27:45.365518+00:00",
+  "checked_at": "2026-11-07T17:35:55.906439+00:00",
   "own_database_prepared": true,
   "own_cluster_running": false,
   "database": "tester_physical_20261107",
@@ -58,5 +59,40 @@
     "STARTUP_STOP_SIGNAL_LOSS",
     "JUNCTION_METADATA_FOLLOW_STAT",
     "PG_CTL_CAPTURE_PIPE"
-  ]
+  ],
+  "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+  "manifest_sha256": "ec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec",
+  "draft_pr": "https://github.com/YehorBabenko88/tester/pull/29",
+  "external_manifest_verification": "VERIFIED_READ_ONLY_431_FILES",
+  "dependency_integrity": {
+    "distributions": 37,
+    "record_hashes_checked": 2701,
+    "pip_check": "PASS"
+  },
+  "uac": {
+    "started_at": "2026-11-07T17:33:05Z",
+    "status": "WAITING_FOR_OS_CREDENTIAL_CONSENT",
+    "launcher_pid": 32968,
+    "consent_pid": 29596,
+    "tool_session_id": 55429,
+    "wrapper": "C:/ProgramData/TesterPhysicalTest20261107/install-and-start-approved.ps1",
+    "wrapper_sha256": "34e325555b9ee8882d23b32c6b76f256ad0e7df8e1f101ff65c58e6d64b881d4",
+    "scope": "register exact owned PG/app services, request app start, exit; no persistent elevated agent",
+    "duplicate_attempt_forbidden": true
+  },
+  "ci": [
+    {
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42396662815",
+      "status": "queued"
+    },
+    {
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42396662826",
+      "status": "queued"
+    },
+    {
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42396658973",
+      "status": "queued"
+    }
+  ],
+  "blocking_reason": "ENVIRONMENT:WINDOWS_ADMINISTRATOR_CREDENTIAL_REQUIRED"
 }

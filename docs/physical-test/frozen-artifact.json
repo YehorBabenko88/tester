@@ -1,0 +1,23 @@
+{
+  "repository": "YehorBabenko88/tester",
+  "release_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+  "tree_sha": "64d0bfab16a780861f3ab47c31e86d169f3a4584",
+  "manifest_sha256": "ec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec",
+  "files": 431,
+  "bytes": 2656342,
+  "release": "C:\\ProgramData\\TesterPhysicalTest20261107\\releases\\0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+  "config_redacted": {
+    "host": "127.0.0.1",
+    "port": 18765,
+    "data_dir": "C:\\ProgramData\\TesterPhysicalTest20261107\\runtime",
+    "frontend_dir": "C:\\ProgramData\\TesterPhysicalTest20261107\\releases\\0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d\\frontend",
+    "max_pending": 20,
+    "max_running": 2,
+    "min_free_bytes": 1073741824,
+    "storage_quota_bytes": 2147483648
+  },
+  "database": "tester_physical_20261107",
+  "app_role": "tester_physical_app",
+  "status": "FROZEN_NOT_INSTALLED",
+  "draft_pr": 29
+}

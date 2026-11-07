@@ -1,3 +1,9 @@
+# Physical checkpoint — normal UAC pending, 2026-11-07T17:35:55.906439+00:00
+
+**NOT_ACCEPTED / AWAITING_WINDOWS_ADMINISTRATOR_UAC.** Draft29 frozen source0ff59c69, manifestec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec,431files/2656342bytes externally verified. Private venv37distributions/2701RECORDhashes and pipcheckPASS. Actual normalRunAs invoked17:33:05Z, consent.exe29596 observed and launcher32968 still awaiting OS administrator credential; no own SCM services yet. Do not open a duplicate UAC prompt. One bounded reviewed wrapper only registers own PG/app services and requests start; no persistent elevated agent. See physical CHECKPOINT for payload, active launcher/session and exact continuation. CI for frozen0ff remains queued, not passed. Existing5432 untouched; own cluster stopped after B/E migration/privilege tests.
+
+---
+
 # Current direct mission — Issue27 isolated physical Windows test
 
 **NOT_ACCEPTED.** Current-PC authorization supersedes earlier no-install restriction only for dedicated tester resources. Physical branch physical/master-windows-test: root/private venv prepared; actual own PG18 cluster55469 initialized, B/E migrations and app no-DDL/no-DELETE probes passed, retained backup, stopped. Existing PostgreSQL5432 untouched. First pg_ctl inherited PIPE hang diagnosed and repaired with guarded non-destructive resume. Native startup STOP/junction fixes independently24PASS; complete platform135PASS/14skips, root unittest258/48skips. Ten real Bybit candle windows50rows observed with original evidence; coverage PARTIAL, no full-history/trader claim. No native SCM service installed: standard-user create denied5, separate-admin normalUAC required after frozen payload review. See docs/physical-test/CHECKPOINT.json and COMPONENT_MATRIX.md for exact next steps. F/G/TI and financial-provider bindings remain not integrated; no main merge/trading/deletion.
