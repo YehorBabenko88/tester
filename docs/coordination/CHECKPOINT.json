@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "repository": "YehorBabenko88/tester",
-  "cycle_id": "heartbeat-2026-11-07-02-storage-reader",
-  "checked_at": "2026-11-07T15:36:06.810373+00:00",
-  "checked_at_europe_berlin": "2026-11-07T16:36:06.810373+01:00",
+  "cycle_id": "heartbeat-2026-11-07-03-composed-be",
+  "checked_at": "2026-11-07T15:52:29.372082+00:00",
+  "checked_at_europe_berlin": "2026-11-07T16:52:29.372082+01:00",
   "readiness": "NOT_READY",
   "coordination_branch": "coordination/master",
   "integration_branch": "integration/master",
-  "candidate_parent": "d945b23ab940b67f569ed85aa4c8d6e9684f8149",
+  "candidate_parent": "65664053c70c97874f39354b77eb5359062daddd",
   "main_untouched": "0a6ce227d9463562bb18889dcc0ee747f3be9130",
   "automation": {
     "id": "tester-master-coordination-cycle",
@@ -20,8 +20,8 @@
     "first_invocation_at": "2026-11-07T14:40:23.454Z",
     "prompt_revision": "Issue25 standalone/P0-first source gate; actual config readback confirmed",
     "prompt_update_verified": true,
-    "last_invocation_at": "2026-11-07T15:27:23.699Z",
-    "last_invocation_evidence": "Matching system-origin heartbeat and actual continuation tools in existing worktree; separate from configuration readback"
+    "last_invocation_at": "2026-11-07T15:42:23.754Z",
+    "last_invocation_evidence": "Third matching system-origin heartbeat; actual continuation and tests executed, existing worktree retained"
   },
   "agents": {
     "A": {
@@ -36,22 +36,22 @@
     },
     "B": {
       "observed_head": "e236395684d661f9464a62a0f6f67803d9000de6",
-      "review_status": "READY_FOR_REVIEW",
-      "execution_status": "COMPLETED_OBSERVED",
+      "review_status": "IN_PROGRESS",
+      "execution_status": "RUNNING_CONFIRMED",
       "execution_observed_at": "2026-11-07T14:28:23Z",
-      "execution_evidence": "Idle completed turn observed; send_message_to_thread returned existing B thread ID for provenance mismatch task",
+      "execution_evidence": "Existing idle chat resumed once for bounded read proof task; actual implementation progress reported",
       "pr": 13,
       "reviewed_head": "e236395684d661f9464a62a0f6f67803d9000de6",
       "new_head_review": "FOCUSED_LINEAGE_VERIFIED_REAL_PG57"
     },
     "C": {
-      "observed_head": "152823e1528f0953f8175717212d795d7fe1ac0c",
-      "review_status": "IN_PROGRESS",
-      "execution_status": "RUNNING_CONFIRMED",
+      "observed_head": "e9f6f0f605a9bbce135f172adca2e630cc01e3b3",
+      "review_status": "CHANGES_REQUESTED",
+      "execution_status": "DISPATCHED_AFTER_IDLE_CHECK",
       "execution_observed_at": "2026-11-07T15:36:06.810373+00:00",
-      "execution_evidence": "Idle/completed confirmed before single followup; actual active/inProgress tool snapshot observed after dispatch",
+      "execution_evidence": "Prior canonical binding turn completed; corrective original-fetch/event-ns cutoff followup sent once after idle confirmation",
       "pr": 20,
-      "reviewed_head": "152823e1528f0953f8175717212d795d7fe1ac0c"
+      "reviewed_head": "e9f6f0f605a9bbce135f172adca2e630cc01e3b3"
     },
     "D": {
       "observed_head": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c",
@@ -103,11 +103,11 @@
   },
   "tests": {
     "coordinator": {
-      "discovered": 86,
-      "passed": 84,
+      "discovered": 147,
+      "passed": 145,
       "skipped_opt_in_pg": 2,
       "failures": 0,
-      "log": "evidence/storage-reader-unit.log"
+      "log": "evidence/composed-be-postgres-unit.log"
     },
     "B_5154efab": {
       "executed": 40,
@@ -218,7 +218,7 @@
       "passed": 6,
       "strict_provenance_tests": 8,
       "independent_review_passed": 14,
-      "composition": "PINNED_SNAPSHOTS_NOT_SINGLE_MERGED_INSTALLABLE_BRANCH",
+      "composition": "B_E_SAME_CHECKOUT_TESTED_NOT_FULL_A_G",
       "http_postgres_synthetic_instruments": 10,
       "http_exact_trade_fixtures": 20,
       "http_pages": 20,
@@ -226,6 +226,31 @@
       "unsupported_resource_http": 503,
       "live_exchange_end_to_end": "NOT_EXECUTED",
       "log": "evidence/storage-reader-http-e236.log"
+    },
+    "composed_BE": {
+      "unittest_discovered": 147,
+      "unittest_passed": 145,
+      "unittest_skipped_root_optin": 2,
+      "platform_passed": 89,
+      "platform_skipped_symlink": 1,
+      "synthetic_http_instruments": 10,
+      "composition": "SAME_CHECKOUT",
+      "postgres": "own loopback18.4 stopped after test",
+      "unit_log": "evidence/composed-be-postgres-unit.log",
+      "platform_log": "evidence/composed-be-postgres-platform.log",
+      "contract_pin": "9766c009 exact bytes PASS",
+      "wheel_sha256": "14541655fb48d8c07f754acd471e057006726297ae45a4032aaa37b241c95192",
+      "wheel_import": "evidence/composed-be-wheel-import.log",
+      "hosted_ci": "NOT_YET_PASSED"
+    },
+    "C_e9f6": {
+      "unit_passed": 42,
+      "windows_archive_pin_failures": 1,
+      "published_git_blob_pin_matches": 8,
+      "cutoff_adverse_defects": 2,
+      "integration": "BLOCKED_NOT_IMPORTED",
+      "review": "reviews/C_BINDING_E9F6.md",
+      "qualification": "All8Gitblobs match pins; Windows checkout/archive line-ending conversion causes pin failure; prior root claim of wrong Git blobs corrected in PR20 comment6709316506"
     }
   },
   "ci": {
@@ -243,14 +268,12 @@
       42381959325
     ],
     "latest_observed_run_ids": [
-      42386692924,
-      42386692851,
-      42386689386,
-      42386335357
+      42387228554,
+      42387224469,
+      42387222408
     ],
     "urls": [
-      "https://github.com/YehorBabenko88/tester/actions/runs/42386692924",
-      "https://github.com/YehorBabenko88/tester/actions/runs/42386335357"
+      "https://github.com/YehorBabenko88/tester/actions/runs/42387228554"
     ]
   },
   "tasks": {
@@ -379,6 +402,31 @@
       "defect": "E-b15b-owned-factory-import-boundary",
       "remote_marker": "master-task:E-b15b-owned-factory-import-boundary",
       "status": "IN_PROGRESS"
+    },
+    "60e22be38481d7bad1ae9442623268c583ef613e6a9f1ac1ff8c58131ed10bd6": {
+      "issue": 2,
+      "head": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "defect": "B-e236-bounded-consistent-read-proof",
+      "comment_id": 6709223310,
+      "remote_marker": "master-task:B-e236-bounded-consistent-read-proof",
+      "status": "IN_PROGRESS"
+    },
+    "d235465ebb9257d1ac2090cefec044f28440a8abf5b7043df77de5b937a246fe": {
+      "issue": 20,
+      "head": "e9f6f0f605a9bbce135f172adca2e630cc01e3b3",
+      "defect": "C-e9f6-reference-hash-artifact",
+      "comment_id": 6709307218,
+      "remote_marker": "master-task:C-e9f6-reference-hash-artifact",
+      "status": "CHANGES_REQUESTED",
+      "qualification": "Windows byte-preserving attributes needed, not bad published blobs; correction6709316506"
+    },
+    "7e2eda3a02c129a7e1194470279a79a1dbba85229503d8fb3874fda597e1fad9": {
+      "issue": 20,
+      "head": "e9f6f0f605a9bbce135f172adca2e630cc01e3b3",
+      "defect": "C-e9f6-original-fetch-nanosecond-cutoff",
+      "comment_id": 6709316683,
+      "remote_marker": "master-task:C-e9f6-original-fetch-nanosecond-cutoff",
+      "status": "CHANGES_REQUESTED"
     }
   },
   "existing_task_references": {
@@ -408,24 +456,28 @@
     "Issue25 standalone architecture, inert five-candidate source registry, rights/completeness/lag audits and A-G staged owner plan",
     "Actual first scheduled heartbeat verified with real continuation tools",
     "Authentic B provenance projection with original-run mismatch rejection,7 regressions and realPG2runs1trade exact roundtrip; E fullreader integration pending",
-    "Owned trades-only B e236 -> MASTER strict matched-run reader -> E b15b actual HTTP/PG10synthetic-instrument roundtrip; unconnected resources503,UNKNOWNcoverage preserved"
+    "Owned trades-only B e236 -> MASTER strict matched-run reader -> E b15b actual HTTP/PG10synthetic-instrument roundtrip; unconnected resources503,UNKNOWNcoverage preserved",
+    "Composed reviewed B e236 and E b15b into one checkout; retained safe B quality, fixed old E quality tests to approved completeness semantics",
+    "Packaged B/E/integration modules and schema/SQL assets; isolated wheel imports pass; declared keyring dependency; CI explicit samecheckout HTTP admin-DSN gate",
+    "Independent new C review found original-fetch and event-ns cutoff leaks; blocked integration and dispatched concrete corrections"
   ],
   "blockers": [
     "G authoritative control-state SQLite versus PostgreSQL ownership decision",
     "Resource scan bounds/lifecycle/service dry-run and 10-instrument integrated acceptance incomplete",
     "CI queued/pending; no successful exact-candidate CI",
     "Trader source licensing/intended-use permission and complete real account sample not established; S1+ disabled",
-    "B->E trade factory tested through pinned snapshots only; single branch integration and C/candle/observation resources pending",
     "Bounded active coverage-evidence proof and consistent data/coverage snapshot pending; reader never certifies COMPLETE",
     "B source-observation fanout unbounded by trade page size; resource acceptance remains open",
-    "E owned factory pre-import/origin enforcement in progress; helper alone not service enforcement"
+    "E owned factory pre-import/origin enforcement in progress; helper alone not service enforcement",
+    "C e9f6 original raw fetched_at +1ns and exact event residual ns leak across cutoff; C excluded from composition",
+    "C vendored hash references need byte-preserving Windows checkout attributes; Git blobs themselves correct",
+    "Only B/E composed; A/C/D/F/G and full real-source10instrument/history/browser/resource/service/CI acceptance pending"
   ],
   "next_actions": [
-    "Review A3098→Be236 producer/consumer task6709081686 and C canonical binding6709081990 on new exact HEAD",
-    "Review E owned factory boundary6709082262; do not redispatch active A/C/E",
-    "Compose pinned modules into single integration branch with exact contracts; reader currently tested via snapshots only",
-    "Implement bounded active-coverage/provenance snapshot; preserve UNKNOWN until authentic proof; test observation fanout",
-    "Continue F separate/G canonical state and real-source10instrument/resources/service/browser/CI acceptance; no TI collection or main merge"
+    "Review new A export pair, corrected C cutoff/byte attrs, E ownedimportboundary heads; do not duplicate active dispatches",
+    "Review B bounded consistent read_page proof API and adapt trade reader without promoting COMPLETE prematurely",
+    "Keep composed B/E stable; integrate A then corrected C then D; F separate and G canonical ownership pending",
+    "Run real-source10instrument/history/chart/resource/service and exactcandidate CI gates; no main merge/deploy/trading/TI collection"
   ],
   "restrictions": [
     "tester only",
@@ -483,5 +535,14 @@
     ],
     "source_evidence_comment_id": 6708941145,
     "optional_contract_comment_id": 6708940893
+  },
+  "integration_composition": {
+    "state": "B_E_SINGLE_CHECKOUT_AND_WHEEL_TESTED_NOT_FULL_A_G",
+    "B": "e236395684d661f9464a62a0f6f67803d9000de6",
+    "E": "b15b1ce12633a134b19cb71a57d7e841a7120579",
+    "base": "65664053c70c97874f39354b77eb5359062daddd",
+    "resolution": "Retain B Decimal/UTC quality with locally_valid distinct from COMPLETE; preserve coordinator ignores",
+    "packaging": "B/E/quality/integration modules plus SQL/schema assets and keyring dependency",
+    "default_provider_activated": false
   }
 }

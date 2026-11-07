@@ -1,0 +1,2 @@
+PASS installed-wheel isolated imports from target; owned modules and migrations packaged; missing DSN fails closed
+WHEEL_SHA256 14541655fb48d8c07f754acd471e057006726297ae45a4032aaa37b241c95192

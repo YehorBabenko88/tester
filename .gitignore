@@ -8,3 +8,7 @@ __pycache__/
 .supervisor-cycle.lock
 docs/coordination/CHECKPOINT.json.*.tmp
 
+/build/
+/dist/
+/*.egg-info/
+

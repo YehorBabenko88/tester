@@ -1,3 +1,21 @@
+# Current heartbeat — composed B/E and blocked C, 2026-11-07T16:52:29.372082+01:00
+
+**NOT_READY.** Existing worktree retained; candidate imports reviewed B e236395 and E b15b1ce into one repository checkout. Local preparation branch integration/pinned-candidate-20261107; published coordination/master and integration/master will retain reviewed B/E commit parents. No main merge or default provider activation. A/C/D/F/G are not yet composed.
+
+Own disposable PG18.4 same-checkout unittest147methods/145PASS/2root optin skips; separate API89PASS/1symlinkskip. Includes10synthetic instrument identities20exact trade fixtures20HTTPpages, cross-symbol cursor rejects. Core1.0 hash pin unchanged/PASS. Wheel built and isolated extracted-wheel imports pass, SQL/schema assets included; keyring dependency declared. No OS credential backend installed/certified. Own PG stopped afterward. This is not live history, full pipeline, stress or production readiness.
+
+Integration resolved .gitignore and quality helper conflicts: retained coordinator ignores and B's Decimal/UTC/localvalid-never-COMPLETE semantics. Two obsolete E quality tests failed RED, then corrected to local validity and half-open UNKNOWN gaps. Reviewer found CI HTTP test was skipping without adminDSN and wheel omitted keyring; fixed with explicit storageCI HTTP step/disposable admin and runtime dependency. Hosted CI remains queued, not passing evidence.
+
+C advanced152823→e9f6f0f, reviewed and BLOCKED: actual-shaped B raw_envelope preserves original fetched_at cutoff+1ns but C uses normalized truncated time; canonical event residual ns beyond cutoff also admitted. P1task20:6709316683/addendum6709327333. C not integrated. Windows extraction43methods42PASS/1hashfail; all8publishedGitblobs actually match pins. Root initial bad-blob diagnosis corrected publicly6709316506: need byte-preserving checkout attributes, not repinning correct refs. Reviewer report/evidence retained.
+
+New B bounded consistent-page/provenance/active-proof task2:6709223310 executing; original lineage remains verified. C corrective chat resumed only after idle confirmation; A/E previous tasks continue, no duplicate dispatch. G AWAITING_AGENT_EXECUTION; no authorized G/H chat assumed. S0TI inert.
+
+Third actual heartbeat2026-11-07T15:42:23.754Z recorded. Current exact pins/remote markers/CI links/commands/outstanding gates in CHECKPOINT.json. Next: changed A/C/E review, bounded B proof→reader, then remaining pinned components and real-source10instrument/browser/resources/service/CI. No trading, user-data deletion, physical deployment or merge main.
+
+---
+
+## Historical checkpoints below
+
 # Current heartbeat — B→E trade reader, 2026-11-07T16:36:06.810373+01:00
 
 **NOT_READY.** Read/checkpoint/Issue8/25/PR11 refreshed; Issues1–18/25, all9DraftPRs/reviews, A–G/H refs and Actions observed. Main unchanged0a6ce227. B advanced47fd→e236395; independent57/57 real own disposable-PG tests pass, original-run mismatch/whole-batch rollback/recovery lineage fixed. Other producer pins unchanged. CI remains queued, no successful exact-candidate CI.

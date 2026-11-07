@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "mode": "DRY_RUN",
+  "action": "install",
+  "physical_changes": false,
+  "service_name": "TesterMarketLab",
+  "identity": "NT SERVICE\\TesterMarketLab",
+  "host_kind": "native_pywin32_ServiceFramework",
+  "delayed_auto_start": true,
+  "restart_policy": {
+    "max_restarts": 3,
+    "reset_seconds": 86400
+  },
+  "operations": [
+    {
+      "api": "win32service.CreateService",
+      "serviceName": "TesterMarketLab",
+      "displayName": "Tester Market Laboratory",
+      "binaryPathName": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-e-platform-windows-deployment\\work\\revision\\.venv\\Scripts\\python.exe C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-e-platform-windows-deployment\\work\\revision\\scripts\\windows\\service_host.py",
+      "startType": "SERVICE_AUTO_START",
+      "userName": "NT SERVICE\\TesterMarketLab"
+    },
+    {
+      "api": "ChangeServiceConfig2",
+      "setting": "SERVICE_CONFIG_DELAYED_AUTO_START_INFO",
+      "value": true
+    },
+    {
+      "api": "ChangeServiceConfig2",
+      "setting": "SERVICE_CONFIG_SERVICE_SID_INFO",
+      "value": "SERVICE_SID_TYPE_UNRESTRICTED"
+    },
+    {
+      "api": "ChangeServiceConfig2",
+      "setting": "SERVICE_CONFIG_FAILURE_ACTIONS",
+      "reset_seconds": 86400,
+      "actions": [
+        {
+          "action": "restart",
+          "delay_ms": 5000
+        },
+        {
+          "action": "restart",
+          "delay_ms": 15000
+        },
+        {
+          "action": "restart",
+          "delay_ms": 60000
+        },
+        {
+          "action": "none",
+          "delay_ms": 0
+        }
+      ]
+    },
+    {
+      "api": "SetServiceCustomOption",
+      "ConfigPath": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-e-platform-windows-deployment\\work\\revision\\runtime\\config.json",
+      "RepoPath": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-e-platform-windows-deployment\\work\\revision"
+    },
+    {
+      "api": "reviewed_acl_change",
+      "identity": "NT SERVICE\\TesterMarketLab",
+      "read_execute": [
+        "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-e-platform-windows-deployment\\work\\revision",
+        "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-e-platform-windows-deployment\\work\\revision\\.venv",
+        "C:\\Python314"
+      ],
+      "modify": [
+        "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-e-platform-windows-deployment\\work\\revision\\runtime"
+      ],
+      "preserve_user_and_SYSTEM": true
+    }
+  ],
+  "unverified_gates": [
+    "disposable_VM_SCM_start_stop",
+    "VM_reboot",
+    "native_host_DLL_resolution",
+    "virtual_account_ACL_access"
+  ]
+}
