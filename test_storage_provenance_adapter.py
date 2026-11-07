@@ -60,3 +60,16 @@ class StorageProvenanceTests(unittest.TestCase):
         self.assertRaises(IntegrationUnavailable,self.convert,value)
         value['observations'][0]['source']['ingestion_run']='actual-acquisition'
         self.assertEqual(self.convert(value)[0]['ingestion_run'],'actual-acquisition')
+
+    def test_strong_binding_requires_actual_original_declaration(self):
+        from src.integration.storage_api import provenance_from_storage
+        value=self.blob()
+        self.assertRaises(IntegrationUnavailable,provenance_from_storage,value,require_declared_run=True)
+        observation=value['observations'][0]
+        observation.update(source_run_status='matched',source_ingestion_run='actual-acquisition')
+        observation['source']['ingestion_run']='actual-acquisition'
+        self.assertEqual(provenance_from_storage(value,require_declared_run=True)[0]['ingestion_run'],'actual-acquisition')
+        for status in ('undeclared','invalid','mismatched'):
+            observation['source_run_status']=status
+            with self.subTest(status=status):
+                self.assertRaises(IntegrationUnavailable,provenance_from_storage,value,require_declared_run=True)

@@ -1,0 +1,21 @@
+# First tester-owned trade reader binding
+
+`src.integration.storage_reader:create_reader` implements E's zero-argument factory/Reader.read protocol using B's Store. No foreign repository, analytics, migrations, ingestion, order placement or service installation runs from this factory. Explicit opt-in only; no default configuration is changed.
+
+Validated composition: B e236395684d661f9464a62a0f6f67803d9000de6, E b15b1ce12633a134b19cb71a57d7e841a7120579 and MASTER reader. The test composes exact repository snapshots; these components are **not yet merged into a single installable branch**. Both owned modules must be present before configuring the factory. E's load_settings supplies a dedicated TESTER_DATABASE_URL or TESTER_CONFIG_FILE; the application and factory must use the same configuration. B schema migrations/runtime grants must be provisioned separately in the test application database.
+
+Only `trades` is connected. Other resources raise E ProviderUnavailable/HTTP503; no browser or Python substitute analytics. Read source provenance is attached by B in one page query, reused without N+1 lookups, and isolated per request. Strict reader requires source_run_status=matched and source_ingestion_run=source.ingestion_run=run_id, authentic caller run and valid original evidence linkage. Undeclared/legacy/mismatched/import metadata fails closed. The generic provenance projector retains an explicitly weaker caller-origin mode for older fixtures; this API reader never uses it.
+
+Exact time/Decimal/keyset invariants are delegated to the approved shared validator and storage_api adapter. E applies original request binding and HMAC transport cursor around the internal keyset cursor. Original corruption/unavailability reasons survive valid empty envelopes. Database exceptions reach E's redacted503 handler.
+
+**Coverage limitation:** the active B interval report is read, but references are deliberately not manufactured from percentage/history alone. This binding cannot certify COMPLETE; verified full intervals remain UNKNOWN until a bounded active-evidence resolver is integrated. Raw/provenance and coverage use separate database snapshots; source-observation fanout is not bounded by returned trade count. These remain acceptance blockers, not performance claims. E/G owned import enforcement remains a separate E task; passing the spec validator does not prove service enforcement.
+
+## Independent evidence
+
+- Six reader regressions and eight provenance regressions pass; independent reviewer14/14. Full coordinator86methods,84pass,2opt-inPGskip.
+- Root B e23657/57 real disposable-PG tests pass, including original-run mismatch whole-batch rollback and recovery lineage.
+- Actual B→MASTER factory→E FastAPI HTTP on own disposable PG:10 synthetic instrument identities,20 exact trade fixtures,20 pages,10 cross-symbol cursor422 rejections; unsupported candles503. Both declared source runs and exact price remain unchanged; coverage UNKNOWN.
+- This is synthetic producer/consumer integration, **not live exchange acquisition, full history, browser charts, stress/load testing or A→B→C→E→D readiness**. Real-source10-instrument end-to-end acceptance remains pending.
+- Reproducible pinned-composition probe and outputs: docs/coordination/evidence/probe_storage_reader_http.py.txt, storage-reader-http-e236.log, storage-reader-unit.log, b-e236-postgres.log. Probe initially hit namespace-path fixture wiring errors; source paths were corrected, no product import validation was relaxed. It creates/drops only its random fixture DB in the owned scratch PostgreSQL instance; PG stopped afterward.
+
+Next: A3098→Be236 actual export test; C canonical input/output binding; E owned pre-import/origin validation; single pinned integration composition; bounded coverage/provenance snapshot; then real-source10-instrument/resource/service/chart/CI gates. Trader Intelligence remains S0 research only.

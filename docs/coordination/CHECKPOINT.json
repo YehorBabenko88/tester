@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "repository": "YehorBabenko88/tester",
-  "cycle_id": "heartbeat-2026-11-07-01-issue25",
-  "checked_at": "2026-11-07T15:24:23.630849+00:00",
-  "checked_at_europe_berlin": "2026-11-07T16:24:23.630849+01:00",
+  "cycle_id": "heartbeat-2026-11-07-02-storage-reader",
+  "checked_at": "2026-11-07T15:36:06.810373+00:00",
+  "checked_at_europe_berlin": "2026-11-07T16:36:06.810373+01:00",
   "readiness": "NOT_READY",
   "coordination_branch": "coordination/master",
   "integration_branch": "integration/master",
-  "candidate_parent": "b16f46b3c86e85da3eb5f8be13793043c27ec1e4",
+  "candidate_parent": "d945b23ab940b67f569ed85aa4c8d6e9684f8149",
   "main_untouched": "0a6ce227d9463562bb18889dcc0ee747f3be9130",
   "automation": {
     "id": "tester-master-coordination-cycle",
@@ -19,42 +19,45 @@
     "worktree": "existing dedicated work/master-supervisor; Git fallback after native operation stalled",
     "first_invocation_at": "2026-11-07T14:40:23.454Z",
     "prompt_revision": "Issue25 standalone/P0-first source gate; actual config readback confirmed",
-    "prompt_update_verified": true
+    "prompt_update_verified": true,
+    "last_invocation_at": "2026-11-07T15:27:23.699Z",
+    "last_invocation_evidence": "Matching system-origin heartbeat and actual continuation tools in existing worktree; separate from configuration readback"
   },
   "agents": {
     "A": {
       "observed_head": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
-      "review_status": "READY_FOR_REVIEW",
-      "execution_status": "COMPLETED_OBSERVED",
-      "execution_observed_at": "2026-11-07T15:18:05.764875+00:00",
-      "execution_evidence": "Actual active Codex turn and assistant/tool progress from wait_threads; corrective followup delivered once",
+      "review_status": "IN_PROGRESS",
+      "execution_status": "RUNNING_CONFIRMED",
+      "execution_observed_at": "2026-11-07T15:36:06.810373+00:00",
+      "execution_evidence": "Idle/completed confirmed before single followup; actual active/inProgress tool snapshot observed after dispatch",
       "pr": 10,
       "reviewed_head": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
       "new_head_review": "FOCUSED_CORRECTIONS_VERIFIED"
     },
     "B": {
-      "observed_head": "47fd36f32389174377682a13862f5b36c7a886da",
-      "review_status": "CHANGES_REQUESTED",
-      "execution_status": "DISPATCHED_AFTER_IDLE_CHECK",
+      "observed_head": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "COMPLETED_OBSERVED",
       "execution_observed_at": "2026-11-07T14:28:23Z",
       "execution_evidence": "Idle completed turn observed; send_message_to_thread returned existing B thread ID for provenance mismatch task",
       "pr": 13,
-      "reviewed_head": "47fd36f32389174377682a13862f5b36c7a886da"
+      "reviewed_head": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "new_head_review": "FOCUSED_LINEAGE_VERIFIED_REAL_PG57"
     },
     "C": {
       "observed_head": "152823e1528f0953f8175717212d795d7fe1ac0c",
-      "review_status": "READY_FOR_REVIEW",
-      "execution_status": "NOT_REFRESHED_THIS_SNAPSHOT",
-      "execution_observed_at": "2026-11-07T14:28:23Z",
-      "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
+      "review_status": "IN_PROGRESS",
+      "execution_status": "RUNNING_CONFIRMED",
+      "execution_observed_at": "2026-11-07T15:36:06.810373+00:00",
+      "execution_evidence": "Idle/completed confirmed before single followup; actual active/inProgress tool snapshot observed after dispatch",
       "pr": 20,
       "reviewed_head": "152823e1528f0953f8175717212d795d7fe1ac0c"
     },
     "D": {
       "observed_head": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c",
       "review_status": "READY_FOR_REVIEW",
-      "execution_status": "NOT_REFRESHED_THIS_SNAPSHOT",
-      "execution_observed_at": "2026-11-07T14:28:23Z",
+      "execution_status": "IDLE_COMPLETED_OBSERVED",
+      "execution_observed_at": "2026-11-07T15:36:06.810373+00:00",
       "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
       "pr": 12,
       "reviewed_head": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c",
@@ -62,10 +65,10 @@
     },
     "E": {
       "observed_head": "b15b1ce12633a134b19cb71a57d7e841a7120579",
-      "review_status": "READY_FOR_REVIEW",
-      "execution_status": "COMPLETED_PUBLISHED",
-      "execution_observed_at": "2026-11-07T15:18:05.764875+00:00",
-      "execution_evidence": "Actual active Codex turn and assistant/tool progress from wait_threads; corrective followup delivered once",
+      "review_status": "IN_PROGRESS",
+      "execution_status": "RUNNING_CONFIRMED",
+      "execution_observed_at": "2026-11-07T15:36:06.810373+00:00",
+      "execution_evidence": "Idle/completed confirmed before single followup; actual active/inProgress tool snapshot observed after dispatch",
       "pr": 9,
       "reviewed_head": "b15b1ce12633a134b19cb71a57d7e841a7120579",
       "new_head_review": "FOCUSED_CORRECTIONS_VERIFIED"
@@ -73,8 +76,8 @@
     "F": {
       "observed_head": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
       "review_status": "READY_FOR_REVIEW",
-      "execution_status": "NOT_REFRESHED_THIS_SNAPSHOT",
-      "execution_observed_at": "2026-11-07T14:28:23Z",
+      "execution_status": "IDLE_COMPLETED_OBSERVED",
+      "execution_observed_at": "2026-11-07T15:36:06.810373+00:00",
       "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
       "pr": 19,
       "reviewed_head": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31"
@@ -84,7 +87,7 @@
       "reviewed_head": "5edb722fc936a56e81a174cfe654839de9a19a9d",
       "review_status": "CHANGES_REQUESTED",
       "execution_status": "AWAITING_AGENT_EXECUTION",
-      "execution_evidence": "GitHub task queued; G idle observed; no direct chat dispatch authorized beyond A-F",
+      "execution_evidence": "Actual idle chat observed; GitHub assignment only, no direct G dispatch authorization",
       "pr": 24
     }
   },
@@ -100,11 +103,11 @@
   },
   "tests": {
     "coordinator": {
-      "discovered": 79,
-      "passed": 77,
+      "discovered": 86,
+      "passed": 84,
       "skipped_opt_in_pg": 2,
       "failures": 0,
-      "log": "evidence/architecture-unit.log"
+      "log": "evidence/storage-reader-unit.log"
     },
     "B_5154efab": {
       "executed": 40,
@@ -203,10 +206,30 @@
       "node_passed": 19,
       "review": "reviews/ED_GRID_PAIR.md",
       "browser_current_head": "NOT_ROOT_REPLAYED"
+    },
+    "B_e236395": {
+      "passed": 57,
+      "skipped": 0,
+      "postgres": "own loopback disposable PostgreSQL18.4",
+      "log": "evidence/b-e236-postgres.log",
+      "independent_narrow_review": "reviews/B_E236_LINEAGE.md"
+    },
+    "storage_reader": {
+      "passed": 6,
+      "strict_provenance_tests": 8,
+      "independent_review_passed": 14,
+      "composition": "PINNED_SNAPSHOTS_NOT_SINGLE_MERGED_INSTALLABLE_BRANCH",
+      "http_postgres_synthetic_instruments": 10,
+      "http_exact_trade_fixtures": 20,
+      "http_pages": 20,
+      "cross_symbol_cursor_rejections": 10,
+      "unsupported_resource_http": 503,
+      "live_exchange_end_to_end": "NOT_EXECUTED",
+      "log": "evidence/storage-reader-http-e236.log"
     }
   },
   "ci": {
-    "state": "QUEUED_PENDING_NO_SUCCESS_VERIFIED",
+    "state": "QUEUED_NO_SUCCESS_VERIFIED",
     "prior_candidate_runs": [
       42378846890,
       42378842458
@@ -220,10 +243,14 @@
       42381959325
     ],
     "latest_observed_run_ids": [
-      42385529295,
-      42385529289,
-      42384575634,
-      42384323489
+      42386692924,
+      42386692851,
+      42386689386,
+      42386335357
+    ],
+    "urls": [
+      "https://github.com/YehorBabenko88/tester/actions/runs/42386692924",
+      "https://github.com/YehorBabenko88/tester/actions/runs/42386335357"
     ]
   },
   "tasks": {
@@ -325,7 +352,33 @@
       "defect": "B-47fd36f-explicit-source-run-mismatch",
       "remote_marker": "master-task:B-47fd36f-explicit-source-run-mismatch",
       "comment_id": 6708925158,
-      "status": "CHANGES_REQUESTED"
+      "status": "ACCEPTED",
+      "reviewed_successor": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "resolution": "57realPG tests and independent narrow review; strict reader requires original matched declaration"
+    },
+    "27d786c659087bd491b602eda63f8475a9d2472f8799949027f7e098d6f8d1fc": {
+      "issue": 1,
+      "head": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "comment_id": 6709081686,
+      "defect": "A-3098-B-e236-pinned-roundtrip",
+      "remote_marker": "master-task:A-3098-B-e236-pinned-roundtrip",
+      "status": "IN_PROGRESS"
+    },
+    "a1121aecbe1084a89e782aef38dc515597ec55797d6791a9cb75c425ebb3aa51": {
+      "issue": 3,
+      "head": "152823e1528f0953f8175717212d795d7fe1ac0c",
+      "comment_id": 6709081990,
+      "defect": "C-152823-B-e236-canonical-input-binding",
+      "remote_marker": "master-task:C-152823-B-e236-canonical-input-binding",
+      "status": "IN_PROGRESS"
+    },
+    "9543c6d79478d9674b57346c22077cd18376c12272267c56c620633cb698c204": {
+      "issue": 5,
+      "head": "b15b1ce12633a134b19cb71a57d7e841a7120579",
+      "comment_id": 6709082262,
+      "defect": "E-b15b-owned-factory-import-boundary",
+      "remote_marker": "master-task:E-b15b-owned-factory-import-boundary",
+      "status": "IN_PROGRESS"
     }
   },
   "existing_task_references": {
@@ -354,22 +407,25 @@
     "Owned tester factory validation helper and origin checks with six tests; E/G adoption pending",
     "Issue25 standalone architecture, inert five-candidate source registry, rights/completeness/lag audits and A-G staged owner plan",
     "Actual first scheduled heartbeat verified with real continuation tools",
-    "Authentic B provenance projection with original-run mismatch rejection,7 regressions and realPG2runs1trade exact roundtrip; E fullreader integration pending"
+    "Authentic B provenance projection with original-run mismatch rejection,7 regressions and realPG2runs1trade exact roundtrip; E fullreader integration pending",
+    "Owned trades-only B e236 -> MASTER strict matched-run reader -> E b15b actual HTTP/PG10synthetic-instrument roundtrip; unconnected resources503,UNKNOWNcoverage preserved"
   ],
   "blockers": [
-    "B explicit acquisition-run/caller-run mismatch accepted at write time; MASTER projection protects reads, B corrective execution dispatched",
-    "B authentic run/coverage resolver not yet wired through E; full P0 A-G not integrated",
     "G authoritative control-state SQLite versus PostgreSQL ownership decision",
     "Resource scan bounds/lifecycle/service dry-run and 10-instrument integrated acceptance incomplete",
     "CI queued/pending; no successful exact-candidate CI",
-    "Trader source licensing/intended-use permission and complete real account sample not established; S1+ disabled"
+    "Trader source licensing/intended-use permission and complete real account sample not established; S1+ disabled",
+    "B->E trade factory tested through pinned snapshots only; single branch integration and C/candle/observation resources pending",
+    "Bounded active coverage-evidence proof and consistent data/coverage snapshot pending; reader never certifies COMPLETE",
+    "B source-observation fanout unbounded by trade page size; resource acceptance remains open",
+    "E owned factory pre-import/origin enforcement in progress; helper alone not service enforcement"
   ],
   "next_actions": [
-    "Focused A3098/D6cf9/Eb15b corrections verified; integrate pinned producer/consumer boundaries and review next B write-time fix",
-    "Implement and independently verify authentic B provenance/active coverage -> E reader factory in tester only",
-    "Integrate pinned A-B-C-E-D; F separate; resolve G canonical storage and owned factory adoption",
-    "Review new PR26 under P0-first gate; no collection enabled",
-    "Run ten-instrument integrated acceptance, resource/service dry-run and exact-candidate CI; preserve NOT_READY until proven"
+    "Review A3098→Be236 producer/consumer task6709081686 and C canonical binding6709081990 on new exact HEAD",
+    "Review E owned factory boundary6709082262; do not redispatch active A/C/E",
+    "Compose pinned modules into single integration branch with exact contracts; reader currently tested via snapshots only",
+    "Implement bounded active-coverage/provenance snapshot; preserve UNKNOWN until authentic proof; test observation fanout",
+    "Continue F separate/G canonical state and real-source10instrument/resources/service/browser/CI acceptance; no TI collection or main merge"
   ],
   "restrictions": [
     "tester only",

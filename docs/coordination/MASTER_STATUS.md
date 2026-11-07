@@ -1,3 +1,19 @@
+# Current heartbeat — B→E trade reader, 2026-11-07T16:36:06.810373+01:00
+
+**NOT_READY.** Read/checkpoint/Issue8/25/PR11 refreshed; Issues1–18/25, all9DraftPRs/reviews, A–G/H refs and Actions observed. Main unchanged0a6ce227. B advanced47fd→e236395; independent57/57 real own disposable-PG tests pass, original-run mismatch/whole-batch rollback/recovery lineage fixed. Other producer pins unchanged. CI remains queued, no successful exact-candidate CI.
+
+Implemented tester-owned StorageTradeReader/create_reader: B attached provenance→strict original matched run→E trades endpoint, no C math or foreign Gateway. Six reader/eight provenance tests independently pass. Root suite86methods84pass2optinPGskip. Actual PG+HTTP pinned B e236/E b15b composition passes10synthetic instrument identities/20exact trades/20pages;10cross-symbol cursor422 rejections and unsupported candles503. This is not live history, full pipeline, load stress or a merged installable A-G branch. No default provider activation/migration/service install.
+
+Reader cannot certify COMPLETE. B data/provenance and coverage use separate snapshots; source observation fanout is not page-bounded. Explicit limits and reproduction are in docs/integration/STORAGE_TRADE_READER.md. Current peer review found no material defect within this narrow scope. Strong reader requires matched plus exact original/source/caller run identity; undeclared caller-origin is not original-source proof.
+
+A/C/E actual idle statuses checked before new single followups; active/inProgress tool execution verified. Tasks: A1:6709081686(newBpair), C3:6709081990(canonicalinputbinding), E5:6709082262(ownedpreimportboundary). No duplicate old-head/defect tasks. B/D/F idle completed; G idle and AWAITING_AGENT_EXECUTION, assignment not dispatch. S0TraderIntelligence remains inert, PR26unreviewed/not integrated.
+
+Second actual system heartbeat2026-11-07T15:27:23.699Z continued in existing worktree; automation remains configured ACTIVE15min. Next checkpoint: changed A/C/E exactHEAD reviews, bounded evidence resolver and single pinned integration composition, real10instrument/resources/service/CI/browser gates; F separate, G canonical storage. No main merge, deployment, user-data deletion or real trading.
+
+---
+
+## Earlier checkpoints (historical)
+
 ## Focused correction review outcome
 
 New A3098:42unit +10shared/Bconsumer tests, four adverse probes pass; old equivalence reproducer failed twice as expected. Both raw observations preserved, true price/size changes remain conflicts. New D6cf9:19Node tests pass; E b15b:36 direct scope/grid tests plus root89 real-PG/HTTP tests/1symlinkskip. Exact source cadence and display viewport/cursors agree. Focused A/E defects closed; full pipeline still NOT_READY. Reviews A_SEMANTIC_3098.md and ED_GRID_PAIR.md. Automation updated through official app action with Issue25/P0-first restrictions and correct docs paths; ACTIVE15min config read back. First actual invocation remains proven; future runs are not presumed successful.

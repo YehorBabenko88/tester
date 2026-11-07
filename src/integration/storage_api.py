@@ -15,7 +15,7 @@ class IntegrationUnavailable(ValueError):
     code='DATA_UNAVAILABLE'
 
 
-def provenance_from_storage(resolved):
+def provenance_from_storage(resolved,*,require_declared_run=False):
     """Project B's write-time resolver result; never infer a run or completeness.
 
     Input must come from tester B Store.provenance, not an untrusted API client.
@@ -35,6 +35,10 @@ def provenance_from_storage(resolved):
             if not isinstance(observation.get('evidence_id'),str) or not observation['evidence_id']:
                 raise ValueError('Missing stored evidence linkage')
             source=observation['source']
+            if require_declared_run and (observation.get('source_run_status')!='matched' or
+                    observation.get('source_ingestion_run')!=observation['run_id'] or
+                    source.get('ingestion_run')!=observation['run_id']):
+                raise ValueError('Original acquisition run declaration is unproved')
             if 'ingestion_run' in source and source['ingestion_run']!=observation['run_id']:
                 raise ValueError('Original acquisition run differs from stored caller run')
             value=dict(source_kind={'rest':'bybit_rest','archive':'bybit_archive'}[observation['source_kind']],

@@ -1,5 +1,7 @@
 # Active supervision and resumption
 
+Current execution evidence supersedes historical setup wording below: actual system-origin invocations received2026-11-07T14:40:23.454Z and2026-11-07T15:27:23.699Z, with continuation tools executed in the existing worktree. This proves those invocations, not guaranteed future runs. Issue25 standalone/P0-first restrictions were saved through official automation_update and configuration read back. Current scope includes A–G and new Draft PRs; direct chat follow-up permission remains A–F only. Read docs/coordination/MASTER_STATUS.md and CHECKPOINT.json for exact current pins and next work. Trader Intelligence S1+ remains gated on P0 and permitted source evidence.
+
 Repository scope: YehorBabenko88/tester only. Approved #8 and Issues #14–#17 remain authoritative. Ordinary cycle states: NEW, IN_PROGRESS, BLOCKED, READY_FOR_REVIEW, CHANGES_REQUESTED, ACCEPTED; execution state is separate (RUNNING_CONFIRMED, AWAITING_AGENT_EXECUTION, NEEDS_USER_INPUT).
 
 ## Installed continuation mechanism
