@@ -21,15 +21,17 @@ spec=importlib.util.spec_from_file_location('pinned_b_models',REFERENCE/'b'/'mod
 b=importlib.util.module_from_spec(spec);spec.loader.exec_module(b)
 
 
-def storage_row(tid='id',ns=100,price='10',qty='2',run='fixture:run-1',fetched='1970-01-01T00:01:00Z'):
-    row=b.normalize(dict(schema_version='1.0',venue='bybit',category='linear',symbol='BTCUSDT',dataset='trades',
-        interval='',timestamp_ms=ns//1000000,timestamp_ns=ns,timestamp_precision='ns',
+def storage_row(tid='id',ns=100,price='10',qty='2',run='fixture:run-1',fetched='1970-01-01T00:01:00Z',precision='ns'):
+    original=dict(schema_version='1.0',venue='bybit',category='linear',symbol='BTCUSDT',dataset='trades',
+        interval='',timestamp_ms=ns//1000000,timestamp_ns=ns if precision=='ns' else None,timestamp_precision=precision,
         payload={'trade_id':tid,'price':price,'size':qty,'side':'Buy'},
         source={'url':'fixture:B/synthetic-trades','fetched_at':fetched,'source_kind':'rest','ingestion_run':run,
-                'source_timestamp':str(ns)}))
+                'source_timestamp':str(ns)})
+    if precision=='us': original['timestamp_us']=ns//1000
+    row=b.normalize(copy.deepcopy(original))
     observation=dict(observation_id='obs:'+run,source_id='source:'+run,source=copy.deepcopy(row['source']),
-        raw_envelope=copy.deepcopy(row),run_id=run,job_key='fixture:job',evidence_id='evidence:'+run,
-        source_kind='rest',timestamp_precision='ns',source_run_status='matched',authentic_run=True,
+        raw_envelope=copy.deepcopy(original),run_id=run,job_key='fixture:job',evidence_id='evidence:'+run,
+        source_kind='rest',timestamp_precision=precision,source_run_status='matched',authentic_run=True,
         source_ingestion_run=run,verified=False,pagination_status='UNVERIFIED',evidence={},validator_version='fixture')
     row['provenance']=dict(observations=[observation],evidence_refs=[observation['evidence_id']],run_ids=[run],unlinked_sources=[],authentic=True)
     return row
@@ -164,8 +166,8 @@ class InputBinding(unittest.TestCase):
         self.assertNotEqual(row['coverage']['status'],'COMPLETE')
 
     def test_fetch_ns_after_cutoff_is_excluded(self):
-        row=storage_row()
-        row['provenance']['observations'][0]['source']['fetched_at']='1970-01-01T00:01:00.000000001Z'
+        row=storage_row(fetched='1970-01-01T00:01:00.000000001Z')
+        self.assertEqual(row['source']['fetched_at'],'1970-01-01T00:01:00+00:00')
         self.assertEqual(bind_b([row]).response('candles',interval='1',price_step='1')['data'],[])
 
     def test_response_limit_fails_closed_without_pagination_math(self):
@@ -178,12 +180,90 @@ class InputBinding(unittest.TestCase):
         bound_response('candles','candle',envelope,query)
 
     def test_b_microseconds_projection_is_source_preserved(self):
-        row=storage_row()
-        row['timestamp_ns']=None;row['timestamp_us']=123;row['timestamp_precision']='us'
-        row['provenance']['observations'][0]['timestamp_precision']='us'
+        row=storage_row(ns=123000,precision='us')
         t=bind_b([row]).trades[0]
         self.assertEqual((t['timestamp_precision'],t['timestamp_ns']),('us','123000'))
         validate_record('trade',t)
+
+    def test_canonical_exact_event_residual_after_cutoff_is_excluded(self):
+        for precision,ns in [('ns','60000000100'),('us','60000001000')]:
+            with self.subTest(precision=precision):
+                t=trade(ts=60000);t.update(timestamp_precision=precision,timestamp_ns=ns)
+                t['provenance'][0]['timestamp_precision']=precision
+                batch=binding.bind_canonical_trades([t],venue='bybit',category='linear',symbol='BTCUSDT',
+                    start_ms=0,end_ms=120000,information_cutoff_ms=60000,available_at_ms=lambda record:60000)
+                self.assertEqual(batch.trades,[])
+
+    def test_b_exact_event_residual_after_cutoff_is_excluded(self):
+        for precision,ns in [('ns',60000000100),('us',60000001000)]:
+            with self.subTest(precision=precision):
+                row=storage_row(ns=ns,precision=precision)
+                batch=binding.bind_storage_trades([row],venue='bybit',category='linear',symbol='BTCUSDT',start_ms=0,end_ms=120000,
+                    information_cutoff_ms=60000,quality_available_at_ms=60000,
+                    availability={'status':'UNVERIFIED','reason':'Synthetic UNKNOWN history'},
+                    coverage={'status':'UNKNOWN','start_ms':0,'end_ms':120000,'evidence_refs':[]},
+                    trade_projector=project_trade,provenance_projector=provenance_from_storage)
+                self.assertEqual(batch.trades,[])
+
+    def test_original_and_normalized_fetch_conflicts_fail_closed(self):
+        for value in ['1970-01-01T00:00:59Z','1970-01-01T00:01:00.001Z']:
+            row=storage_row();row['provenance']['observations'][0]['source']['fetched_at']=value
+            with self.assertRaises(binding.BindingUnavailable): bind_b([row])
+
+    def test_missing_original_fetch_time_fails_closed(self):
+        row=storage_row();del row['provenance']['observations'][0]['raw_envelope']['source']['fetched_at']
+        with self.assertRaises(binding.BindingUnavailable): bind_b([row])
+
+    def test_original_fetch_cutoff_is_inclusive_at_exact_ns(self):
+        for stamp,included in [('1970-01-01T00:00:59.999999999Z',True),
+                               ('1970-01-01T00:01:00.000000000Z',True),
+                               ('1970-01-01T00:01:00.000000001Z',False)]:
+            with self.subTest(stamp=stamp):
+                row=storage_row(fetched=stamp)
+                original=row['provenance']['observations'][0]['raw_envelope']['source']['fetched_at']
+                self.assertEqual(original,stamp)
+                self.assertEqual(bool(bind_b([row]).trades),included)
+
+    def test_event_cutoff_is_inclusive_for_both_paths(self):
+        for ns,included in [(59999999999,True),(60000000000,True),(60000000001,False)]:
+            with self.subTest(ns=ns):
+                t=trade(ts=ns//1000000);t.update(timestamp_ns=str(ns),timestamp_precision='ns')
+                t['provenance'][0]['timestamp_precision']='ns'
+                canonical=binding.bind_canonical_trades([t],venue='bybit',category='linear',symbol='BTCUSDT',
+                    start_ms=0,end_ms=120000,information_cutoff_ms=60000,available_at_ms=lambda record:60000)
+                stored=binding.bind_storage_trades([storage_row(ns=ns)],venue='bybit',category='linear',symbol='BTCUSDT',
+                    start_ms=0,end_ms=120000,information_cutoff_ms=60000,quality_available_at_ms=60000,
+                    availability={'status':'UNVERIFIED','reason':'Synthetic'},
+                    coverage={'status':'UNKNOWN','start_ms':0,'end_ms':120000,'evidence_refs':[]},
+                    trade_projector=project_trade,provenance_projector=provenance_from_storage)
+                self.assertEqual(bool(canonical.trades),included)
+                self.assertEqual(bool(stored.trades),included)
+
+    def test_event_clock_and_original_event_metadata_conflicts_fail_closed(self):
+        row=storage_row(fetched='1970-01-01T00:00:00Z')
+        with self.assertRaises(binding.BindingUnavailable): bind_b([row])
+        row=storage_row();row['provenance']['observations'][0]['raw_envelope']['timestamp_ns']=200
+        with self.assertRaises(binding.BindingUnavailable): bind_b([row])
+        t=trade();t.update(timestamp_ns='100',timestamp_precision='ns');t['provenance'][0]['timestamp_precision']='ns'
+        with self.assertRaises(binding.BindingUnavailable):
+            binding.bind_canonical_trades([t],venue='bybit',category='linear',symbol='BTCUSDT',start_ms=0,end_ms=60000,
+                information_cutoff_ms=60000,available_at_ms=lambda record:0)
+
+    def test_original_b_payload_time_fields_and_default_ms(self):
+        for precision,ns in [('ns',100),('us',123000),('ms',0)]:
+            with self.subTest(precision=precision):
+                row=storage_row(ns=ns,precision=precision)
+                observation=row['provenance']['observations'][0]
+                original=copy.deepcopy(observation['raw_envelope'])
+                if precision=='ms':
+                    original.pop('timestamp_precision');original.pop('timestamp_ns')
+                else:
+                    for key in ['timestamp_precision','timestamp_ns','timestamp_us']:
+                        if key in original: original['payload'][key]=original.pop(key)
+                normalized=b.normalize(copy.deepcopy(original))
+                row.update(normalized)
+                observation['raw_envelope']=original;observation['source']=copy.deepcopy(normalized['source'])
+                self.assertEqual(bind_b([row]).trades[0]['timestamp_precision'],precision)
 
     def test_calendar_outputs_pass_e_scope_validation(self):
         from tests.analytics.test_analytics import ms

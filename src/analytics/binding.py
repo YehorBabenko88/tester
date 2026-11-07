@@ -45,7 +45,7 @@ def _weaken(record, reason):
         record['coverage']['status']='PARTIAL'
 
 
-def _fetched_at_ms(source):
+def _fetched_at_ns(source):
     try:
         text=source['fetched_at']
         if not isinstance(text,str): raise ValueError('Missing fetched_at')
@@ -53,12 +53,62 @@ def _fetched_at_ms(source):
         if not match: raise ValueError('Unsupported acquisition timestamp precision/format')
         stamp=datetime.fromisoformat(match[1]+match[3].replace('Z','+00:00'))
         delta=stamp.astimezone(timezone.utc)-datetime(1970,1,1,tzinfo=timezone.utc)
-        # Conservative ceiling: a fractional-ms fetch must not become known early.
-        digits=match[2] or '0'; scale=10**len(digits)
-        fraction_ms=(int(digits)*1000+scale-1)//scale
-        return _integer(delta.days*86400000+delta.seconds*1000+fraction_ms,'fetched_at')
+        digits=match[2] or '0'
+        exact=(delta.days*86400+delta.seconds)*1000000000+int(digits.ljust(9,'0'))
+        if exact<0: raise ValueError('Pre-epoch acquisition')
+        return exact
     except (KeyError,ValueError,TypeError,AttributeError) as exc:
         raise BindingUnavailable('Original aware source fetched_at required for cutoff') from exc
+
+
+def _event_ns(row, *, storage=False, original=False):
+    """Preserve genuine event residuals when comparing to an exact ms boundary."""
+    stamp=_integer(row.get('timestamp_ms'),'timestamp_ms')
+    payload=row.get('payload',{}) if original else {}
+    if not isinstance(payload,dict): raise BindingUnavailable('Original B payload required')
+    # Follow pinned B top-level -> payload -> ms default precedence exactly.
+    precision=row.get('timestamp_precision',payload.get('timestamp_precision','ms') if original else None)
+    ns=row.get('timestamp_ns',payload.get('timestamp_ns'))
+    if precision in {'s','ms'}:
+        if ns is not None or (precision=='s' and stamp%1000):
+            raise BindingUnavailable('Contradictory coarse event precision')
+        return stamp*1000000
+    value=row.get('timestamp_us',payload.get('timestamp_us')) if storage and precision=='us' else ns
+    if precision not in {'ns','us'}:
+        raise BindingUnavailable('Unknown original event precision')
+    if storage:
+        if type(value) is not int or value<0: raise BindingUnavailable('Exact original storage event time required')
+        exact=value*1000 if precision=='us' else value
+    else:
+        if not isinstance(value,str) or not re.fullmatch(r'[0-9]{1,19}',value):
+            raise BindingUnavailable('Exact original canonical event time required')
+        exact=int(value)
+    if exact//1000000!=stamp or (precision=='us' and exact%1000):
+        raise BindingUnavailable('Contradictory event timestamp precision')
+    return exact
+
+
+def _observation_fetch_ns(observation, event_ns):
+    """B retains original raw separately from its microsecond-normalized source."""
+    try:
+        original=observation['raw_envelope']
+        raw_source=original['source'];normalized_source=observation['source']
+        for key in ['url','ingestion_run']:
+            if raw_source.get(key)!=normalized_source.get(key):
+                raise ValueError('Original/normalized source identity differs')
+        if _event_ns(original,storage=True,original=True)!=event_ns:
+            raise ValueError('Original/normalized event timestamp differs')
+        raw_ns=_fetched_at_ns(raw_source)
+        normalized_ns=_fetched_at_ns(normalized_source)
+        # Pinned B datetime normalization truncates beyond 6 fractional digits.
+        # Accept that specific loss, never arbitrary earlier/later normalized times.
+        if normalized_ns not in {raw_ns,raw_ns//1000*1000}:
+            raise ValueError('Original/normalized acquisition times conflict')
+        if raw_ns<event_ns:
+            raise ValueError('Acquisition precedes original event')
+        return raw_ns
+    except (KeyError,TypeError,ValueError,AttributeError) as exc:
+        raise BindingUnavailable('Consistent original raw event/acquisition metadata required') from exc
 
 
 class TradeBinding:
@@ -134,8 +184,11 @@ def bind_canonical_trades(records, *, venue, category, symbol, start_ms, end_ms,
     for raw in records:
         row=copy.deepcopy(core.validate_trade(raw)); _in_scope(row,scope)
         known=_integer(available_at_ms(copy.deepcopy(row)),'available_at_ms')
-        if known>information_cutoff_ms or row['timestamp_ms']>information_cutoff_ms:
+        event_ns=_event_ns(row)
+        if known>information_cutoff_ms or event_ns>information_cutoff_ms*1000000:
             excluded+=1
+        elif known*1000000<event_ns:
+            raise BindingUnavailable('Canonical snapshot availability precedes its event')
         else: selected.append(row)
     return TradeBinding(selected,scope,excluded_records=excluded,input_exhausted=input_exhausted)
 
@@ -172,6 +225,10 @@ def bind_storage_trades(records, *, venue, category, symbol, start_ms, end_ms,
     selected=[]; links={}; excluded=0; excluded_observations=0
     for raw in records:
         row=copy.deepcopy(raw); _in_scope(row,scope)
+        event_ns=_event_ns(row,storage=True)
+        if event_ns>information_cutoff_ms*1000000:
+            excluded+=1
+            continue
         proof=row.get('provenance')
         if not isinstance(proof,dict) or proof.get('authentic') is not True or proof.get('unlinked_sources'):
             raise BindingUnavailable('All authentic original source-run observations required')
@@ -185,10 +242,10 @@ def bind_storage_trades(records, *, venue, category, symbol, start_ms, end_ms,
                     or not isinstance(obs.get('run_id'),str) or not obs['run_id']
                     or source.get('ingestion_run')!=obs['run_id']):
                 raise BindingUnavailable('Original acquisition run must be explicitly matched')
-            if _fetched_at_ms(source)>information_cutoff_ms:
+            if _observation_fetch_ns(obs,event_ns)>information_cutoff_ms*1000000:
                 excluded_observations+=1
             else: eligible.append(obs)
-        if not eligible or row['timestamp_ms']>information_cutoff_ms:
+        if not eligible:
             excluded+=1
             continue
         bound_proof=copy.deepcopy(proof)

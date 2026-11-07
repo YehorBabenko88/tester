@@ -80,11 +80,20 @@ canonical provenance is retained unchanged.
 - Event timestamps and information availability are separate. B uses original
   aware source.fetched_at for each observation; canonical snapshots require the
   explicit resolver above. No fallback to exchange timestamp or source_timestamp.
-- B source.fetched_at supports RFC3339 seconds with up to 9 fractional digits and
-  Z or numeric HH:MM offset. Fractional milliseconds round upward exactly using
-  integer arithmetic. A fetch 1 ns after cutoff is excluded, never truncated early.
-  Unsupported precision/format fails closed. Upstream B normalization may already
-  have reduced precision; C cannot recover precision absent from the read record.
+- B's authentic observation.raw_envelope preserves the ORIGINAL record before
+  normalization. Binding requires its original source.fetched_at and exact original
+  event timestamp. It parses RFC3339 up to 9 fractional digits to integer ns and
+  reconciles against observation.source: exact equality or B's documented
+  microsecond truncation only. Arbitrary earlier/later normalized timestamps,
+  inconsistent source identity/event values and missing original data fail closed.
+  No fallback to the normalized timestamp can erase an original +1 ns residual.
+  Original event fields follow pinned B's top-level -> payload precedence and
+  documented default precision=ms; ns/us are never fabricated from a coarse source.
+- Cutoff is inclusive at its exact integer-ms boundary: original acquisition and
+  event ns must each be <= cutoff_ms*1,000,000. Source us is converted exactly to ns;
+  coarse sources stay coarse. The millisecond floor alone is insufficient. A fetch
+  or event 1 ns later is excluded. Availability earlier than its event is rejected
+  for otherwise eligible observations/snapshots; future events are excluded first.
 - B quality reports are explicitly supplied and attested available no later than
   cutoff. Their range must exactly match the request and pass shared validation.
   The integration owner must resolve B coverage/evidence/findings as of that time;
@@ -122,6 +131,14 @@ All integration inputs are explicitly synthetic fixture identities/URLs; no actu
 acquisition, PostgreSQL or HTTP service runs in this suite. Pydantic is required
 only because the test executes E's real validation module. Production C arithmetic
 continues using stdlib only.
+
+Fixture storage_row now copies the original raw envelope BEFORE B normalize,
+matching Store's retention contract. The prior fixture copied the normalized row
+and therefore missed B's >6-digit fetched_at truncation. The original regression
+is retained in cutoff-regression-red.log; fresh full-suite results are in
+cutoff-regression-green.log. Existing reference hashes/pins remain unchanged.
+`.gitattributes` marks pinned binding references -text to prevent Windows
+checkout/archive conversion; it does not repin hashes to CRLF or weaken assertions.
 
 This proves this in-process input/validation boundary for the stated pins only.
 It does not claim full A/B/C/E integration, live-history completeness, current

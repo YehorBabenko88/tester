@@ -1,0 +1,2 @@
+# Pinned reference hashes are byte-level contracts, including Windows/archive.
+tests/analytics/reference/binding/** -text
