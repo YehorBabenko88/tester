@@ -1,0 +1,135 @@
+test_bounded_failure (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_bounded_failure) ... FAIL
+test_crash_after_data_commit (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_crash_after_data_commit) ... FAIL
+test_delayed_commit (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_delayed_commit) ... FAIL
+test_external_archive_changes (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_external_archive_changes) ... FAIL
+test_late_corruption_resolution (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_late_corruption_resolution) ... FAIL
+test_late_source_run_link (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_late_source_run_link) ... FAIL
+test_missing_quarantine_inventory (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_missing_quarantine_inventory) ... FAIL
+test_partial_manifest (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_partial_manifest) ... FAIL
+test_snapshot_before_gate (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_snapshot_before_gate) ... FAIL
+test_stale_snapshot_reuse (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_stale_snapshot_reuse) ... FAIL
+
+======================================================================
+FAIL: test_bounded_failure (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_bounded_failure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : bounded_failure: resource_failure
+
+======================================================================
+FAIL: test_crash_after_data_commit (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_crash_after_data_commit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : crash_after_data_commit: receipt_not_durable
+
+======================================================================
+FAIL: test_delayed_commit (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_delayed_commit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : delayed_commit: uncommitted_capture
+
+======================================================================
+FAIL: test_external_archive_changes (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_external_archive_changes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : external_archive_changes: unfenced_archive
+
+======================================================================
+FAIL: test_late_corruption_resolution (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_late_corruption_resolution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : late_corruption_resolution: unfenced_mutation
+
+======================================================================
+FAIL: test_late_source_run_link (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_late_source_run_link)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : late_source_run_link: unfenced_mutation
+
+======================================================================
+FAIL: test_missing_quarantine_inventory (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_missing_quarantine_inventory)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : missing_quarantine_inventory: negative_universe_unknown
+
+======================================================================
+FAIL: test_partial_manifest (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_partial_manifest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : partial_manifest: partial_manifest
+
+======================================================================
+FAIL: test_snapshot_before_gate (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_snapshot_before_gate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : snapshot_before_gate: stale_snapshot
+
+======================================================================
+FAIL: test_stale_snapshot_reuse (__main__.demonstrate_red.<locals>.UnsafeSampledTimeCandidate.test_stale_snapshot_reuse)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\b-visibility-89221-check\tests\storage\visibility_protocol_cases.py", line 57, in test
+    self.assertEqual(candidate,'UNAVAILABLE',case.name+': '+case.reason)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'CERTIFIED' != 'UNAVAILABLE'
+- CERTIFIED
++ UNAVAILABLE
+ : stale_snapshot_reuse: stale_live_binding
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.005s
+
+FAILED (failures=10)

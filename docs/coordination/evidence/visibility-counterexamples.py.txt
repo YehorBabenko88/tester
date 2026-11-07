@@ -1,0 +1,64 @@
+"""Retained own-DB interleavings: DEFAULTnow and late RR lock are not visibility."""
+import importlib.util,json,sys
+from pathlib import Path
+root=Path('C:/ProgramData/TesterPhysicalTest20261107')
+release=root/'releases/0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d'
+sys.path.insert(0,str(release))
+from src.api.physical_scope import validate_owner
+owner=validate_owner()
+spec=importlib.util.spec_from_file_location('own_pg',release/'scripts/windows/prepare_physical_database.py')
+pg=importlib.util.module_from_spec(spec);spec.loader.exec_module(pg)
+_,state=pg.preflight();secrets=pg.validate_secrets(pg.read_json(pg.SECRETS),owner)
+import psycopg
+from psycopg.conninfo import make_conninfo
+dsn=make_conninfo(host='127.0.0.1',port=55469,user=pg.ADMIN,password=secrets['admin_password'],
+                  dbname='tester_contract_ba8aa_20261107',connect_timeout=5)
+report={'scope':'SYNTHETIC_OWNED_RETAINED_SQL_COUNTEREXAMPLES','database':'tester_contract_ba8aa_20261107',
+        'all_data_retained':True,'historical_certificate_issued':False}
+started=False
+try:
+    import socket
+    with socket.socket() as port:port.bind(('127.0.0.1',55469))
+    assert pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'status'],allowed=(0,3)).returncode==3
+    started=True
+    pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'-l',root/'runtime/database-contract-tests.log','-w','start'])
+    with psycopg.connect(dsn,autocommit=True) as observer:
+        assert pg.same_directory(pg.DATA,observer.execute('SHOW data_directory').fetchone()[0])
+        assert str(observer.execute('SELECT system_identifier FROM pg_control_system()').fetchone()[0])==state['system_identifier']
+        assert observer.execute("SELECT shobj_description(oid,'pg_database') FROM pg_database WHERE datname=current_database()").fetchone()[0]=='tester-physical:'+owner['installation_id']
+        observer.execute('CREATE SCHEMA tester_visibility_lab')
+        observer.execute('CREATE TABLE tester_visibility_lab.facts(id text PRIMARY KEY, started_at timestamptz NOT NULL DEFAULT now())')
+        with psycopg.connect(dsn) as writer:
+            recorded=writer.execute("INSERT INTO tester_visibility_lab.facts(id) VALUES('delayed-commit') RETURNING started_at").fetchone()[0]
+            cutoff=observer.execute('SELECT clock_timestamp()').fetchone()[0]
+            hidden=observer.execute("SELECT count(*) FROM tester_visibility_lab.facts WHERE id='delayed-commit'").fetchone()[0]==0
+            assert recorded<cutoff and hidden
+            writer.commit()
+            visible=observer.execute("SELECT started_at FROM tester_visibility_lab.facts WHERE id='delayed-commit'").fetchone()[0]
+            assert visible==recorded
+            report['transaction_start_counterexample']={'recorded_at':str(recorded),'cutoff':str(cutoff),
+                'recorded_before_cutoff':True,'not_visible_at_cutoff':hidden,'visible_only_after_commit':True}
+        with psycopg.connect(dsn,autocommit=True) as writer,psycopg.connect(dsn,autocommit=True) as reader:
+            writer.execute('SELECT pg_advisory_lock(77127001)')
+            writer.execute('BEGIN')
+            writer.execute("INSERT INTO tester_visibility_lab.facts(id) VALUES('rr-before-lock')")
+            reader.execute('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY')
+            initial=reader.execute("SELECT count(*) FROM tester_visibility_lab.facts WHERE id='rr-before-lock'").fetchone()[0]
+            assert initial==0
+            writer.execute('COMMIT')
+            writer.execute('SELECT pg_advisory_unlock(77127001)')
+            reader.execute('SELECT pg_advisory_lock(77127001)')
+            still_missing=reader.execute("SELECT count(*) FROM tester_visibility_lab.facts WHERE id='rr-before-lock'").fetchone()[0]==0
+            new_snapshot_sees=observer.execute("SELECT count(*) FROM tester_visibility_lab.facts WHERE id='rr-before-lock'").fetchone()[0]==1
+            assert still_missing and new_snapshot_sees
+            reader.execute('COMMIT')
+            reader.execute('SELECT pg_advisory_unlock(77127001)')
+            report['rr_before_lock_counterexample']={'writer_committed_before_reader_lock':True,
+                'old_RR_snapshot_still_omits_committed_fact':still_missing,'fresh_snapshot_sees_fact':new_snapshot_sees}
+    report['status']='PASS_COUNTEREXAMPLES_CONFIRMED'
+finally:
+    if started:
+        pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'-m','fast','-w','stop'])
+        report['own_cluster_stopped']=True
+    with (root/'state/visibility-counterexamples.json').open('x',encoding='utf8') as output:json.dump(report,output,indent=2)
+print('PASS: two actual PG interleavings disprove naive visibility timestamps; rows retained; own cluster stopped')

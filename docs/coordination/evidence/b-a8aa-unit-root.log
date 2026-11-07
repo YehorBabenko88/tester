@@ -1,0 +1,23 @@
+test_empty_snapshot_and_cap_failure_are_fail_closed (tests.storage.test_knowledge_time.BoundedPortTests.test_empty_snapshot_and_cap_failure_are_fail_closed) ... ok
+test_projection_uses_existing_bounded_fetch_and_preserves_text (tests.storage.test_knowledge_time.BoundedPortTests.test_projection_uses_existing_bounded_fetch_and_preserves_text) ... ok
+test_backdated_fetch_and_event_are_not_knowledge (tests.storage.test_knowledge_time.KnowledgeTimeTests.test_backdated_fetch_and_event_are_not_knowledge) ... ok
+test_empty_and_failure_have_no_availability (tests.storage.test_knowledge_time.KnowledgeTimeTests.test_empty_and_failure_have_no_availability) ... ok
+test_later_links_corruption_resolution_remain_unproven (tests.storage.test_knowledge_time.KnowledgeTimeTests.test_later_links_corruption_resolution_remain_unproven) ... ok
+test_submillisecond_is_preserved_but_not_claimed_known (tests.storage.test_knowledge_time.KnowledgeTimeTests.test_submillisecond_is_preserved_but_not_claimed_known) ... ok
+test_decimal_and_millisecond_precision_preserved (tests.storage.test_models.ModelTests.test_decimal_and_millisecond_precision_preserved) ... ok
+test_funding_negative_allowed_open_interest_negative_rejected (tests.storage.test_models.ModelTests.test_funding_negative_allowed_open_interest_negative_rejected) ... ok
+test_id_is_scoped_and_composite_is_explicit (tests.storage.test_models.ModelTests.test_id_is_scoped_and_composite_is_explicit) ... ok
+test_invalid_values_and_versions_rejected (tests.storage.test_models.ModelTests.test_invalid_values_and_versions_rejected) ... ok
+test_numeric_formatting_changes_do_not_conflict (tests.storage.test_models.ModelTests.test_numeric_formatting_changes_do_not_conflict) ... ok
+test_original_ns_must_match_ms_and_precision (tests.storage.test_models.ModelTests.test_original_ns_must_match_ms_and_precision) ... ok
+test_original_seconds_and_microseconds_precision (tests.storage.test_models.ModelTests.test_original_seconds_and_microseconds_precision) ... ok
+test_calendar_month_and_monday_week (tests.storage.test_models.QualityTests.test_calendar_month_and_monday_week) ... ok
+test_coverage_uses_union_and_never_hides_damage (tests.storage.test_models.QualityTests.test_coverage_uses_union_and_never_hides_damage) ... ok
+test_high_precision_bad_ohlc_is_not_rounded_away (tests.storage.test_models.QualityTests.test_high_precision_bad_ohlc_is_not_rounded_away) ... ok
+test_sparse_gap_is_unknown_and_never_complete (tests.storage.test_models.QualityTests.test_sparse_gap_is_unknown_and_never_complete) ... ok
+test_unavailable_and_unknown_ranges_are_explicit (tests.storage.test_models.QualityTests.test_unavailable_and_unknown_ranges_are_explicit) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.149s
+
+OK

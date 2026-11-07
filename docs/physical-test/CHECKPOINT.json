@@ -37,7 +37,7 @@
     "Frozen source0ff59c69 and manifest retained; use reviewed normal-UAC payload, no policy bypass",
     "After actual native installation prove SCM/account/image/process/API/DB then stop/update/recovery/restore/UI; no acceptance until evidence"
   ],
-  "checked_at": "2026-11-07T18:02:59.540807+00:00",
+  "checked_at": "2026-11-07T18:13:30.176225+00:00",
   "own_database_prepared": true,
   "own_cluster_running": false,
   "database": "tester_physical_20261107",
@@ -130,5 +130,20 @@
     "drop_teardown_disabled": true,
     "evidence": "docs/coordination/evidence/b737-horizon-pg-pass.json",
     "repeat_completed_operation": false
-  }
+  },
+  "completed_a8aa_contract_probe": {
+    "status": "PASS",
+    "unit_mock_pass": 18,
+    "pg_pass": 7,
+    "fixture_kind": "SYNTHETIC_CONTRACT_NOT_REAL_HISTORY",
+    "historical_knowledge_status": "UNAVAILABLE",
+    "quality_available_at_ms": null,
+    "C_rejects_null": true,
+    "cap_facts_discarded": true,
+    "all_data_retained": true,
+    "repeat_completed_operation": false,
+    "database": "tester_contract_ba8aa_20261107",
+    "sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec"
+  },
+  "visibility_counterexamples_confirmed": 2
 }

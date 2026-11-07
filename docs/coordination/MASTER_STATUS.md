@@ -1,3 +1,23 @@
+# Technical review outcome — LIMITED foundation only
+
+Exact89221 proposal reviewed by MASTER and independent reviewer. Issue2comment6711209526 approves only experimental schema/epoch/common-gate foundation and tests, while production quality remainsUNAVAILABLE/null and epochs stayUNENROLLED if direct/legacy writers bypass gates. No historical success/C mapping/provider defaults authorized. Capture visibility and later receiptpublication must remain separate; UTC trust/uncertainty, restoreexternalepoch, atomicallmutatorgeneration and archive/negative-fact limits stay gates. B actualidlechecked then nextstage dispatched once. Evidence in reviews/VISIBILITY_PROTOCOL_89221.md. Native UAC block remains unchanged.
+
+---
+
+# New prospective visibility proposal received
+
+B89221f2 adds design/specification tests only; production source remainsa8aa with UNAVAILABLE historical quality. MASTER independently20pure testsPASS; deliberately unsafe sampled-clock candidate fails10/10 as expected. These are symbolic cases, not PG/MVCC/crash/durability acceptance. Technical review of enforced all-writer fence/clock/restore/C mapping is pending; no successful production certificate/default activation authorized. See Issue2comment6711141791 and exact B proposal.
+
+---
+
+# B knowledge-time result review — 2026-11-07T18:13:30.176225+00:00
+
+**NOT_READY / historical-quality activation BLOCKED.** Root independently verified exactB a8aa7e1:18unit/mock +7actualPG casesPASS/0skip. Original PostgreSQL timestamp strings preserved, present-time COMPLETE positive control maintained, historical qualityUNAVAILABLE/null/as_offalse. Actual C rejects null; observation cap discards facts/proof. Accepted truthful bounded projection only (PR13comment6711137234), not functional historical-availability certification or composition.
+
+Root also confirmed TWO actual PG counterexamples: DEFAULTnow precedes cutoff while row remains uncommitted/invisible; RR snapshot established before lock still omits a committed row after lock. Separate retained own fixture DB/schema/rows; no deletion/SCM/elevation, cluster stopped. New B task Issue2comment6711141791 requires a versioned prospective immutable-snapshot/named-fence proposal and adversarial cases, MASTER technical review before success activation. Actual idle checked then active design turn confirmed; temporary independent reviewer challenges invariants. No legacy backdating/global settings/C weakening/default activation. Physical0ff remains immutable and NOT_INSTALLED after cancelled UAC; no repeated UAC. This result-triggered review is not a new scheduler invocation; last verified heartbeat remains17:53:52Z.
+
+---
+
 # Heartbeat — bounded proof and next knowledge-time gate, 2026-11-07T18:02:59.540807+00:00
 
 **NOT_READY / physical UAC block unchanged.** Independently ran exactB73766 six PostgreSQL horizon cases through limited app role in a new retained own-cluster fixture DB:6PASS/0fail/0skip, including original MASTER2100 repro and a positive elapsed-clock control. Original future bounds retained, completefalse/UNKNOWN/no proof/0percent. Author DROP teardown explicitly overridden; DB/rows retained, own55469 stopped, no SCM/elevation/user-data deletion. Synthetic proof fixtures are not live history. Narrow acceptance PR13comment6711005818; physical0ff and integration19f remain unchanged.

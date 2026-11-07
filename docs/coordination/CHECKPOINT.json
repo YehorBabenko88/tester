@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "repository": "YehorBabenko88/tester",
-  "cycle_id": "heartbeat-2026-11-07-1753-b-horizon-pg-knowledge-port",
-  "checked_at": "2026-11-07T18:02:59.540807+00:00",
-  "checked_at_europe_berlin": "2026-11-07T19:02:59.540807+01:00",
+  "cycle_id": "agent-result-B-a8aa-knowledge-review",
+  "checked_at": "2026-11-07T18:13:30.176225+00:00",
+  "checked_at_europe_berlin": "2026-11-07T19:13:30.176225+01:00",
   "readiness": "NOT_READY",
   "coordination_branch": "coordination/master",
   "integration_branch": "integration/master",
@@ -694,23 +694,23 @@
     "data_restore_probe": "PASS_50_ROWS_TEN_INSTRUMENTS_FULL_HISTORY_NOT_PROVEN"
   },
   "latest_independent_b_review": {
-    "sha": "73766dd531387f660ddfb243b64d28be9389ddd1",
-    "pure_checks_pass": 13,
-    "postgres_executed": true,
+    "sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec",
+    "unit_mock_pass": 18,
+    "actual_pg_cases_pass": 7,
+    "pg_skipped": 0,
+    "acceptance": "TRUTHFUL_BOUNDED_FACT_PROJECTION_ONLY",
+    "historical_quality_available": false,
+    "quality_available_at_ms": null,
     "adopted": false,
-    "report": "docs/coordination/reviews/B_FUTURE_73766.md",
-    "postgres_cases_pass": 6,
-    "acceptance": "FUTURE_HORIZON_FIX_ONLY_NOT_FULL_READY_OR_COMPOSED",
-    "pg_evidence": "docs/coordination/evidence/b737-horizon-pg-pass.json",
-    "pg_command": "private venv python -I -B work/physical-test/verify_b737_retained.py",
-    "harness": "docs/coordination/evidence/b737-horizon-retained-harness.py.txt",
-    "retained_database": "tester_contract_b73766_20261107",
-    "root_acceptance_comment": 6711005818
+    "root_acceptance_comment": 6711137234,
+    "pg_evidence": "docs/coordination/evidence/b-a8aa-knowledge-pg-pass.json",
+    "harness": "docs/coordination/evidence/b-a8aa-retained-harness.py.txt",
+    "retained_database": "tester_contract_ba8aa_20261107"
   },
   "latest_agent_execution_snapshot": {
-    "checked_at": "2026-11-07T18:02:59.540807+00:00",
+    "checked_at": "2026-11-07T18:13:30.176225+00:00",
     "A": "IDLE",
-    "B": "IN_PROGRESS_CONFIRMED_NEW_KNOWLEDGE_TIME_PORT_6711027252",
+    "B": "IN_PROGRESS_CONFIRMED_FOUNDATION_STAGE_6711209526",
     "C": "IDLE",
     "D": "IDLE",
     "E": "IDLE_COMPLETED_BEC563_ROOT48_PASS_NOT_COMPOSED",
@@ -728,13 +728,37 @@
   },
   "knowledge_time_port": {
     "owner": "B",
-    "status": "IN_PROGRESS",
+    "status": "FACTS_PROJECTED_HISTORICAL_VISIBILITY_STILL_BLOCKED",
     "issue": 2,
     "comment": 6711027252,
     "baseline_sha": "73766dd531387f660ddfb243b64d28be9389ddd1",
     "same_head_defect_dedup_marker": "73766-quality-knowledge-time-port",
     "consumer": "C3cb bind_storage_trades quality_available_at_ms <= information_cutoff_ms",
-    "reason": "Bounded snapshot omits database source/observation/run/raw knowledge clocks; MASTER cannot backdate quality from event/fetched/current time",
-    "next": "Review published B delta and actual known-time regressions; compose typed bounded provider only after this gate; never weaken C or reopen cancelled UAC"
+    "reason": "DEFAULTnow timestamps are transaction-start, not proved commit/visibility; null historical quality is truthful",
+    "next": "Prospective immutable snapshot/named-fence design and adversarial tests, MASTER technical review before activation",
+    "published_sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec",
+    "next_task_comment": 6711141791,
+    "next_task_marker": "a8aa-prospective-visibility-design",
+    "proposal_sha": "89221f2ecc20827e9d15e40de6e39ab51c0456d0",
+    "proposal_status": "LIMITED_FOUNDATIONAL_PROTOTYPE_TECHNICALLY_APPROVED_ONLY",
+    "proposal_pure_unit_pass": 20,
+    "deliberately_unsafe_candidate_rejections": 10,
+    "proposal_pg_acceptance": false,
+    "production_success_enabled": false,
+    "technical_review_comment": 6711209526,
+    "next_stage": "B foundation schema/epoch/common-gate scaffolding; production success disabled; no C mapping",
+    "independent_review": "docs/coordination/reviews/VISIBILITY_PROTOCOL_89221.md"
+  },
+  "visibility_counterexamples": {
+    "actual_pg_cases": 2,
+    "result": "NAIVE_PROTOCOLS_DISPROVED",
+    "cases": [
+      "transaction_start_before_cutoff_commit_after",
+      "RR_snapshot_before_lock_omits_committed_fact"
+    ],
+    "evidence": "docs/coordination/evidence/visibility-counterexamples.json",
+    "harness": "docs/coordination/evidence/visibility-counterexamples.py.txt",
+    "all_data_retained": true,
+    "certificate_issued": false
   }
 }
