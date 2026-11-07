@@ -42,7 +42,7 @@ def save_checkpoint(path,value):
     _validate(value);path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
     temporary=path.with_name(path.name+'.'+uuid.uuid4().hex+'.tmp')
     try:
-        with temporary.open('x',encoding='utf-8') as output:
+        with temporary.open('x',encoding='utf-8',newline='\n') as output:
             json.dump(value,output,indent=2,ensure_ascii=False);output.write('\n');output.flush();os.fsync(output.fileno())
         os.replace(temporary,path)
     finally:

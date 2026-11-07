@@ -1,0 +1,134 @@
+{
+  "schema_version": "research-registry-1",
+  "repository": "YehorBabenko88/tester",
+  "stage": "S0_INERT_RESEARCH_ONLY",
+  "notices": [
+    "Technical access is not licensing permission",
+    "Protocol account is not a verified human",
+    "No cross-repository Gateway/runtime dependency",
+    "No Trader Intelligence acquisition enabled; existing anonymous market context unchanged",
+    "No reconstructed entry/exit is observed fact"
+  ],
+  "sources": [
+    {
+      "id": "bybit_public_market",
+      "category": "ANONYMOUS_MARKET",
+      "identity_scope": "NONE",
+      "technical_access": "PUBLIC_READ_VERIFIED",
+      "docs": "https://bybit-exchange.github.io/docs/v5/market/recent-trade",
+      "endpoint": "GET /v5/market/recent-trade",
+      "auth": "No credentials supplied; bounded limit1 probe HTTP200/retCode0",
+      "registration": "Not needed for this observed anonymous probe",
+      "history": "Recent prints/archive by symbol; no trader identifier or named-account history",
+      "publication_lag": "UNKNOWN; preserve exchange and observation times",
+      "permission": "Existing anonymous market context only; no trader attribution or unrestricted redistribution assumed",
+      "reviewed_on": "2026-11-07",
+      "trader_intelligence_collection_enabled": false,
+      "rights_status": "REVIEW_REQUIRED",
+      "completeness": "UNKNOWN",
+      "activation_gate": [
+        "Existing tester A–G P0 accepted",
+        "Specific permitted access and intended-use rights/consent evidenced",
+        "Bounded real account sample with authentic identity/evidence/timing; no anonymous attribution"
+      ]
+    },
+    {
+      "id": "bybit_copy_trading_disclosure",
+      "category": "PUBLIC_ACCOUNT_DISCLOSURE",
+      "identity_scope": "SOURCE_PSEUDONYM_VISIBILITY_DEPENDENT",
+      "technical_access": "NO_PERMITTED_DOCUMENTED_MACHINE_HISTORY_ROUTE_ESTABLISHED",
+      "docs": "https://www.bybit.com/en/help-center/article/How-to-Understand-Master-Trader-Performance",
+      "endpoint": null,
+      "auth": "UNKNOWN per field/product; strategy protection may restrict followers/whitelist",
+      "registration": "Product/entity/KYC/region dependent; not registered or logged in",
+      "history": "Public metrics/position disclosures do not prove fill ledger, revisions or lifetime coverage; window UNKNOWN",
+      "publication_lag": "Mixed documented real-time/daily/hourly metrics, not measured SLA; no universal freshness claim",
+      "permission": "Applicable terms and automated access/reuse/privacy scope UNVERIFIED; no scraping/private web endpoints",
+      "reviewed_on": "2026-11-07",
+      "trader_intelligence_collection_enabled": false,
+      "rights_status": "REVIEW_REQUIRED",
+      "completeness": "UNKNOWN",
+      "activation_gate": [
+        "Existing tester A–G P0 accepted",
+        "Specific permitted access and intended-use rights/consent evidenced",
+        "Bounded real account sample with authentic identity/evidence/timing; no anonymous attribution"
+      ]
+    },
+    {
+      "id": "bybit_owner_export",
+      "category": "OWNER_AUTHORIZED_EXPORT",
+      "identity_scope": "OWNER_ATTESTED_ACCOUNT_ONLY",
+      "technical_access": "CONSENT_AND_FILE_REQUIRED",
+      "docs": "https://www.bybit.com/en/help-center/article/How-to-Self-Export-Account-Data",
+      "endpoint": "User-supplied authorized file, not arbitrary account API",
+      "auth": "Owner prepares export; no keys/login created or used by MASTER",
+      "registration": "Export workflow is owner account access; permission to analyze not permission to publish",
+      "history": "Product/filters and actual file must be checked; docs conflict on3vs5years; no promised retention",
+      "publication_lag": "Current-day data next day; documented generation1–3days; download link7days",
+      "permission": "Explicit authorized file scope/consent/revocation required; preserve bytes/hash and minimize personal data",
+      "reviewed_on": "2026-11-07",
+      "trader_intelligence_collection_enabled": false,
+      "rights_status": "REVIEW_REQUIRED",
+      "completeness": "UNKNOWN",
+      "activation_gate": [
+        "Existing tester A–G P0 accepted",
+        "Specific permitted access and intended-use rights/consent evidenced",
+        "Bounded real account sample with authentic identity/evidence/timing; no anonymous attribution"
+      ]
+    },
+    {
+      "id": "hyperliquid_public_account_fills",
+      "category": "PUBLIC_ACCOUNT_DISCLOSURE",
+      "identity_scope": "PSEUDONYMOUS_PROTOCOL_ACCOUNT_NOT_HUMAN",
+      "technical_access": "PUBLIC_INFO_READ_DOCUMENTED_ZERO_ADDRESS_PROBE_HTTP200",
+      "docs": "https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint",
+      "endpoint": "POST /info type=userFillsByTime (read only)",
+      "auth": "No signing/API-key fields in documented read; zero-address technical probe only, no real trader history collected",
+      "registration": "Technical read does not document account registration requirement; territorial/use terms still apply",
+      "history": "Up to2000 fills per method response, latest10000 exposed; overlap/dedup/no-progress detection; generic pagination docs differ",
+      "publication_lag": "No fixed per-fill publication/indexing SLA found; official archive page warns missing/late data",
+      "permission": "Data reuse/redistribution rights UNVERIFIED; no inference from SDK license/public API",
+      "reviewed_on": "2026-11-07",
+      "trader_intelligence_collection_enabled": false,
+      "rights_status": "REVIEW_REQUIRED",
+      "completeness": "UNKNOWN",
+      "activation_gate": [
+        "Existing tester A–G P0 accepted",
+        "Specific permitted access and intended-use rights/consent evidenced",
+        "Bounded real account sample with authentic identity/evidence/timing; no anonymous attribution"
+      ]
+    },
+    {
+      "id": "polymarket_public_account_v2",
+      "category": "PUBLIC_ACCOUNT_DISCLOSURE",
+      "identity_scope": "PSEUDONYMOUS_PROXY_WALLET_NOT_HUMAN",
+      "technical_access": "PUBLIC_NO_AUTH_DOCUMENTED_NOT_LIVE_ACCOUNT_TESTED",
+      "docs": "https://docs.polymarket.com/api-reference/feeds/list-trades",
+      "endpoint": "GET /v2/trades with explicit user/filter/cursor scope",
+      "auth": "Officialv2docs state noAPIkey/token; authenticated CLOB operations are outside scope",
+      "registration": "No technical read auth documented; legal/entity/territorial restrictions separate",
+      "history": "v1 retired2026-11-02; v2user default3years/start1 requests stored history only; taker_only=true and minsize0.01 defaults censor activity",
+      "publication_lag": "v2/status freshness snapshot not per-trade publication-time guarantee",
+      "permission": "Official2026-08-11terms impose written-permission gates for defined capital-market/data-distribution uses; intended use/recipients require review",
+      "reviewed_on": "2026-11-07",
+      "trader_intelligence_collection_enabled": false,
+      "rights_status": "REVIEW_REQUIRED",
+      "completeness": "UNKNOWN",
+      "activation_gate": [
+        "Existing tester A–G P0 accepted",
+        "Specific permitted access and intended-use rights/consent evidenced",
+        "Bounded real account sample with authentic identity/evidence/timing; no anonymous attribution"
+      ]
+    }
+  ],
+  "evidence": "../coordination/evidence/trader-source-access.json",
+  "terms_references": [
+    "https://polymarket.com/tos",
+    "https://app.hyperliquid.xyz/terms",
+    "https://www.bybit.com/en/legal/terms-of-service/Bybit-Platform-Terms-and-Conditions"
+  ],
+  "audit_files": [
+    "BYBIT_SOURCE_AUDIT.md",
+    "PUBLIC_ACCOUNT_SOURCE_AUDIT.md"
+  ]
+}

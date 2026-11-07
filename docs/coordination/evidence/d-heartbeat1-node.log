@@ -1,0 +1,23 @@
+✔ pinned canonical AVAILABLE fixture and metadata survive adaptation (42.3291ms)
+✔ pinned canonical PARTIAL fixture and metadata survive adaptation (0.3075ms)
+✔ pinned canonical UNAVAILABLE fixture and metadata survive adaptation (0.1386ms)
+✔ pinned canonical UNVERIFIED fixture and metadata survive adaptation (0.1386ms)
+✔ row unavailability cannot be upgraded by an AVAILABLE envelope (0.1749ms)
+✔ nested metric unavailability retains its specific reason and structured sources (0.1492ms)
+✔ chart forward and inverse coordinates share the exact plot area (1.0217ms)
+✔ sort exact decimals without rounding and leave unavailable last (0.2623ms)
+✔ metric cannot claim available without source and timestamp (0.3441ms)
+✔ progress never claims 100 before verified completion (0.1513ms)
+✔ corrupt candles are rejected, gaps preserved and bounded (0.5693ms)
+✔ HTTP and schema failures remain explicit errors (16.1044ms)
+✔ UTC months respect leap year and year boundary (1.3698ms)
+✔ UTC weeks start Monday and ignore local DST (0.092ms)
+✔ month-end clamping never collapses a positive half-open range (0.1546ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 212.228

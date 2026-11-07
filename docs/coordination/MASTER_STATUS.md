@@ -1,3 +1,41 @@
+# Current MASTER checkpoint — Issue25 architecture correction
+
+**NOT_READY.** Checked 2026-11-07T16:18:05.764875+01:00 (Europe/Berlin). This section and CHECKPOINT.json supersede all historical snapshots below. Only YehorBabenko88/tester is authorized. No external Gateway dependencies; no main merge, physical deployment/service installation or real trading.
+
+## Actual automation invocation
+
+VERIFIED_FIRST_INVOCATION: matching scheduler-origin heartbeat received 2026-11-07T14:40:23.454Z and actual continuation tools executed in the dedicated coordination/master Git worktree. This proves one invocation, not uninterrupted future monitoring. Earlier AWAITING_FIRST_INVOCATION text below is historical.
+
+## Exact reviewed pins and evidence
+
+| Owner | Reviewed HEAD | Independent result | Remaining state |
+|---|---|---|---|
+| A | 39645a64 | 40 unit +8 B-consumer tests | CHANGES_REQUESTED: equal Decimal spellings falsely conflict; active corrective chat |
+| B | 47fd36f3 | 51 real disposable-PG tests + adverse rollback/retry probe | Resolver integration and bounded lifecycle review pending |
+| C | 152823e1 | 27 tests; exact math, unknown-side delta preserved null | READY_FOR_REVIEW, full pipeline pending |
+| D | 1fdf8183 | 18 Node tests; weaker row/envelope coverage preserved | Focused promotion defect resolved; full charts pending |
+| E | 0a17033f | 28 direct scope/canonical tests | CHANGES_REQUESTED: UTC grids/resource interval; active corrective chat |
+| F | 998c5bc8 | 39 strategy tests, both protective/liquidity regressions | Focused P1s resolved; separate integration stage |
+| G | 5edb722f | Reviewer:34 tests +16 security subtests | CHANGES_REQUESTED: canonical control storage; AWAITING_AGENT_EXECUTION |
+
+E previous6d8 pin also passed44 real-PG/HTTP tests with one symlink skip; this is not full current0a170 verification. An initial wrong fixture DB-name run failed twice; red and corrected evidence are retained separately. Only own disposable PG18.4 fixtures used; server stopped afterward. Main remains0a6ce227. MASTER parent0dea7316. New Draft PR26/H8bafc315 is observed, unreviewed and not integrated.
+
+Coordinator:72 discovered,70 passed,2 opt-in PG skips. Optional price-only1.1 has8 tests plus6 bounded live mark/index/premium rows, all UNVERIFIED/UNKNOWN; core1.0 unchanged and no API adoption claimed. Owned factory/origin policy has6 tests; E/G adoption pending. Evidence and focused reviews are in this directory. CI remains QUEUED/PENDING; no successful CI verified.
+
+## Architecture and source gate
+
+Issue25 and PR11 correction are normative. See docs/architecture/STANDALONE.md and docs/trader-intelligence/INTEGRATION_PLAN.md for P0 A-G first, owner assignments and S0-S4 acceptance. No cross-repository runtime bindings found in reviewed snapshots; own G-to-E loopback communication is allowed, not a foreign Gateway.
+
+Source registry has five inert candidates. Bybit recent public executions have no trader identity; own execution history requires authentication. No permitted documented complete arbitrary Master Trader history feed was established. Hyperliquid and Polymarket document public account reads with caps/filters, pseudonymous account identity and unresolved intended-use rights. Public visibility is not redistribution permission. Exact registration/export/retention/publication limitations and official links are in source audits. No identified trader history collected; no anonymous trade attributed; no reconstruction presented as observed fact.
+
+Nonduplicate tasks: A PR10 comment6708786351 (economic decimal identity), E PR9 comment6708786552 (UTC grids/observation interval), G Issue18 comment6708743561 (canonical state and standalone boundary), Issue25 plan6708743336. A/E followups were delivered once and active tool progress confirmed; G comment is not claimed as execution.
+
+Next: verify A/E corrections; wire authentic B run/active-coverage resolver into tested E reader; pin and test A→B→C→E→D, F separately; resolve G control-state ownership; run 10-instrument integrated and resource/service dry-run acceptance. Trader Intelligence S1+ stays gated by P0 and actual source rights/sample evidence. No READY claim.
+
+---
+
+## Historical checkpoints (superseded)
+
 # Master status — 2026-11-07
 
 ## Current supervisor cycle — 15:33 Europe/Berlin

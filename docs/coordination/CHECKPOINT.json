@@ -1,71 +1,86 @@
 {
   "schema_version": 1,
   "repository": "YehorBabenko88/tester",
-  "cycle_id": "supervisor-2026-11-07-02",
-  "checked_at": "2026-11-07T14:36:33.859206+00:00",
-  "checked_at_europe_berlin": "2026-11-07T15:36:33.859206+01:00",
+  "cycle_id": "heartbeat-2026-11-07-01-issue25",
+  "checked_at": "2026-11-07T15:18:05.764875+00:00",
+  "checked_at_europe_berlin": "2026-11-07T16:18:05.764875+01:00",
   "readiness": "NOT_READY",
   "coordination_branch": "coordination/master",
   "integration_branch": "integration/master",
-  "candidate_parent": "9766c0093e2608280875ac56db074414a3d62c69",
+  "candidate_parent": "0dea73160527e17754e04eb86361d3bb53fc7988",
   "main_untouched": "0a6ce227d9463562bb18889dcc0ee747f3be9130",
   "automation": {
     "id": "tester-master-coordination-cycle",
     "configuration_status": "ACTIVE",
     "interval_minutes": 15,
     "destination": "existing_MASTER_chat",
-    "verification_status": "AWAITING_FIRST_INVOCATION",
-    "evidence": "automation_update create/update succeeded; TOML readback confirms target/cadence; no scheduler-origin turn observed yet",
-    "worktree": "existing dedicated work/master-supervisor; Git fallback after native operation stalled"
+    "verification_status": "VERIFIED_FIRST_INVOCATION",
+    "evidence": "System-origin heartbeat envelope received with matching automation_id; actual continuation executed tools in configured worktree",
+    "worktree": "existing dedicated work/master-supervisor; Git fallback after native operation stalled",
+    "first_invocation_at": "2026-11-07T14:40:23.454Z"
   },
   "agents": {
     "A": {
-      "observed_head": "addbdda232bc1a604a7a637bdad479752c4cccfe",
+      "observed_head": "39645a64ed424270401de3b1f35767b1fd7c3d74",
       "review_status": "CHANGES_REQUESTED",
       "execution_status": "RUNNING_CONFIRMED",
-      "execution_observed_at": "2026-11-07T14:28:23Z",
-      "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
-      "pr": 10
+      "execution_observed_at": "2026-11-07T15:18:05.764875+00:00",
+      "execution_evidence": "Actual active Codex turn and assistant/tool progress from wait_threads; corrective followup delivered once",
+      "pr": 10,
+      "reviewed_head": "39645a64ed424270401de3b1f35767b1fd7c3d74"
     },
     "B": {
-      "observed_head": "5154efab05d44b96f4aa83819672396d75679f2e",
-      "review_status": "CHANGES_REQUESTED",
-      "execution_status": "RUNNING_CONFIRMED",
+      "observed_head": "47fd36f32389174377682a13862f5b36c7a886da",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "NOT_REFRESHED_THIS_SNAPSHOT",
       "execution_observed_at": "2026-11-07T14:28:23Z",
       "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
-      "pr": 13
+      "pr": 13,
+      "reviewed_head": "47fd36f32389174377682a13862f5b36c7a886da"
     },
     "C": {
-      "observed_head": "0070b5fcb9180a79b213698c99ea289df4442383",
-      "review_status": "CHANGES_REQUESTED",
-      "execution_status": "RUNNING_CONFIRMED",
+      "observed_head": "152823e1528f0953f8175717212d795d7fe1ac0c",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "NOT_REFRESHED_THIS_SNAPSHOT",
       "execution_observed_at": "2026-11-07T14:28:23Z",
       "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
-      "pr": null
+      "pr": 20,
+      "reviewed_head": "152823e1528f0953f8175717212d795d7fe1ac0c"
     },
     "D": {
-      "observed_head": "1b35ec6565ef0f9471ecd7197a64bf598080f85b",
-      "review_status": "CHANGES_REQUESTED",
-      "execution_status": "RUNNING_CONFIRMED",
+      "observed_head": "1fdf8183284a1203be14a6896cec175f6b2aea63",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "NOT_REFRESHED_THIS_SNAPSHOT",
       "execution_observed_at": "2026-11-07T14:28:23Z",
       "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
-      "pr": 12
+      "pr": 12,
+      "reviewed_head": "1fdf8183284a1203be14a6896cec175f6b2aea63"
     },
     "E": {
-      "observed_head": "c2fb7b66f9ebc0b4b04519ea327c3baafc1e5f54",
+      "observed_head": "0a17033f6c88b336e988e4007231a2ee9cefe761",
       "review_status": "CHANGES_REQUESTED",
       "execution_status": "RUNNING_CONFIRMED",
-      "execution_observed_at": "2026-11-07T14:28:23Z",
-      "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
-      "pr": 9
+      "execution_observed_at": "2026-11-07T15:18:05.764875+00:00",
+      "execution_evidence": "Actual active Codex turn and assistant/tool progress from wait_threads; corrective followup delivered once",
+      "pr": 9,
+      "reviewed_head": "0a17033f6c88b336e988e4007231a2ee9cefe761"
     },
     "F": {
-      "observed_head": "c72cf50504b23935b256c7bf5d904f963a126c95",
-      "review_status": "CHANGES_REQUESTED",
-      "execution_status": "RUNNING_CONFIRMED",
+      "observed_head": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "NOT_REFRESHED_THIS_SNAPSHOT",
       "execution_observed_at": "2026-11-07T14:28:23Z",
       "execution_evidence": "Codex wait_threads active/inProgress; actual assistant/tool activity",
-      "pr": 19
+      "pr": 19,
+      "reviewed_head": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31"
+    },
+    "G": {
+      "observed_head": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+      "reviewed_head": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+      "review_status": "CHANGES_REQUESTED",
+      "execution_status": "AWAITING_AGENT_EXECUTION",
+      "execution_evidence": "GitHub task queued; G idle observed; no direct chat dispatch authorized beyond A-F",
+      "pr": 24
     }
   },
   "new_discovery": {
@@ -80,11 +95,11 @@
   },
   "tests": {
     "coordinator": {
-      "discovered": 58,
-      "passed": 56,
+      "discovered": 72,
+      "passed": 70,
       "skipped_opt_in_pg": 2,
       "failures": 0,
-      "log": "evidence/cycle2-unit.log"
+      "log": "evidence/architecture-unit.log"
     },
     "B_5154efab": {
       "executed": 40,
@@ -109,10 +124,56 @@
       ],
       "log": "evidence/f-current-strategy.log",
       "status": "CHANGES_REQUESTED"
+    },
+    "B_47fd36f": {
+      "passed": 51,
+      "skipped": 0,
+      "postgres": "18.4 disposable loopback-only cluster",
+      "log": "evidence/b-heartbeat1-postgres.log",
+      "adverse_retry": "evidence/b-heartbeat1-retry.log"
+    },
+    "C_152823e": {
+      "passed": 27,
+      "log": "evidence/c-heartbeat1-tests.log"
+    },
+    "D_1fdf818": {
+      "passed": 18,
+      "log": "evidence/d-heartbeat1-fixed-node.log"
+    },
+    "E_6d8": {
+      "passed": 44,
+      "skipped": 1,
+      "postgres": "own exact tester_acceptance fixture",
+      "log": "evidence/e-heartbeat1-postgres.log",
+      "initial_fixture_red": "evidence/e-heartbeat1-fixture-red.log"
+    },
+    "E_0a170": {
+      "passed_direct": 28,
+      "full_http_pg_current_head": "PENDING",
+      "review": "reviews/E_ARCHITECTURE_CHECK.md"
+    },
+    "F_998c5bc": {
+      "passed": 39,
+      "log": "evidence/f-heartbeat1-strategy.log"
+    },
+    "A_39645": {
+      "passed_unit": 40,
+      "passed_B_consumers": 8,
+      "review": "reviews/A_ARCHITECTURE_CHECK.md"
+    },
+    "standalone_policy": {
+      "passed": 6,
+      "adopted_by_E_G": false
+    },
+    "optional_price_candle_v11": {
+      "passed": 8,
+      "live_rows": 6,
+      "coverage": "UNKNOWN",
+      "adopted_by_E": false
     }
   },
   "ci": {
-    "state": "QUEUED_NO_SUCCESS_VERIFIED",
+    "state": "QUEUED_PENDING_NO_SUCCESS_VERIFIED",
     "prior_candidate_runs": [
       42378846890,
       42378842458
@@ -124,6 +185,12 @@
     "F_runs": [
       42381985480,
       42381959325
+    ],
+    "latest_observed_run_ids": [
+      42385529295,
+      42385529289,
+      42384575634,
+      42384323489
     ]
   },
   "tasks": {
@@ -169,11 +236,53 @@
     },
     "42b5042bca02e65d61dbd5e90e96be5a9f4db43c5df380679c0841bf4e923517": {
       "comment_id": 6708269302,
-      "status": "CHANGES_REQUESTED",
+      "status": "ACCEPTED",
       "issue": 19,
       "head": "c72cf50504b23935b256c7bf5d904f963a126c95",
       "defect": "F-c72cf505-zero-capacity-stop-and-liquidity-cutoff",
-      "remote_marker": "master-task:F-c72cf505-zero-capacity-stop-and-liquidity-cutoff"
+      "remote_marker": "master-task:F-c72cf505-zero-capacity-stop-and-liquidity-cutoff",
+      "reviewed_successor": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+      "resolution": "39 strategy tests and both adverse regressions pass; not overall integration acceptance"
+    },
+    "8ec6246f7448862aea332c6ecfaa2c0e398100da5a831c32342be314b184c6f6": {
+      "comment_id": 6708786351,
+      "status": "CHANGES_REQUESTED",
+      "issue": 10,
+      "reviewed_successor": "39645a64ed424270401de3b1f35767b1fd7c3d74",
+      "defect": "A-39645a64-equivalent-decimal-conflict",
+      "remote_marker": "master-task:A-39645a64-equivalent-decimal-conflict"
+    },
+    "8f1280b00969a0d99d2349b555e68659d448280056c740d8d18b014fb27ee041": {
+      "comment_id": 6708786552,
+      "status": "CHANGES_REQUESTED",
+      "issue": 9,
+      "reviewed_successor": "0a17033f6c88b336e988e4007231a2ee9cefe761",
+      "defect": "E-0a17033f-utc-grid-and-observation-interval",
+      "remote_marker": "master-task:E-0a17033f-utc-grid-and-observation-interval"
+    },
+    "b96809ea3c3a5ef8caf11dc8ef430d27ee01987a6e226038798b629d09e7dcc5": {
+      "comment_id": 6708743561,
+      "status": "CHANGES_REQUESTED",
+      "issue": 18,
+      "reviewed_successor": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+      "defect": "G-5edb722-standalone-canonical-control-state",
+      "remote_marker": "master-task:G-5edb722-standalone-canonical-control-state"
+    },
+    "6071350cc9035e25543e3fa8edcb5a8263297eaad1e628ffe7c4406757bd12c6": {
+      "comment_id": 6708414839,
+      "status": "ACCEPTED",
+      "issue": 12,
+      "reviewed_successor": "1fdf8183284a1203be14a6896cec175f6b2aea63",
+      "defect": "D-2615-envelope-coverage-promotion",
+      "remote_marker": "master-task:D-2615-envelope-coverage-promotion"
+    },
+    "0ac7c3de78c523fb659bf4cc3c9c84e5c99b9dac6ced7dfe1c8e9172b0288581": {
+      "comment_id": 6708480531,
+      "status": "ACCEPTED",
+      "issue": 9,
+      "reviewed_successor": "0a17033f6c88b336e988e4007231a2ee9cefe761",
+      "defect": "E-6d8-request-scope-binding",
+      "remote_marker": "master-task:E-6d8-request-scope-binding"
     }
   },
   "existing_task_references": {
@@ -197,24 +306,27 @@
     "Lossless B->E adapter with strict keyset/range and authentic provenance resolver",
     "Preserve unavailable/error reasons; no optimistic COMPLETE; no C math",
     "Atomic checkpoint/dedup/no-overlap helper tests; remote marker reconciliation required",
-    "Verified B real PG migration/kill/concurrency/backup suite; no user DB touched"
+    "Verified B real PG migration/kill/concurrency/backup suite; no user DB touched",
+    "Optional price-only contract1.1 (no fabricated volume); core1.0 unchanged",
+    "Owned tester factory validation helper and origin checks with six tests; E/G adoption pending",
+    "Issue25 standalone architecture, inert five-candidate source registry, rights/completeness/lag audits and A-G staged owner plan",
+    "Actual first scheduled heartbeat verified with real continuation tools"
   ],
   "blockers": [
-    "A export acquisition/run/evidence boundary",
-    "B source observations per-run linkage and recovery fetch fencing",
-    "C implementation not yet published",
-    "E shared-schema API roundtrip/SCM/drain/budgets",
-    "D canonical metadata and #17 calendar/history UX",
-    "F protective stop persistence and point-in-time liquidity",
-    "CI still queued",
-    "Actual recurring automation invocation unverified"
+    "A equal economic decimal spellings falsely conflict; corrective execution active",
+    "E UTC-grid validation and funding/OI source interval versus chart viewport; execution active",
+    "B authentic run/coverage resolver not yet wired through E; full P0 A-G not integrated",
+    "G authoritative control-state SQLite versus PostgreSQL ownership decision",
+    "Resource scan bounds/lifecycle/service dry-run and 10-instrument integrated acceptance incomplete",
+    "CI queued/pending; no successful exact-candidate CI",
+    "Trader source licensing/intended-use permission and complete real account sample not established; S1+ disabled"
   ],
   "next_actions": [
-    "On actual heartbeat record scheduler-origin invocation evidence, then refresh GitHub and current agent statuses",
-    "Review new exact A-F heads; do not redispatch active sessions or repeat same-head defect comments",
-    "Review F19 corrective HEAD against both reproduced P1 scenarios; keep F separate from A-E P0",
-    "Obtain B authentic provenance/evidence resolver and wire tested storage adapter into E provider",
-    "Continue #14 raw-protected dry-run and #15 bounded shutdown/service dry-run, no physical install"
+    "Review corrected A and E exact heads once published; do not dispatch active sessions twice",
+    "Implement and independently verify authentic B provenance/active coverage -> E reader factory in tester only",
+    "Integrate pinned A-B-C-E-D; F separate; resolve G canonical storage and owned factory adoption",
+    "Review new PR26 under P0-first gate; no collection enabled",
+    "Run ten-instrument integrated acceptance, resource/service dry-run and exact-candidate CI; preserve NOT_READY until proven"
   ],
   "restrictions": [
     "tester only",
@@ -222,6 +334,15 @@
     "no real trading",
     "no physical service/software installation",
     "no user-data deletion"
-  ]
+  ],
+  "architecture": {
+    "issue": 25,
+    "decision": "tester standalone only; no cross-repository gateways",
+    "plan_comment_id": 6708743336,
+    "plan": "docs/trader-intelligence/INTEGRATION_PLAN.md",
+    "trader_collection_enabled": false,
+    "stage": "S0 research only; P0 A-G integration blocks S1+",
+    "additional_pr26_head": "8bafc315e5757b3510d1b20154b8df7445f3408c",
+    "additional_pr26_state": "NEW_UNREVIEWED_NOT_INTEGRATED"
+  }
 }
-
