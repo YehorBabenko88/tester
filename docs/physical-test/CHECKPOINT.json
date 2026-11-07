@@ -37,7 +37,7 @@
     "Frozen source0ff59c69 and manifest retained; use reviewed normal-UAC payload, no policy bypass",
     "After actual native installation prove SCM/account/image/process/API/DB then stop/update/recovery/restore/UI; no acceptance until evidence"
   ],
-  "checked_at": "2026-11-07T17:45:06.804450+00:00",
+  "checked_at": "2026-11-07T18:02:59.540807+00:00",
   "own_database_prepared": true,
   "own_cluster_running": false,
   "database": "tester_physical_20261107",
@@ -99,7 +99,7 @@
     }
   ],
   "blocking_reason": "ENVIRONMENT:UAC_CANCELLED_NO_ELEVATED_PROCESS",
-  "last_heartbeat": "2026-11-07T17:38:52.297Z",
+  "last_heartbeat": "2026-11-07T17:53:52.427Z",
   "completed_data_probe": {
     "operation_id": "data-restore-hb1738",
     "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
@@ -118,5 +118,17 @@
     "all_data_retained": true,
     "repeat_same_restore_operation": false,
     "scope": "FOREGROUND_OWNED_DATA_TEST_NOT_SCM_OR_FULL_HISTORY_ACCEPTANCE"
+  },
+  "completed_b737_contract_probe": {
+    "status": "PASS",
+    "cases": 6,
+    "skipped": 0,
+    "sha": "73766dd531387f660ddfb243b64d28be9389ddd1",
+    "database": "tester_contract_b73766_20261107",
+    "fixture_kind": "SYNTHETIC_NOT_REAL_HISTORY",
+    "all_data_retained": true,
+    "drop_teardown_disabled": true,
+    "evidence": "docs/coordination/evidence/b737-horizon-pg-pass.json",
+    "repeat_completed_operation": false
   }
 }

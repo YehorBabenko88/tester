@@ -1,3 +1,11 @@
+# Heartbeat — bounded proof and next knowledge-time gate, 2026-11-07T18:02:59.540807+00:00
+
+**NOT_READY / physical UAC block unchanged.** Independently ran exactB73766 six PostgreSQL horizon cases through limited app role in a new retained own-cluster fixture DB:6PASS/0fail/0skip, including original MASTER2100 repro and a positive elapsed-clock control. Original future bounds retained, completefalse/UNKNOWN/no proof/0percent. Author DROP teardown explicitly overridden; DB/rows retained, own55469 stopped, no SCM/elevation/user-data deletion. Synthetic proof fixtures are not live history. Narrow acceptance PR13comment6711005818; physical0ff and integration19f remain unchanged.
+
+New concrete integration gap: C requires proved quality_available_at_ms before cutoff, while bounded B projection omits recorded/inserted/run clocks. Do not substitute source fetched_at, event time or current read time. B Issue2comment6711027252 assigned once after actual idle check; real active turn confirmed. MASTER recorded single-snapshot bounded provider plan and cutoff/resource/provenance regressions in INTEGRATION_PLAN_V1.md. All source heads unchanged,11DraftPRs/issues refreshed, CI718 remains queued. No new UAC prompt. Next: review B knowledge-time delta, then compose B→shared→C→typedE→D in isolated Draft without activating immutable physical candidate.
+
+---
+
 # Latest cycle result — E P2 independently verified
 
 E finished existing disclosure task at bec563e; MASTER independently48financialHTTP testsPASS after exactGit snapshot/diff review. Unknown/private errorcodes safelymap503, raw diagnostics are not exposed. Narrow P2 accepted in PR9 comment6710868433; E nowidle, bec notcomposed and physicalfrozen0ff unchanged. B73766 has13purechecks/source review only; independentPGproof pending. Real50-row/teninstrument replay/retainedbackup-restore/sourcepayload-time checks passed in ownPG, then stopped. Native installation still blocked by cancelledUAC; no retry and no main merge.

@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "repository": "YehorBabenko88/tester",
-  "cycle_id": "heartbeat-2026-11-07-1738-physical-data-restore",
-  "checked_at": "2026-11-07T17:45:06.804450+00:00",
-  "checked_at_europe_berlin": "2026-11-07T18:45:06.804450+01:00",
+  "cycle_id": "heartbeat-2026-11-07-1753-b-horizon-pg-knowledge-port",
+  "checked_at": "2026-11-07T18:02:59.540807+00:00",
+  "checked_at_europe_berlin": "2026-11-07T19:02:59.540807+01:00",
   "readiness": "NOT_READY",
   "coordination_branch": "coordination/master",
   "integration_branch": "integration/master",
@@ -20,8 +20,8 @@
     "first_invocation_at": "2026-11-07T14:40:23.454Z",
     "prompt_revision": "Issue27 current-PC isolated physical test scope; official view and local config readback confirmed ACTIVE",
     "prompt_update_verified": true,
-    "last_invocation_at": "2026-11-07T17:38:52.297Z",
-    "last_invocation_evidence": "Matching actual heartbeat; real owned PostgreSQL app ingestion/replay/retained backup/restore/source-payload comparison executed without elevation"
+    "last_invocation_at": "2026-11-07T17:53:52.427Z",
+    "last_invocation_evidence": "Actual matching heartbeat executed six retained own-cluster B737 PostgreSQL tests, checked real SCM absence and GitHub refs/CI, dispatched new knowledge-time port only after actual idle status"
   },
   "agents": {
     "A": {
@@ -696,14 +696,21 @@
   "latest_independent_b_review": {
     "sha": "73766dd531387f660ddfb243b64d28be9389ddd1",
     "pure_checks_pass": 13,
-    "postgres_executed": false,
+    "postgres_executed": true,
     "adopted": false,
-    "report": "docs/coordination/reviews/B_FUTURE_73766.md"
+    "report": "docs/coordination/reviews/B_FUTURE_73766.md",
+    "postgres_cases_pass": 6,
+    "acceptance": "FUTURE_HORIZON_FIX_ONLY_NOT_FULL_READY_OR_COMPOSED",
+    "pg_evidence": "docs/coordination/evidence/b737-horizon-pg-pass.json",
+    "pg_command": "private venv python -I -B work/physical-test/verify_b737_retained.py",
+    "harness": "docs/coordination/evidence/b737-horizon-retained-harness.py.txt",
+    "retained_database": "tester_contract_b73766_20261107",
+    "root_acceptance_comment": 6711005818
   },
   "latest_agent_execution_snapshot": {
-    "checked_at": "2026-11-07T17:45:06.804450+00:00",
+    "checked_at": "2026-11-07T18:02:59.540807+00:00",
     "A": "IDLE",
-    "B": "IDLE",
+    "B": "IN_PROGRESS_CONFIRMED_NEW_KNOWLEDGE_TIME_PORT_6711027252",
     "C": "IDLE",
     "D": "IDLE",
     "E": "IDLE_COMPLETED_BEC563_ROOT48_PASS_NOT_COMPOSED",
@@ -718,5 +725,16 @@
     "task": "PR9 comment6710347416",
     "root_acceptance_comment": 6710868433,
     "evidence": "docs/coordination/evidence/e-bec563-financial-root.log"
+  },
+  "knowledge_time_port": {
+    "owner": "B",
+    "status": "IN_PROGRESS",
+    "issue": 2,
+    "comment": 6711027252,
+    "baseline_sha": "73766dd531387f660ddfb243b64d28be9389ddd1",
+    "same_head_defect_dedup_marker": "73766-quality-knowledge-time-port",
+    "consumer": "C3cb bind_storage_trades quality_available_at_ms <= information_cutoff_ms",
+    "reason": "Bounded snapshot omits database source/observation/run/raw knowledge clocks; MASTER cannot backdate quality from event/fetched/current time",
+    "next": "Review published B delta and actual known-time regressions; compose typed bounded provider only after this gate; never weaken C or reopen cancelled UAC"
   }
 }

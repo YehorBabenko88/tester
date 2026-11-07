@@ -1,0 +1,249 @@
+{
+  "heartbeat": "2026-11-07T17:53:52.427Z",
+  "observed_at": "2026-11-07T18:02:59.264Z",
+  "branches": [
+    {
+      "name": "coordination/master",
+      "sha": "19f306cd8314cd9ce0cf488b143a3338d2393442"
+    },
+    {
+      "name": "integration/master",
+      "sha": "19f306cd8314cd9ce0cf488b143a3338d2393442"
+    },
+    {
+      "name": "main",
+      "sha": "0a6ce227d9463562bb18889dcc0ee747f3be9130"
+    },
+    {
+      "name": "physical/master-windows-test",
+      "sha": "718e39029e4683f63a963cc3d9e26a272a9f62d1"
+    },
+    {
+      "name": "workstream/a-ingest",
+      "sha": "a62891d3f144e8d0bd87186cb937f50505c5b650"
+    },
+    {
+      "name": "workstream/b-integrity",
+      "sha": "73766dd531387f660ddfb243b64d28be9389ddd1"
+    },
+    {
+      "name": "workstream/c-analytics",
+      "sha": "3cb073586ccc9213e6cb5c5f304dce43d8e46322"
+    },
+    {
+      "name": "workstream/d-ui",
+      "sha": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c"
+    },
+    {
+      "name": "workstream/e-physical-scm",
+      "sha": "80bd19dccea91cca9d255063d39e472dd4a077fb"
+    },
+    {
+      "name": "workstream/e-platform",
+      "sha": "bec563edde3fd2626c516ab417a6fecd999103a9"
+    },
+    {
+      "name": "workstream/f-strategy",
+      "sha": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31"
+    },
+    {
+      "name": "workstream/g-control-plane",
+      "sha": "5edb722fc936a56e81a174cfe654839de9a19a9d"
+    },
+    {
+      "name": "workstream/h-trader-intelligence",
+      "sha": "8bafc315e5757b3510d1b20154b8df7445f3408c"
+    }
+  ],
+  "draft_prs": [
+    {
+      "number": 29,
+      "head": "718e39029e4683f63a963cc3d9e26a272a9f62d1",
+      "draft": true,
+      "updated_at": "2026-11-07T17:47:38Z"
+    },
+    {
+      "number": 28,
+      "head": "80bd19dccea91cca9d255063d39e472dd4a077fb",
+      "draft": true,
+      "updated_at": "2026-11-07T17:18:27Z"
+    },
+    {
+      "number": 26,
+      "head": "8bafc315e5757b3510d1b20154b8df7445f3408c",
+      "draft": true,
+      "updated_at": "2026-11-07T15:18:03Z"
+    },
+    {
+      "number": 24,
+      "head": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+      "draft": true,
+      "updated_at": "2026-11-07T15:16:52Z"
+    },
+    {
+      "number": 20,
+      "head": "3cb073586ccc9213e6cb5c5f304dce43d8e46322",
+      "draft": true,
+      "updated_at": "2026-11-07T16:19:21Z"
+    },
+    {
+      "number": 19,
+      "head": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+      "draft": true,
+      "updated_at": "2026-11-07T15:16:49Z"
+    },
+    {
+      "number": 13,
+      "head": "73766dd531387f660ddfb243b64d28be9389ddd1",
+      "draft": true,
+      "updated_at": "2026-11-07T16:50:33Z"
+    },
+    {
+      "number": 12,
+      "head": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c",
+      "draft": true,
+      "updated_at": "2026-11-07T15:18:51Z"
+    },
+    {
+      "number": 11,
+      "head": "19f306cd8314cd9ce0cf488b143a3338d2393442",
+      "draft": true,
+      "updated_at": "2026-11-07T16:38:17Z"
+    },
+    {
+      "number": 10,
+      "head": "a62891d3f144e8d0bd87186cb937f50505c5b650",
+      "draft": true,
+      "updated_at": "2026-11-07T16:32:59Z"
+    },
+    {
+      "number": 9,
+      "head": "bec563edde3fd2626c516ab417a6fecd999103a9",
+      "draft": true,
+      "updated_at": "2026-11-07T17:46:32Z"
+    }
+  ],
+  "issues": [
+    {
+      "number": 27,
+      "state": "open",
+      "updated_at": "2026-11-07T17:47:38Z"
+    },
+    {
+      "number": 25,
+      "state": "open",
+      "updated_at": "2026-11-07T15:23:42Z"
+    },
+    {
+      "number": 23,
+      "state": "open",
+      "updated_at": "2026-11-07T14:46:26Z"
+    },
+    {
+      "number": 22,
+      "state": "open",
+      "updated_at": "2026-11-07T14:46:26Z"
+    },
+    {
+      "number": 21,
+      "state": "open",
+      "updated_at": "2026-11-07T14:49:30Z"
+    },
+    {
+      "number": 18,
+      "state": "open",
+      "updated_at": "2026-11-07T15:09:30Z"
+    },
+    {
+      "number": 17,
+      "state": "open",
+      "updated_at": "2026-11-07T14:26:09Z"
+    },
+    {
+      "number": 16,
+      "state": "open",
+      "updated_at": "2026-11-07T15:19:27Z"
+    },
+    {
+      "number": 15,
+      "state": "open",
+      "updated_at": "2026-11-07T14:44:51Z"
+    },
+    {
+      "number": 14,
+      "state": "open",
+      "updated_at": "2026-11-07T14:48:56Z"
+    },
+    {
+      "number": 8,
+      "state": "open",
+      "updated_at": "2026-11-07T16:39:46Z"
+    },
+    {
+      "number": 7,
+      "state": "open",
+      "updated_at": "2026-11-07T16:32:44Z"
+    },
+    {
+      "number": 6,
+      "state": "open",
+      "updated_at": "2026-11-07T15:59:51Z"
+    },
+    {
+      "number": 5,
+      "state": "open",
+      "updated_at": "2026-11-07T16:39:45Z"
+    },
+    {
+      "number": 4,
+      "state": "open",
+      "updated_at": "2026-11-07T15:19:25Z"
+    },
+    {
+      "number": 3,
+      "state": "open",
+      "updated_at": "2026-11-07T15:59:50Z"
+    },
+    {
+      "number": 2,
+      "state": "open",
+      "updated_at": "2026-11-07T16:50:34Z"
+    },
+    {
+      "number": 1,
+      "state": "open",
+      "updated_at": "2026-11-07T16:32:43Z"
+    }
+  ],
+  "ci": [
+    {
+      "name": "Python static and unit tests",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42398053490"
+    },
+    {
+      "name": "Platform acceptance",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42398053767"
+    },
+    {
+      "name": "Python static and unit tests",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42398048679"
+    }
+  ],
+  "source_head_changes": [],
+  "native_service_changes": [],
+  "uac_retry": false,
+  "new_task": {
+    "issue": 2,
+    "comment": 6711027252,
+    "marker": "master-task:73766-quality-knowledge-time-port",
+    "owner": "B",
+    "execution": "IN_PROGRESS_CONFIRMED_ACTUAL_CHAT",
+    "not_a_duplicate_of": "future-horizon P1 already verified6PG"
+  }
+}
