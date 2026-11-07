@@ -9,6 +9,64 @@ from tests.storage import test_postgres as support
 
 
 class ReadPageTests(support.PostgresTests):
+    def horizon_claim(self,end_ms,available_end_ms=None):
+        run='horizon:'+self.symbol
+        raw=self.record(); raw['source']['ingestion_run']=run
+        ev=self.ev(end_ms=end_ms,ingestion_run=run,available_range=dict(start_ms=1700000000000,
+            end_ms=end_ms if available_end_ms is None else available_end_ms,
+            method='operator_attestation',source_url='https://example.test/claimed-horizon',sha256='a'*64))
+        result=self.store.ingest([raw],ev,self.symbol,run_id=run)
+        return result,ev
+
+    def test_future_requested_range_is_unknown_and_audit_claim_is_retained(self):
+        future=4102444800000
+        result,_=self.horizon_claim(future)
+        with patch('src.storage.read_page.time.time_ns',return_value=7258118400000000000):
+            page=self.store.read_page('trades','bybit','linear',self.symbol,1700000000000,future)
+        self.assertEqual(page['outcome'],'OK'); self.assertEqual(len(page['rows']),1)
+        self.assertFalse(page['coverage']['complete']); self.assertEqual(page['coverage']['state'],'UNKNOWN')
+        self.assertEqual(page['coverage']['end_ms'],future); self.assertEqual(page['coverage']['proof_refs'],[])
+        self.assertIn('requested_range_in_future',page['coverage']['reasons'])
+        self.assertLess(page['snapshot']['clock_ms'],future)
+        self.assertEqual(page['evidence'][0]['evidence_id'],result['evidence_id'])
+        self.assertEqual(page['evidence'][0]['end_ms'],future)
+        self.assertFalse(page['evidence'][0]['active_proof'])
+
+    def test_future_candidate_cannot_certify_a_historical_subrange(self):
+        self.horizon_claim(4102444800000)
+        page=self.page()
+        self.assertEqual(page['outcome'],'OK'); self.assertFalse(page['coverage']['complete'])
+        self.assertEqual(page['coverage']['proof_refs'],[])
+        self.assertFalse(page['evidence'][0]['within_read_horizon'])
+        self.assertEqual(page['evidence'][0]['end_ms'],4102444800000)
+        self.assertIn('candidate_range_in_future',page['coverage']['reasons'])
+
+    def test_future_request_cannot_reuse_an_elapsed_candidate(self):
+        self.ingest('historical')
+        page=self.store.read_page('trades','bybit','linear',self.symbol,1700000000000,4102444800000)
+        self.assertFalse(page['coverage']['complete']); self.assertEqual(page['coverage']['proof_refs'],[])
+        self.assertIn('requested_range_in_future',page['coverage']['reasons'])
+        self.assertTrue(page['evidence'][0]['within_read_horizon'])
+        self.assertFalse(page['evidence'][0]['active_proof'])
+
+    def test_future_availability_claim_cannot_certify_an_elapsed_candidate(self):
+        self.horizon_claim(1700000060000,available_end_ms=4102444800000)
+        page=self.page()
+        self.assertFalse(page['coverage']['complete']); self.assertEqual(page['coverage']['proof_refs'],[])
+        self.assertEqual(page['evidence'][0]['evidence']['available_range']['end_ms'],4102444800000)
+        self.assertIn('availability_range_in_future',page['coverage']['reasons'])
+
+    def test_elapsed_boundary_uses_one_authoritative_database_clock(self):
+        with self.store.connect() as c:
+            cutoff=c.execute('SELECT floor(extract(epoch FROM clock_timestamp())*1000)::bigint AS ms').fetchone()['ms']
+        self.horizon_claim(cutoff)
+        page=self.store.read_page('trades','bybit','linear',self.symbol,1700000000000,cutoff)
+        self.assertTrue(page['coverage']['complete']); self.assertTrue(page['coverage']['proof_refs'])
+        self.assertGreaterEqual(page['snapshot']['clock_ms'],cutoff)
+        from src.storage.read_page import within_horizon
+        self.assertTrue(within_horizon(1000,2000,2000))
+        self.assertFalse(within_horizon(1000,2001,2000))
+
     def test_empty_acquisition_evidence_and_run_fanout_are_not_dropped(self):
         ev=self.ev(status='EMPTY',pages=[dict(params={},cursor=None,next_cursor=None,count=0)])
         for prefix in ('empty-a:','empty-b:'): self.store.ingest([],ev,self.symbol,run_id=prefix+self.symbol)

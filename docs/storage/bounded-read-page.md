@@ -27,12 +27,13 @@ Scope/range/cursor/limit validation happens before querying. Range is UTC half-o
                   run_origin, source_run_status, evidence_run_status, authentic_run}],
   run_links: [{run_id, job_key, evidence_id, run_origin, evidence_run_status}],
   evidence: [{evidence_id,job_key,scope_key,start_ms,end_ms,status,record_count,
-              verified,validator_version,created_at,evidence,active_proof}],
+              verified,validator_version,created_at,evidence,active_proof,
+              within_read_horizon,horizon_rejections}],
   next_cursor: [timestamp_ms,record_key] | null,
   page_exhausted: boolean,
   coverage: {start_ms,end_ms,complete,state:"COMPLETE"|"UNKNOWN",
              proof_refs:[evidence_id],reasons:[],intervals:{...interval unions...}},
-  snapshot: {isolation:"repeatable read",started_at:UTC timestamp,xmin:string} | null,
+  snapshot: {isolation:"repeatable read",started_at:UTC timestamp,xmin:string,clock_ms:int64} | null,
   limits: {...effective limits...,max_fetched_bytes:2*max_bytes},
   usage: {rows,observations,run_links,evidence,intervals,findings,archives,
           bytes,fetched_bytes,archive_bytes}
@@ -48,6 +49,14 @@ On **RESOURCE_EXHAUSTED**, all rows/observations/run_links/evidence and proof re
 ## One snapshot, active proof rules
 
 One connection/transaction uses REPEATABLE READ READ ONLY, local work_mem4MB and remaining query deadline. Page, observations, run/evidence links, coverage, resolutions, findings and archive manifests are read through that same transaction. A writer may commit while the reader is running: the response describes its original snapshot. A late resolution does not retroactively certify an old read; a later read sees it. Snapshot metadata is diagnostic, not a freshness lease, and cannot guarantee that no writer commits after the response.
+
+### Authoritative elapsed-history cutoff (P1, PR13 comment6709945814)
+
+`snapshot.clock_ms` is captured once from PostgreSQL `floor(extract(epoch FROM transaction_timestamp())*1000)::bigint`, the UTC start of this read transaction. All certification checks use that same integer cutoff; neither client time, source fetched_at, operator assertions nor a later clock sampled at the end can advance it. For a half-open range, `0 <= start_ms < end_ms <= snapshot.clock_ms` is required; equality at end is elapsed and permitted. Existing candle closure/grace checks remain additional requirements.
+
+The **entire caller-requested range**, **entire candidate evidence range** (both stored metadata and body) and any declared **entire available_range** must have elapsed. A future candidate cannot certify a historical subrange by clipping, and a future availability claim cannot certify a smaller elapsed candidate. Future claims remain immutable audit data with `within_read_horizon=false`, explicit horizon_rejections and `active_proof=false`. Invalid candidates cannot resolve findings either. Rejected requests retain their full original requested bounds, UNKNOWN and no authoritative proof_refs; they are never silently shortened to the present. An independently valid elapsed candidate may support an elapsed request; rejected audit claims are not promoted. `within_read_horizon=true` only means the temporal boundary check passed, not that the evidence is a complete/active proof.
+
+Five actual-PG regressions cover the original one-trade/operator-claim-to2100 case, historical clipping of a future candidate, future request with a historical candidate, future availability with historical candidate and elapsed/exact boundary. The future test also spoofs the client clock to2200 while the captured DB clock remains2026. Historical candle/OI/funding positives stay green. No legacy read/write semantics, source declarations, schema or stored claims are rewritten.
 
 Proof candidates require EXHAUSTED + verified + known validator, matching scope/bounds/count/body metadata, explicit availability document, actual original-run matched support and raw/source identity checks. Full supporting observations outside the requested range are also read when a candidate proof spans a larger window; they share the same total caps. A newly confirmed raw record missing from that proof invalidates the old full-window proof. A legacy `checks.contiguous=true` is insufficient: actual supported candle boundaries/calendar closure, OI/ratio cadence, funding inventory and exchange-origin trade IDs are rechecked.
 
@@ -79,4 +88,6 @@ Actual-PG regressions cover full matched proof, equal-ms keysets, observation/ev
 
 Independent reviewer reproduced material edge cases and rereviewed fixes. Its independent full-suite runner could not reach PostgreSQL (TCP10013 in that tool context), so that run is not reported as passing. The reviewer separately authored `tests/storage/independent_read_page_check.py`; root executed all3 literal fixtures against real PostgreSQL successfully (positive strict proof, observation fanout failure, old-proof/later-incident rejection). Run it explicitly with a disposable TESTER_TEST_ADMIN_DSN using `python -m tests.storage.independent_read_page_check`; it creates/drops only its own randomly named test DB. It does not execute on import or ordinary unittest discovery.
 
-Final local branch suite: **76 tests/15.113s/OK/zero skips**. Separate main+B compatibility snapshot: **85 tests/15.132s/OK/zero skips**, no merge. PostgreSQL18.4/Python3.14/Windows, durability on. These are root-executed full suites, not a claim of an independent full-suite pass. Exact HEAD and full logs are reported in PR13/Issue2. No user DB migration, physical deploy, trading or raw deletion occurs in this work.
+Latest P1 horizon verification: **81 branch tests/15.596s/OK/zero skips**, including all prior76; **90 main+B snapshot tests/15.787s/OK/zero skips**, no merge. The unchanged MASTER adverse probe passed (1 actual-PG test/0.463s): original full bounds to2100 retained, UNKNOWN, verified_ms0, percent0 and proof_refs[]. Updated modules were preloaded because the original probe embeds its old checkout path; the probe body/assertion was not edited. The3 reviewer-authored checks also passed again. Narrow independent code review found no material issue in the horizon fix.
+
+PostgreSQL18.4/Python3.14/Windows, durability on. These are root-executed full suites/reproductions, not a claim of an independent full-suite pass. Exact HEAD and full logs are reported in PR13/Issue2. No user DB migration, physical deploy, trading or raw deletion occurs in this work.
