@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bybit Historical Laboratory</title>
+<style>body{font:15px system-ui;background:#10151f;color:#e7ecf5;margin:0}header,main{padding:22px;max-width:1200px;margin:auto}h1{margin:0}table{border-collapse:collapse;width:100%}td,th{padding:12px;border-bottom:1px solid #344053;text-align:left}button,input,select{padding:10px;border-radius:6px;background:#202c3d;color:white;border:1px solid #526077}button{cursor:pointer}.muted{color:#9eaabd}#error{color:#ff9c9c}</style></head>
+<body><header><h1>Bybit Historical Laboratory</h1><p class="muted">Read-only market data • source completeness must be verified</p></header>
+<main><label>Поиск <input id="filter" placeholder="BTC, ETH, SOL"></label> <button id="refresh">Обновить</button><p id="error"></p>
+<table><thead><tr><th>Выбрать</th><th>Инструмент</th><th>Статус</th></tr></thead><tbody id="symbols"></tbody></table>
+<p class="muted">Загрузка, графики и сортировка по метрикам будут подключены после интеграции backend API. Данные не симулируются.</p></main>
+<script>
+let instruments=[];
+const tbody=document.querySelector("#symbols");
+function render(){tbody.replaceChildren();const query=document.querySelector("#filter").value.toUpperCase();for(const item of instruments.filter(x=>x.symbol.includes(query))){const tr=document.createElement("tr");const check=document.createElement("input");check.type="checkbox";check.value=item.symbol;const td=document.createElement("td");td.append(check);tr.append(td);for(const value of [item.symbol,item.status||"unknown"]){const cell=document.createElement("td");cell.textContent=value;tr.append(cell)}tbody.append(tr)}}
+async function refresh(){try{const r=await fetch("/api/instruments?category=linear");if(!r.ok)throw Error("HTTP "+r.status);const data=await r.json();instruments=data.instruments||[];document.querySelector("#error").textContent="";render()}catch(e){document.querySelector("#error").textContent="Backend недоступен: "+e.message}}
+document.querySelector("#filter").addEventListener("input",render);document.querySelector("#refresh").addEventListener("click",refresh);refresh();
+</script></body></html>
