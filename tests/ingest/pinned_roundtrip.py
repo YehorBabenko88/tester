@@ -65,29 +65,55 @@ def extract_snapshot(repo,root):
     return snapshot,manifest
 
 
+def guard_child_context(root,verify_restart=False):
+    """Read-only gate shared by both child modes, before any Store/DDL call.
+
+    The parent supplies digests separately from child-readable metadata files.
+    This is an accidental/misdirected fixture guard, not a hostile OS sandbox.
+    """
+    root=Path(root).resolve(); snapshot=(root/'snapshot').resolve()
+    def checked_json(name,env_key):
+        data=(root/name).read_bytes()
+        if hashlib.sha256(data).hexdigest()!=os.environ[env_key]:
+            raise AssertionError('Parent metadata digest mismatch: '+name)
+        return json.loads(data)
+    manifest=checked_json('pins.json','PINNED_PAIR_PINS_SHA256')
+    expected={'producer_sha':PRODUCER_SHA,'storage_sha':STORAGE_SHA,'contract_sha':CONTRACT_SHA}
+    if any(manifest.get(k)!=v for k,v in expected.items()):raise AssertionError('Unexpected source pin')
+    if not manifest['production_files']:raise AssertionError('Empty pinned snapshot')
+    for name,info in manifest['production_files'].items():
+        path=(snapshot/name).resolve()
+        if not path.is_relative_to(snapshot) or hashlib.sha256(path.read_bytes()).hexdigest()!=info['sha256']:
+            raise AssertionError('Pinned source changed')
+    state=None
+    if verify_restart:
+        state=checked_json('restart-state.json','PINNED_PAIR_RESTART_SHA256')
+        import re
+        fixture=root/'fixtures/test_replay_and_journal_restart'
+        if not re.fullmatch(r'pair_[0-9a-f]{32}',state['database']):raise AssertionError('Unexpected restart database')
+        if Path(state['storage_root']).resolve()!=fixture.resolve():raise AssertionError('Unexpected restart storage root')
+        if Path(state['handoff']).resolve()!=(fixture/'equivalent/reopened.json').resolve():raise AssertionError('Unexpected restart handoff')
+    import psycopg
+    dsn=os.environ['PINNED_PAIR_DSN']
+    with psycopg.connect(dsn) as conn:
+        actual=Path(conn.execute('SHOW data_directory').fetchone()[0]).resolve()
+        if actual!=(root/'pgdata').resolve():raise AssertionError('Refusing a database outside the new disposable cluster')
+    modules={}
+    for key,name in [('archive','src.ingest.archive'),('journal','src.ingest.journal'),('handoff','src.ingest.handoff'),('rest','src.ingest.rest'),('models','src.storage.models'),('store_module','src.storage.store'),('migrations','src.storage.migrations'),('validator','contracts.v1.validate')]:
+        module=importlib.import_module(name)
+        relative=name.replace('.','/')+'.py'
+        if relative not in manifest['production_files'] or Path(module.__file__).resolve()!=(snapshot/relative).resolve():
+            raise AssertionError('Imported an unpinned implementation')
+        modules[key]=module
+    return psycopg,dsn,modules,state
+
+
 class PinnedPairTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import psycopg
-        cls.pg=psycopg; cls.root=Path(os.environ['PINNED_PAIR_ROOT'])
-        cls.admin_dsn=os.environ['PINNED_PAIR_DSN']
-        with psycopg.connect(cls.admin_dsn) as conn:
-            actual=Path(conn.execute('SHOW data_directory').fetchone()[0]).resolve()
-            if actual!=(cls.root/'pgdata').resolve(): raise AssertionError('Refusing a database outside the new disposable cluster')
-        cls.archive=importlib.import_module('src.ingest.archive')
-        cls.journal=importlib.import_module('src.ingest.journal')
-        cls.handoff=importlib.import_module('src.ingest.handoff')
-        cls.rest=importlib.import_module('src.ingest.rest')
-        cls.models=importlib.import_module('src.storage.models')
-        cls.store_module=importlib.import_module('src.storage.store')
-        cls.migrations=importlib.import_module('src.storage.migrations')
-        cls.validator=importlib.import_module('contracts.v1.validate')
-        manifest=json.loads((cls.root/'pins.json').read_text())
-        snapshot=(cls.root/'snapshot').resolve()
-        for name,info in manifest['production_files'].items():
-            if hashlib.sha256((snapshot/name).read_bytes()).hexdigest()!=info['sha256']: raise AssertionError('Pinned source changed')
-        for module in [cls.archive,cls.journal,cls.handoff,cls.rest,cls.models,cls.store_module,cls.migrations,cls.validator]:
-            if not Path(module.__file__).resolve().is_relative_to(snapshot): raise AssertionError('Imported an unpinned implementation')
+        cls.root=Path(os.environ['PINNED_PAIR_ROOT'])
+        cls.pg,cls.admin_dsn,modules,_=guard_child_context(cls.root)
+        for name,module in modules.items():setattr(cls,name,module)
         cls.metrics={}
 
     @classmethod
@@ -266,11 +292,10 @@ class PinnedPairTests(unittest.TestCase):
 
 
 def child_main(root,verify_restart=False):
+    psycopg,admin_dsn,modules,state=guard_child_context(root,verify_restart)
     if verify_restart:
-        import psycopg
-        from src.storage.store import Store
-        state=json.loads((root/'restart-state.json').read_text())
-        dsn=psycopg.conninfo.make_conninfo(os.environ['PINNED_PAIR_DSN'],dbname=state['database'])
+        Store=modules['store_module'].Store
+        dsn=psycopg.conninfo.make_conninfo(admin_dsn,dbname=state['database'])
         store=Store(dsn,storage_root=state['storage_root'])
         rows=store.read('trades','bybit','linear','BTCUSDT',1704067200123,1704067200124,limit=100)
         assert len(rows)==1 and len(rows[0]['provenance']['observations'])==2
@@ -319,6 +344,7 @@ def main():
     def stop():command([ctl,'-D',root/'pgdata','-m','fast','-w','-t','30','stop'],'pg-stop.log')
     env=os.environ.copy(); env['PINNED_PAIR_ROOT']=str(root)
     env['PINNED_PAIR_DSN']=f'host=127.0.0.1 port={port} dbname=postgres user=ingest_pair_fixture'
+    env['PINNED_PAIR_PINS_SHA256']=hashlib.sha256((root/'pins.json').read_bytes()).hexdigest()
     env['PYTHONPATH']=str(snapshot); env['TMP']=str(root); env['TEMP']=str(root)
     started=False
     try:
@@ -329,6 +355,7 @@ def main():
         first=subprocess.run(child,cwd=snapshot,env=env,capture_output=True,text=True,creationflags=flags)
         (root/'roundtrip-tests.log').write_text(first.stdout+first.stderr,encoding='utf-8')
         if first.returncode: raise RuntimeError('Pinned contract tests failed: '+str(root/'roundtrip-tests.log'))
+        env['PINNED_PAIR_RESTART_SHA256']=hashlib.sha256((root/'restart-state.json').read_bytes()).hexdigest()
         stop(); started=False
         start(); started=True
         second=subprocess.run(child+['--verify-restart'],cwd=snapshot,env=env,capture_output=True,text=True,creationflags=flags)
