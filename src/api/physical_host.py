@@ -137,7 +137,7 @@ class JobProcess:
             win32job,
             win32process,
         )
-        self.job = win32job.CreateJobObject(None, None)
+        self.job = win32job.CreateJobObject(None, "")
         self.process = None
         thread = None
         try:
