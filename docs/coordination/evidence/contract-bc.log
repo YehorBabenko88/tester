@@ -1,0 +1,208 @@
+test_empty_is_not_complete (__main__.BContract.test_empty_is_not_complete) ... FAIL
+test_exact_decimal_invalid_ohlc_is_not_complete (__main__.BContract.test_exact_decimal_invalid_ohlc_is_not_complete) ... FAIL
+test_nonfinite_ohlc_is_not_complete (__main__.BContract.test_nonfinite_ohlc_is_not_complete) ... 
+  test_nonfinite_ohlc_is_not_complete (__main__.BContract.test_nonfinite_ohlc_is_not_complete) (value='NaN') ... FAIL
+  test_nonfinite_ohlc_is_not_complete (__main__.BContract.test_nonfinite_ohlc_is_not_complete) (value='Infinity') ... FAIL
+test_quality_metadata_has_contract_version_and_provenance (__main__.BContract.test_quality_metadata_has_contract_version_and_provenance) ... 
+  test_quality_metadata_has_contract_version_and_provenance (__main__.BContract.test_quality_metadata_has_contract_version_and_provenance) (field='schema_version') ... FAIL
+  test_quality_metadata_has_contract_version_and_provenance (__main__.BContract.test_quality_metadata_has_contract_version_and_provenance) (field='provenance') ... FAIL
+test_aggregate_metadata_carries_version_provenance_and_ms (__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms) ... 
+  test_aggregate_metadata_carries_version_provenance_and_ms (__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms) (field='schema_version') ... FAIL
+  test_aggregate_metadata_carries_version_provenance_and_ms (__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms) (field='provenance') ... FAIL
+  test_aggregate_metadata_carries_version_provenance_and_ms (__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms) (field='timestamp_ms') ... FAIL
+test_decimal_totals_are_permutation_invariant (__main__.CContract.test_decimal_totals_are_permutation_invariant) ... FAIL
+test_duplicate_exchange_id_is_not_double_counted (__main__.CContract.test_duplicate_exchange_id_is_not_double_counted) ... FAIL
+test_missing_side_preserves_unknown_delta (__main__.CContract.test_missing_side_preserves_unknown_delta) ... FAIL
+
+======================================================================
+FAIL: test_empty_is_not_complete (__main__.BContract.test_empty_is_not_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 32, in test_empty_is_not_complete
+    self.assertFalse(B.inspect([],'1',120000)['complete'],'Empty source page is not completeness proof')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : Empty source page is not completeness proof
+
+======================================================================
+FAIL: test_exact_decimal_invalid_ohlc_is_not_complete (__main__.BContract.test_exact_decimal_invalid_ohlc_is_not_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 41, in test_exact_decimal_invalid_ohlc_is_not_complete
+    self.assertFalse(B.inspect([row],'1',120000)['complete'],'Binary float collapsed an invalid decimal high/open ordering')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : Binary float collapsed an invalid decimal high/open ordering
+
+======================================================================
+FAIL: test_nonfinite_ohlc_is_not_complete (__main__.BContract.test_nonfinite_ohlc_is_not_complete) (value='NaN')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 37, in test_nonfinite_ohlc_is_not_complete
+    self.assertFalse(B.inspect([[0,value,value,value,value,'1']],'1',120000)['complete'])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_nonfinite_ohlc_is_not_complete (__main__.BContract.test_nonfinite_ohlc_is_not_complete) (value='Infinity')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 37, in test_nonfinite_ohlc_is_not_complete
+    self.assertFalse(B.inspect([[0,value,value,value,value,'1']],'1',120000)['complete'])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_quality_metadata_has_contract_version_and_provenance (__main__.BContract.test_quality_metadata_has_contract_version_and_provenance) (field='schema_version')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 47, in test_quality_metadata_has_contract_version_and_provenance
+    self.assertIn(field,value,'Required contract metadata absent from quality result')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'schema_version' not found in {'records': 1, 'errors': [], 'gaps': [], 'complete': True} : Required contract metadata absent from quality result
+
+======================================================================
+FAIL: test_quality_metadata_has_contract_version_and_provenance (__main__.BContract.test_quality_metadata_has_contract_version_and_provenance) (field='provenance')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 47, in test_quality_metadata_has_contract_version_and_provenance
+    self.assertIn(field,value,'Required contract metadata absent from quality result')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'provenance' not found in {'records': 1, 'errors': [], 'gaps': [], 'complete': True} : Required contract metadata absent from quality result
+
+======================================================================
+FAIL: test_aggregate_metadata_carries_version_provenance_and_ms (__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms) (field='schema_version')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 83, in test_aggregate_metadata_carries_version_provenance_and_ms
+    self.assertIn(field,value,'Required contract metadata absent from derived result')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'schema_version' not found in {'start_ms': 1699999980000, 'price': '1', 'buy': '1', 'sell': '0', 'delta': '1', 'trades': 1} : Required contract metadata absent from derived result
+
+======================================================================
+FAIL: test_aggregate_metadata_carries_version_provenance_and_ms (__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms) (field='provenance')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 83, in test_aggregate_metadata_carries_version_provenance_and_ms
+    self.assertIn(field,value,'Required contract metadata absent from derived result')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'provenance' not found in {'start_ms': 1699999980000, 'price': '1', 'buy': '1', 'sell': '0', 'delta': '1', 'trades': 1} : Required contract metadata absent from derived result
+
+======================================================================
+FAIL: test_aggregate_metadata_carries_version_provenance_and_ms (__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms) (field='timestamp_ms')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 83, in test_aggregate_metadata_carries_version_provenance_and_ms
+    self.assertIn(field,value,'Required contract metadata absent from derived result')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'timestamp_ms' not found in {'start_ms': 1699999980000, 'price': '1', 'buy': '1', 'sell': '0', 'delta': '1', 'trades': 1} : Required contract metadata absent from derived result
+
+======================================================================
+FAIL: test_decimal_totals_are_permutation_invariant (__main__.CContract.test_decimal_totals_are_permutation_invariant)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 76, in test_decimal_totals_are_permutation_invariant
+    self.assertEqual(len(set(values)),1,'Decimal context rounding changes results with input order')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 1 : Decimal context rounding changes results with input order
+
+======================================================================
+FAIL: test_duplicate_exchange_id_is_not_double_counted (__main__.CContract.test_duplicate_exchange_id_is_not_double_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 61, in test_duplicate_exchange_id_is_not_double_counted
+    self.assertEqual(sum(int(row['trades']) for row in result),1,'Duplicate stable trade ID doubled footprint volume')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 1 : Duplicate stable trade ID doubled footprint volume
+
+======================================================================
+FAIL: test_missing_side_preserves_unknown_delta (__main__.CContract.test_missing_side_preserves_unknown_delta)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 66, in test_missing_side_preserves_unknown_delta
+    try:result=C.aggregate([trade],60000,'1')
+               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "0070b5fcb9180a79b213698c99ea289df4442383:src/analytics/footprint.py", line 14, in aggregate
+KeyError: 'side'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\contract_checks\test_bc_contract.py", line 68, in test_missing_side_preserves_unknown_delta
+    self.fail(f'UNAVAILABLE: exported aggregate cannot represent missing-side record with unknown/null delta ({type(exc).__name__}: {exc})')
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: UNAVAILABLE: exported aggregate cannot represent missing-side record with unknown/null delta (KeyError: 'side')
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.008s
+
+FAILED (failures=12)
+
+{
+  "issue": 8,
+  "contract": "v1",
+  "sources": {
+    "B": {
+      "sha": "801297fb3f7e20aba5341f2aae3a5c58074b704b",
+      "path": "src/quality/candles.py",
+      "sha256": "3b818c5ea0ce3be7823920362290d441ae9ce053aa31f291f86d9bd52d714aab"
+    },
+    "C": {
+      "sha": "0070b5fcb9180a79b213698c99ea289df4442383",
+      "path": "src/analytics/footprint.py",
+      "sha256": "a4df02dc2dd632b707cb5193e7fcf67a336de8c5e516ddb644206a57e9cb8956"
+    }
+  },
+  "tests_run": 8,
+  "passed": false,
+  "failures": [
+    {
+      "test": "__main__.BContract.test_empty_is_not_complete",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 32, in test_empty_is_not_complete\n    self.assertFalse(B.inspect([],'1',120000)['complete'],'Empty source page is not completeness proof')\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false : Empty source page is not completeness proof\n"
+    },
+    {
+      "test": "__main__.BContract.test_exact_decimal_invalid_ohlc_is_not_complete",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 41, in test_exact_decimal_invalid_ohlc_is_not_complete\n    self.assertFalse(B.inspect([row],'1',120000)['complete'],'Binary float collapsed an invalid decimal high/open ordering')\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false : Binary float collapsed an invalid decimal high/open ordering\n"
+    },
+    {
+      "test": "__main__.BContract.test_nonfinite_ohlc_is_not_complete (value='NaN')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 37, in test_nonfinite_ohlc_is_not_complete\n    self.assertFalse(B.inspect([[0,value,value,value,value,'1']],'1',120000)['complete'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false\n"
+    },
+    {
+      "test": "__main__.BContract.test_nonfinite_ohlc_is_not_complete (value='Infinity')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 37, in test_nonfinite_ohlc_is_not_complete\n    self.assertFalse(B.inspect([[0,value,value,value,value,'1']],'1',120000)['complete'])\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: True is not false\n"
+    },
+    {
+      "test": "__main__.BContract.test_quality_metadata_has_contract_version_and_provenance (field='schema_version')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 47, in test_quality_metadata_has_contract_version_and_provenance\n    self.assertIn(field,value,'Required contract metadata absent from quality result')\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'schema_version' not found in {'records': 1, 'errors': [], 'gaps': [], 'complete': True} : Required contract metadata absent from quality result\n"
+    },
+    {
+      "test": "__main__.BContract.test_quality_metadata_has_contract_version_and_provenance (field='provenance')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 47, in test_quality_metadata_has_contract_version_and_provenance\n    self.assertIn(field,value,'Required contract metadata absent from quality result')\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'provenance' not found in {'records': 1, 'errors': [], 'gaps': [], 'complete': True} : Required contract metadata absent from quality result\n"
+    },
+    {
+      "test": "__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms (field='schema_version')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 83, in test_aggregate_metadata_carries_version_provenance_and_ms\n    self.assertIn(field,value,'Required contract metadata absent from derived result')\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'schema_version' not found in {'start_ms': 1699999980000, 'price': '1', 'buy': '1', 'sell': '0', 'delta': '1', 'trades': 1} : Required contract metadata absent from derived result\n"
+    },
+    {
+      "test": "__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms (field='provenance')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 83, in test_aggregate_metadata_carries_version_provenance_and_ms\n    self.assertIn(field,value,'Required contract metadata absent from derived result')\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'provenance' not found in {'start_ms': 1699999980000, 'price': '1', 'buy': '1', 'sell': '0', 'delta': '1', 'trades': 1} : Required contract metadata absent from derived result\n"
+    },
+    {
+      "test": "__main__.CContract.test_aggregate_metadata_carries_version_provenance_and_ms (field='timestamp_ms')",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 83, in test_aggregate_metadata_carries_version_provenance_and_ms\n    self.assertIn(field,value,'Required contract metadata absent from derived result')\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'timestamp_ms' not found in {'start_ms': 1699999980000, 'price': '1', 'buy': '1', 'sell': '0', 'delta': '1', 'trades': 1} : Required contract metadata absent from derived result\n"
+    },
+    {
+      "test": "__main__.CContract.test_decimal_totals_are_permutation_invariant",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 76, in test_decimal_totals_are_permutation_invariant\n    self.assertEqual(len(set(values)),1,'Decimal context rounding changes results with input order')\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 1 : Decimal context rounding changes results with input order\n"
+    },
+    {
+      "test": "__main__.CContract.test_duplicate_exchange_id_is_not_double_counted",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 61, in test_duplicate_exchange_id_is_not_double_counted\n    self.assertEqual(sum(int(row['trades']) for row in result),1,'Duplicate stable trade ID doubled footprint volume')\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 2 != 1 : Duplicate stable trade ID doubled footprint volume\n"
+    },
+    {
+      "test": "__main__.CContract.test_missing_side_preserves_unknown_delta",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 66, in test_missing_side_preserves_unknown_delta\n    try:result=C.aggregate([trade],60000,'1')\n               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"0070b5fcb9180a79b213698c99ea289df4442383:src/analytics/footprint.py\", line 14, in aggregate\nKeyError: 'side'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\test_bc_contract.py\", line 68, in test_missing_side_preserves_unknown_delta\n    self.fail(f'UNAVAILABLE: exported aggregate cannot represent missing-side record with unknown/null delta ({type(exc).__name__}: {exc})')\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: UNAVAILABLE: exported aggregate cannot represent missing-side record with unknown/null delta (KeyError: 'side')\n"
+    }
+  ],
+  "errors": []
+}
+

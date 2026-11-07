@@ -741,6 +741,171 @@
       ],
       "additionalProperties": false
     },
+    "comparison": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "venue": {
+          "const": "bybit"
+        },
+        "category": {
+          "enum": [
+            "spot",
+            "linear",
+            "inverse"
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])"
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calculated": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "official": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "difference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "MATCH",
+            "MISMATCH",
+            "MISSING_CALCULATED",
+            "MISSING_OFFICIAL",
+            "NOT_COMPARABLE"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "calculated_coverage": {
+                  "enum": [
+                    "COMPLETE",
+                    "PARTIAL",
+                    "UNKNOWN"
+                  ]
+                },
+                "official_coverage": {
+                  "enum": [
+                    "COMPLETE",
+                    "PARTIAL",
+                    "UNKNOWN"
+                  ]
+                },
+                "boundary_policy": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rounding": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tolerance": {
+                  "type": "string",
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+                },
+                "evidence_refs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "calculated_coverage",
+                "official_coverage",
+                "boundary_policy",
+                "rounding",
+                "tolerance",
+                "evidence_refs"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "venue",
+        "category",
+        "symbol",
+        "timestamp_ms",
+        "provenance",
+        "availability",
+        "coverage",
+        "field",
+        "calculated",
+        "official",
+        "difference",
+        "status",
+        "reason",
+        "context"
+      ],
+      "additionalProperties": false
+    },
     "api_response": {
       "type": "object",
       "properties": {
@@ -802,6 +967,9 @@
     },
     {
       "$ref": "#/$defs/api_response"
+    },
+    {
+      "$ref": "#/$defs/comparison"
     }
   ]
 }

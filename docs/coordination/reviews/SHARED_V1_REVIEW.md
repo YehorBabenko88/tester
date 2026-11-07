@@ -1,0 +1,31 @@
+# Independent final-candidate review: Issue #8 shared contract
+
+Reviewed mutable work/repo/contracts/v1/market.schema.json, validate.py and test_approved_contract.py against approved Issue #8 (read earlier via GitHub). Files are new/untracked relative to frozen d996b8669e3e85f559fe4adba768bad6d994c9c5; this reviews the actual candidate, not the obsolete initial schema. No schema, validator, test or engine edits made.
+
+## Important actionable findings
+
+1. **[P2] Coarse seconds sources can invent milliseconds.** contracts/v1/validate.py:50-58 checks only that s/ms sources have null timestamp_ns. Start from test_approved_contract.trade(); set timestamp_precision='s', timestamp_ns=None, provenance[0].timestamp_precision='s', provenance[0].source_timestamp='1700000000'; leave timestamp_ms=1700000000123. validate_record('trade', value) accepts a timestamp 123ms more precise than the source. Require timestamp_ms%1000==0 for second precision. Existing ms/us/ns checks otherwise reject invented residual nanoseconds in exercised fixtures.
+
+2. **[P2] Derived records bypass derivation provenance, and standalone provenance validation bypasses its semantic checks.** validate.py:46-48 only iterates nested provenance entries explicitly labelled derived. A candle with kind='derived', provenance containing only synthetic_fixture/raw source, no parent_refs and no method_version passes; test_approved_contract.py's existing derived candle fixture does exactly this. A direct validate_record('provenance', {source_kind:'derived',source_ref:'fixture://derived',source_hash:None,ingestion_run:'r',timestamp_precision:'ms',source_timestamp:None}) also passes because there is no nested provenance array. Require derivation metadata for derived record kinds/footprints, preserve raw ancestry, and apply the same semantic rules when validating a provenance fragment directly. Explicitly derived nested provenance without parents is correctly rejected.
+
+3. **[P2] AVAILABLE footprint accepts a contradictory delta.** validate.py:70-72 checks unknown-side safety, but with unknown_side_volume='0', buy_volume='1', sell_volume='0', delta='999', availability AVAILABLE it accepts inconsistent taker arithmetic. The stated footprint meaning is Buy minus Sell. Add a domain consistency assertion comparing exact Decimal values, without generating analytics or substituting fallback values. Current unknown_side_volume='2'/numeric delta fixture is correctly rejected.
+
+## API composition limitation requiring an explicit integration gate
+
+market.schema.json:750 deliberately leaves api_response.data unconstrained; description explicitly requires financial endpoint data to be separately validated. validate_record('api_response', envelope) consequently accepts an embedded derived candle with schema_version='wrong', as well as arbitrary data without timestamp_ms. This is not by itself a schema bug if endpoint-specific validation always precedes wrapping, but there is no compositional helper or endpoint implementation in the candidate to establish that guarantee. Do not claim API payload conformance from envelope validation alone. Add a payload-kind-aware composition helper or endpoint tests proving each data record goes through validate_record before response construction, with negative embedded-version/timestamp fixtures. Empty/exhausted page evidence is correctly restricted to PARTIAL/UNKNOWN, so cannot directly claim COMPLETE; the current test confirms this structurally.
+
+Source_timestamp can contradict canonical timestamp_ns and still validate. This is an additional producer-level gap: the generic source_timestamp string currently does not specify encoding/unit sufficiently to validate conversion universally. Define endpoint-specific parsers/evidence before interpreting validation as proof of genuine source precision. The validator docstring correctly says it does not authenticate evidence.
+
+## Additional engine inspection (static, not concurrency-tested)
+
+- **[P2] Failed archive writer can overwrite a later writer's success.** engine.py:163-165 acquires a transaction advisory lock; an exception releases that lock as the with block rolls back. engine.py:236-239 then writes ERROR through a different connection outside that lock. Interleaving: worker A fails/releases; waiting worker B acquires, publishes COMPLETE and commits; delayed A writes ERROR over B's valid completion. Cluster rebuilding then excludes valid trades because it requires COMPLETE. Reacquire the same lock for conditional error publication, or retain attempt ownership/fencing so stale failures cannot replace newer success. File deletion race was addressed, status race remains.
+- engine.py:172-173 trusts dest.is_file() with DB hash-linked metadata but never hashes the cached file. A truncated/corrupted/replaced cached gzip is reported cached despite no longer matching the recorded hash. This does not immediately corrupt already-published PG trades, but falsely certifies local archive evidence and prevents repair. Verify local size/hash or clearly distinguish trusted PG ingestion from unverified current disk bytes. No cached-file mutation test executed.
+
+## Execution evidence and limits
+
+Commands from work/: `venv/Scripts/python.exe -m unittest discover -s repo -p test_approved_contract.py -v` (10 methods PASS), and `venv/Scripts/python.exe probe_approved_review.py` (independent adverse probes). Probe source is saved in work/probe_approved_review.py.
+
+Observed: bad seconds precision accepted; conflicting raw ns timestamp accepted; genuine microseconds accepted; invented us residual ns rejected; derived candle without derivation evidence accepted; explicitly derived nested provenance without parents rejected; standalone derived provenance without parents accepted; contradictory footprint delta accepted; unknown side verified delta rejected; invalid embedded API version accepted; missing canonical trade timestamp_ms and schema_version rejected.
+
+No live PostgreSQL, two-worker race, browser or exchange tests. Engine findings are reasoned interleavings/static cache inspection, not executed reproductions. Contracts reviewed at time of this run; concurrent subsequent root changes require targeted rerun.
+

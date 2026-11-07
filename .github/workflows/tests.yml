@@ -4,7 +4,10 @@ on:
   pull_request:
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -13,4 +16,34 @@ jobs:
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m compileall -q .
       - run: python -m unittest discover -p "test_*.py" -v
+  postgres-acceptance:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: acceptance_admin
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-disposable
+          POSTGRES_DB: postgres
+        ports:
+          - 55449:5432
+        options: >-
+          --health-cmd "pg_isready -U acceptance_admin -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      BYBIT_TEST_POSTGRES: "1"
+      PGHOST: "127.0.0.1"
+      PGPORT: "55449"
+      PGDATABASE: bybit_master_acceptance
+      PGUSER: acceptance_admin
+      PGPASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-disposable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m unittest test_postgres_integration -v
 

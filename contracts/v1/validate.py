@@ -84,6 +84,13 @@ def validate_record(kind, record):
         require(total is None or record['completed_units']<=total,'Progress exceeds denominator')
         if record['state']=='COMPLETE':
             require(total is not None and record['completed_units']==total,'Complete job requires verified known total')
+    if kind=='comparison':
+        context=record['context']
+        if record['status'] in ('MATCH','MISMATCH'):
+            require(context is not None and context['calculated_coverage']==context['official_coverage']=='COMPLETE',
+                    'Comparison needs complete source, boundary, rounding and tolerance context')
+        else:
+            require(bool((record['reason'] or '').strip()),'Non-comparable or missing comparison requires reason')
     return record
 
 

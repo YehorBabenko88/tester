@@ -1,0 +1,21 @@
+test_api_adapter_validates_rows_and_inherits_metadata (test_approved_contract.ApprovedContractTests.test_api_adapter_validates_rows_and_inherits_metadata) ... ok
+test_closed_candle_and_complete_history_are_separate (test_approved_contract.ApprovedContractTests.test_closed_candle_and_complete_history_are_separate) ... ok
+test_derived_record_and_standalone_provenance_require_parents (test_approved_contract.ApprovedContractTests.test_derived_record_and_standalone_provenance_require_parents) ... ok
+test_empty_or_exhausted_page_is_not_complete (test_approved_contract.ApprovedContractTests.test_empty_or_exhausted_page_is_not_complete) ... ok
+test_footprint_delta_must_be_consistent_with_taker_volumes (test_approved_contract.ApprovedContractTests.test_footprint_delta_must_be_consistent_with_taker_volumes) ... ok
+test_missing_side_never_becomes_verified_bid_ask_delta (test_approved_contract.ApprovedContractTests.test_missing_side_never_becomes_verified_bid_ask_delta) ... ok
+test_official_comparison_requires_explicit_context (test_approved_contract.ApprovedContractTests.test_official_comparison_requires_explicit_context) ... ok
+test_second_precision_cannot_invent_milliseconds (test_approved_contract.ApprovedContractTests.test_second_precision_cannot_invent_milliseconds) ... ok
+test_signed_funding_range_and_unknown_progress (test_approved_contract.ApprovedContractTests.test_signed_funding_range_and_unknown_progress) ... ok
+test_source_ms_must_not_invent_ns (test_approved_contract.ApprovedContractTests.test_source_ms_must_not_invent_ns) ... ok
+test_sub_ms_precision_and_decimal_round_trip (test_approved_contract.ApprovedContractTests.test_sub_ms_precision_and_decimal_round_trip) ... ok
+test_synthetic_identity_is_documented_and_not_completeness_proof (test_approved_contract.ApprovedContractTests.test_synthetic_identity_is_documented_and_not_completeness_proof) ... ok
+test_ten_distinct_instrument_fixtures (test_approved_contract.ApprovedContractTests.test_ten_distinct_instrument_fixtures) ... ok
+test_timestamp_units_version_and_exact_financial_values (test_approved_contract.ApprovedContractTests.test_timestamp_units_version_and_exact_financial_values) ... ok
+test_unavailable_partial_unverified_require_reason (test_approved_contract.ApprovedContractTests.test_unavailable_partial_unverified_require_reason) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.038s
+
+OK
+

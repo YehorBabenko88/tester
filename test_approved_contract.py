@@ -151,6 +151,19 @@ class ApprovedContractTests(unittest.TestCase):
         envelope['data'][0]['availability']={'status':'PARTIAL','reason':'Fixture partial archive'}
         self.assertRaises(ContractError,validate_response,'trade',envelope)
 
+    def test_official_comparison_requires_explicit_context(self):
+        source=trade()
+        value={k:copy.deepcopy(source[k]) for k in ['schema_version','venue','category','symbol','timestamp_ms','provenance','availability','coverage']}
+        value.update(field='volume',calculated='1',official='1',difference='0',status='MATCH',reason=None,context=None)
+        self.assertRaises(ContractError,validate_record,'comparison',value)
+        value.update(status='NOT_COMPARABLE',reason='Missing source completeness and rounding context')
+        validate_record('comparison',value)
+        value.update(status='MATCH',reason=None,context=dict(calculated_coverage='COMPLETE',official_coverage='COMPLETE',
+                     boundary_policy='UTC [start_ms,end_ms)',rounding='exact',tolerance='0',evidence_refs=['fixture-proof']))
+        validate_record('comparison',value)
+        value['context']['official_coverage']='UNKNOWN'
+        self.assertRaises(ContractError,validate_record,'comparison',value)
+
 
 if __name__=='__main__':unittest.main()
 

@@ -26,7 +26,7 @@ UI must show all ten instruments, per-source progress, real coverage/quality and
 
 Synthetic fixtures cover sub-ms/ns and coarse ms sources, duplicate/synthetic ID collisions, partial/corrupt archives, empty pages, repeated cursors, late/unclosed candles, source conflicts, missing taker side, exact arithmetic and restart. They do not prove Bybit retention/availability or live end-to-end readiness.
 
-Current live probes are DNS-blocked; evidence/public-probes.json records actual failures. Current disposable PostgreSQL checks target legacy baseline integrity, not yet B's tester_storage migrations. No physical Windows acceptance is inferred from running Python tests on this host.
+Initial live probes were DNS-blocked; after renewed network permission evidence/public-probes.json records successful catalog/archive checks, and evidence/live-baseline-postgres.json records ten live candle identities plus XRP43210 archive rows persisted/retried/clustered in a disposable database. These checks target legacy baseline integrity, not yet B's tester_storage migrations or full A–E integration. No physical Windows acceptance is inferred from running Python tests on this host.
 
 ## Final gates
 

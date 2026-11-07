@@ -1,0 +1,46 @@
+test_closed_candle_and_complete_history_are_separate (test_approved_contract.ApprovedContractTests.test_closed_candle_and_complete_history_are_separate) ... ok
+test_derived_record_and_standalone_provenance_require_parents (test_approved_contract.ApprovedContractTests.test_derived_record_and_standalone_provenance_require_parents) ... FAIL
+test_empty_or_exhausted_page_is_not_complete (test_approved_contract.ApprovedContractTests.test_empty_or_exhausted_page_is_not_complete) ... ok
+test_footprint_delta_must_be_consistent_with_taker_volumes (test_approved_contract.ApprovedContractTests.test_footprint_delta_must_be_consistent_with_taker_volumes) ... FAIL
+test_missing_side_never_becomes_verified_bid_ask_delta (test_approved_contract.ApprovedContractTests.test_missing_side_never_becomes_verified_bid_ask_delta) ... ok
+test_second_precision_cannot_invent_milliseconds (test_approved_contract.ApprovedContractTests.test_second_precision_cannot_invent_milliseconds) ... FAIL
+test_signed_funding_range_and_unknown_progress (test_approved_contract.ApprovedContractTests.test_signed_funding_range_and_unknown_progress) ... ok
+test_source_ms_must_not_invent_ns (test_approved_contract.ApprovedContractTests.test_source_ms_must_not_invent_ns) ... ok
+test_sub_ms_precision_and_decimal_round_trip (test_approved_contract.ApprovedContractTests.test_sub_ms_precision_and_decimal_round_trip) ... ok
+test_synthetic_identity_is_documented_and_not_completeness_proof (test_approved_contract.ApprovedContractTests.test_synthetic_identity_is_documented_and_not_completeness_proof) ... ok
+test_ten_distinct_instrument_fixtures (test_approved_contract.ApprovedContractTests.test_ten_distinct_instrument_fixtures) ... ok
+test_timestamp_units_version_and_exact_financial_values (test_approved_contract.ApprovedContractTests.test_timestamp_units_version_and_exact_financial_values) ... ok
+test_unavailable_partial_unverified_require_reason (test_approved_contract.ApprovedContractTests.test_unavailable_partial_unverified_require_reason) ... ok
+
+======================================================================
+FAIL: test_derived_record_and_standalone_provenance_require_parents (test_approved_contract.ApprovedContractTests.test_derived_record_and_standalone_provenance_require_parents)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\test_approved_contract.py", line 127, in test_derived_record_and_standalone_provenance_require_parents
+    self.assertRaises(ContractError,validate_record,'candle',value)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ContractError not raised by validate_record
+
+======================================================================
+FAIL: test_footprint_delta_must_be_consistent_with_taker_volumes (test_approved_contract.ApprovedContractTests.test_footprint_delta_must_be_consistent_with_taker_volumes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\test_approved_contract.py", line 138, in test_footprint_delta_must_be_consistent_with_taker_volumes
+    self.assertRaises(ContractError,validate_record,'footprint',value)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ContractError not raised by validate_record
+
+======================================================================
+FAIL: test_second_precision_cannot_invent_milliseconds (test_approved_contract.ApprovedContractTests.test_second_precision_cannot_invent_milliseconds)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\test_approved_contract.py", line 119, in test_second_precision_cannot_invent_milliseconds
+    self.assertRaises(ContractError,validate_record,'trade',value)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ContractError not raised by validate_record
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.032s
+
+FAILED (failures=3)
+

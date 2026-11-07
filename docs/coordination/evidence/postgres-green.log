@@ -1,0 +1,8 @@
+test_archive_late_failure_rollback_retry_idempotence_and_clusters (test_postgres_integration.PostgresAcceptance.test_archive_late_failure_rollback_retry_idempotence_and_clusters) ... ok
+test_initialize_numeric_exactness_and_ten_synthetic_instruments (test_postgres_integration.PostgresAcceptance.test_initialize_numeric_exactness_and_ten_synthetic_instruments) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 1.878s
+
+OK
+

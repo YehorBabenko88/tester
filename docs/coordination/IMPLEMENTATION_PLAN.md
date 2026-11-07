@@ -6,7 +6,7 @@ Goal: coordinate five workstreams and produce a reproducible, evidence-backed in
 
 Architecture: preserve the existing Python/PostgreSQL research application. Review workstream additions against a pinned base, publish versioned JSON Schema interchange contracts, then integrate only reviewed commits on integration/master. No automatic main merge.
 
-Spec: user-provided MASTER CODEX directive, reproduced in Issue #6 scope and AGENT_PROTOCOL.md.
+Spec: user-provided MASTER CODEX directive, approved contract Issue #8 and AGENT_PROTOCOL.md. Issue #8 supersedes the initial contract proposal; tests are now test_approved_contract.py.
 
 Constraints: only YehorBabenko88/tester; no trading keys/orders, existing database deletion, firewall changes or office deployment. Five workstream branches are owned by their agents. Windows physical acceptance requires separately recorded execution.
 
@@ -44,4 +44,6 @@ Consumes: exact reviewed SHAs, commands and logs; produces a Draft integration P
 - [ ] Commit on coordination/master; integrate exact coordinator commit on integration/master, test, and publish Draft PR/evidence.
 
 Pre-flight: Tasks 1/2 share state vocabulary. Unknown is retryable and never counted complete; contract adoption remains proposed until agents explicitly confirm. Task 3 consumes evidence from both tasks; unit fixtures do not imply end-to-end acceptance.
+
+Execution checkpoint: approved-v1 schema/semantic fixtures and all five independent producer gates are implemented and executed. Baseline rollback/cache/coverage/screener fixes passed local regressions and two real disposable PostgreSQL tests. Live ten-instrument candles plus real XRP archive persistence/idempotence/cluster smoke passed. See MASTER_STATUS.md for exact scope and unresolved producer contract gaps; Task3 full A–E/CI/physical acceptance remains incomplete.
 
