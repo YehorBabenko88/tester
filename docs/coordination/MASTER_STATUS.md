@@ -1,3 +1,15 @@
+## Focused correction review outcome
+
+New A3098:42unit +10shared/Bconsumer tests, four adverse probes pass; old equivalence reproducer failed twice as expected. Both raw observations preserved, true price/size changes remain conflicts. New D6cf9:19Node tests pass; E b15b:36 direct scope/grid tests plus root89 real-PG/HTTP tests/1symlinkskip. Exact source cadence and display viewport/cursors agree. Focused A/E defects closed; full pipeline still NOT_READY. Reviews A_SEMANTIC_3098.md and ED_GRID_PAIR.md. Automation updated through official app action with Issue25/P0-first restrictions and correct docs paths; ACTIVE15min config read back. First actual invocation remains proven; future runs are not presumed successful.
+
+## Latest verified increment — provenance projection
+
+Current snapshot 2026-11-07T16:24:23.630849+01:00. MASTER parent b16f46b. Added provenance_from_storage using actual B write-time observations: preserves every run/source/hash/original timestamp, rejects legacy/unlinked/import/unknown sources and explicit original acquisition-run mismatch. Seven tests pass; independent reviewer found the mismatch defect, RED/GREEN regression confirms correction. Actual disposable-PG B47fd roundtrip passes: two runs, one exact trade, both provenance links, coverage UNKNOWN. This does not claim a complete E provider or full pipeline.
+
+Coordinator now79 discovered,77 pass,2 opt-in PG skips. New E b15b1ce passed89 platform tests with real own PG/HTTP and one symlink skip. Own PG stopped after verification. A3098d55 and D6cf9a2a are new observed heads under independent review, not accepted on agent reports alone. B issue2 task6708925158 was published and B resumed only after confirming idle. G remains awaiting execution for the previously assigned storage-ownership decision.
+
+Owner Issue25 assignments: A1:6708885863, B2:6708886079, C3:6708886319, D4:6708886578, E5:6708886835, F16:6708887145; G18:6708743561. Source evidence25:6708941145; optional contract8:6708940893. Remote markers prevent duplicate assignments. Next checkpoint reviews new A/D/E exact pins, B write-time fix, and implements the remaining B evidence→E reader factory, then pinned pipeline/10 instruments/resources/service/CI. NOT_READY; all prior full-pipeline/source-rights gates persist.
+
 # Current MASTER checkpoint — Issue25 architecture correction
 
 **NOT_READY.** Checked 2026-11-07T16:18:05.764875+01:00 (Europe/Berlin). This section and CHECKPOINT.json supersede all historical snapshots below. Only YehorBabenko88/tester is authorized. No external Gateway dependencies; no main merge, physical deployment/service installation or real trading.

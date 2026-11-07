@@ -15,6 +15,39 @@ class IntegrationUnavailable(ValueError):
     code='DATA_UNAVAILABLE'
 
 
+def provenance_from_storage(resolved):
+    """Project B's write-time resolver result; never infer a run or completeness.
+
+    Input must come from tester B Store.provenance, not an untrusted API client.
+    Archive/rest labels describe observed acquisition, not trader identity.
+    Generic imports require a future explicit source policy and fail closed here.
+    """
+    try:
+        if not isinstance(resolved,dict) or resolved.get('authentic') is not True or resolved.get('unlinked_sources'):
+            raise ValueError('Missing authentic source linkage')
+        observations=resolved.get('observations')
+        if not isinstance(observations,list) or not 1<=len(observations)<=10000:
+            raise ValueError('Invalid source observation count')
+        result=[]
+        for observation in observations:
+            if observation.get('authentic_run') is not True:
+                raise ValueError('Source run was not supplied at acquisition')
+            if not isinstance(observation.get('evidence_id'),str) or not observation['evidence_id']:
+                raise ValueError('Missing stored evidence linkage')
+            source=observation['source']
+            if 'ingestion_run' in source and source['ingestion_run']!=observation['run_id']:
+                raise ValueError('Original acquisition run differs from stored caller run')
+            value=dict(source_kind={'rest':'bybit_rest','archive':'bybit_archive'}[observation['source_kind']],
+                       source_ref=source['url'],source_hash=source.get('sha256'),
+                       ingestion_run=observation['run_id'],timestamp_precision=observation['timestamp_precision'],
+                       source_timestamp=source.get('source_timestamp'))
+            validate_record('provenance',value)
+            result.append(value)
+        return result
+    except (KeyError,TypeError,ValueError,AttributeError) as error:
+        raise IntegrationUnavailable('Original source observations/run linkage is missing or unsupported') from error
+
+
 def project_trade(row, *, provenance, availability, coverage):
     if not provenance:
         raise IntegrationUnavailable('Original ingestion-run provenance is unavailable')

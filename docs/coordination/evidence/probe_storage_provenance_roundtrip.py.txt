@@ -1,0 +1,33 @@
+"""Independent synthetic B47fd -> MASTER projection on own disposable PG."""
+import sys,unittest
+from pathlib import Path
+base=Path(__file__).parent
+sys.path.insert(0,str(base/'master-supervisor'))
+import src
+src.__path__.append(str(base/'b-heartbeat1/src'))
+sys.path.append(str(base/'b-heartbeat1'))
+from tests.storage.test_postgres import PostgresTests
+from src.integration.storage_api import provenance_from_storage,read_trades
+
+
+class Roundtrip(PostgresTests):
+    def test_actual_store_resolver_two_runs_one_trade_no_invented_coverage(self):
+        self.symbol=self.symbol.upper()
+        original=self.record();original['source']['source_timestamp']='1700000000000'
+        for run in ('actual-source-run-a','actual-source-run-b'):
+            self.store.ingest([original],self.ev(),self.symbol+run,run_id=run)
+        def resolve(key):return provenance_from_storage(self.store.provenance([key])[key])
+        result=read_trades(self.store,venue='bybit',category='linear',symbol=self.symbol,
+            start_ms=1700000000000,end_ms=1700000060000,limit=10,provenance_resolver=resolve)
+        self.assertEqual(len(result['data']),1)
+        record=result['data'][0]
+        self.assertEqual(record['price'],'123.000000000000000001')
+        self.assertEqual({p['ingestion_run'] for p in record['provenance']},{'actual-source-run-a','actual-source-run-b'})
+        self.assertEqual({p['source_timestamp'] for p in record['provenance']},{'1700000000000'})
+        self.assertEqual(result['coverage']['status'],'UNKNOWN')
+        self.assertEqual(result['availability']['status'],'UNVERIFIED')
+        self.assertIsNone(record['timestamp_ns'])
+
+for name in PostgresTests.__dict__:
+    if name.startswith('test_'):setattr(Roundtrip,name,None)
+unittest.main(defaultTest='Roundtrip')

@@ -1,0 +1,6 @@
+test_actual_store_resolver_two_runs_one_trade_no_invented_coverage (__main__.Roundtrip.test_actual_store_resolver_two_runs_one_trade_no_invented_coverage) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.572s
+
+OK
