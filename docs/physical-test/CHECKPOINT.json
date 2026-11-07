@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "repository": "YehorBabenko88/tester",
+  "issue": 27,
+  "installation_id": "f23dab63-92c6-4e56-9027-4213c6b4dc60",
+  "host_fingerprint": "658ac47c38eb17a6",
+  "phase": "SNAPSHOT",
+  "status": "PREPARING_SCOPED_INSTALLER",
+  "root": "C:/ProgramData/TesterPhysicalTest20261107",
+  "services": [
+    "TesterPhysicalTest20261107",
+    "TesterPhysicalPg20261107"
+  ],
+  "api": "127.0.0.1:18765",
+  "postgres": "127.0.0.1:55469",
+  "branch": "physical/master-windows-test",
+  "baseline_sha": "19f306cd8314cd9ce0cf488b143a3338d2393442",
+  "installed_sha": null,
+  "service_registered": false,
+  "service_running": false,
+  "owned_root_created": true,
+  "private_venv_created": true,
+  "own_cluster_created": true,
+  "actual_scm_create_permission": false,
+  "scm_access_error": 5,
+  "administrator_group_member": false,
+  "elevated": false,
+  "required_os_action": "Normal UAC with a separate administrator credential, after payload and hashes are reviewed; no credential in chat or commands",
+  "private_journal": "C:/ProgramData/TesterPhysicalTest20261107/state/journal.json",
+  "no_existing_db_service_network_security_changes": true,
+  "no_data_deleted": true,
+  "repair_failures": {},
+  "acceptance": "NOT_ACCEPTED",
+  "next": [
+    "Publish separate physical Draft PR and exact candidate",
+    "Freeze checksummed release and application config; externally Verify",
+    "Invoke bounded normal-UAC registration only; retain permission denial if unavailable",
+    "Observe actual SCM then authorized start/test/upgrade/crash recovery; no acceptance until proved"
+  ],
+  "checked_at": "2026-11-07T17:27:45.365518+00:00",
+  "own_database_prepared": true,
+  "own_cluster_running": false,
+  "database": "tester_physical_20261107",
+  "app_role": "tester_physical_app",
+  "native_code_review": "STOP_RACE_AND_REPARSE_FIXED_24_TESTS_PASS",
+  "test_results": {
+    "platform_pass": 135,
+    "platform_skip": 14,
+    "platform_subtests": 8,
+    "unittest_methods": 258,
+    "unittest_skip": 48,
+    "native_lifecycle_regressions_pass": 24,
+    "pg_guard_tests_pass": 10,
+    "real_source_instruments": 10,
+    "real_source_candles": 50
+  },
+  "repaired_defects": [
+    "STARTUP_STOP_SIGNAL_LOSS",
+    "JUNCTION_METADATA_FOLLOW_STAT",
+    "PG_CTL_CAPTURE_PIPE"
+  ]
+}

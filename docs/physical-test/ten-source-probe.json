@@ -1,0 +1,114 @@
+{
+  "checked_at": "2026-11-07T17:23:52.135417+00:00",
+  "scope": "REAL_PUBLIC_MARKET_SOURCE_ONLY_NOT_WINDOWS_SERVICE_ACCEPTANCE",
+  "start_ms": 1794071340000,
+  "end_ms": 1794071640000,
+  "workers": 2,
+  "requests_per_second": 2,
+  "observed_candles": 50,
+  "instruments": [
+    {
+      "symbol": "BTCUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "efc757ca6a77d26d4d9a56c9a197e11bfc35b473fb42548e99d224383b312e7a",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "ETHUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "a2869f99091d5a270ddaefb9450e17379ae2c9e61080377e6aa4cb9675c507d4",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "SOLUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "1316473badcd5ad8b6648c0cc80657884e3b4eee3ce90ade885884c8e911bb96",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "XRPUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "73053f58465bd91677e6673de560cad9d4157cd4f9b5ceca955e7f51bc89e39f",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "3935f7a4ece6ee18a11c21f63596d1b7b181640b50c0f6c1e2deb330e4a55f48",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "ADAUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "06393ecc215d45f9e344a45666595f4d1808af01f24778c30c9cb9b75325e2d8",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "7398d4a441272b46a2b02ab8b6225832d510a87c02697a9e42c1ee67b8c1c71d",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "LINKUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "11977e0f6e9fdcd7b5604d476d4403ca62b38ab5d4853f9248afc286bcbec978",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "DOTUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "9837ecabe5c6c842438985dcd5b262f78a6c7375f628e6dcb206aa7212287e93",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    },
+    {
+      "symbol": "LTCUSDT",
+      "records": 5,
+      "conflicts": 0,
+      "sha256": "dcbf53ff34a8da47263192ee1748a6f8bcae258342c606ea0e88f99aca2bd1b6",
+      "record_coverage_statuses": [
+        "PARTIAL"
+      ],
+      "source_response_evidence": 7
+    }
+  ],
+  "full_history": "NOT_PROVEN",
+  "identified_trader_trades": false,
+  "private_artifacts": "C:\\ProgramData\\TesterPhysicalTest20261107\\runtime\\source-probe-20261107T171937Z"
+}

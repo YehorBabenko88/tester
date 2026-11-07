@@ -1,0 +1,16 @@
+test_future_range_cannot_be_complete (__main__.FutureHorizon.test_future_range_cannot_be_complete) ... FAIL
+
+======================================================================
+FAIL: test_future_range_cannot_be_complete (__main__.FutureHorizon.test_future_range_cannot_be_complete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\probe_b_future_horizon.py", line 19, in test_future_range_cannot_be_complete
+    self.assertFalse(page['coverage']['complete'],'An unelapsed requested range cannot have completed history')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : An unelapsed requested range cannot have completed history
+
+----------------------------------------------------------------------
+Ran 1 test in 0.485s
+
+FAILED (failures=1)
+{"outcome": "OK", "coverage": {"start_ms": 1700000000000, "end_ms": 4102444800000, "complete": true, "state": "COMPLETE", "proof_refs": ["2b07e3943bc815cdc7188fe505148fc315b15b6a1f952b49089a5df2af08dd56"], "reasons": [], "intervals": {"requested": [[1700000000000, 4102444800000]], "unavailable": [], "corrupt": [], "downloaded": [[1700000000000, 4102444800000]], "unknown": [], "available": [[1700000000000, 4102444800000]], "verified": [[1700000000000, 4102444800000]], "start": 1700000000000, "end": 4102444800000, "verified_ms": 2402444800000, "percent": 100.0}}, "snapshot": {"isolation": "repeatable read", "started_at": "2026-11-07 16:34:21.232472+00", "xmin": "4616"}}

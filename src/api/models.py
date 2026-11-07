@@ -85,6 +85,8 @@ class Lease(Job):
 
 
 class Health(BaseModel):
+    provider: Literal["configured", "unavailable"]
+    instance_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
     status: Literal["ok", "degraded"]
     database: Literal["ok", "unavailable"]
     worker: Literal["ok", "unavailable"]

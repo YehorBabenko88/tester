@@ -1,0 +1,17 @@
+PASS: bounded stdlib socketpair/eventloop preflight
+PASS: shared contract/policy hash pin 9766c0093e2608280875ac56db074414a3d62c69
+PASS: shared contract/policy hash pin d945b23ab940b67f569ed85aa4c8d6e9684f8149
+All checks passed!
+45 files already formatted
+sss..................................................................... [ 40%]
+....................ssssssss..s.............s........................... [ 81%]
+.............................s...                                        [100%]
+============================== warnings summary ===============================
+..\repo\.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-e-platform-windows-deployment\work\repo\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+163 passed, 14 skipped, 1 warning in 4.39s
+No known vulnerabilities found
+PASS: requested acceptance gates

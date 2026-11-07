@@ -10,6 +10,25 @@ from src.api.config import Settings
 
 
 class ReaderHTTP(support.PostgresTests):
+    def test_actual_undeclared_original_run_and_integrity_reasons(self):
+        self.symbol=self.symbol.upper()
+        # Caller-origin authenticity is not an original source declaration.
+        self.store.ingest([self.record()],self.ev(),self.symbol,run_id='fixture-caller-only')
+        with tempfile.TemporaryDirectory(prefix='tester_reason_http_') as tmp,patch.dict(os.environ,{'TESTER_DATABASE_URL':self.dsn}):
+            os.environ.pop('TESTER_CONFIG_FILE',None)
+            settings=Settings(database_url=self.dsn,data_dir=tmp,provider_factory='src.integration.storage_reader:create_reader')
+            with TestClient(create_app(settings),base_url='http://127.0.0.1:8765') as client:
+                query=dict(category='linear',symbol=self.symbol,start_ms=1700000000000,end_ms=1700000060000,limit=1)
+                missing=client.get('/api/trades',params=query)
+                self.assertEqual(missing.status_code,503)
+                self.assertEqual(missing.json()['error']['code'],'data_unavailable')
+                self.assertIn('provenance',missing.json()['error']['message'].lower())
+                self.store.mark_range(self.ev(),'corrupt','fixture-secret-detail')
+                corrupt=client.get('/api/trades',params=query)
+                self.assertEqual(corrupt.status_code,503)
+                self.assertIn('integrity',corrupt.json()['error']['message'].lower())
+                self.assertNotIn('fixture-secret-detail',corrupt.text)
+
     def test_ten_instruments_actual_store_factory_http_keysets(self):
         symbols=['BTCUSDT','ETHUSDT','SOLUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT','LINKUSDT','DOTUSDT','LTCUSDT']
         for symbol in symbols:

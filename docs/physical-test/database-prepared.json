@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "installation_id": "f23dab63-92c6-4e56-9027-4213c6b4dc60",
+  "root": "C:\\ProgramData\\TesterPhysicalTest20261107",
+  "data_directory": "C:\\ProgramData\\TesterPhysicalTest20261107\\postgres-data",
+  "port": 55469,
+  "admin": "tester_install_admin",
+  "database": "tester_physical_20261107",
+  "app": "tester_physical_app",
+  "pg_bin": "C:\\Program Files\\PostgreSQL\\18\\bin",
+  "phase": "ready",
+  "system_identifier": "7705481453829766932",
+  "configuration_hashes": {
+    "postgresql.conf": "ed7eb2d88d28bcc3c6944dd77fa761376d504129be0872c9aed7f2395dbeaebb",
+    "pg_hba.conf": "dbc1b0fbfe717fa138d618b97d051c967241f91d080aa9d98e8b2f112c4633e9"
+  }
+}

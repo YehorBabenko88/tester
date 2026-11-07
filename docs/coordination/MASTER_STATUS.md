@@ -1,3 +1,25 @@
+# Current direct mission — Issue27 isolated physical Windows test
+
+**NOT_ACCEPTED.** Current-PC authorization supersedes earlier no-install restriction only for dedicated tester resources. Physical branch physical/master-windows-test: root/private venv prepared; actual own PG18 cluster55469 initialized, B/E migrations and app no-DDL/no-DELETE probes passed, retained backup, stopped. Existing PostgreSQL5432 untouched. First pg_ctl inherited PIPE hang diagnosed and repaired with guarded non-destructive resume. Native startup STOP/junction fixes independently24PASS; complete platform135PASS/14skips, root unittest258/48skips. Ten real Bybit candle windows50rows observed with original evidence; coverage PARTIAL, no full-history/trader claim. No native SCM service installed: standard-user create denied5, separate-admin normalUAC required after frozen payload review. See docs/physical-test/CHECKPOINT.json and COMPONENT_MATRIX.md for exact next steps. F/G/TI and financial-provider bindings remain not integrated; no main merge/trading/deletion.
+
+---
+
+# Current heartbeat — safe data errors and blocked future proof, 2026-11-07T17:40:25.947175+01:00
+
+**NOT_READY.** Current composed sources remain A0a6d/B e236/C3cb/E5fa/D6cf; new Aa628 catalog and Bdc545 bounded API are not composed. GitHub Issues1–18/25,9DraftPRs, A–G/H refs, Issue8/25/PR11 comments and CI refreshed. Main unchanged0a6ce227. Existing worktree only.
+
+Root fixed a real HTTP diagnostic defect: connected storage with unverified original run or invalid canonical values previously said provider notconnected. New typed503data_unavailable returns only whitelisted provenance/canonical/integrity/unavailable-range/continuation reasons; unsupported resources retainprovider_unavailable. Integrity is not downgraded to provenance, unavailable does not imply corruption, raw private diagnostics never echoed. Two oldHTTP regressionsRED;6HTTP+6legacyreaderGREEN, actualPGHTTP caller-onlyoriginal thenintegrity PASS. Final root254methods252PASS2root optin skips; separate platform113PASS2skips. Core/policypins, OpenAPIsemantic equality and targetedRuff lint/formatPASS; ownPGstopped. No record schema/Cmath/proof/default changes.
+
+New Bdc545 independently76actualPG+3literalchecksPASS, resource/snapshot narrowreviewPASS; but independent semantic reviewer found and root confirmed P1: one historical exchange-ID trade+matchedrun/operatorattestation[2023,2100) returnsCOMPLETE100% with nonemptyproofrefs at2026snapshot. Root extraPGprobeRED saved. Newproof NOTintegrated; composedoldreader remainsUNKNOWN. ExactP1PR13:6709945814; B idlecheckedthenresumedonce, actualactiveprogressconfirmed. Must gate both requested/candidate future horizons, no clipping into100%.
+
+New nonduplicate tasks: A1:6709792128 canonical instrument metadata/sourceincrements; E5:6709792406 explicit derived-query cutoff/step/cursor contract. Bothidlecheckedbeforefollowups and realactiveexecution confirmed. A publisheda628 docs/source/test metadata module, nowindependentreviewpending; not rootaccepted/composed. E typedcontract stillactive. B source/proof correctionactive. GAWAITING_AGENT_EXECUTION; no G/Hdispatchauthorization assumed. UI alreadyrenders structuredcode/message, no substitute data.
+
+Fifth actualheartbeat16:20:23.859Z recorded. Candidate19f306CI allqueued; storagejobsreadback4queued/ubuntu-latest/no runner assigned, reasonunknown. No successfulCI/billingcause claimed. Next: correctedBfutureproof, Ametadatareview, Etypedcontract, compositefinancialAPI/full-range→actualD browser, thenreal10instrument/history/resources/service/CI; F/G separate. TIinertS0,no mainmerge/physicaldeploy/trading/userdatadeletion.
+
+---
+
+## Historical checkpoints below
+
 # Current heartbeat — tested five-component composition, 2026-11-07T17:15:37.358876+01:00
 
 **NOT_READY.** Existing worktree preparation branch integration/pinned-ac-20261107 composes A0a6d07c / Be236395 / C3cb0735 / E5fa20ce / D6cf9a2a. No main merge; producer heads retained in integration history. Sources coexist, but configured optional API is still trades-only: catalog/derived-provider/full-range proof and actual financial browser path are pending. F/G/H not composed. TI inertS0.
