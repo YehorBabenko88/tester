@@ -1,0 +1,6 @@
+{
+  "source_commit": "d945b23ab940b67f569ed85aa4c8d6e9684f8149",
+  "sha256": {
+    "src/integration/standalone_policy.py": "ef48863f9aef6737ebae20794c3a770326d0724abd8c1812b9a923b0dacc0e7a"
+  }
+}

@@ -1,0 +1,5421 @@
+{
+  "components": {
+    "schemas": {
+      "CandleDataset": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "close": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "end_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "high": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "interval": {
+                  "enum": [
+                    "1",
+                    "3",
+                    "5",
+                    "15",
+                    "30",
+                    "60",
+                    "120",
+                    "240",
+                    "360",
+                    "720",
+                    "D",
+                    "W",
+                    "M"
+                  ]
+                },
+                "is_closed": {
+                  "type": "boolean"
+                },
+                "kind": {
+                  "enum": [
+                    "official_trade",
+                    "official_mark",
+                    "official_index",
+                    "official_premium",
+                    "derived"
+                  ]
+                },
+                "low": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "open": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "start_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "venue": {
+                  "const": "bybit"
+                },
+                "volume": {
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "start_ms",
+                "end_ms",
+                "interval",
+                "kind",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "is_closed"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
+          }
+        },
+        "required": [
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      "CoverageDataset": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "end_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "evidence_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "start_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "status": {
+                  "enum": [
+                    "NOT_STARTED",
+                    "RUNNING",
+                    "COMPLETE",
+                    "PARTIAL",
+                    "GAPS",
+                    "EMPTY",
+                    "PROVISIONAL",
+                    "UNKNOWN",
+                    "ERROR",
+                    "UNAVAILABLE"
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "start_ms",
+                "end_ms",
+                "evidence_refs"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
+          }
+        },
+        "required": [
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      "DownloadRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "linear",
+              "inverse",
+              "spot"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "end_ms": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 253402300799000.0,
+            "title": "End Ms",
+            "type": "integer"
+          },
+          "interval": {
+            "default": "60",
+            "pattern": "^[a-zA-Z0-9]{1,12}$",
+            "title": "Interval",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "candles",
+              "trades",
+              "footprint",
+              "open_interest",
+              "funding"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "source": {
+            "pattern": "^[a-z0-9_-]{1,64}$",
+            "title": "Source",
+            "type": "string"
+          },
+          "start_ms": {
+            "minimum": 0.0,
+            "title": "Start Ms",
+            "type": "integer"
+          },
+          "symbol": {
+            "pattern": "^[A-Z0-9_-]{1,40}$",
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "symbol",
+          "source",
+          "kind",
+          "start_ms",
+          "end_ms"
+        ],
+        "title": "DownloadRequest",
+        "type": "object"
+      },
+      "Envelope_Health_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Health"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "Envelope[Health]",
+        "type": "object"
+      },
+      "Envelope_Job_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Job"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "Envelope[Job]",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "schema_version": {
+            "const": "1.0",
+            "default": "1.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorEnvelope",
+        "type": "object"
+      },
+      "FootprintDataset": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "buy_volume": {
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "delta": {
+                  "anyOf": [
+                    {
+                      "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "end_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "sell_volume": {
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                },
+                "side_basis": {
+                  "const": "taker"
+                },
+                "start_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "unknown_side_volume": {
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                },
+                "venue": {
+                  "const": "bybit"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "start_ms",
+                "end_ms",
+                "side_basis",
+                "buy_volume",
+                "sell_volume",
+                "unknown_side_volume",
+                "delta"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
+          }
+        },
+        "required": [
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      "Health": {
+        "properties": {
+          "database": {
+            "enum": [
+              "ok",
+              "unavailable"
+            ],
+            "title": "Database",
+            "type": "string"
+          },
+          "free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Bytes"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "storage": {
+            "enum": [
+              "ok",
+              "low_disk",
+              "quota_exceeded",
+              "unavailable"
+            ],
+            "title": "Storage",
+            "type": "string"
+          },
+          "used_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used Bytes"
+          },
+          "worker": {
+            "enum": [
+              "ok",
+              "unavailable"
+            ],
+            "title": "Worker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "worker",
+          "storage",
+          "free_bytes",
+          "used_bytes"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "InstrumentDataset": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "qty_step": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "status": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "tick_size": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "venue": {
+                  "const": "bybit"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "status",
+                "tick_size",
+                "qty_step"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
+          }
+        },
+        "required": [
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      "Job": {
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "checkpoint": {
+            "additionalProperties": true,
+            "title": "Checkpoint",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "progress": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Progress",
+            "type": "number"
+          },
+          "request": {
+            "$ref": "#/components/schemas/DownloadRequest"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "running",
+              "paused",
+              "completed",
+              "failed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "request",
+          "state",
+          "progress",
+          "checkpoint",
+          "attempts",
+          "error",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "Job",
+        "type": "object"
+      },
+      "ObservationDataset": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "interval": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "oi",
+                    "funding",
+                    "ratio"
+                  ]
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "unit": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "value": {
+                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                },
+                "venue": {
+                  "const": "bybit"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "kind",
+                "value",
+                "unit",
+                "interval"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
+          }
+        },
+        "required": [
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      "SourceDataset": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
+          }
+        },
+        "required": [
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      "TradeDataset": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "id_origin": {
+                  "enum": [
+                    "exchange",
+                    "synthetic"
+                  ]
+                },
+                "identity_method": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "price": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "quantity": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "taker_side": {
+                  "enum": [
+                    "Buy",
+                    "Sell",
+                    "Unknown"
+                  ]
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "timestamp_ns": {
+                  "pattern": "^[0-9]{1,19}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                },
+                "trade_id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "venue": {
+                  "const": "bybit"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "timestamp_ns",
+                "timestamp_precision",
+                "trade_id",
+                "id_origin",
+                "price",
+                "quantity",
+                "taker_side"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
+          }
+        },
+        "required": [
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
+          "provenance"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Tester local market API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/candles": {
+      "get": {
+        "operationId": "read_candles",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "linear",
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "default": "60",
+              "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandleDataset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/coverage": {
+      "get": {
+        "operationId": "read_coverage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "linear",
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "default": "60",
+              "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageDataset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/downloads": {
+      "post": {
+        "operationId": "downloads_api_downloads_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DownloadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Job_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Downloads"
+      }
+    },
+    "/api/downloads/{id}": {
+      "get": {
+        "operationId": "download_api_downloads__id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Job_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Download"
+      }
+    },
+    "/api/downloads/{id}/pause": {
+      "post": {
+        "operationId": "pause_download",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Job_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/downloads/{id}/resume": {
+      "post": {
+        "operationId": "resume_download",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Job_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/downloads/{id}/retry": {
+      "post": {
+        "operationId": "retry_download",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Job_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/footprint": {
+      "get": {
+        "operationId": "read_footprint",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "linear",
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "default": "60",
+              "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FootprintDataset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/funding": {
+      "get": {
+        "operationId": "read_funding",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "linear",
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "default": "60",
+              "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationDataset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Health_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_Health_"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/api/instruments": {
+      "get": {
+        "operationId": "read_instruments",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "linear",
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "default": "60",
+              "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentDataset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/open-interest": {
+      "get": {
+        "operationId": "read_open-interest",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "linear",
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "default": "60",
+              "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationDataset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/sources": {
+      "get": {
+        "operationId": "read_sources",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "linear",
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "default": "60",
+              "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDataset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    },
+    "/api/trades": {
+      "get": {
+        "operationId": "read_trades",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "default": "linear",
+              "title": "Category",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "symbol",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Symbol"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
+            }
+          },
+          {
+            "in": "query",
+            "name": "interval",
+            "required": false,
+            "schema": {
+              "default": "60",
+              "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeDataset"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Endpoint"
+      }
+    }
+  }
+}

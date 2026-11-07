@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "synthetic_fixture": true,
+  "symbols": 10,
+  "completed_jobs": 10,
+  "peak_queue_depth": 4,
+  "peak_rss_bytes": 57454592,
+  "cpu_seconds": 0.03125,
+  "duration_seconds": 1.350831299991114,
+  "p95_queue_to_handler_seconds": 0.5291139000037219,
+  "streamed_bytes": 167772160,
+  "market_network_bytes": 0,
+  "network_bytes": null,
+  "unverified": [
+    "real_provider_network_backpressure",
+    "hard_CPU_RSS_OS_enforcement"
+  ]
+}
