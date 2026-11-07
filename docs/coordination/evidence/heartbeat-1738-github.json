@@ -1,0 +1,245 @@
+{
+  "heartbeat": "2026-11-07T17:38:52.297Z",
+  "observed_at": "2026-11-07T17:46:31.762Z",
+  "issues": [
+    {
+      "number": 27,
+      "state": "open",
+      "updated_at": "2026-11-07T17:38:16Z"
+    },
+    {
+      "number": 25,
+      "state": "open",
+      "updated_at": "2026-11-07T15:23:42Z"
+    },
+    {
+      "number": 23,
+      "state": "open",
+      "updated_at": "2026-11-07T14:46:26Z"
+    },
+    {
+      "number": 22,
+      "state": "open",
+      "updated_at": "2026-11-07T14:46:26Z"
+    },
+    {
+      "number": 21,
+      "state": "open",
+      "updated_at": "2026-11-07T14:49:30Z"
+    },
+    {
+      "number": 18,
+      "state": "open",
+      "updated_at": "2026-11-07T15:09:30Z"
+    },
+    {
+      "number": 17,
+      "state": "open",
+      "updated_at": "2026-11-07T14:26:09Z"
+    },
+    {
+      "number": 16,
+      "state": "open",
+      "updated_at": "2026-11-07T15:19:27Z"
+    },
+    {
+      "number": 15,
+      "state": "open",
+      "updated_at": "2026-11-07T14:44:51Z"
+    },
+    {
+      "number": 14,
+      "state": "open",
+      "updated_at": "2026-11-07T14:48:56Z"
+    },
+    {
+      "number": 8,
+      "state": "open",
+      "updated_at": "2026-11-07T16:39:46Z"
+    },
+    {
+      "number": 7,
+      "state": "open",
+      "updated_at": "2026-11-07T16:32:44Z"
+    },
+    {
+      "number": 6,
+      "state": "open",
+      "updated_at": "2026-11-07T15:59:51Z"
+    },
+    {
+      "number": 5,
+      "state": "open",
+      "updated_at": "2026-11-07T16:39:45Z"
+    },
+    {
+      "number": 4,
+      "state": "open",
+      "updated_at": "2026-11-07T15:19:25Z"
+    },
+    {
+      "number": 3,
+      "state": "open",
+      "updated_at": "2026-11-07T15:59:50Z"
+    },
+    {
+      "number": 2,
+      "state": "open",
+      "updated_at": "2026-11-07T16:50:34Z"
+    },
+    {
+      "number": 1,
+      "state": "open",
+      "updated_at": "2026-11-07T16:32:43Z"
+    }
+  ],
+  "draft_prs": [
+    {
+      "number": 29,
+      "draft": true,
+      "head": "388e3df137b9223126b39921b4ab556e4fdc5abe",
+      "updated_at": "2026-11-07T17:38:16Z"
+    },
+    {
+      "number": 28,
+      "draft": true,
+      "head": "80bd19dccea91cca9d255063d39e472dd4a077fb",
+      "updated_at": "2026-11-07T17:18:27Z"
+    },
+    {
+      "number": 26,
+      "draft": true,
+      "head": "8bafc315e5757b3510d1b20154b8df7445f3408c",
+      "updated_at": "2026-11-07T15:18:03Z"
+    },
+    {
+      "number": 24,
+      "draft": true,
+      "head": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+      "updated_at": "2026-11-07T15:16:52Z"
+    },
+    {
+      "number": 20,
+      "draft": true,
+      "head": "3cb073586ccc9213e6cb5c5f304dce43d8e46322",
+      "updated_at": "2026-11-07T16:19:21Z"
+    },
+    {
+      "number": 19,
+      "draft": true,
+      "head": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+      "updated_at": "2026-11-07T15:16:49Z"
+    },
+    {
+      "number": 13,
+      "draft": true,
+      "head": "73766dd531387f660ddfb243b64d28be9389ddd1",
+      "updated_at": "2026-11-07T16:50:33Z"
+    },
+    {
+      "number": 12,
+      "draft": true,
+      "head": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c",
+      "updated_at": "2026-11-07T15:18:51Z"
+    },
+    {
+      "number": 11,
+      "draft": true,
+      "head": "19f306cd8314cd9ce0cf488b143a3338d2393442",
+      "updated_at": "2026-11-07T16:38:17Z"
+    },
+    {
+      "number": 10,
+      "draft": true,
+      "head": "a62891d3f144e8d0bd87186cb937f50505c5b650",
+      "updated_at": "2026-11-07T16:32:59Z"
+    },
+    {
+      "number": 9,
+      "draft": true,
+      "head": "bec563edde3fd2626c516ab417a6fecd999103a9",
+      "updated_at": "2026-11-07T17:46:32Z"
+    }
+  ],
+  "branches": [
+    {
+      "name": "coordination/master",
+      "sha": "19f306cd8314cd9ce0cf488b143a3338d2393442"
+    },
+    {
+      "name": "integration/master",
+      "sha": "19f306cd8314cd9ce0cf488b143a3338d2393442"
+    },
+    {
+      "name": "main",
+      "sha": "0a6ce227d9463562bb18889dcc0ee747f3be9130"
+    },
+    {
+      "name": "physical/master-windows-test",
+      "sha": "388e3df137b9223126b39921b4ab556e4fdc5abe"
+    },
+    {
+      "name": "workstream/a-ingest",
+      "sha": "a62891d3f144e8d0bd87186cb937f50505c5b650"
+    },
+    {
+      "name": "workstream/b-integrity",
+      "sha": "73766dd531387f660ddfb243b64d28be9389ddd1"
+    },
+    {
+      "name": "workstream/c-analytics",
+      "sha": "3cb073586ccc9213e6cb5c5f304dce43d8e46322"
+    },
+    {
+      "name": "workstream/d-ui",
+      "sha": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c"
+    },
+    {
+      "name": "workstream/e-physical-scm",
+      "sha": "80bd19dccea91cca9d255063d39e472dd4a077fb"
+    },
+    {
+      "name": "workstream/e-platform",
+      "sha": "bec563edde3fd2626c516ab417a6fecd999103a9"
+    },
+    {
+      "name": "workstream/f-strategy",
+      "sha": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31"
+    },
+    {
+      "name": "workstream/g-control-plane",
+      "sha": "5edb722fc936a56e81a174cfe654839de9a19a9d"
+    },
+    {
+      "name": "workstream/h-trader-intelligence",
+      "sha": "8bafc315e5757b3510d1b20154b8df7445f3408c"
+    }
+  ],
+  "changed_during_cycle": {
+    "E": {
+      "before": "d28f492c6584f38cafa30d6345db2d34710b7565",
+      "after": "bec563edde3fd2626c516ab417a6fecd999103a9",
+      "root_tests": "48 passed, no PG lifecycle claim",
+      "physical_candidate_changed": false
+    }
+  },
+  "ci_for_388e3df": [
+    {
+      "name": "Platform acceptance",
+      "status": "pending",
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42397295677"
+    },
+    {
+      "name": "Python static and unit tests",
+      "status": "queued",
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42397295675"
+    },
+    {
+      "name": "Python static and unit tests",
+      "status": "queued",
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42397290682"
+    }
+  ],
+  "review_pr28": [],
+  "review_pr29": []
+}

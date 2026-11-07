@@ -37,7 +37,7 @@
     "Frozen source0ff59c69 and manifest retained; use reviewed normal-UAC payload, no policy bypass",
     "After actual native installation prove SCM/account/image/process/API/DB then stop/update/recovery/restore/UI; no acceptance until evidence"
   ],
-  "checked_at": "2026-11-07T17:37:57.403442+00:00",
+  "checked_at": "2026-11-07T17:45:06.804450+00:00",
   "own_database_prepared": true,
   "own_cluster_running": false,
   "database": "tester_physical_20261107",
@@ -98,5 +98,25 @@
       "status": "queued"
     }
   ],
-  "blocking_reason": "ENVIRONMENT:UAC_CANCELLED_NO_ELEVATED_PROCESS"
+  "blocking_reason": "ENVIRONMENT:UAC_CANCELLED_NO_ELEVATED_PROCESS",
+  "last_heartbeat": "2026-11-07T17:38:52.297Z",
+  "completed_data_probe": {
+    "operation_id": "data-restore-hb1738",
+    "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+    "status": "PASS",
+    "source_candles": 50,
+    "instruments": 10,
+    "parallel_workers": 2,
+    "idempotent_replay": true,
+    "authentic_provenance": true,
+    "source_precision": "ms",
+    "original_and_restored_payload_time_hash_exact": true,
+    "all_storage_and_platform_table_data_equal": true,
+    "restore_database": "tester_physical_restore_20261107_hb1738",
+    "evidence": "docs/physical-test/data-restore-pass.json",
+    "payload_and_resource_samples": "docs/physical-test/payload-recheck-pass.json",
+    "all_data_retained": true,
+    "repeat_same_restore_operation": false,
+    "scope": "FOREGROUND_OWNED_DATA_TEST_NOT_SCM_OR_FULL_HISTORY_ACCEPTANCE"
+  }
 }

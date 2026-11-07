@@ -5,7 +5,7 @@ This is a staged test of this PC only. No component is accepted from mocked test
 | Component | Current evidence | Physical acceptance gap / owner |
 |---|---|---|
 | A sources | Real official Bybit REST: ten instruments, five closed minute candles each, two workers/shared2req/s, original evidence retained | Full trade history, archive admission and service jobs not yet proved; A + MASTER |
-| B PostgreSQL | Dedicated PG18 cluster/migrations/limited app role prepared; existing5432 untouched | Inherited-output-pipe hang fixed; guarded retained-cluster resume, B/E migrations and denied DDL/DELETE probes passed, stopped; data backup/restore still pending; B + MASTER |
+| B PostgreSQL | Dedicated PG18 cluster/migrations/limited app role prepared; existing5432 untouched | Inherited-output-pipe hang fixed; guarded retained-cluster resume, B/E migrations and denied DDL/DELETE probes passed, stopped; retained50-row ten-instrument data backup/restore and original payload/time/provenance checks PASS; full-history/native-service gates pending; B + MASTER |
 | C analytics | Existing independently tested module in composed source | No live financial provider bound to API; NOT_INTEGRATED in physical candidate; C + E |
 | E API/service | Private venv native imports passed; native lifecycle stop race fixed with regressions; platform121PASS/14skips before new guards | Actual SCM registration/start/update/recovery not yet performed; separate administrator UAC required; E + MASTER |
 | D terminal | Frontend source shipped; earlier fixture/static-route tests are not physical UI acceptance | Real installed UI/screenshots and data charts pending; D + MASTER |
