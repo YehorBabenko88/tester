@@ -231,5 +231,6 @@
     "own_cluster_stopped": true,
     "historical_certificate_issued": false,
     "evidence": "docs/coordination/evidence/b70a3-foundation-pg-pass.json"
-  }
+  },
+  "automation_status": "PAUSED_OBSERVED_PRESERVED_NO_AUTO_RESUME"
 }

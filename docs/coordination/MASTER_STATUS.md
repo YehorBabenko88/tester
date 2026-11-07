@@ -1,3 +1,9 @@
+# Automation status observation — PAUSED
+
+Officialupdate/configreadback now reportsPAUSED; this observed configuration was preserved, not automatically resumed. Pause cause is not exposed and not inferred; future scheduled continuation is not guaranteed. Repaired7df candidate/evidence and exactcheckpoint are saved; nativeSCM remainsblocked pendingnewhumanadministratoraction. PriorACTIVE observations below are historical. No newUAC or source/data changes.
+
+---
+
 # Repaired immutable candidate and foundation PG — 2026-11-07T18:47:51.939617+00:00
 
 **NOT_READY / no SCM installation / cancelledUAC not retried.** New immutable candidate7df3ee987c2a7cefbff13db82442faf0fb09e689:464files/3050866bytes, manifest002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf. Full externalVerify passed; actual EXACTfrozen host+supervisor/API/worker/limited-rolePG→Chrome unavailable/retry path passed, operationalhealth503degraded, providerunavailable, instance_idnull, stop0/PGstopped. No mixedworktreehost this time; still not SCM/LocalService/financialUI acceptance. Original0ff/oldconfig retained/retired. Own active config now points frontend to7df; no provider/data defaults changed. Separately proposed7df installer is read-only bydefault, tested; standard-user registration switch rejects beforeSCM, no automaticelevation. Oldlauncher staysblocked; new humanadministratoraction required.

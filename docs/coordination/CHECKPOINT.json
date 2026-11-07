@@ -11,17 +11,21 @@
   "main_untouched": "0a6ce227d9463562bb18889dcc0ee747f3be9130",
   "automation": {
     "id": "tester-master-coordination-cycle",
-    "configuration_status": "ACTIVE",
+    "configuration_status": "PAUSED",
     "interval_minutes": 15,
     "destination": "existing_MASTER_chat",
     "verification_status": "VERIFIED_FIRST_INVOCATION",
     "evidence": "System-origin heartbeat envelope received with matching automation_id; actual continuation executed tools in configured worktree",
     "worktree": "existing dedicated work/master-supervisor; Git fallback after native operation stalled",
     "first_invocation_at": "2026-11-07T14:40:23.454Z",
-    "prompt_revision": "Retired0ff/nativeJobrepair/actualforegroundChrome/B70a3 nextPG; officialupdate+configreadback ACTIVE",
+    "prompt_revision": "Repaired7df and B70a3actual9PG guard updated via officialtool; configreadback PAUSED preserved",
     "prompt_update_verified": true,
     "last_invocation_at": "2026-11-07T18:34:52.561Z",
-    "last_invocation_evidence": "Actual matching heartbeat rebuilt immutable7df+externalverification+exactnativehostforegroundAPIworkerPG/Chrome; independent9actualPGfoundationtests; noSCM/UAC"
+    "last_invocation_evidence": "Actual matching heartbeat rebuilt immutable7df+externalverification+exactnativehostforegroundAPIworkerPG/Chrome; independent9actualPGfoundationtests; noSCM/UAC",
+    "resumption_performed": false,
+    "pause_reason": "NOT_EXPOSED_OR_INFERRED",
+    "next_run_guaranteed": false,
+    "status_observation_at": "2026-11-07T18:51:23.684438+00:00"
   },
   "agents": {
     "A": {
