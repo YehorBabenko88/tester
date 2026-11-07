@@ -1,0 +1,13 @@
+{
+  "classification": "LIVE_PUBLIC_PROBE",
+  "started_at_ms": 1794058118660,
+  "catalog": {
+    "status": "BLOCKED",
+    "error": "ConnectionError: HTTPSConnectionPool(host='api.bybit.com', port=443): Max retries exceeded with url: /v5/market/instruments-info?category=linear&limit=1000 (Caused by NameResolutionError(\"HTTPSConnection(host='api.bybit.com', port=443): Failed to resolve 'api.bybit.com' ([Errno 11001] getaddrinfo failed)\"))"
+  },
+  "archive": {
+    "status": "BLOCKED",
+    "error": "ConnectionError: HTTPSConnectionPool(host='public.bybit.com', port=443): Max retries exceeded with url: /trading/XRPUSDT/XRPUSDT2023-01-01.csv.gz (Caused by NameResolutionError(\"HTTPSConnection(host='public.bybit.com', port=443): Failed to resolve 'public.bybit.com' ([Errno 11001] getaddrinfo failed)\"))"
+  }
+}
+
