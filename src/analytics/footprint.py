@@ -1,27 +1,29 @@
-"""Trade-based footprint and CVD. Side must be verified taker side."""
+"""Legacy positional adapter; new consumers use src.analytics.footprint.
+
+Raw legacy rows require category, symbol and canonical provenance.
+"""
 from collections import defaultdict
-from decimal import Decimal, ROUND_FLOOR
+from .core import normalize_trade, deduplicate, custom_bounds, taker_record
+from .exact import number, decimal
+
 
 def aggregate(trades, timeframe_ms: int, tick_size: str):
-    if timeframe_ms <= 0: raise ValueError("Invalid timeframe")
-    tick=Decimal(tick_size)
-    if tick<=0: raise ValueError("Invalid tick")
-    buckets=defaultdict(lambda: {"buy":Decimal(0),"sell":Decimal(0),"count":0})
-    for trade in trades:
-        ts=int(trade["timestamp"])
-        price=Decimal(str(trade["price"]))
-        qty=Decimal(str(trade["size"]))
-        side=trade["side"]
-        if side not in ("Buy","Sell") or qty<0:
-            raise ValueError("Unverified side or negative quantity")
-        bar=ts//timeframe_ms*timeframe_ms
-        level=(price/tick).to_integral_value(rounding=ROUND_FLOOR)*tick
-        entry=buckets[(bar,level)]
-        entry["buy" if side=="Buy" else "sell"]+=qty
-        entry["count"]+=1
-    out=[]
-    for (bar,level),v in sorted(buckets.items()):
-        out.append({"start_ms":bar,"price":str(level),"buy":str(v["buy"]),
-                    "sell":str(v["sell"]),"delta":str(v["buy"]-v["sell"]),
-                    "trades":v["count"]})
-    return out
+    if isinstance(timeframe_ms,bool) or not isinstance(timeframe_ms,int) or timeframe_ms<=0:
+        raise ValueError('Invalid timeframe')
+    canonical = []
+    for t in trades:
+        canonical.append(normalize_trade(dict(t,time=str(t['timestamp'])),
+            category=t['category'],symbol=t['symbol'],source_ref=t['provenance']))
+    step = number(tick_size,positive=True)
+    groups = defaultdict(list)
+    for t in deduplicate(canonical):
+        start,end = custom_bounds(t['timestamp_ms'],str(timeframe_ms)+'ms')
+        level = number(t['price'])//step*step
+        groups[(t['venue'],t['category'],t['symbol'],start,end,level)].append(t)
+    result = []
+    for key,rows in sorted(groups.items()):
+        start,end,level = key[-3:]
+        r = taker_record(rows,start,end)
+        result.append(dict(start_ms=start,price=decimal(level),buy=r['buy_volume'],sell=r['sell_volume'],
+            delta=r['delta'],trades=len(rows)))
+    return result
