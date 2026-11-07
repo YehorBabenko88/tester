@@ -78,6 +78,8 @@ def _event_ns(row, *, storage=False, original=False):
         raise BindingUnavailable('Unknown original event precision')
     if storage:
         if type(value) is not int or value<0: raise BindingUnavailable('Exact original storage event time required')
+        if precision=='us' and ns is not None:
+            raise BindingUnavailable('B microsecond event cannot also declare nanoseconds')
         exact=value*1000 if precision=='us' else value
     else:
         if not isinstance(value,str) or not re.fullmatch(r'[0-9]{1,19}',value):
@@ -93,9 +95,11 @@ def _observation_fetch_ns(observation, event_ns):
     try:
         original=observation['raw_envelope']
         raw_source=original['source'];normalized_source=observation['source']
-        for key in ['url','ingestion_run']:
-            if raw_source.get(key)!=normalized_source.get(key):
-                raise ValueError('Original/normalized source identity differs')
+        if {k:v for k,v in raw_source.items() if k!='fetched_at'} != {k:v for k,v in normalized_source.items() if k!='fetched_at'}:
+            raise ValueError('Original/normalized source metadata differs')
+        original_precision=original.get('timestamp_precision',original.get('payload',{}).get('timestamp_precision','ms'))
+        if original_precision!=observation.get('timestamp_precision'):
+            raise ValueError('Original observation precision differs')
         if _event_ns(original,storage=True,original=True)!=event_ns:
             raise ValueError('Original/normalized event timestamp differs')
         raw_ns=_fetched_at_ns(raw_source)

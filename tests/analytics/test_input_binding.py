@@ -265,6 +265,14 @@ class InputBinding(unittest.TestCase):
                 observation['raw_envelope']=original;observation['source']=copy.deepcopy(normalized['source'])
                 self.assertEqual(bind_b([row]).trades[0]['timestamp_precision'],precision)
 
+    def test_original_precision_and_source_metadata_cannot_be_rewritten(self):
+        row=storage_row(ns=0)
+        row.update(timestamp_ns=None,timestamp_precision='ms')
+        row['provenance']['observations'][0]['timestamp_precision']='ms'
+        with self.assertRaises(binding.BindingUnavailable): bind_b([row])
+        row=storage_row();row['provenance']['observations'][0]['source']['source_kind']='archive'
+        with self.assertRaises(binding.BindingUnavailable): bind_b([row])
+
     def test_calendar_outputs_pass_e_scope_validation(self):
         from tests.analytics.test_analytics import ms
         from src.analytics import interval_bounds

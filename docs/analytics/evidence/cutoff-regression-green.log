@@ -46,11 +46,12 @@ test_nonexhausted_sequence_cannot_claim_complete (tests.analytics.test_input_bin
 test_original_and_normalized_fetch_conflicts_fail_closed (tests.analytics.test_input_binding.InputBinding.test_original_and_normalized_fetch_conflicts_fail_closed) ... ok
 test_original_b_payload_time_fields_and_default_ms (tests.analytics.test_input_binding.InputBinding.test_original_b_payload_time_fields_and_default_ms) ... ok
 test_original_fetch_cutoff_is_inclusive_at_exact_ns (tests.analytics.test_input_binding.InputBinding.test_original_fetch_cutoff_is_inclusive_at_exact_ns) ... ok
+test_original_precision_and_source_metadata_cannot_be_rewritten (tests.analytics.test_input_binding.InputBinding.test_original_precision_and_source_metadata_cannot_be_rewritten) ... ok
 test_pinned_reference_hashes (tests.analytics.test_input_binding.InputBinding.test_pinned_reference_hashes) ... ok
 test_response_limit_fails_closed_without_pagination_math (tests.analytics.test_input_binding.InputBinding.test_response_limit_fails_closed_without_pagination_math) ... ok
 test_undeclared_or_missing_original_runs_fail_closed (tests.analytics.test_input_binding.InputBinding.test_undeclared_or_missing_original_runs_fail_closed) ... ok
 
 ----------------------------------------------------------------------
-Ran 51 tests in 0.101s
+Ran 52 tests in 0.112s
 
 OK
