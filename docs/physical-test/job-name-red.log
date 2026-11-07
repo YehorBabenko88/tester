@@ -1,0 +1,73 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_supervisor_job_is_assigned_before_resume ________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x00000235602EC050>
+
+    def test_supervisor_job_is_assigned_before_resume(monkeypatch):
+        import sys
+        from types import SimpleNamespace
+
+        from src.api.physical_host import JobProcess
+
+        calls = []
+
+        def create_job(attributes, name):
+            # pywin32's WCHAR* parameter rejects None even though the Win32 API
+            # documents a nullable name. Empty text creates the private unnamed job.
+            if type(name) is not str:
+                raise TypeError("None is not a valid string in this context")
+            assert name == ""
+            return "job"
+        monkeypatch.setitem(
+            sys.modules, "win32api", SimpleNamespace(CloseHandle=lambda h: calls.append(("close", h)))
+        )
+        monkeypatch.setitem(
+            sys.modules, "win32event", SimpleNamespace(WaitForSingleObject=lambda *a: 258)
+        )
+        monkeypatch.setitem(
+            sys.modules,
+            "win32job",
+            SimpleNamespace(
+                CreateJobObject=create_job,
+                JobObjectExtendedLimitInformation=9,
+                JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE=8192,
+                QueryInformationJobObject=lambda *a: {"BasicLimitInformation": {"LimitFlags": 0}},
+                SetInformationJobObject=lambda *a: None,
+                AssignProcessToJobObject=lambda *a: calls.append(("assign",)),
+                TerminateJobObject=lambda *a: calls.append(("kill",)),
+            ),
+        )
+        monkeypatch.setitem(
+            sys.modules,
+            "win32process",
+            SimpleNamespace(
+                STARTUPINFO=lambda: None,
+                CreateProcess=lambda *a: ("process", "thread", 1, 2),
+                ResumeThread=lambda *a: calls.append(("resume",)),
+                TerminateProcess=lambda *a: None,
+            ),
+        )
+>       child = JobProcess(Path("fixture"))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\platform\test_physical_scm.py:440:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\api\physical_host.py:140: in __init__
+    self.job = win32job.CreateJobObject(None, None)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+attributes = None, name = None
+
+    def create_job(attributes, name):
+        # pywin32's WCHAR* parameter rejects None even though the Win32 API
+        # documents a nullable name. Empty text creates the private unnamed job.
+        if type(name) is not str:
+>           raise TypeError("None is not a valid string in this context")
+E           TypeError: None is not a valid string in this context
+
+tests\platform\test_physical_scm.py:408: TypeError
+=========================== short test summary info ===========================
+FAILED tests/platform/test_physical_scm.py::test_supervisor_job_is_assigned_before_resume
+1 failed in 0.45s

@@ -1,0 +1,7 @@
+{
+  "scope": "REGULAR_USER_FOREGROUND_NOT_SCM",
+  "scm_acceptance": false,
+  "status": "FAIL",
+  "error_type": "TypeError",
+  "owned_cluster_stopped": true
+}

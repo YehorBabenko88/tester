@@ -1,3 +1,4 @@
+throw 'RETIRED candidate0ff59c69: native JobObject defect. No service action. Follow current checkpoint for a rebuilt reviewed artifact; do not retry elevation automatically.'
 # One bounded, fixed-payload UAC operation. No persistent elevated agent.
 $ErrorActionPreference='Stop'
 $root='C:\ProgramData\TesterPhysicalTest20261107'

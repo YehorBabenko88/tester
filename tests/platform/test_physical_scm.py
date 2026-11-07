@@ -400,6 +400,15 @@ def test_supervisor_job_is_assigned_before_resume(monkeypatch):
     from src.api.physical_host import JobProcess
 
     calls = []
+
+    def create_job(attributes, name):
+        # pywin32's WCHAR* parameter rejects None even though the Win32 API
+        # documents a nullable name. Empty text creates the private unnamed job.
+        if type(name) is not str:
+            raise TypeError("None is not a valid string in this context")
+        assert name == ""
+        return "job"
+
     monkeypatch.setitem(
         sys.modules, "win32api", SimpleNamespace(CloseHandle=lambda h: calls.append(("close", h)))
     )
@@ -410,7 +419,7 @@ def test_supervisor_job_is_assigned_before_resume(monkeypatch):
         sys.modules,
         "win32job",
         SimpleNamespace(
-            CreateJobObject=lambda *a: "job",
+            CreateJobObject=create_job,
             JobObjectExtendedLimitInformation=9,
             JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE=8192,
             QueryInformationJobObject=lambda *a: {"BasicLimitInformation": {"LimitFlags": 0}},

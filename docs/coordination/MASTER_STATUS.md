@@ -1,3 +1,11 @@
+# Native JobObject repair and real foreground browser — 2026-11-07T18:30:01.497495+00:00
+
+**NOT_READY / original physical0ff RETIRED NOT_INSTALLABLE; UAC cancellation unchanged.** Real privatepywin32 312 failed CreateJobObject(None,None) before childspawn. Strict mock reproduced RED; one-line emptystring fix,135platformPASS/14skip/8subtests, lint/format/pins/OpenAPI passed; native2jobs isolation/limit check passed. Repaired worktree host launched unchanged0ff supervisor/API/worker against limited-role ownPG55469. Real Chrome/no mocks displayed truthful503provider_unavailable, retry andmarketselection reachedactualAPI; no browserexceptions, allfinancial/Strategy panels remainedunavailable. HealthDB/worker/storageok/providerunavailable/instance_idnull, foregroundexit0 andPGstopped. This is mixedcomponenttesting, not SCM/LocalService or rebuiltartifact acceptance. Screenshot andcommands in docs/physical-test/NATIVE_JOB_REPAIR.md.
+
+Immutable0ff/manifest preserved but mustnotinstall; oldwrapper retained and current/versionedlauncher failclosed (tested). Need newchecksummed candidate before replacementpayload; noautomaticUAC. E actualidlechecked and producerDraft28backport assignedonce PR28comment6711337184. B70a3 foundation independently11mock +SQL/inventory static review passed, no newactualPG/protocolsuccess. Next root retainedfoundationmigration/constraint/rollback/contentiontests, keepUNENROLLED/productionUNAVAILABLE/noCmapping. Allsourceheads/GitHub refreshed, hostedCI stillqueued, mainunchanged.
+
+---
+
 # Technical review outcome — LIMITED foundation only
 
 Exact89221 proposal reviewed by MASTER and independent reviewer. Issue2comment6711209526 approves only experimental schema/epoch/common-gate foundation and tests, while production quality remainsUNAVAILABLE/null and epochs stayUNENROLLED if direct/legacy writers bypass gates. No historical success/C mapping/provider defaults authorized. Capture visibility and later receiptpublication must remain separate; UTC trust/uncertainty, restoreexternalepoch, atomicallmutatorgeneration and archive/negative-fact limits stay gates. B actualidlechecked then nextstage dispatched once. Evidence in reviews/VISIBILITY_PROTOCOL_89221.md. Native UAC block remains unchanged.

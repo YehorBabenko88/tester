@@ -5,7 +5,7 @@
   "installation_id": "f23dab63-92c6-4e56-9027-4213c6b4dc60",
   "host_fingerprint": "658ac47c38eb17a6",
   "phase": "BLOCKED",
-  "status": "BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED",
+  "status": "BLOCKED_REBUILD_RETIRED_CANDIDATE_AND_UAC_CANCELLED",
   "root": "C:/ProgramData/TesterPhysicalTest20261107",
   "services": [
     "TesterPhysicalTest20261107",
@@ -25,19 +25,19 @@
   "scm_access_error": 5,
   "administrator_group_member": false,
   "elevated": false,
-  "required_os_action": "Normal UAC with a separate administrator credential, after payload and hashes are reviewed; no credential in chat or commands",
+  "required_os_action": "First rebuild/verify repaired immutable candidate; then separate human administrator action; never automatic UAC retry",
   "private_journal": "C:/ProgramData/TesterPhysicalTest20261107/state/journal.json",
   "no_existing_db_service_network_security_changes": true,
   "no_data_deleted": true,
   "repair_failures": {},
   "acceptance": "NOT_ACCEPTED",
   "next": [
-    "No automatic UAC retry. Human administrator action is required before a new elevation attempt",
-    "Recheck exact hashes/config/ownership/ports and absence of old consent/launcher before any explicitly resumed install",
-    "Frozen source0ff59c69 and manifest retained; use reviewed normal-UAC payload, no policy bypass",
-    "After actual native installation prove SCM/account/image/process/API/DB then stop/update/recovery/restore/UI; no acceptance until evidence"
+    "Do not install retired0ff or run old UAC payload; its immutable bytes and original wrapper are retained",
+    "Verify E producer backport and publish/build a repaired immutable candidate before any replacement wrapper",
+    "Keep actual SCM/LocalService/install/upgrade/crash gates unaccepted; human administrator action still required, no automatic RunAs",
+    "Root next: actual retained-DB migration/constraints/rollback/interleavings for B70a3 foundation; no enrollment/historical success/C mapping"
   ],
-  "checked_at": "2026-11-07T18:13:30.176225+00:00",
+  "checked_at": "2026-11-07T18:30:01.497495+00:00",
   "own_database_prepared": true,
   "own_cluster_running": false,
   "database": "tester_physical_20261107",
@@ -82,7 +82,9 @@
     "elevated_process_id": null,
     "launcher_exited": true,
     "automatic_retry_forbidden": true,
-    "evidence": "Start-Process RunAs returned Windows cancellation message; process IDs absent; no owned SCM services/logs"
+    "evidence": "Start-Process RunAs returned Windows cancellation message; process IDs absent; no owned SCM services/logs",
+    "current_wrapper_status": "RETIRED_FAIL_CLOSED",
+    "current_wrapper_sha256": "6efebfd868dc0aa49f86c5e8d0216ac2b4dd31adaaa00788d2a6787cecfb7677"
   },
   "ci": [
     {
@@ -99,7 +101,7 @@
     }
   ],
   "blocking_reason": "ENVIRONMENT:UAC_CANCELLED_NO_ELEVATED_PROCESS",
-  "last_heartbeat": "2026-11-07T17:53:52.427Z",
+  "last_heartbeat": "2026-11-07T18:18:52.516Z",
   "completed_data_probe": {
     "operation_id": "data-restore-hb1738",
     "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
@@ -145,5 +147,42 @@
     "database": "tester_contract_ba8aa_20261107",
     "sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec"
   },
-  "visibility_counterexamples_confirmed": 2
+  "visibility_counterexamples_confirmed": 2,
+  "install_candidate_status": "FROZEN_0FF_RETIRED_NOT_INSTALLABLE",
+  "retired_candidate": {
+    "candidate": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+    "reason": "APP_CODE:WIN32_JOB_NAME_NONE",
+    "immutable_release_preserved": true,
+    "installable": false,
+    "original_uac_wrapper_retained": "backups/install-and-start-0ff-original-RETIRED.ps1",
+    "blocked_current_wrapper_sha256": "6efebfd868dc0aa49f86c5e8d0216ac2b4dd31adaaa00788d2a6787cecfb7677"
+  },
+  "native_code_repair": {
+    "defect": "APP_CODE:WIN32_JOB_NAME_NONE",
+    "status": "ROOT_FIXED_NOT_REBUILT",
+    "old_native_call": "CreateJobObject(None,None)",
+    "new_native_call": "CreateJobObject(None,empty_string)",
+    "regression": "RED then platform135PASS/14SKIP/8subtests",
+    "native_two_job_isolation_test": "PASS",
+    "host_source_sha256": "134190a734c2250d502523d9378880866cd2d0b263b7be303fcad9f64b386518",
+    "producer_task": "PR28 comment6711337184",
+    "producer_backport_sha": "891ef7f21086c69b133413f8fe95a89d99fa9937",
+    "producer_backport_review": "EXACT_TWO_FILE_DELTA_ACCEPTED"
+  },
+  "foreground_component_test": {
+    "scope": "REPAIRED_WORKTREE_HOST_PLUS_FROZEN_0FF_CHILD_APP_NOT_SCM",
+    "status": "PASS_EXPECTED_UNAVAILABLE",
+    "health_http": 503,
+    "database_worker_storage": "ok",
+    "provider": "unavailable",
+    "instance_id": null,
+    "browser": "actual existing Chrome; retained own profile; no mocks",
+    "browser_errors": 0,
+    "retry_and_category_change": true,
+    "financial_chart_acceptance": false,
+    "foreground_exit_code": 0,
+    "own_cluster_stopped": true,
+    "evidence": "docs/physical-test/foreground-ui-repair1.json",
+    "screenshot": "docs/physical-test/terminal-unavailable.png"
+  }
 }
