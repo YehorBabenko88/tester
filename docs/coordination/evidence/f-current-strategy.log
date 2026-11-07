@@ -1,0 +1,37 @@
+test_and_or_missing_does_not_pass (test_dsl.DSLTests.test_and_or_missing_does_not_pass) ... ok
+test_cross_requires_previous_bar (test_dsl.DSLTests.test_cross_requires_previous_bar) ... ok
+test_feature_available_at_cutoff (test_dsl.DSLTests.test_feature_available_at_cutoff) ... ok
+test_indicators_and_sessions_numeric_fixtures (test_dsl.DSLTests.test_indicators_and_sessions_numeric_fixtures) ... ok
+test_preview_must_be_confirmed_and_digest_pinned (test_dsl.DSLTests.test_preview_must_be_confirmed_and_digest_pinned) ... ok
+test_unknown_code_and_float_rejected (test_dsl.DSLTests.test_unknown_code_and_float_rejected) ... ok
+test_validation_independent_of_ambient_decimal_precision (test_dsl.DSLTests.test_validation_independent_of_ambient_decimal_precision) ... ok
+test_ambiguous_stop_first_fees_and_markers (test_engine.EngineTests.test_ambiguous_stop_first_fees_and_markers) ... ok
+test_decimal_and_no_trades (test_engine.EngineTests.test_decimal_and_no_trades) ... ok
+test_deterministic_resume_and_concurrency (test_engine.EngineTests.test_deterministic_resume_and_concurrency) ... ok
+test_funding_held_position_and_missing_schedule (test_engine.EngineTests.test_funding_held_position_and_missing_schedule) ... ok
+test_future_mutation_does_not_change_prefix (test_engine.EngineTests.test_future_mutation_does_not_change_prefix) ... ok
+test_gap_stop_executes_at_adverse_open (test_engine.EngineTests.test_gap_stop_executes_at_adverse_open) ... ok
+test_limit_stop_latency_spread_and_partial_ioc (test_engine.EngineTests.test_limit_stop_latency_spread_and_partial_ioc) ... ok
+test_margin_rejection_and_liquidation (test_engine.EngineTests.test_margin_rejection_and_liquidation) ... ok
+test_quality_gaps_duplicates_and_unclosed (test_engine.EngineTests.test_quality_gaps_duplicates_and_unclosed) ... ok
+test_short_and_funding (test_engine.EngineTests.test_short_and_funding) ... ok
+test_trailing_updates_next_bar (test_engine.EngineTests.test_trailing_updates_next_bar) ... ok
+test_breakout_retest_false_break_and_invalidation (test_levels.LevelTests.test_breakout_retest_false_break_and_invalidation) ... ok
+test_pivot_confirmation_has_no_earlier_visibility (test_levels.LevelTests.test_pivot_confirmation_has_no_earlier_visibility) ... ok
+test_six_calendar_months_leap_and_expiration (test_levels.LevelTests.test_six_calendar_months_leap_and_expiration) ... ok
+test_wick_break_and_ties (test_levels.LevelTests.test_wick_break_and_ties) ... ok
+test_close_exit_executes_before_later_intrabar_target (test_regressions.RegressionTests.test_close_exit_executes_before_later_intrabar_target) ... ok
+test_open_gap_target_precedes_later_stop (test_regressions.RegressionTests.test_open_gap_target_precedes_later_stop) ... ok
+test_partial_ioc_requires_full_request_margin (test_regressions.RegressionTests.test_partial_ioc_requires_full_request_margin) ... ok
+test_partial_protective_exits_leave_no_abandoned_orders (test_regressions.RegressionTests.test_partial_protective_exits_leave_no_abandoned_orders) ... ok
+test_text_compiles_preview_and_unknown_text_cannot_run (test_regressions.RegressionTests.test_text_compiles_preview_and_unknown_text_cannot_run) ... ok
+test_artifact_integrity_and_comparison (test_research.ResearchTests.test_artifact_integrity_and_comparison) ... ok
+test_chronological_out_of_sample_and_walk_forward (test_research.ResearchTests.test_chronological_out_of_sample_and_walk_forward) ... ok
+test_grid_reproducible_bounded_and_original_unchanged (test_research.ResearchTests.test_grid_reproducible_bounded_and_original_unchanged) ... ok
+test_split_no_leaked_funding_or_future_bars (test_research.ResearchTests.test_split_no_leaked_funding_or_future_bars) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 0.039s
+
+OK
+

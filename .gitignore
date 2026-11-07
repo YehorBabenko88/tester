@@ -4,3 +4,7 @@ __pycache__/
 .pytest_cache/
 .data/
 *.pyc
+.master-local-state.json
+.supervisor-cycle.lock
+docs/coordination/CHECKPOINT.json.*.tmp
+

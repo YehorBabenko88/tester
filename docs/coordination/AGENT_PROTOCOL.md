@@ -23,7 +23,7 @@ EVIDENCE:
 NEXT_ACTION:
 ```
 
-STATUS: NOT_STARTED, IN_PROGRESS, BLOCKED, READY_FOR_REVIEW, CHANGES_REQUESTED, ACCEPTED. Include full immutable HEAD SHA. Tests need exact command, interpreter/platform, exit code, counts, log and fixture/live classification. CI needs run URL matching that SHA. Comments alone do not prove success. Each acceptance decision applies only to its reviewed SHA.
+STATUS: NEW, IN_PROGRESS, BLOCKED, READY_FOR_REVIEW, CHANGES_REQUESTED, ACCEPTED. Legacy NOT_STARTED maps to NEW. Execution is a separate field: RUNNING_CONFIRMED, AWAITING_AGENT_EXECUTION or NEEDS_USER_INPUT; a task comment does not prove a session ran. Include full immutable HEAD SHA. Tests need exact command, interpreter/platform, exit code, counts, log and fixture/live classification. CI needs run URL matching that SHA. Comments alone do not prove success. Each acceptance decision applies only to its reviewed SHA.
 
 ## Approved contract and concrete encoding
 
@@ -53,4 +53,5 @@ GitHub Issues/PRs are authoritative communication. Local temporary reviewers pro
 Use isolated branches and Draft PRs. Integrate only reviewed immutable commits, one at a time, with full relevant tests after each. Do not replace an entire baseline with an old workstream snapshot. Main merge, physical deployment, deletion of branches/history/user databases, trading keys/orders, firewall/ACL changes remain prohibited without separate authorization where applicable.
 
 Readiness is NOT_READY whenever a required acceptance gate lacks evidence. No recurring monitoring automation is configured; monitoring is limited to the active session.
+
 

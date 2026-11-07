@@ -1,0 +1,19 @@
+test_storage_api_adapter (unittest.loader._FailedTest.test_storage_api_adapter) ... ERROR
+
+======================================================================
+ERROR: test_storage_api_adapter (unittest.loader._FailedTest.test_storage_api_adapter)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_storage_api_adapter
+Traceback (most recent call last):
+  File "C:\Python314\Lib\unittest\loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_api_adapter.py", line 4, in <module>
+    from src.integration.storage_api import project_trade, read_trades, IntegrationUnavailable
+ModuleNotFoundError: No module named 'src'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)
+

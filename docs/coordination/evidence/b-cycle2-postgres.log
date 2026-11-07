@@ -1,0 +1,46 @@
+test_decimal_and_millisecond_precision_preserved (tests.storage.test_models.ModelTests.test_decimal_and_millisecond_precision_preserved) ... ok
+test_funding_negative_allowed_open_interest_negative_rejected (tests.storage.test_models.ModelTests.test_funding_negative_allowed_open_interest_negative_rejected) ... ok
+test_id_is_scoped_and_composite_is_explicit (tests.storage.test_models.ModelTests.test_id_is_scoped_and_composite_is_explicit) ... ok
+test_invalid_values_and_versions_rejected (tests.storage.test_models.ModelTests.test_invalid_values_and_versions_rejected) ... ok
+test_numeric_formatting_changes_do_not_conflict (tests.storage.test_models.ModelTests.test_numeric_formatting_changes_do_not_conflict) ... ok
+test_original_ns_must_match_ms_and_precision (tests.storage.test_models.ModelTests.test_original_ns_must_match_ms_and_precision) ... ok
+test_original_seconds_and_microseconds_precision (tests.storage.test_models.ModelTests.test_original_seconds_and_microseconds_precision) ... ok
+test_calendar_month_and_monday_week (tests.storage.test_models.QualityTests.test_calendar_month_and_monday_week) ... ok
+test_coverage_uses_union_and_never_hides_damage (tests.storage.test_models.QualityTests.test_coverage_uses_union_and_never_hides_damage) ... ok
+test_high_precision_bad_ohlc_is_not_rounded_away (tests.storage.test_models.QualityTests.test_high_precision_bad_ohlc_is_not_rounded_away) ... ok
+test_sparse_gap_is_unknown_and_never_complete (tests.storage.test_models.QualityTests.test_sparse_gap_is_unknown_and_never_complete) ... ok
+test_unavailable_and_unknown_ranges_are_explicit (tests.storage.test_models.QualityTests.test_unavailable_and_unknown_ranges_are_explicit) ... ok
+test_content_addressed_files_and_tamper_detection (tests.storage.test_operations.ArchiveTests.test_content_addressed_files_and_tamper_detection) ... ok
+test_minimal_runtime_repeat_and_refuse_foreign_objects (tests.storage.test_operations.ProvisionTests.test_minimal_runtime_repeat_and_refuse_foreign_objects) ... ok
+test_aggregate_comparison_and_stale_source_fingerprint (tests.storage.test_operations.StorageOperationsTests.test_aggregate_comparison_and_stale_source_fingerprint) ... ok
+test_archives_overlap_and_missing_file_blocks_complete (tests.storage.test_operations.StorageOperationsTests.test_archives_overlap_and_missing_file_blocks_complete) ... ok
+test_automatic_recovery_retries_download_then_resolves_only_verified_result (tests.storage.test_operations.StorageOperationsTests.test_automatic_recovery_retries_download_then_resolves_only_verified_result) ... ok
+test_metadata_versions_are_idempotent_and_provenanced (tests.storage.test_operations.StorageOperationsTests.test_metadata_versions_are_idempotent_and_provenanced) ... ok
+test_recovery_backoff_does_not_starve_later_due_ranges (tests.storage.test_operations.StorageOperationsTests.test_recovery_backoff_does_not_starve_later_due_ranges) ... ok
+test_atomic_replay_precise_read_and_provenance (tests.storage.test_postgres.PostgresTests.test_atomic_replay_precise_read_and_provenance) ... ok
+test_bad_scope_range_or_count_rolls_back (tests.storage.test_postgres.PostgresTests.test_bad_scope_range_or_count_rolls_back) ... ok
+test_complete_periodic_observations_and_funding_inventory (tests.storage.test_postgres.PostgresTests.test_complete_periodic_observations_and_funding_inventory) ... ok
+test_conflicting_replay_preserves_record_and_finding (tests.storage.test_postgres.PostgresTests.test_conflicting_replay_preserves_record_and_finding) ... ok
+test_empty_exhausted_and_bad_page_chain_never_complete (tests.storage.test_postgres.PostgresTests.test_empty_exhausted_and_bad_page_chain_never_complete) ... ok
+test_failed_stream_rolls_back_all_and_checkpoint (tests.storage.test_postgres.PostgresTests.test_failed_stream_rolls_back_all_and_checkpoint) ... ok
+test_identity_cannot_change_day_or_market (tests.storage.test_postgres.PostgresTests.test_identity_cannot_change_day_or_market) ... ok
+test_keyset_read_does_not_drop_equal_timestamp_trades (tests.storage.test_postgres.PostgresTests.test_keyset_read_does_not_drop_equal_timestamp_trades) ... ok
+test_late_retry_cannot_regress_checkpoint_or_clear_it_implicitly (tests.storage.test_postgres.PostgresTests.test_late_retry_cannot_regress_checkpoint_or_clear_it_implicitly) ... ok
+test_migrations_repeat_and_checksum (tests.storage.test_postgres.PostgresTests.test_migrations_repeat_and_checksum) ... ok
+test_opaque_cursor_changes_require_monotonic_sequence (tests.storage.test_postgres.PostgresTests.test_opaque_cursor_changes_require_monotonic_sequence) ... ok
+test_sparse_observations_never_verify_available_range (tests.storage.test_postgres.PostgresTests.test_sparse_observations_never_verify_available_range) ... ok
+test_sql_constraints_and_append_only (tests.storage.test_postgres.PostgresTests.test_sql_constraints_and_append_only) ... ok
+test_trade_interval_cannot_create_shadow_coverage (tests.storage.test_postgres.PostgresTests.test_trade_interval_cannot_create_shadow_coverage) ... ok
+test_upgrade_preserves_version_one_raw_data (tests.storage.test_postgres.PostgresTests.test_upgrade_preserves_version_one_raw_data) ... ok
+test_verified_requires_available_evidence_and_recovery_supersedes_damage (tests.storage.test_postgres.PostgresTests.test_verified_requires_available_evidence_and_recovery_supersedes_damage) ... ok
+test_verified_retry_can_supersede_empty_unknown_interval (tests.storage.test_postgres.PostgresTests.test_verified_retry_can_supersede_empty_unknown_interval) ... ok
+test_backup_restore_into_new_database_preserves_data_and_migrations (tests.storage.test_recovery.RecoveryTests.test_backup_restore_into_new_database_preserves_data_and_migrations) ... ok
+test_concurrent_writer_waits_for_same_dataset_transaction (tests.storage.test_recovery.RecoveryTests.test_concurrent_writer_waits_for_same_dataset_transaction) ... ok
+test_kill_after_commit_retains_raw_provenance_and_checkpoint (tests.storage.test_recovery.RecoveryTests.test_kill_after_commit_retains_raw_provenance_and_checkpoint) ... ok
+test_kill_before_commit_rolls_back_and_replay_preserves_confirmed_data (tests.storage.test_recovery.RecoveryTests.test_kill_before_commit_rolls_back_and_replay_preserves_confirmed_data) ... ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 7.397s
+
+OK
+
