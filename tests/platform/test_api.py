@@ -68,22 +68,31 @@ def test_cross_site_mutation_and_rebinding_are_blocked(tmp_path):
 
 
 def test_provider_response_and_contract_paths(tmp_path):
+    from canonical_fixtures import envelope, trade
+
+    row = trade()
+    for key in [
+        "timestamp_ns",
+        "timestamp_precision",
+        "trade_id",
+        "id_origin",
+        "price",
+        "quantity",
+        "taker_side",
+    ]:
+        row.pop(key)
+    row.update(status="Trading", tick_size="0.01", qty_step="0.001")
+    expected = envelope(row)
+
     class Provider:
         def read(self, resource, query):
-            return {
-                "data": [{"symbol": "BTCUSDT", "provenance": "synthetic_fixture"}],
-                "next_cursor": None,
-            }
+            return expected
 
     with TestClient(
         create_app(Settings(data_dir=tmp_path), provider=Provider()),
         base_url="http://127.0.0.1:8765",
     ) as c:
-        assert c.get("/api/instruments").json() == {
-            "schema_version": "1.0",
-            "data": [{"symbol": "BTCUSDT", "provenance": "synthetic_fixture"}],
-            "next_cursor": None,
-        }
+        assert c.get("/api/instruments").json() == expected
         paths = c.get("/openapi.json").json()["paths"]
         assert "/api/downloads/{id}/pause" in paths
         assert "/api/funding" in paths

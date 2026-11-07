@@ -9,6 +9,7 @@ import threading
 import time
 
 from .config import load_settings
+from .jobs import JobQueue
 from .logging_setup import configure
 
 
@@ -32,6 +33,9 @@ def run():
     except OSError:
         raise SystemExit("Another supervisor is running") from None
     stop_file = settings.data_dir / "stop.request"
+    queue = JobQueue(settings.dsn, settings.lease_seconds, settings.max_pending)
+    queue.configure_limits(settings.max_pending, settings.max_running)
+    queue.set_draining(False)
     stop_file.unlink(missing_ok=True)
     stopped = threading.Event()
     signal.signal(signal.SIGINT, lambda *_: stopped.set())
@@ -66,6 +70,11 @@ def run():
                         break
                     children[name] = launch(name)
     finally:
+        # Linearizes shutdown against both API admission and worker claims.
+        try:
+            queue.set_draining(True)
+        except Exception:
+            logger.error("database_error")
         stop_file.touch()
         deadline = time.monotonic() + 20
         for child in children.values():

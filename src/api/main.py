@@ -10,25 +10,20 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from contracts.v1.validate import ContractError
+
+from .canonical import dataset_model, dataset_response
 from .config import Settings, load_settings
 from .db import connect
-from .jobs import Conflict, JobQueue
+from .jobs import AdmissionRejected, Conflict, JobQueue
 from .maintenance import storage_status
 from .models import (
-    Candle,
-    Coverage,
     DownloadRequest,
     Envelope,
     ErrorEnvelope,
-    Footprint,
-    Funding,
     Health,
-    Instrument,
     Job,
-    OpenInterest,
     Query,
-    Source,
-    Trade,
 )
 from .providers import ProviderUnavailable, UnavailableReader, load_factory
 
@@ -43,7 +38,11 @@ def error(status, code, message):
 def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
     settings = settings or load_settings()
     reader = provider or load_factory(settings.provider_factory, UnavailableReader())
-    queue = JobQueue(settings.dsn, settings.lease_seconds) if settings.dsn else None
+    queue = (
+        JobQueue(settings.dsn, settings.lease_seconds, settings.max_pending)
+        if settings.dsn
+        else None
+    )
     app = FastAPI(
         title="Tester local market API",
         version="1.0.0",
@@ -79,6 +78,12 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
     async def provider_error(request, exc):
         return error(503, "provider_unavailable", "Requested provider is not connected")
 
+    @app.exception_handler(ContractError)
+    async def contract_error(request, exc):
+        return error(
+            502, "provider_contract_error", "Provider response violates approved contract v1"
+        )
+
     @app.exception_handler(psycopg.Error)
     async def database_error(request, exc):
         logging.getLogger("tester.api").error(
@@ -93,6 +98,16 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
     @app.exception_handler(Conflict)
     async def conflict(request, exc):
         return error(409, "invalid_transition", "Action is not allowed in the current state")
+
+    @app.exception_handler(AdmissionRejected)
+    async def admission_error(request, exc):
+        response = error(
+            503 if exc.code == "draining" else 429,
+            exc.code,
+            "Admission paused; retry after backpressure clears",
+        )
+        response.headers["Retry-After"] = "5"
+        return response
 
     def require_queue():
         if queue is None:
@@ -146,29 +161,37 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             raise RequestValidationError(exc.errors()) from exc
 
     # Each operation has a concrete response model in OpenAPI, including provenance.
-    for resource, model in [
-        ("instruments", Instrument),
-        ("sources", Source),
-        ("coverage", Coverage),
-        ("candles", Candle),
-        ("trades", Trade),
-        ("footprint", Footprint),
-        ("open-interest", OpenInterest),
-        ("funding", Funding),
+    for resource, kind in [
+        ("instruments", "instrument"),
+        ("sources", "source"),
+        ("coverage", "coverage"),
+        ("candles", "candle"),
+        ("trades", "trade"),
+        ("footprint", "footprint"),
+        ("open-interest", "observation"),
+        ("funding", "observation"),
     ]:
 
-        def make_endpoint(name):
+        def make_endpoint(name, record_kind):
             def endpoint(query: Annotated[Query, Depends(validated_query)]):
-                return {"schema_version": "1.0", **reader.read(name, query)}
+                # Providers must supply the complete envelope. Missing evidence is an error,
+                # never repaired using invented availability/provenance or precision.
+                value = reader.read(name, query)
+                dataset_response(record_kind, value)
+                expected_kind = {"open-interest": "oi", "funding": "funding"}.get(name)
+                if expected_kind and any(row["kind"] != expected_kind for row in value["data"]):
+                    raise ContractError("Provider returned a different observation dataset")
+                if len(value["data"]) > query.limit:
+                    raise ContractError("Provider exceeded requested page limit")
+                return value
 
             return endpoint
 
         app.add_api_route(
             "/api/" + resource,
-            make_endpoint(resource),
+            make_endpoint(resource, kind),
             methods=["GET"],
-            response_model=Envelope[list[model]],
-            response_model_exclude_unset=True,
+            response_model=dataset_model(kind),
             operation_id="read_" + resource,
         )
 

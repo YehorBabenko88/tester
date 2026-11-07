@@ -1,5 +1,32 @@
 # API contract v1
 
+## Approved Issue #8 boundary (supersedes the initial simplified record shapes)
+
+`contracts/PIN.json` pins the unchanged shared package to coordinator commit
+`9766c0093e2608280875ac56db074414a3d62c69`, with SHA256 hashes. Market records and
+dataset envelopes are validated with shared `validate_record`/`validate_response`
+both before returning from the provider boundary and during FastAPI serialization.
+OpenAPI record definitions are expanded directly from that schema, rather than
+maintaining another set of financial fields. Root models preserve all accepted
+fields exactly. Unsupported fields/versions are rejected, never silently dropped.
+
+Every dataset response now requires all of: `schema_version`, `data`, `next_cursor`,
+structured `availability` (including reason), `coverage` (including evidence refs),
+and provenance array. Providers must supply the full envelope; E does not invent
+metadata defaults. Source financial strings stay exact; NaN/Infinity/exponents,
+non-string financial values and negative timestamps fail. Trades use `trade_id`,
+`taker_side`, `id_origin`, `timestamp_precision`, and genuine-source nullable
+`timestamp_ns`. No ns value is synthesized from an ms/second source. Conflicting or
+duplicate venue/category/symbol/trade_id keys in a provider page are rejected.
+OI and funding endpoints enforce their own observation kind. A COMPLETE coverage
+envelope cannot promote PARTIAL rows. Contract failures return sanitized HTTP 502.
+
+Storage integration must use the coordinator's lossless adapter and B's authentic
+provenance resolver. Without source/run context it remains unavailable. E performs
+no C calculations. The desired factory protocol was published on Issue #5:
+`factory() -> Reader`, `read(resource, Query) -> complete canonical envelope`.
+Venue is bybit; opaque provider cursors must bind to resource and query filters.
+
 The machine-readable contract is `contracts/v1/openapi.json`. Regenerate with
 `python scripts/export_contract.py`; `--check` fails on drift. Breaking changes require
 a new contracts major directory and explicit client coordination. No trading keys or

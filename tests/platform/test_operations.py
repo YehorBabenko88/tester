@@ -55,13 +55,14 @@ def test_independent_processes_rotate_logs_without_loss(tmp_path):
 import sys
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
+from uuid import UUID
 from src.api.logging_setup import configure
 logger = configure(Path(sys.argv[1]), sys.argv[2])
 for handler in logger.handlers:
     if isinstance(handler, RotatingFileHandler):
-        handler.maxBytes = 400
+        handler.maxBytes = 600
 for i in range(12):
-    logger.info('record', extra={'job_id': str(i)})
+    logger.info('record', extra={'job_id': str(UUID(int=i))})
 """
     children = [
         subprocess.Popen(
@@ -81,4 +82,6 @@ for i in range(12):
             for path in (tmp_path / "logs").glob(name + ".jsonl*")
             for line in path.read_text().splitlines()
         ]
-        assert sorted(int(record["job_id"]) for record in records) == list(range(12))
+        from uuid import UUID
+
+        assert sorted(UUID(record["job_id"]).int for record in records) == list(range(12))

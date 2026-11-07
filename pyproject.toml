@@ -6,16 +6,18 @@ build-backend = "setuptools.build_meta"
 name = "tester-platform"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "psycopg[binary]>=3.2,<4", "pydantic-settings>=2.7,<3", "requests>=2.32,<3"]
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "psycopg[binary]>=3.2,<4", "pydantic-settings>=2.7,<3", "requests>=2.32,<3", "jsonschema>=4.23,<5"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1", "bandit>=1.8,<2", "pip-audit>=2.9,<3"]
+windows-service = ["pywin32>=310,<400; sys_platform == 'win32'"]
+dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1", "bandit>=1.8,<2", "pip-audit>=2.9,<3", "pytest-timeout>=2.4,<3", "psutil>=7,<8"]
 
 [tool.setuptools.packages.find]
-include = ["src.api*"]
+include = ["src.api*", "contracts*"]
 
 [tool.setuptools.package-data]
 "src.api" = ["migrations/*.sql"]
+"contracts.v1" = ["market.schema.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -24,7 +26,7 @@ markers = ["integration: requires disposable PostgreSQL TEST_DATABASE_URL"]
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-include = ["src/api/**/*.py", "tests/platform/**/*.py", "scripts/*.py"]
+include = ["src/api/**/*.py", "tests/platform/**/*.py", "scripts/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

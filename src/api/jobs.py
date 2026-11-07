@@ -15,10 +15,55 @@ class LeaseLost(Exception):
     pass
 
 
+class AdmissionRejected(Exception):
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
 class JobQueue:
-    def __init__(self, dsn: str, lease_seconds: int = 60):
+    def __init__(self, dsn: str, lease_seconds: int = 60, max_pending: int = 256):
+        if max_pending < 1:
+            raise ValueError("max_pending must be positive")
         self.dsn = dsn
         self.lease_seconds = lease_seconds
+        self.max_pending = max_pending
+
+    def set_draining(self, value: bool):
+        with connect(self.dsn) as conn:
+            conn.execute("UPDATE tester_platform.control SET draining=%s WHERE singleton", (value,))
+
+    def configure_limits(self, max_pending: int, max_running: int):
+        if max_pending < 1 or max_running < 1:
+            raise ValueError("Queue budgets must be positive")
+        with connect(self.dsn) as conn:
+            conn.execute(
+                "UPDATE tester_platform.control SET max_pending=%s,max_running=%s WHERE singleton",
+                (max_pending, max_running),
+            )
+
+    def depth(self):
+        with connect(self.dsn) as conn:
+            return conn.execute(
+                "SELECT count(*) FROM tester_platform.jobs WHERE state IN "
+                "('queued','running','paused')"
+            ).fetchone()[0]
+
+    def _admit(self, cur, increment=True):
+        cur.execute("SELECT * FROM tester_platform.control WHERE singleton FOR UPDATE")
+        control = cur.fetchone()
+        if control["draining"]:
+            raise AdmissionRejected("draining")
+        # Persist the strictest caller budget, so another API instance cannot bypass it.
+        limit = min(control["max_pending"], self.max_pending)
+        cur.execute("UPDATE tester_platform.control SET max_pending=%s WHERE singleton", (limit,))
+        if increment:
+            cur.execute(
+                "SELECT count(*) AS depth FROM tester_platform.jobs WHERE state IN "
+                "('queued','running','paused')"
+            )
+            if cur.fetchone()["depth"] >= limit:
+                raise AdmissionRejected("queue_full")
 
     def _job(self, row, leased=False):
         if row is None:
@@ -27,6 +72,7 @@ class JobQueue:
 
     def create(self, request: DownloadRequest) -> Job:
         with connect(self.dsn) as conn, conn.cursor(row_factory=dict_row) as cur:
+            self._admit(cur)
             cur.execute(
                 """INSERT INTO tester_platform.jobs(id,request) VALUES (%s,%s)
                            RETURNING *""",
@@ -46,6 +92,8 @@ class JobQueue:
             "retry": (["failed"], "queued"),
         }[action]
         with connect(self.dsn) as conn, conn.cursor(row_factory=dict_row) as cur:
+            if action in {"retry", "resume"}:
+                self._admit(cur, increment=action == "retry")
             cur.execute(
                 """UPDATE tester_platform.jobs SET state=%s, lease_token=NULL,
                 lease_until=NULL, error=NULL, updated_at=now()
@@ -61,6 +109,16 @@ class JobQueue:
 
     def claim(self) -> Lease | None:
         with connect(self.dsn) as conn, conn.cursor(row_factory=dict_row) as cur:
+            cur.execute("SELECT * FROM tester_platform.control WHERE singleton FOR UPDATE")
+            control = cur.fetchone()
+            if control["draining"]:
+                return None
+            cur.execute(
+                "SELECT count(*) AS active FROM tester_platform.jobs "
+                "WHERE state='running' AND lease_until>now()"
+            )
+            if cur.fetchone()["active"] >= control["max_running"]:
+                return None
             cur.execute(
                 """WITH candidate AS (
                 SELECT id FROM tester_platform.jobs

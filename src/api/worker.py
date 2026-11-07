@@ -15,8 +15,13 @@ class UnavailableHandler:
 
 
 def process_one(queue, handler, stop, logger):
+    if stop.is_set():
+        return False
     lease = queue.claim()
     if lease is None:
+        return False
+    if stop.is_set():
+        queue.release(lease.id, lease.lease_token)
         return False
     cancelled = threading.Event()
     finished = threading.Event()
@@ -100,6 +105,9 @@ def run():
     thread.start()
     try:
         while not stop.is_set():
+            if (settings.data_dir / "stop.request").exists():
+                stop.set()
+                break
             try:
                 storage = storage_status(settings)
                 if storage["storage"] != "ok":

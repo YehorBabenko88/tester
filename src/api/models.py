@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .canonical import CanonicalRecord
+
 T = TypeVar("T")
 Category = Literal["linear", "inverse", "spot"]
 Kind = Literal["candles", "trades", "footprint", "open_interest", "funding"]
@@ -83,63 +85,32 @@ class Health(BaseModel):
     used_bytes: int | None
 
 
-class Instrument(BaseModel):
-    symbol: str
-    category: Category | None = None
-    provenance: str
-    status: str | None = None
+# Canonical records are validated without coercion, defaults, or field stripping.
 
 
-class Source(BaseModel):
-    id: str
-    kinds: list[Kind]
-    availability: Literal["available", "partial", "unavailable", "unknown"]
-    provenance: str
+class Instrument(CanonicalRecord):
+    record_kind = "instrument"
 
 
-class Coverage(BaseModel):
-    symbol: str
-    kind: Kind
-    start_ms: int
-    end_ms: int
-    status: Literal["complete", "partial", "missing", "unknown"]
-    provenance: str
+class Candle(CanonicalRecord):
+    record_kind = "candle"
 
 
-class Candle(BaseModel):
-    timestamp_ms: int
-    open: str
-    high: str
-    low: str
-    close: str
-    volume: str
-    provenance: str
+class Trade(CanonicalRecord):
+    record_kind = "trade"
 
 
-class Trade(BaseModel):
-    id: str
-    timestamp_ms: int
-    price: str
-    quantity: str
-    side: Literal["buy", "sell", "unknown"]
-    provenance: str
+class Footprint(CanonicalRecord):
+    record_kind = "footprint"
 
 
-class Footprint(BaseModel):
-    timestamp_ms: int
-    price: str
-    buy_volume: str
-    sell_volume: str
-    provenance: str
+class OpenInterest(CanonicalRecord):
+    record_kind = "observation"
 
 
-class OpenInterest(BaseModel):
-    timestamp_ms: int
-    value: str
-    provenance: str
+class Funding(CanonicalRecord):
+    record_kind = "observation"
 
 
-class Funding(BaseModel):
-    timestamp_ms: int
-    rate: str
-    provenance: str
+class Coverage(CanonicalRecord):
+    record_kind = "coverage"

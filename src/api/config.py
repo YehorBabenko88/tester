@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     min_free_bytes: int = Field(default=1024**3, ge=0)
     storage_quota_bytes: int = Field(default=100 * 1024**3, gt=0)
     lease_seconds: int = Field(default=60, ge=10, le=3600)
+    max_pending: int = Field(default=256, ge=1, le=10000)
+    max_running: int = Field(default=2, ge=1, le=32)
     provider_factory: str | None = None
     handler_factory: str | None = None
     frontend_dir: Path = Path("frontend")

@@ -1,5 +1,45 @@
 # Local operation and Windows installation
 
+## Review revision: admission, drain and SCM planning
+
+The database control row serializes create/retry/resume/claim admission. Default
+limits are 256 pending (queued/running/paused) and 2 running jobs. Explicit stricter
+caller budgets are persisted so another API instance cannot bypass them. A supervisor
+startup applies configured limits. Capacity exhaustion returns 429; drain returns 503;
+both include `Retry-After: 5`. `python -m src.api.control drain` stops admission and
+claims across instances atomically; `resume` reopens them. Stop-Tester drains before
+writing stop.request. Workers check local stop before claim and release a just-claimed
+lease if stop raced the database round trip. Active work remains checkpoint-fenced.
+
+JsonFormatter now allows fixed event IDs only, never arbitrary message/exception text
+or args. Correlation is typed UUID job_id/run_id and 32-hex trace_id; numeric disk
+measurements and closed component/error enums are admitted. Invalid extras are dropped
+or replaced with `Error`. Logs remain separate rotating component files.
+
+`python scripts/runtime_preflight.py` checks socketpair/eventloop in a subprocess with
+a 5s deadline before ASGI testing. The earlier review sandbox blocked in stdlib
+socket.accept before application code. Root full-access Python 3.14 and 3.11 probes,
+followed by bounded real TestClient tests, passed. A failed preflight is a failed HTTP
+gate; no skipped/hung endpoint test is counted as passed.
+
+`Service-Tester.ps1 -Action install|repair|uninstall` only prints a JSON DRY_RUN plan.
+There is no execute switch. The proposed native SCM entrypoint calls pywin32
+PrepareToHostSingle/StartServiceCtrlDispatcher and hosts ServiceFramework; it is
+distinct from the existing foreground supervisor. Plans use the dedicated virtual
+account NT SERVICE\TesterMarketLab, delayed start, three bounded restarts, explicit
+runtime/venv/base-Python read/execute ACL review and runtime modification rights.
+Uninstall plans retain the database, role and runtime. The plan never mutates SCM,
+registry, ACL or service state. Native host code requires the windows-service extra;
+it was NOT installed or run here. Upstream API reference:
+[pywin32 service utilities](https://github.com/mhammond/pywin32/blob/main/win32/Lib/win32serviceutil.py).
+
+Physical service installation remains forbidden. Disposable-VM native start/stop,
+virtual-account access, DLL resolution, process-kill and reboot tests remain gates.
+Hard OS CPU/RSS enforcement, real-provider concurrency/network shaping and fairness
+are not established by this revision. The synthetic 10-symbol benchmark in
+docs/evidence/ten-symbol-synthetic.json measures bounded local streaming/queue depth,
+not exchange throughput; total network bytes are unmeasured (null).
+
 Requirements: Python 3.11+, PostgreSQL 14+ binaries/server, PowerShell 5.1+ or 7,
 at least 1 GiB free disk (configurable) and internet for dependency installation.
 No trading API keys. Dependencies are constrained by `requirements-platform.lock`.

@@ -1,98 +1,603 @@
 {
   "components": {
     "schemas": {
-      "Candle": {
+      "CandleDataset": {
+        "additionalProperties": false,
         "properties": {
-          "close": {
-            "title": "Close",
-            "type": "string"
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
           },
-          "high": {
-            "title": "High",
-            "type": "string"
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
           },
-          "low": {
-            "title": "Low",
-            "type": "string"
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "close": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "end_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "high": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "interval": {
+                  "enum": [
+                    "1",
+                    "3",
+                    "5",
+                    "15",
+                    "30",
+                    "60",
+                    "120",
+                    "240",
+                    "360",
+                    "720",
+                    "D",
+                    "W",
+                    "M"
+                  ]
+                },
+                "is_closed": {
+                  "type": "boolean"
+                },
+                "kind": {
+                  "enum": [
+                    "official_trade",
+                    "official_mark",
+                    "official_index",
+                    "official_premium",
+                    "derived"
+                  ]
+                },
+                "low": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "open": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "start_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "venue": {
+                  "const": "bybit"
+                },
+                "volume": {
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "start_ms",
+                "end_ms",
+                "interval",
+                "kind",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "is_closed"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
-          "open": {
-            "title": "Open",
-            "type": "string"
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "provenance": {
-            "title": "Provenance",
-            "type": "string"
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
-          "timestamp_ms": {
-            "title": "Timestamp Ms",
-            "type": "integer"
-          },
-          "volume": {
-            "title": "Volume",
-            "type": "string"
+          "schema_version": {
+            "const": "1.0"
           }
         },
         "required": [
-          "timestamp_ms",
-          "open",
-          "high",
-          "low",
-          "close",
-          "volume",
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
           "provenance"
         ],
-        "title": "Candle",
         "type": "object"
       },
-      "Coverage": {
+      "CoverageDataset": {
+        "additionalProperties": false,
         "properties": {
-          "end_ms": {
-            "title": "End Ms",
-            "type": "integer"
-          },
-          "kind": {
-            "enum": [
-              "candles",
-              "trades",
-              "footprint",
-              "open_interest",
-              "funding"
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
             ],
-            "title": "Kind",
-            "type": "string"
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "end_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "evidence_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "start_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "status": {
+                  "enum": [
+                    "NOT_STARTED",
+                    "RUNNING",
+                    "COMPLETE",
+                    "PARTIAL",
+                    "GAPS",
+                    "EMPTY",
+                    "PROVISIONAL",
+                    "UNKNOWN",
+                    "ERROR",
+                    "UNAVAILABLE"
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "start_ms",
+                "end_ms",
+                "evidence_refs"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "provenance": {
-            "title": "Provenance",
-            "type": "string"
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
-          "start_ms": {
-            "title": "Start Ms",
-            "type": "integer"
-          },
-          "status": {
-            "enum": [
-              "complete",
-              "partial",
-              "missing",
-              "unknown"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "symbol": {
-            "title": "Symbol",
-            "type": "string"
+          "schema_version": {
+            "const": "1.0"
           }
         },
         "required": [
-          "symbol",
-          "kind",
-          "start_ms",
-          "end_ms",
-          "status",
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
           "provenance"
         ],
-        "title": "Coverage",
         "type": "object"
       },
       "DownloadRequest": {
@@ -215,270 +720,6 @@
         "title": "Envelope[Job]",
         "type": "object"
       },
-      "Envelope_list_Candle__": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Candle"
-            },
-            "title": "Data",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          },
-          "schema_version": {
-            "const": "1.0",
-            "default": "1.0",
-            "title": "Schema Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "Envelope[list[Candle]]",
-        "type": "object"
-      },
-      "Envelope_list_Coverage__": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Coverage"
-            },
-            "title": "Data",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          },
-          "schema_version": {
-            "const": "1.0",
-            "default": "1.0",
-            "title": "Schema Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "Envelope[list[Coverage]]",
-        "type": "object"
-      },
-      "Envelope_list_Footprint__": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Footprint"
-            },
-            "title": "Data",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          },
-          "schema_version": {
-            "const": "1.0",
-            "default": "1.0",
-            "title": "Schema Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "Envelope[list[Footprint]]",
-        "type": "object"
-      },
-      "Envelope_list_Funding__": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Funding"
-            },
-            "title": "Data",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          },
-          "schema_version": {
-            "const": "1.0",
-            "default": "1.0",
-            "title": "Schema Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "Envelope[list[Funding]]",
-        "type": "object"
-      },
-      "Envelope_list_Instrument__": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Instrument"
-            },
-            "title": "Data",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          },
-          "schema_version": {
-            "const": "1.0",
-            "default": "1.0",
-            "title": "Schema Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "Envelope[list[Instrument]]",
-        "type": "object"
-      },
-      "Envelope_list_OpenInterest__": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/OpenInterest"
-            },
-            "title": "Data",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          },
-          "schema_version": {
-            "const": "1.0",
-            "default": "1.0",
-            "title": "Schema Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "Envelope[list[OpenInterest]]",
-        "type": "object"
-      },
-      "Envelope_list_Source__": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Source"
-            },
-            "title": "Data",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          },
-          "schema_version": {
-            "const": "1.0",
-            "default": "1.0",
-            "title": "Schema Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "Envelope[list[Source]]",
-        "type": "object"
-      },
-      "Envelope_list_Trade__": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/Trade"
-            },
-            "title": "Data",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Cursor"
-          },
-          "schema_version": {
-            "const": "1.0",
-            "default": "1.0",
-            "title": "Schema Version",
-            "type": "string"
-          }
-        },
-        "required": [
-          "data"
-        ],
-        "title": "Envelope[list[Trade]]",
-        "type": "object"
-      },
       "ErrorDetail": {
         "properties": {
           "code": {
@@ -515,60 +756,376 @@
         "title": "ErrorEnvelope",
         "type": "object"
       },
-      "Footprint": {
+      "FootprintDataset": {
+        "additionalProperties": false,
         "properties": {
-          "buy_volume": {
-            "title": "Buy Volume",
-            "type": "string"
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
           },
-          "price": {
-            "title": "Price",
-            "type": "string"
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "buy_volume": {
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "delta": {
+                  "anyOf": [
+                    {
+                      "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "end_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "sell_volume": {
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                },
+                "side_basis": {
+                  "const": "taker"
+                },
+                "start_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "unknown_side_volume": {
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                },
+                "venue": {
+                  "const": "bybit"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "start_ms",
+                "end_ms",
+                "side_basis",
+                "buy_volume",
+                "sell_volume",
+                "unknown_side_volume",
+                "delta"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "provenance": {
-            "title": "Provenance",
-            "type": "string"
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
-          "sell_volume": {
-            "title": "Sell Volume",
-            "type": "string"
-          },
-          "timestamp_ms": {
-            "title": "Timestamp Ms",
-            "type": "integer"
+          "schema_version": {
+            "const": "1.0"
           }
         },
         "required": [
-          "timestamp_ms",
-          "price",
-          "buy_volume",
-          "sell_volume",
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
           "provenance"
         ],
-        "title": "Footprint",
-        "type": "object"
-      },
-      "Funding": {
-        "properties": {
-          "provenance": {
-            "title": "Provenance",
-            "type": "string"
-          },
-          "rate": {
-            "title": "Rate",
-            "type": "string"
-          },
-          "timestamp_ms": {
-            "title": "Timestamp Ms",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "timestamp_ms",
-          "rate",
-          "provenance"
-        ],
-        "title": "Funding",
         "type": "object"
       },
       "Health": {
@@ -641,49 +1198,348 @@
         "title": "Health",
         "type": "object"
       },
-      "Instrument": {
+      "InstrumentDataset": {
+        "additionalProperties": false,
         "properties": {
-          "category": {
-            "anyOf": [
-              {
-                "enum": [
-                  "linear",
-                  "inverse",
-                  "spot"
-                ],
-                "type": "string"
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
-              {
-                "type": "null"
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
               }
+            },
+            "required": [
+              "status",
+              "reason"
             ],
-            "title": "Category"
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "qty_step": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "status": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "tick_size": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "venue": {
+                  "const": "bybit"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "status",
+                "tick_size",
+                "qty_step"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "provenance": {
-            "title": "Provenance",
-            "type": "string"
-          },
-          "status": {
-            "anyOf": [
-              {
-                "type": "string"
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
               },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Status"
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
-          "symbol": {
-            "title": "Symbol",
-            "type": "string"
+          "schema_version": {
+            "const": "1.0"
           }
         },
         "required": [
-          "symbol",
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
           "provenance"
         ],
-        "title": "Instrument",
         "type": "object"
       },
       "Job": {
@@ -758,114 +1614,897 @@
         "title": "Job",
         "type": "object"
       },
-      "OpenInterest": {
-        "properties": {
-          "provenance": {
-            "title": "Provenance",
-            "type": "string"
-          },
-          "timestamp_ms": {
-            "title": "Timestamp Ms",
-            "type": "integer"
-          },
-          "value": {
-            "title": "Value",
-            "type": "string"
-          }
-        },
-        "required": [
-          "timestamp_ms",
-          "value",
-          "provenance"
-        ],
-        "title": "OpenInterest",
-        "type": "object"
-      },
-      "Source": {
+      "ObservationDataset": {
+        "additionalProperties": false,
         "properties": {
           "availability": {
-            "enum": [
-              "available",
-              "partial",
-              "unavailable",
-              "unknown"
-            ],
-            "title": "Availability",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "kinds": {
-            "items": {
-              "enum": [
-                "candles",
-                "trades",
-                "footprint",
-                "open_interest",
-                "funding"
-              ],
-              "type": "string"
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
             },
-            "title": "Kinds",
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "interval": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "oi",
+                    "funding",
+                    "ratio"
+                  ]
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "unit": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "value": {
+                  "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])",
+                  "type": "string"
+                },
+                "venue": {
+                  "const": "bybit"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "kind",
+                "value",
+                "unit",
+                "interval"
+              ],
+              "type": "object"
+            },
             "type": "array"
           },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "provenance": {
-            "title": "Provenance",
-            "type": "string"
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
           }
         },
         "required": [
-          "id",
-          "kinds",
+          "schema_version",
+          "data",
+          "next_cursor",
           "availability",
+          "coverage",
           "provenance"
         ],
-        "title": "Source",
         "type": "object"
       },
-      "Trade": {
+      "SourceDataset": {
+        "additionalProperties": false,
         "properties": {
-          "id": {
-            "title": "Id",
-            "type": "string"
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
           },
-          "price": {
-            "title": "Price",
-            "type": "string"
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "provenance": {
-            "title": "Provenance",
-            "type": "string"
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
-          "quantity": {
-            "title": "Quantity",
-            "type": "string"
-          },
-          "side": {
-            "enum": [
-              "buy",
-              "sell",
-              "unknown"
-            ],
-            "title": "Side",
-            "type": "string"
-          },
-          "timestamp_ms": {
-            "title": "Timestamp Ms",
-            "type": "integer"
+          "schema_version": {
+            "const": "1.0"
           }
         },
         "required": [
-          "id",
-          "timestamp_ms",
-          "price",
-          "quantity",
-          "side",
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
           "provenance"
         ],
-        "title": "Trade",
+        "type": "object"
+      },
+      "TradeDataset": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "additionalProperties": false,
+            "properties": {
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL",
+                  "UNAVAILABLE",
+                  "UNVERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "coverage": {
+            "additionalProperties": false,
+            "properties": {
+              "end_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "evidence_refs": {
+                "items": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "start_ms": {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              "status": {
+                "enum": [
+                  "NOT_STARTED",
+                  "RUNNING",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "GAPS",
+                  "EMPTY",
+                  "PROVISIONAL",
+                  "UNKNOWN",
+                  "ERROR",
+                  "UNAVAILABLE"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "start_ms",
+              "end_ms",
+              "evidence_refs"
+            ],
+            "type": "object"
+          },
+          "data": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "availability": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "reason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "status": {
+                      "enum": [
+                        "AVAILABLE",
+                        "PARTIAL",
+                        "UNAVAILABLE",
+                        "UNVERIFIED"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason"
+                  ],
+                  "type": "object"
+                },
+                "category": {
+                  "enum": [
+                    "spot",
+                    "linear",
+                    "inverse"
+                  ]
+                },
+                "coverage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "end_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "evidence_refs": {
+                      "items": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "start_ms": {
+                      "maximum": 9007199254740991.0,
+                      "minimum": 0.0,
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "NOT_STARTED",
+                        "RUNNING",
+                        "COMPLETE",
+                        "PARTIAL",
+                        "GAPS",
+                        "EMPTY",
+                        "PROVISIONAL",
+                        "UNKNOWN",
+                        "ERROR",
+                        "UNAVAILABLE"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "start_ms",
+                    "end_ms",
+                    "evidence_refs"
+                  ],
+                  "type": "object"
+                },
+                "id_origin": {
+                  "enum": [
+                    "exchange",
+                    "synthetic"
+                  ]
+                },
+                "identity_method": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "price": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "provenance": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingestion_run": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "method_version": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "parent_refs": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "source_hash": {
+                        "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "source_kind": {
+                        "enum": [
+                          "bybit_rest",
+                          "bybit_archive",
+                          "synthetic_fixture",
+                          "derived"
+                        ]
+                      },
+                      "source_ref": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "source_timestamp": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "timestamp_precision": {
+                        "enum": [
+                          "s",
+                          "ms",
+                          "us",
+                          "ns"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "source_kind",
+                      "source_ref",
+                      "source_hash",
+                      "ingestion_run",
+                      "timestamp_precision",
+                      "source_timestamp"
+                    ],
+                    "type": "object"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "quantity": {
+                  "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])",
+                  "type": "string"
+                },
+                "schema_version": {
+                  "const": "1.0"
+                },
+                "symbol": {
+                  "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])",
+                  "type": "string"
+                },
+                "taker_side": {
+                  "enum": [
+                    "Buy",
+                    "Sell",
+                    "Unknown"
+                  ]
+                },
+                "timestamp_ms": {
+                  "maximum": 9007199254740991.0,
+                  "minimum": 0.0,
+                  "type": "integer"
+                },
+                "timestamp_ns": {
+                  "pattern": "^[0-9]{1,19}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                },
+                "trade_id": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "venue": {
+                  "const": "bybit"
+                }
+              },
+              "required": [
+                "schema_version",
+                "venue",
+                "category",
+                "symbol",
+                "timestamp_ms",
+                "provenance",
+                "availability",
+                "coverage",
+                "timestamp_ns",
+                "timestamp_precision",
+                "trade_id",
+                "id_origin",
+                "price",
+                "quantity",
+                "taker_side"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "ingestion_run": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "method_version": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "parent_refs": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "source_hash": {
+                  "pattern": "^[a-f0-9]{64}(?![\\s\\S])",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "source_kind": {
+                  "enum": [
+                    "bybit_rest",
+                    "bybit_archive",
+                    "synthetic_fixture",
+                    "derived"
+                  ]
+                },
+                "source_ref": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "source_timestamp": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_precision": {
+                  "enum": [
+                    "s",
+                    "ms",
+                    "us",
+                    "ns"
+                  ]
+                }
+              },
+              "required": [
+                "source_kind",
+                "source_ref",
+                "source_hash",
+                "ingestion_run",
+                "timestamp_precision",
+                "source_timestamp"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0"
+          }
+        },
+        "required": [
+          "schema_version",
+          "data",
+          "next_cursor",
+          "availability",
+          "coverage",
+          "provenance"
+        ],
         "type": "object"
       }
     }
@@ -968,7 +2607,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_list_Candle__"
+                  "$ref": "#/components/schemas/CandleDataset"
                 }
               }
             },
@@ -1110,7 +2749,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_list_Coverage__"
+                  "$ref": "#/components/schemas/CoverageDataset"
                 }
               }
             },
@@ -1600,7 +3239,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_list_Footprint__"
+                  "$ref": "#/components/schemas/FootprintDataset"
                 }
               }
             },
@@ -1742,7 +3381,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_list_Funding__"
+                  "$ref": "#/components/schemas/ObservationDataset"
                 }
               }
             },
@@ -1942,7 +3581,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_list_Instrument__"
+                  "$ref": "#/components/schemas/InstrumentDataset"
                 }
               }
             },
@@ -2084,7 +3723,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_list_OpenInterest__"
+                  "$ref": "#/components/schemas/ObservationDataset"
                 }
               }
             },
@@ -2226,7 +3865,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_list_Source__"
+                  "$ref": "#/components/schemas/SourceDataset"
                 }
               }
             },
@@ -2368,7 +4007,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Envelope_list_Trade__"
+                  "$ref": "#/components/schemas/TradeDataset"
                 }
               }
             },

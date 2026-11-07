@@ -79,10 +79,11 @@ def main():
     parser.add_argument("--integration", action="store_true")
     parser.add_argument("--security", action="store_true")
     args = parser.parse_args()
+    check("scripts/runtime_preflight.py")
     check("-m", "ruff", "check", "src/api", "tests/platform", "scripts")
     check("-m", "ruff", "format", "--check", "src/api", "tests/platform", "scripts")
     check("scripts/export_contract.py", "--check")
-    check("-m", "pytest", "-q")
+    check("-m", "pytest", "-q", "--timeout=20", "--basetemp=.scratch/pytest-acceptance")
     if args.integration:
         dsn = os.environ.get("TEST_DATABASE_URL")
         if not dsn:
