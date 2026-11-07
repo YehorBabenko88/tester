@@ -681,14 +681,15 @@
     "issue": 27,
     "branch": "physical/master-windows-test",
     "checkpoint": "docs/physical-test/CHECKPOINT.json",
-    "status": "AWAITING_WINDOWS_ADMINISTRATOR_UAC",
+    "status": "BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED",
     "service_installed": false,
     "owned_database_prepared": true,
     "own_cluster_stopped": true,
     "acceptance": "NOT_ACCEPTED",
     "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
     "draft_pr": "https://github.com/YehorBabenko88/tester/pull/29",
-    "uac_pending": true,
-    "next_checkpoint": "Inspect existing UAC launcher32968/starttime17:33:05Z and runtime/uac-operation-*.json; never duplicate pending prompt"
+    "uac_pending": false,
+    "next_checkpoint": "No automatic UAC retry. Human administrator action is required before a new elevation attempt",
+    "automatic_uac_retry_forbidden": true
   }
 }

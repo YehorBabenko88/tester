@@ -4,8 +4,8 @@
   "issue": 27,
   "installation_id": "f23dab63-92c6-4e56-9027-4213c6b4dc60",
   "host_fingerprint": "658ac47c38eb17a6",
-  "phase": "INSTALL",
-  "status": "AWAITING_WINDOWS_ADMINISTRATOR_UAC",
+  "phase": "BLOCKED",
+  "status": "BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED",
   "root": "C:/ProgramData/TesterPhysicalTest20261107",
   "services": [
     "TesterPhysicalTest20261107",
@@ -32,13 +32,12 @@
   "repair_failures": {},
   "acceptance": "NOT_ACCEPTED",
   "next": [
-    "Inspect existing UAC launcher32968/starttime17:33:05Z and runtime/uac-operation-*.json; never duplicate pending prompt",
-    "If OS consent completes, inspect actual own SCM registrations/account/image/dependency, native logs, process/API/DB identity",
-    "If consent is denied, retain OS error and wait for human administrator action; never bypass policy or repeatedly elevate",
-    "Run service stop/update/recovery/data backup-restore/ten-instrument financial/API/UI acceptance only after native readiness",
-    "Keep optional missing C/F/G/TI bindings explicit, follow existing Issues and exact-SHA CI; preserve all data"
+    "No automatic UAC retry. Human administrator action is required before a new elevation attempt",
+    "Recheck exact hashes/config/ownership/ports and absence of old consent/launcher before any explicitly resumed install",
+    "Frozen source0ff59c69 and manifest retained; use reviewed normal-UAC payload, no policy bypass",
+    "After actual native installation prove SCM/account/image/process/API/DB then stop/update/recovery/restore/UI; no acceptance until evidence"
   ],
-  "checked_at": "2026-11-07T17:35:55.906439+00:00",
+  "checked_at": "2026-11-07T17:37:57.403442+00:00",
   "own_database_prepared": true,
   "own_cluster_running": false,
   "database": "tester_physical_20261107",
@@ -71,14 +70,19 @@
   },
   "uac": {
     "started_at": "2026-11-07T17:33:05Z",
-    "status": "WAITING_FOR_OS_CREDENTIAL_CONSENT",
+    "status": "CANCELLED_BY_WINDOWS_USER",
     "launcher_pid": 32968,
     "consent_pid": 29596,
     "tool_session_id": 55429,
     "wrapper": "C:/ProgramData/TesterPhysicalTest20261107/install-and-start-approved.ps1",
     "wrapper_sha256": "34e325555b9ee8882d23b32c6b76f256ad0e7df8e1f101ff65c58e6d64b881d4",
     "scope": "register exact owned PG/app services, request app start, exit; no persistent elevated agent",
-    "duplicate_attempt_forbidden": true
+    "duplicate_attempt_forbidden": true,
+    "ended_at": "2026-11-07T17:37:57.403442+00:00",
+    "elevated_process_id": null,
+    "launcher_exited": true,
+    "automatic_retry_forbidden": true,
+    "evidence": "Start-Process RunAs returned Windows cancellation message; process IDs absent; no owned SCM services/logs"
   },
   "ci": [
     {
@@ -94,5 +98,5 @@
       "status": "queued"
     }
   ],
-  "blocking_reason": "ENVIRONMENT:WINDOWS_ADMINISTRATOR_CREDENTIAL_REQUIRED"
+  "blocking_reason": "ENVIRONMENT:UAC_CANCELLED_NO_ELEVATED_PROCESS"
 }

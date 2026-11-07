@@ -1,3 +1,9 @@
+# Physical checkpoint — UAC cancelled, 2026-11-07T17:37:57.403442+00:00
+
+**BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED / NOT_ACCEPTED.** Windows returned cancellation for the actual RunAs request. No elevated process was created; consent29596/launcher32968 have exited; no owned services or elevated operation log exist. Do not automatically repeat elevation. Earlier pending-UAC checkpoint below is historical. Standard-user SCMcreate denied5 remains; human administrator action is required for a new normal-UAC attempt. Frozen0ff59c69/manifest, prepared stopped own DB, private dependencies and Draft29 retained. No user data deletion, existing5432 modification, main merge or trading. Exact continuation in docs/physical-test/CHECKPOINT.json.
+
+---
+
 # Physical checkpoint — normal UAC pending, 2026-11-07T17:35:55.906439+00:00
 
 **NOT_ACCEPTED / AWAITING_WINDOWS_ADMINISTRATOR_UAC.** Draft29 frozen source0ff59c69, manifestec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec,431files/2656342bytes externally verified. Private venv37distributions/2701RECORDhashes and pipcheckPASS. Actual normalRunAs invoked17:33:05Z, consent.exe29596 observed and launcher32968 still awaiting OS administrator credential; no own SCM services yet. Do not open a duplicate UAC prompt. One bounded reviewed wrapper only registers own PG/app services and requests start; no persistent elevated agent. See physical CHECKPOINT for payload, active launcher/session and exact continuation. CI for frozen0ff remains queued, not passed. Existing5432 untouched; own cluster stopped after B/E migration/privilege tests.
