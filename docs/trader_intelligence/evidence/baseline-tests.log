@@ -1,0 +1,14 @@
+test_closed_minute (test_core.BoundaryTests.test_closed_minute) ... ok
+test_market_api_path_restricted (test_core.BoundaryTests.test_market_api_path_restricted) ... ok
+test_month_leap (test_core.BoundaryTests.test_month_leap) ... ok
+test_safe_symbols (test_core.BoundaryTests.test_safe_symbols) ... ok
+test_small_one_minute_windows (test_core.BoundaryTests.test_small_one_minute_windows) ... ok
+test_trade_era_timestamps (test_core.BoundaryTests.test_trade_era_timestamps) ... ok
+test_week_utc_monday (test_core.BoundaryTests.test_week_utc_monday) ... ok
+test_missing_internal_minute_is_gap (test_core.IntegrityTests.test_missing_internal_minute_is_gap) ... ok
+test_missing_trailing_minute_is_gap (test_core.IntegrityTests.test_missing_trailing_minute_is_gap) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.002s
+
+OK

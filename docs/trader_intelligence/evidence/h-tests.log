@@ -1,0 +1,47 @@
+test_anonymous_not_overlay (test_core.TraderTests.test_anonymous_not_overlay) ... ok
+test_as_of_prevents_lookahead (test_core.TraderTests.test_as_of_prevents_lookahead) ... ok
+test_conflict (test_core.TraderTests.test_conflict) ... ok
+test_dedup (test_core.TraderTests.test_dedup) ... ok
+test_disclosed_overlay (test_core.TraderTests.test_disclosed_overlay) ... ok
+test_future_publication (test_core.TraderTests.test_future_publication) ... ok
+test_inferred_distinct (test_core.TraderTests.test_inferred_distinct) ... ok
+test_no_deanonymization (test_core.TraderTests.test_no_deanonymization) ... ok
+test_no_fake_precision (test_core.TraderTests.test_no_fake_precision) ... ok
+test_order_independent_digest (test_core.TraderTests.test_order_independent_digest) ... ok
+test_no_future_information (test_hypotheses.ContextTests.test_no_future_information) ... ok
+test_real_f_engine_candidate_is_separate_artifact (test_hypotheses.ContextTests.test_real_f_engine_candidate_is_separate_artifact) ... ok
+test_simulation_requires_exact_approval (test_hypotheses.ContextTests.test_simulation_requires_exact_approval) ... ok
+test_as_of_incomplete_does_not_reconstruct (test_postgres.PostgresTests.test_as_of_incomplete_does_not_reconstruct) ... ok
+test_concurrent_idempotent_and_conflict (test_postgres.PostgresTests.test_concurrent_idempotent_and_conflict) ... ok
+test_duplicate_import_and_evidence_conflict (test_postgres.PostgresTests.test_duplicate_import_and_evidence_conflict) ... ok
+test_failed_transaction_leaves_no_request (test_postgres.PostgresTests.test_failed_transaction_leaves_no_request) ... ok
+test_page_bounds_and_digest_ack (test_postgres.PostgresTests.test_page_bounds_and_digest_ack) ... ok
+test_revoke_invalidates_reads_runs_and_ack (test_postgres.PostgresTests.test_revoke_invalidates_reads_runs_and_ack) ... ok
+test_selected_trade_to_artifact_ack_restart (test_postgres.PostgresTests.test_selected_trade_to_artifact_ack_restart) ... ok
+test_store_cannot_bypass_import_admission (test_postgres.PostgresTests.test_store_cannot_bypass_import_admission) ... ok
+test_ten_instruments_parallel (test_postgres.PostgresTests.test_ten_instruments_parallel) ... ok
+test_tenant_and_approval_denied (test_postgres.PostgresTests.test_tenant_and_approval_denied) ... ok
+test_bound_before_parse (test_research.ImportTests.test_bound_before_parse) ... ok
+test_csv_json_equivalent (test_research.ImportTests.test_csv_json_equivalent) ... ok
+test_digest_pins_query (test_research.ImportTests.test_digest_pins_query) ... ok
+test_duplicate_json_keys_rejected (test_research.ImportTests.test_duplicate_json_keys_rejected) ... ok
+test_extra_sensitive_fields_rejected (test_research.ImportTests.test_extra_sensitive_fields_rejected) ... ok
+test_huge_decimal_exponent_rejected (test_research.ImportTests.test_huge_decimal_exponent_rejected) ... ok
+test_memory_budget_1000_rows (test_research.ImportTests.test_memory_budget_1000_rows) ... ok
+test_revision_conflict (test_research.ImportTests.test_revision_conflict) ... ok
+test_revision_selected_as_of (test_research.ImportTests.test_revision_selected_as_of) ... ok
+test_revisions_replace_not_double_count (test_research.ImportTests.test_revisions_replace_not_double_count) ... ok
+test_rights_fail_closed (test_research.ImportTests.test_rights_fail_closed) ... ok
+test_closed_cycle_statistics_are_gross_model_only (test_research.ReconstructionTests.test_closed_cycle_statistics_are_gross_model_only) ... ok
+test_hedge_and_inverse_unknown (test_research.ReconstructionTests.test_hedge_and_inverse_unknown) ... ok
+test_no_anonymous_reconstruction (test_research.ReconstructionTests.test_no_anonymous_reconstruction) ... ok
+test_partial_close_gross_unknown_net (test_research.ReconstructionTests.test_partial_close_gross_unknown_net) ... ok
+test_same_timestamp_order_ambiguous (test_research.ReconstructionTests.test_same_timestamp_order_ambiguous) ... ok
+test_two_instruments_separate (test_research.ReconstructionTests.test_two_instruments_separate) ... ok
+test_unknown_initial_inventory (test_research.ReconstructionTests.test_unknown_initial_inventory) ... ok
+test_select_approve_calculate_chart (test_ui.WorkspaceTests.test_select_approve_calculate_chart) ... skipped 'Streamlit and isolated PG required'
+
+----------------------------------------------------------------------
+Ran 42 tests in 1.774s
+
+OK (skipped=1)

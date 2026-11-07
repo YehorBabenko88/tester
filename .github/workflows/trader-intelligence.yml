@@ -1,0 +1,41 @@
+name: H trader research
+on:
+  push:
+    branches: [workstream/h-trader-intelligence]
+  pull_request:
+    paths: ['src/trader_intelligence/**', 'tests/trader_intelligence/**', 'research_app.py', '.github/workflows/trader-intelligence.yml']
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: fixture-only
+          POSTGRES_DB: tester_h_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_H_TEST_DSN: 'host=127.0.0.1 port=5432 user=postgres password=fixture-only dbname=tester_h_test'
+      TESTER_H_DSN: 'host=127.0.0.1 port=5432 user=postgres password=fixture-only dbname=tester_h_test'
+      TESTER_H_F_ROOT: '${{ github.workspace }}/peer-f'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/checkout@v4
+        with:
+          ref: 998c5bc89d1b35c9ad3047b1e50dcb1295120e31
+          path: peer-f
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -v
+      - run: python -m unittest discover -s tests/trader_intelligence -v
+      - run: python -m src.trader_intelligence.demo --output /tmp/h-before.json
+      - run: docker restart '${{ job.services.postgres.id }}'
+      - run: python -m src.trader_intelligence.demo --output /tmp/h-after.json
+      - run: cmp /tmp/h-before.json /tmp/h-after.json
