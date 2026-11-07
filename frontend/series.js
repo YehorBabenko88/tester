@@ -17,6 +17,47 @@ const rank = {
 function stateOf(v) {
   return typeof v === "string" ? v : v?.status;
 }
+// Coverage is independent of availability. A stronger envelope never erases
+// weaker record evidence; original coverage objects remain in the proof view.
+const coverageRank = {
+  COMPLETE: 0,
+  PROVISIONAL: 1,
+  PARTIAL: 2,
+  GAPS: 3,
+  RUNNING: 4,
+  NOT_STARTED: 4,
+  UNKNOWN: 5,
+  EMPTY: 6,
+  UNAVAILABLE: 7,
+  ERROR: 8,
+};
+function weakestCoverage(evidence, objects, paginated) {
+  const supplied = [
+    ...evidence.coverage,
+    ...objects
+      .filter(Boolean)
+      .flatMap((o) => (o.completeness ? [o.completeness] : [])),
+  ];
+  const statuses = supplied.map((c) => {
+    const status = stateOf(c) ?? "UNKNOWN";
+    return Object.hasOwn(coverageRank, status) ? status : "UNKNOWN";
+  });
+  if (!statuses.length) return "UNKNOWN";
+  if (paginated) statuses.push("PARTIAL");
+  if (evidence.availability !== "AVAILABLE")
+    statuses.push(
+      evidence.availability === "UNAVAILABLE"
+        ? "UNAVAILABLE"
+        : evidence.availability === "UNVERIFIED"
+          ? "UNKNOWN"
+          : "PARTIAL",
+    );
+  return statuses.reduce(
+    (worst, status) =>
+      coverageRank[status] > coverageRank[worst] ? status : worst,
+    "COMPLETE",
+  );
+}
 export function quality(objects, hasRecords = true) {
   const states = objects
     .filter(Boolean)
@@ -93,11 +134,17 @@ export function adaptSeries(payload, kind, q) {
   if (!meta || !Array.isArray(rows) || rows.length > 1000)
     throw Error("Corrupt series envelope");
   const evidence = quality([payload, meta, ...rows], rows.length > 0);
-  const completeness =
-    payload.coverage?.status ||
-    meta.coverage?.status ||
-    meta.completeness ||
-    "UNKNOWN";
+  const completeness = weakestCoverage(
+    evidence,
+    [payload, meta, ...rows],
+    !!payload.next_cursor,
+  );
+  const coverageReasons = evidence.coverage
+    .map((c) => c?.reason)
+    .filter((v) => typeof v === "string" && v.trim());
+  evidence.reason = [
+    ...new Set([evidence.reason, ...coverageReasons].filter(Boolean)),
+  ].join(" · ");
   const result = {
     ...meta,
     ...evidence,

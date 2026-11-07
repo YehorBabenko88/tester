@@ -190,7 +190,9 @@ test("bounded opaque cursor pages preserve equal timestamp footprint levels beyo
   expect(calls.length).toBe(1);
   await panel.getByRole("button", { name: "Next data page" }).click();
   await expect(panel).toContainText("Page 2");
-  await expect(panel.locator("details:not(.panel-evidence)")).toContainText("101");
+  await expect(panel.locator("details:not(.panel-evidence)")).toContainText(
+    "101",
+  );
   expect(calls[1].searchParams.get("cursor")).toBe("opaque:1000:same-time");
   expect(
     calls.every((u) => u.searchParams.get("limit") === "1000"),
@@ -234,6 +236,32 @@ test("canonical PARTIAL retains nested reason and record coverage", async ({
   await expect(panel).toContainText("fixture://coverage");
   await expect(panel.locator("canvas")).toBeVisible();
 });
+for (const status of ["PARTIAL", "UNKNOWN", "ERROR"])
+  test(`full loadCharts cannot display COMPLETE over row coverage ${status}`, async ({
+    page,
+  }) => {
+    const row = candle("PARTIAL", "row_coverage_fixture");
+    row.coverage.status = status;
+    row.coverage.evidence_refs = ["fixture://weak-row-" + status];
+    const payload = envelope([row], "AVAILABLE");
+    payload.coverage.status = "COMPLETE";
+    await setup(page, { envelope: payload });
+    await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
+    await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
+    await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
+    const panel = page.locator('[data-panel="candles"]');
+    await expect(panel.locator(".panel-meta")).toContainText(
+      "completeness " + status,
+    );
+    await expect(panel.locator(".panel-meta")).not.toContainText(
+      "completeness COMPLETE",
+    );
+    await expect(panel).toContainText("row_coverage_fixture");
+    await expect(panel.locator(".panel-evidence")).toContainText(
+      "fixture://weak-row-" + status,
+    );
+    await expect(panel.locator(".panel-evidence")).toContainText("COMPLETE");
+  });
 test("partial candles show provenance, closure and synchronized time ranges", async ({
   page,
 }) => {
@@ -690,4 +718,3 @@ test("editing range fields invalidates all old chart cursors before paging", asy
   expect(requests.at(-1).searchParams.get("cursor")).toBeNull();
   await expect(panel).toContainText("Page 1");
 });
-

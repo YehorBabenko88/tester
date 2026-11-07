@@ -60,3 +60,25 @@ test("nested metric unavailability retains its specific reason and structured so
   assert.equal(m.availability, "UNAVAILABLE");
   assert.equal(m.value, null);
 });
+for (const status of ["PARTIAL", "UNKNOWN", "ERROR"])
+  test(`row coverage ${status} overrides envelope COMPLETE without losing evidence`, () => {
+    const row = candle("PARTIAL", "row_quality_fixture");
+    row.coverage.status = status;
+    row.coverage.evidence_refs = ["fixture://row-" + status];
+    const payload = envelope([row], "AVAILABLE");
+    payload.coverage.status = "COMPLETE";
+    payload.data = {
+      rows: payload.data,
+      availability: "AVAILABLE",
+      source: "fixture://source",
+      completeness: "COMPLETE",
+    };
+    const result = adaptSeries(payload, "candles", {
+      start_ms: START,
+      end_ms: START + 60000,
+    });
+    assert.equal(result.completeness, status);
+    assert.match(result.reason, /row_quality_fixture/);
+    assert.deepEqual(result.coverage[1], row.coverage);
+    assert.deepEqual(result.coverage[0], payload.coverage);
+  });
