@@ -177,6 +177,24 @@
             ><button id="apply">Apply range / Retry charts</button>
           </div>
         </div>
+        <div class="toolbar">
+          <label
+            >OI source cadence<select
+              id="oi-source-interval"
+              aria-label="OI source cadence"
+            >
+              <option value="5min">5 minutes</option>
+              <option value="15min">15 minutes</option>
+              <option value="30min">30 minutes</option>
+              <option value="1h">1 hour</option>
+              <option value="4h">4 hours</option>
+              <option value="1d">1 day</option>
+            </select></label
+          ><span class="muted"
+            >Funding source: event-based. Display timeframe does not resample
+            source observations.</span
+          >
+        </div>
         <div class="chart-info">
           <span id="range-label"
             >Shared UTC time axis · wheel to zoom · drag to pan · Shift-drag to

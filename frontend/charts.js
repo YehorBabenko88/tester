@@ -1,5 +1,24 @@
 // Only projection to pixels uses Number; all source strings remain untouched.
 import { bucketWidth } from "./time.js";
+export function isSeriesGap(
+  previous,
+  row,
+  displayInterval,
+  sourceInterval = null,
+) {
+  if (previous === null || row.gap_before) return true;
+  if (sourceInterval === "event") return false;
+  const cadence =
+    {
+      "5min": "5",
+      "15min": "15",
+      "30min": "30",
+      "1h": "60",
+      "4h": "240",
+      "1d": "D",
+    }[sourceInterval] || displayInterval;
+  return row.ts - previous > bucketWidth(previous, cadence) * 1.5;
+}
 export function plotGeometry(width, range) {
   const left = 8,
     span = Math.max(1, width - 56),
@@ -104,10 +123,11 @@ export class PanelChart {
     });
     canvas.addEventListener("pointerleave", () => onHover(null));
   }
-  set(rows, range, interval) {
+  set(rows, range, interval, sourceInterval = null) {
     this.rows = rows;
     this.range = range;
     this.interval = interval;
+    this.sourceInterval = sourceInterval;
     this.draw();
   }
   hover(ts) {
@@ -254,12 +274,7 @@ export class PanelChart {
       ctx.beginPath();
       let previous = null;
       for (const r of this.rows) {
-        if (
-          previous === null ||
-          r.ts - previous >
-            bucketWidth(previous ?? r.ts, this.interval) * 1.5 ||
-          r.gap_before
-        )
+        if (isSeriesGap(previous, r, this.interval, this.sourceInterval))
           ctx.moveTo(x(r.ts), y(Number(r.value)));
         else ctx.lineTo(x(r.ts), y(Number(r.value)));
         previous = r.ts;

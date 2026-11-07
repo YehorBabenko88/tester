@@ -718,3 +718,35 @@ test("editing range fields invalidates all old chart cursors before paging", asy
   expect(requests.at(-1).searchParams.get("cursor")).toBeNull();
   await expect(panel).toContainText("Page 1");
 });
+test("funding event and selected OI source cadence stay separate from display timeframe", async ({
+  page,
+}) => {
+  const requests = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/api/")) requests.push(new URL(r.url()));
+  });
+  await setup(page);
+  await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
+  await expect
+    .poll(() => requests.some((u) => u.pathname === "/api/funding"))
+    .toBe(true);
+  await page.locator("#interval").selectOption("D");
+  await page.getByLabel("OI source cadence").selectOption("1h");
+  await expect
+    .poll(() =>
+      requests
+        .filter((u) => u.pathname === "/api/open-interest")
+        .at(-1)
+        ?.searchParams.get("source_interval"),
+    )
+    .toBe("1h");
+  const funding = requests.filter((u) => u.pathname === "/api/funding");
+  expect(
+    funding.every((u) => u.searchParams.get("source_interval") === "event"),
+  ).toBe(true);
+  expect(funding.at(-1).searchParams.get("interval")).toBe("D");
+  const oi = requests.filter((u) => u.pathname === "/api/open-interest");
+  expect(oi[0].searchParams.get("source_interval")).toBe("5min");
+  expect(oi.at(-1).searchParams.get("interval")).toBe("D");
+  expect(requests.some((u) => u.pathname === "/api/trades")).toBe(false);
+});

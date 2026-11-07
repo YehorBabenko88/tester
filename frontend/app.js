@@ -665,8 +665,18 @@ async function loadCharts(options = {}) {
   $("#chart-status").textContent = "Loading bounded server aggregates…";
   $("#range-label").textContent =
     `${iso(q.start_ms)} → ${iso(q.end_ms)} (exclusive) · ${q.interval} · max 1000 points/panel`;
-  for (const p of state.charts.values()) {
-    const queryKey = JSON.stringify(q);
+  const sourceCadence = (kind) =>
+    kind === "funding"
+      ? "event"
+      : kind === "open_interest"
+        ? $("#oi-source-interval").value
+        : null;
+  const cadences = new Map(PANELS.map(([kind]) => [kind, sourceCadence(kind)]));
+  for (const [kind, p] of state.charts) {
+    const queryKey = JSON.stringify({
+      ...q,
+      source_interval: cadences.get(kind),
+    });
     if (!options.keepPages || p.page.queryKey !== queryKey)
       p.page = { cursor: null, back: [], next: null, queryKey };
     p.previous.disabled = true;
@@ -689,6 +699,9 @@ async function loadCharts(options = {}) {
         const path = panelEndpoint(kind),
           params = {
             ...q,
+            ...(cadences.get(kind)
+              ? { source_interval: cadences.get(kind) }
+              : {}),
             ...(p.page.cursor ? { cursor: p.page.cursor } : {}),
             ...(path === "/api/analytics" ? { metric: kind } : {}),
           },
@@ -710,6 +723,8 @@ async function loadCharts(options = {}) {
         p.pageLabel.textContent = `Page ${p.page.back.length + 1} · ${series.source_rows.length} records (≤1000)`;
         p.originBadge.textContent = series.data_type;
         p.meta.textContent = `${series.availability} · ${(series.source || "source unknown").slice(0, 240)} · as of ${iso(series.as_of)} · completeness ${series.completeness || "UNKNOWN"} · ${series.data_type}`;
+        if (cadences.get(kind))
+          p.meta.textContent += ` · source ${cadences.get(kind)} · display ${q.interval}`;
         p.proof.textContent = JSON.stringify(
           {
             availability: series.availability,
@@ -729,7 +744,12 @@ async function loadCharts(options = {}) {
         p.message.textContent = series.reason || "";
         p.message.hidden = !series.reason;
         p.wrap.hidden = false;
-        p.chart.set(series.rows, [q.start_ms, q.end_ms], intervalMs());
+        p.chart.set(
+          series.rows,
+          [q.start_ms, q.end_ms],
+          intervalMs(),
+          cadences.get(kind),
+        );
         if (kind === "candles") {
           const open = series.rows.filter((r) => r.is_closed === false).length,
             unknown = series.rows.filter(
@@ -796,6 +816,9 @@ async function loadQuality(q, signal) {
 }
 $("#apply").onclick = loadCharts;
 $("#interval").onchange = () => {
+  if (state.active) loadCharts();
+};
+$("#oi-source-interval").onchange = () => {
   if (state.active) loadCharts();
 };
 for (const [id, factor, shift] of [

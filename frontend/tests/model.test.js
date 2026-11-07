@@ -2,7 +2,12 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { compareDecimal, metric, progress, validateSeries } from "../model.js";
 import { request } from "../api.js";
-import { plotGeometry, barDomain } from "../charts.js";
+import { plotGeometry, barDomain, isSeriesGap } from "../charts.js";
+test("OI line continuity follows source cadence rather than display timeframe", () => {
+  assert.equal(isSeriesGap(0, { ts: 2 * 3600000 }, "D", "5min"), true);
+  assert.equal(isSeriesGap(0, { ts: 86400000 }, "60", "1d"), false);
+  assert.equal(isSeriesGap(0, { ts: 5 * 60000 }, "D", "5min"), false);
+});
 test("chart forward and inverse coordinates share the exact plot area", () => {
   const g = plotGeometry(800, [1000, 2000]);
   assert.equal(g.timeAt(g.x(1750)), 1750);
