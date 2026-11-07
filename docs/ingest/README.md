@@ -35,3 +35,5 @@ The newer immutable A3098→B e236 original-run contract is separately exercised
 See [source audit](source-audit.md), [original live smoke evidence](smoke-evidence.json), [boundary evidence](boundary-evidence.json) and the [new A-to-B handoff evidence](handoff-live-evidence.json). The audit includes sources outside the implemented historical REST set and distinguishes unsupported history from unverified portal downloads.
 
 Historical verification note: the original successful smoke run is timestamped 2026-11-07 13:22 UTC; a later rerun encountered DNS failures, explicitly preserved as an environment failure. The subsequent PR10 correction performed a fresh successful live retrieval and A-export-to-B PostgreSQL18.4 replay test; its separately timestamped report is linked above. Neither success claims global historical completeness.
+
+Opt-in canonical current instrument export: see [metadata-handoff.md](metadata-handoff.md), including the Spot quantity-step limitation, source evidence and B-compatible artifacts.

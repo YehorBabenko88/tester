@@ -1,0 +1,91 @@
+[
+  {
+    "category": "spot",
+    "symbol": "BTCUSDT",
+    "run": {
+      "created_at": "2026-11-07T16:30:13.673259+00:00",
+      "ingestion_run": "run:f870fbf2d66144998eb84f86cc3d9aef",
+      "kind": "instrument_snapshot",
+      "request": {
+        "category": "spot",
+        "endpoint": "/v5/market/instruments-info",
+        "filters": {
+          "category": "spot",
+          "symbol": "BTCUSDT"
+        },
+        "historical_listing_completeness": "UNVERIFIED",
+        "snapshot_kind": "current_observation",
+        "venue": "bybit"
+      },
+      "status": "PARTIAL",
+      "updated_at": "2026-11-07T16:30:14.071173+00:00"
+    },
+    "terminal_condition": "SPOT_NO_PAGINATION",
+    "raw_observations": 1,
+    "canonical_instruments": 0,
+    "rejections": [
+      {
+        "page_ref": "evidence:51f76297f6a3a50cb31965da9e7110880fae28c978cb9475eb7481ac3336f5fa",
+        "row_index": 0,
+        "reason": "Missing/invalid documented qty_step"
+      }
+    ],
+    "attempt_errors": []
+  },
+  {
+    "category": "linear",
+    "symbol": "BTCUSDT",
+    "run": {
+      "created_at": "2026-11-07T16:30:14.087888+00:00",
+      "ingestion_run": "run:d4b6106796504591940b8ea16cf287fb",
+      "kind": "instrument_snapshot",
+      "request": {
+        "category": "linear",
+        "endpoint": "/v5/market/instruments-info",
+        "filters": {
+          "category": "linear",
+          "limit": 1,
+          "symbol": "BTCUSDT"
+        },
+        "historical_listing_completeness": "UNVERIFIED",
+        "snapshot_kind": "current_observation",
+        "venue": "bybit"
+      },
+      "status": "PARTIAL",
+      "updated_at": "2026-11-07T16:30:14.453363+00:00"
+    },
+    "terminal_condition": "EXHAUSTED",
+    "raw_observations": 1,
+    "canonical_instruments": 1,
+    "rejections": [],
+    "attempt_errors": []
+  },
+  {
+    "category": "inverse",
+    "symbol": "BTCUSD",
+    "run": {
+      "created_at": "2026-11-07T16:30:14.467662+00:00",
+      "ingestion_run": "run:7338dde0e2c24f71893a94b224ed4c37",
+      "kind": "instrument_snapshot",
+      "request": {
+        "category": "inverse",
+        "endpoint": "/v5/market/instruments-info",
+        "filters": {
+          "category": "inverse",
+          "limit": 1,
+          "symbol": "BTCUSD"
+        },
+        "historical_listing_completeness": "UNVERIFIED",
+        "snapshot_kind": "current_observation",
+        "venue": "bybit"
+      },
+      "status": "PARTIAL",
+      "updated_at": "2026-11-07T16:30:14.827152+00:00"
+    },
+    "terminal_condition": "EXHAUSTED",
+    "raw_observations": 1,
+    "canonical_instruments": 1,
+    "rejections": [],
+    "attempt_errors": []
+  }
+]
