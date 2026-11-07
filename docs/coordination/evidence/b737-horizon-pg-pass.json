@@ -1,0 +1,72 @@
+{
+  "sha": "73766dd531387f660ddfb243b64d28be9389ddd1",
+  "database": "tester_contract_b73766_20261107",
+  "fixture_kind": "SYNTHETIC_CONTRACT_CASES_NOT_BYBIT_HISTORY",
+  "all_data_retained": true,
+  "elevation_or_scm_actions": false,
+  "started_at": "2026-11-07T17:56:39.063573+00:00",
+  "master_original_repro": {
+    "coverage": {
+      "start_ms": 1700000000000,
+      "end_ms": 4102444800000,
+      "complete": false,
+      "state": "UNKNOWN",
+      "proof_refs": [],
+      "reasons": [
+        "availability_range_in_future",
+        "candidate_range_in_future",
+        "range_not_actively_verified",
+        "requested_range_in_future"
+      ],
+      "intervals": {
+        "corrupt": [],
+        "downloaded": [
+          [
+            1700000000000,
+            4102444800000
+          ]
+        ],
+        "unknown": [
+          [
+            1700000000000,
+            4102444800000
+          ]
+        ],
+        "requested": [
+          [
+            1700000000000,
+            4102444800000
+          ]
+        ],
+        "unavailable": [],
+        "verified": [],
+        "available": [],
+        "start": 1700000000000,
+        "end": 4102444800000,
+        "verified_ms": 0,
+        "percent": 0.0
+      }
+    },
+    "snapshot": {
+      "isolation": "repeatable read",
+      "started_at": "2026-11-07 17:56:40.272283+00",
+      "xmin": "955",
+      "clock_ms": 1794074200272
+    }
+  },
+  "status": "PASS",
+  "tests": 6,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "cases": [
+    "test_future_requested_range_is_unknown_and_audit_claim_is_retained",
+    "test_future_candidate_cannot_certify_a_historical_subrange",
+    "test_future_request_cannot_reuse_an_elapsed_candidate",
+    "test_future_availability_claim_cannot_certify_an_elapsed_candidate",
+    "test_elapsed_boundary_uses_one_authoritative_database_clock",
+    "test_master_original_future_reproduction"
+  ],
+  "own_cluster_stopped": true,
+  "finished_at": "2026-11-07T17:56:40.521157+00:00"
+}

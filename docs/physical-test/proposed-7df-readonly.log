@@ -1,0 +1,22 @@
+{
+  "result": "VERIFIED_READ_ONLY",
+  "release_sha": "7df3ee987c2a7cefbff13db82442faf0fb09e689",
+  "manifest_sha256": "002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf",
+  "postgres_service_present": false,
+  "starts_services": false
+}
+{
+  "mode": "PROPOSED_ONLY_NO_INSTALL",
+  "candidate": "7df3ee987c2a7cefbff13db82442faf0fb09e689",
+  "manifest_sha256": "002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf",
+  "services": [
+    "TesterPhysicalTest20261107",
+    "TesterPhysicalPg20261107"
+  ],
+  "account": "NT AUTHORITY\\LocalService",
+  "postgres": "127.0.0.1:55469",
+  "api": "127.0.0.1:18765",
+  "automatic_elevation": false,
+  "requires_new_human_administrator_action": true,
+  "deletes_data": false
+}

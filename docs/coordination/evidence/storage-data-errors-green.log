@@ -1,0 +1,19 @@
+C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+test_bad_canonical_metadata_has_its_own_safe_reason (tests.integration.test_storage_data_errors.StorageDataErrorTests.test_bad_canonical_metadata_has_its_own_safe_reason) ... ok
+test_known_integrity_block_is_not_downgraded_to_provenance_only (tests.integration.test_storage_data_errors.StorageDataErrorTests.test_known_integrity_block_is_not_downgraded_to_provenance_only) ... ok
+test_raw_diagnostics_are_not_valid_public_reasons (tests.integration.test_storage_data_errors.StorageDataErrorTests.test_raw_diagnostics_are_not_valid_public_reasons) ... ok
+test_unavailable_range_does_not_claim_corruption (tests.integration.test_storage_data_errors.StorageDataErrorTests.test_unavailable_range_does_not_claim_corruption) ... ok
+test_unconnected_resource_remains_provider_unavailable (tests.integration.test_storage_data_errors.StorageDataErrorTests.test_unconnected_resource_remains_provider_unavailable) ... ok
+test_unverified_original_run_is_data_unavailable_not_disconnected (tests.integration.test_storage_data_errors.StorageDataErrorTests.test_unverified_original_run_is_data_unavailable_not_disconnected) ... ok
+test_actual_b_attached_provenance_pages_without_n_plus_one_queries (test_storage_trade_reader.TradeReaderTests.test_actual_b_attached_provenance_pages_without_n_plus_one_queries) ... ok
+test_caller_origin_without_original_declaration_is_not_strong_binding (test_storage_trade_reader.TradeReaderTests.test_caller_origin_without_original_declaration_is_not_strong_binding) ... ok
+test_corrupt_empty_retains_original_reason (test_storage_trade_reader.TradeReaderTests.test_corrupt_empty_retains_original_reason) ... ok
+test_factory_uses_own_tester_providers_only (test_storage_trade_reader.TradeReaderTests.test_factory_uses_own_tester_providers_only) ... ok
+test_missing_and_mismatched_provenance_fail_closed (test_storage_trade_reader.TradeReaderTests.test_missing_and_mismatched_provenance_fail_closed) ... ok
+test_other_resources_fail_explicitly_without_analytics (test_storage_trade_reader.TradeReaderTests.test_other_resources_fail_explicitly_without_analytics) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.278s
+
+OK

@@ -30,7 +30,9 @@ def wait_health(port, process):
                 connection.request("GET", "/api/health")
                 response = connection.getresponse()
                 data = json.loads(response.read())
-                if response.status == 200 and data["data"]["status"] == "ok":
+                if response.status in {200, 503} and all(
+                    data["data"].get(k) == "ok" for k in ("database", "worker", "storage")
+                ):
                     return
             finally:
                 connection.close()
@@ -71,7 +73,9 @@ def lifecycle(dsn):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
-    print("PASS: real API + PostgreSQL + worker readiness and graceful shutdown")
+    print(
+        "PASS: real API + PostgreSQL + worker operational readiness and graceful shutdown (provider unavailability remains degraded)"
+    )
 
 
 def main():

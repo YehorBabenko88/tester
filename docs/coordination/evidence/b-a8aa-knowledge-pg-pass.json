@@ -1,0 +1,81 @@
+{
+  "sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec",
+  "database": "tester_contract_ba8aa_20261107",
+  "fixture_kind": "SYNTHETIC_CONTRACT_CASES_NOT_BYBIT_HISTORY",
+  "all_data_retained": true,
+  "elevation_or_scm_actions": false,
+  "started_at": "2026-11-07T18:08:53.430895+00:00",
+  "master_original_repro": {
+    "coverage": {
+      "start_ms": 1700000000000,
+      "end_ms": 4102444800000,
+      "complete": false,
+      "state": "UNKNOWN",
+      "proof_refs": [],
+      "reasons": [
+        "availability_range_in_future",
+        "candidate_range_in_future",
+        "range_not_actively_verified",
+        "requested_range_in_future"
+      ],
+      "intervals": {
+        "verified": [],
+        "available": [],
+        "unknown": [
+          [
+            1700000000000,
+            4102444800000
+          ]
+        ],
+        "requested": [
+          [
+            1700000000000,
+            4102444800000
+          ]
+        ],
+        "downloaded": [
+          [
+            1700000000000,
+            4102444800000
+          ]
+        ],
+        "unavailable": [],
+        "corrupt": [],
+        "start": 1700000000000,
+        "end": 4102444800000,
+        "verified_ms": 0,
+        "percent": 0.0
+      }
+    },
+    "snapshot": {
+      "isolation": "repeatable read",
+      "started_at": "2026-11-07 18:08:54.658078+00",
+      "xmin": "967",
+      "clock_ms": 1794074934658
+    }
+  },
+  "live_knowledge": {
+    "current_coverage_positive_control": true,
+    "historical_status": "UNAVAILABLE",
+    "quality_available_at_ms": null,
+    "original_database_timestamp_preserved": true,
+    "C_rejects_missing_quality_time": true,
+    "cap_discards_partial_certificate": true
+  },
+  "status": "PASS",
+  "tests": 7,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "cases": [
+    "test_future_requested_range_is_unknown_and_audit_claim_is_retained",
+    "test_future_candidate_cannot_certify_a_historical_subrange",
+    "test_future_request_cannot_reuse_an_elapsed_candidate",
+    "test_future_availability_claim_cannot_certify_an_elapsed_candidate",
+    "test_elapsed_boundary_uses_one_authoritative_database_clock",
+    "test_master_original_future_reproduction",
+    "test_live_knowledge_and_c_rejection"
+  ],
+  "own_cluster_stopped": true,
+  "finished_at": "2026-11-07T18:08:55.121747+00:00"
+}

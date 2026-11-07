@@ -1,0 +1,8 @@
+{
+  "candidate": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+  "reason": "APP_CODE:WIN32_JOB_NAME_NONE",
+  "immutable_release_preserved": true,
+  "installable": false,
+  "original_uac_wrapper_retained": "backups/install-and-start-0ff-original-RETIRED.ps1",
+  "blocked_current_wrapper_sha256": "6efebfd868dc0aa49f86c5e8d0216ac2b4dd31adaaa00788d2a6787cecfb7677"
+}

@@ -1,0 +1,12 @@
+test_future_requested_range_is_unknown_and_audit_claim_is_retained (__main__.RetainedHorizon.test_future_requested_range_is_unknown_and_audit_claim_is_retained) ... ok
+test_future_candidate_cannot_certify_a_historical_subrange (__main__.RetainedHorizon.test_future_candidate_cannot_certify_a_historical_subrange) ... ok
+test_future_request_cannot_reuse_an_elapsed_candidate (__main__.RetainedHorizon.test_future_request_cannot_reuse_an_elapsed_candidate) ... ok
+test_future_availability_claim_cannot_certify_an_elapsed_candidate (__main__.RetainedHorizon.test_future_availability_claim_cannot_certify_an_elapsed_candidate) ... ok
+test_elapsed_boundary_uses_one_authoritative_database_clock (__main__.RetainedHorizon.test_elapsed_boundary_uses_one_authoritative_database_clock) ... ok
+test_master_original_future_reproduction (__main__.RetainedHorizon.test_master_original_future_reproduction) ... ok
+test_live_knowledge_and_c_rejection (__main__.RetainedHorizon.test_live_knowledge_and_c_rejection) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.829s
+
+OK

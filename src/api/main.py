@@ -1,4 +1,5 @@
 import logging
+import os
 from copy import deepcopy
 from typing import Annotated
 from uuid import UUID
@@ -26,7 +27,7 @@ from .models import (
     Job,
     Query,
 )
-from .providers import ProviderUnavailable, UnavailableReader, load_factory
+from .providers import ProviderDataUnavailable, ProviderUnavailable, UnavailableReader, load_factory
 from .scope import (
     CursorCodec,
     CursorError,
@@ -88,6 +89,14 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
     @app.exception_handler(ProviderUnavailable)
     async def provider_error(request, exc):
         return error(503, "provider_unavailable", "Requested provider is not connected")
+
+    @app.exception_handler(ProviderDataUnavailable)
+    async def provider_data_error(request, exc):
+        # Never echo a provider exception/URL/run/SQL string into a public reason.
+        message = ProviderDataUnavailable.MESSAGES.get(
+            exc.reason_code, "Requested data could not be verified"
+        )
+        return error(503, "data_unavailable", message)
 
     @app.exception_handler(ContractError)
     async def contract_error(request, exc):
@@ -167,10 +176,16 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             except psycopg.Error:
                 pass
         storage = storage_status(settings)
-        ok = database == worker == storage["storage"] == "ok"
+        provider_status = "unavailable" if isinstance(reader, UnavailableReader) else "configured"
+        ok = database == worker == storage["storage"] == "ok" and provider_status == "configured"
         body = Envelope(
             data=Health(
-                status="ok" if ok else "degraded", database=database, worker=worker, **storage
+                status="ok" if ok else "degraded",
+                database=database,
+                worker=worker,
+                provider=provider_status,
+                instance_id=os.environ.get("TESTER_SERVICE_INSTANCE"),
+                **storage,
             )
         )
         return JSONResponse(status_code=200 if ok else 503, content=body.model_dump(mode="json"))

@@ -1,3 +1,101 @@
+# Automation status observation — PAUSED
+
+Officialupdate/configreadback now reportsPAUSED; this observed configuration was preserved, not automatically resumed. Pause cause is not exposed and not inferred; future scheduled continuation is not guaranteed. Repaired7df candidate/evidence and exactcheckpoint are saved; nativeSCM remainsblocked pendingnewhumanadministratoraction. PriorACTIVE observations below are historical. No newUAC or source/data changes.
+
+---
+
+# Repaired immutable candidate and foundation PG — 2026-11-07T18:47:51.939617+00:00
+
+**NOT_READY / no SCM installation / cancelledUAC not retried.** New immutable candidate7df3ee987c2a7cefbff13db82442faf0fb09e689:464files/3050866bytes, manifest002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf. Full externalVerify passed; actual EXACTfrozen host+supervisor/API/worker/limited-rolePG→Chrome unavailable/retry path passed, operationalhealth503degraded, providerunavailable, instance_idnull, stop0/PGstopped. No mixedworktreehost this time; still not SCM/LocalService/financialUI acceptance. Original0ff/oldconfig retained/retired. Own active config now points frontend to7df; no provider/data defaults changed. Separately proposed7df installer is read-only bydefault, tested; standard-user registration switch rejects beforeSCM, no automaticelevation. Oldlauncher staysblocked; new humanadministratoraction required.
+
+B70a3 independent9actualPG foundationcases PASS:6→7repeat preservesraw/ACL, harddisabledschema, freshTX guards, atomicbody/generations/ledger, rollback, trylockcontention/release and heldthroughactualcommit, no runtimevisibilityschema rights, unchangedlegacy Storebypass demonstrateswhyUNENROLLED/knowledgeUNAVAILABLE remains. Separate newfixtureDB retained, noDROP/deletion, ownclusterstopped. Narrow prototype accepted only PR13comment6711530726. Current sourceheads/GitHub refreshed, CI7dfstillqueued, no mainmerge/trading/global5432/securitychanges. Next service gate requires human action; keep independent integration/enforcement work conservative.
+
+---
+
+# Native JobObject repair and real foreground browser — 2026-11-07T18:30:01.497495+00:00
+
+**NOT_READY / original physical0ff RETIRED NOT_INSTALLABLE; UAC cancellation unchanged.** Real privatepywin32 312 failed CreateJobObject(None,None) before childspawn. Strict mock reproduced RED; one-line emptystring fix,135platformPASS/14skip/8subtests, lint/format/pins/OpenAPI passed; native2jobs isolation/limit check passed. Repaired worktree host launched unchanged0ff supervisor/API/worker against limited-role ownPG55469. Real Chrome/no mocks displayed truthful503provider_unavailable, retry andmarketselection reachedactualAPI; no browserexceptions, allfinancial/Strategy panels remainedunavailable. HealthDB/worker/storageok/providerunavailable/instance_idnull, foregroundexit0 andPGstopped. This is mixedcomponenttesting, not SCM/LocalService or rebuiltartifact acceptance. Screenshot andcommands in docs/physical-test/NATIVE_JOB_REPAIR.md.
+
+Immutable0ff/manifest preserved but mustnotinstall; oldwrapper retained and current/versionedlauncher failclosed (tested). Need newchecksummed candidate before replacementpayload; noautomaticUAC. E actualidlechecked and producerDraft28backport assignedonce PR28comment6711337184. B70a3 foundation independently11mock +SQL/inventory static review passed, no newactualPG/protocolsuccess. Next root retainedfoundationmigration/constraint/rollback/contentiontests, keepUNENROLLED/productionUNAVAILABLE/noCmapping. Allsourceheads/GitHub refreshed, hostedCI stillqueued, mainunchanged.
+
+---
+
+# Technical review outcome — LIMITED foundation only
+
+Exact89221 proposal reviewed by MASTER and independent reviewer. Issue2comment6711209526 approves only experimental schema/epoch/common-gate foundation and tests, while production quality remainsUNAVAILABLE/null and epochs stayUNENROLLED if direct/legacy writers bypass gates. No historical success/C mapping/provider defaults authorized. Capture visibility and later receiptpublication must remain separate; UTC trust/uncertainty, restoreexternalepoch, atomicallmutatorgeneration and archive/negative-fact limits stay gates. B actualidlechecked then nextstage dispatched once. Evidence in reviews/VISIBILITY_PROTOCOL_89221.md. Native UAC block remains unchanged.
+
+---
+
+# New prospective visibility proposal received
+
+B89221f2 adds design/specification tests only; production source remainsa8aa with UNAVAILABLE historical quality. MASTER independently20pure testsPASS; deliberately unsafe sampled-clock candidate fails10/10 as expected. These are symbolic cases, not PG/MVCC/crash/durability acceptance. Technical review of enforced all-writer fence/clock/restore/C mapping is pending; no successful production certificate/default activation authorized. See Issue2comment6711141791 and exact B proposal.
+
+---
+
+# B knowledge-time result review — 2026-11-07T18:13:30.176225+00:00
+
+**NOT_READY / historical-quality activation BLOCKED.** Root independently verified exactB a8aa7e1:18unit/mock +7actualPG casesPASS/0skip. Original PostgreSQL timestamp strings preserved, present-time COMPLETE positive control maintained, historical qualityUNAVAILABLE/null/as_offalse. Actual C rejects null; observation cap discards facts/proof. Accepted truthful bounded projection only (PR13comment6711137234), not functional historical-availability certification or composition.
+
+Root also confirmed TWO actual PG counterexamples: DEFAULTnow precedes cutoff while row remains uncommitted/invisible; RR snapshot established before lock still omits a committed row after lock. Separate retained own fixture DB/schema/rows; no deletion/SCM/elevation, cluster stopped. New B task Issue2comment6711141791 requires a versioned prospective immutable-snapshot/named-fence proposal and adversarial cases, MASTER technical review before success activation. Actual idle checked then active design turn confirmed; temporary independent reviewer challenges invariants. No legacy backdating/global settings/C weakening/default activation. Physical0ff remains immutable and NOT_INSTALLED after cancelled UAC; no repeated UAC. This result-triggered review is not a new scheduler invocation; last verified heartbeat remains17:53:52Z.
+
+---
+
+# Heartbeat — bounded proof and next knowledge-time gate, 2026-11-07T18:02:59.540807+00:00
+
+**NOT_READY / physical UAC block unchanged.** Independently ran exactB73766 six PostgreSQL horizon cases through limited app role in a new retained own-cluster fixture DB:6PASS/0fail/0skip, including original MASTER2100 repro and a positive elapsed-clock control. Original future bounds retained, completefalse/UNKNOWN/no proof/0percent. Author DROP teardown explicitly overridden; DB/rows retained, own55469 stopped, no SCM/elevation/user-data deletion. Synthetic proof fixtures are not live history. Narrow acceptance PR13comment6711005818; physical0ff and integration19f remain unchanged.
+
+New concrete integration gap: C requires proved quality_available_at_ms before cutoff, while bounded B projection omits recorded/inserted/run clocks. Do not substitute source fetched_at, event time or current read time. B Issue2comment6711027252 assigned once after actual idle check; real active turn confirmed. MASTER recorded single-snapshot bounded provider plan and cutoff/resource/provenance regressions in INTEGRATION_PLAN_V1.md. All source heads unchanged,11DraftPRs/issues refreshed, CI718 remains queued. No new UAC prompt. Next: review B knowledge-time delta, then compose B→shared→C→typedE→D in isolated Draft without activating immutable physical candidate.
+
+---
+
+# Latest cycle result — E P2 independently verified
+
+E finished existing disclosure task at bec563e; MASTER independently48financialHTTP testsPASS after exactGit snapshot/diff review. Unknown/private errorcodes safelymap503, raw diagnostics are not exposed. Narrow P2 accepted in PR9 comment6710868433; E nowidle, bec notcomposed and physicalfrozen0ff unchanged. B73766 has13purechecks/source review only; independentPGproof pending. Real50-row/teninstrument replay/retainedbackup-restore/sourcepayload-time checks passed in ownPG, then stopped. Native installation still blocked by cancelledUAC; no retry and no main merge.
+
+---
+
+# Heartbeat physical data test — 2026-11-07T17:45:06.804450+00:00
+
+**Native installation remains BLOCKED after cancelled UAC; no retry/elevation.** Independent nonprivileged work completed against frozen0ff59c69: ten real Bybit candle handoffs inserted through actual limited app role into owned PG55469, replayed without duplication (50rows), original run provenance/source ms precision retained. Retained post-data custom backup restored into a new owned DB; all B/E base-table row counts/content hashes matched. Separate read-only comparison verified all original payload/hash/time values in both DBs; initial/final owned-process RAM/CPU/disk samples saved (not stress/peak). Both DBs/backups/logs retained; own cluster stopped, existing5432 still running. This is foreground data acceptance only, not SCM/full-history/UI acceptance. Verified batch flags stayedfalse; completeness was not manufactured.
+
+GitHub Issue1–18/25/27 and all11DraftPR/branch heads refreshed; source heads unchanged, CI388e3df pending/queued. Independent B73766 source/13purechecks PASS, no independent PG acceptance/adoption yet. A–H chats actually inspected: E idle then resumed once for existing PR9P2 issue6710347416; active turn and RED8HTTP→GREEN progress confirmed, no duplicate Issue. Others idle; G/H chat dispatch remains unauthorized. Next: E published fix verification, independent B73766 PG tests in disposable fixture cluster; keep frozen physical candidate immutable and never reopen cancelled UAC automatically.
+
+---
+
+# Physical checkpoint — UAC cancelled, 2026-11-07T17:37:57.403442+00:00
+
+**BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED / NOT_ACCEPTED.** Windows returned cancellation for the actual RunAs request. No elevated process was created; consent29596/launcher32968 have exited; no owned services or elevated operation log exist. Do not automatically repeat elevation. Earlier pending-UAC checkpoint below is historical. Standard-user SCMcreate denied5 remains; human administrator action is required for a new normal-UAC attempt. Frozen0ff59c69/manifest, prepared stopped own DB, private dependencies and Draft29 retained. No user data deletion, existing5432 modification, main merge or trading. Exact continuation in docs/physical-test/CHECKPOINT.json.
+
+---
+
+# Physical checkpoint — normal UAC pending, 2026-11-07T17:35:55.906439+00:00
+
+**NOT_ACCEPTED / AWAITING_WINDOWS_ADMINISTRATOR_UAC.** Draft29 frozen source0ff59c69, manifestec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec,431files/2656342bytes externally verified. Private venv37distributions/2701RECORDhashes and pipcheckPASS. Actual normalRunAs invoked17:33:05Z, consent.exe29596 observed and launcher32968 still awaiting OS administrator credential; no own SCM services yet. Do not open a duplicate UAC prompt. One bounded reviewed wrapper only registers own PG/app services and requests start; no persistent elevated agent. See physical CHECKPOINT for payload, active launcher/session and exact continuation. CI for frozen0ff remains queued, not passed. Existing5432 untouched; own cluster stopped after B/E migration/privilege tests.
+
+---
+
+# Current direct mission — Issue27 isolated physical Windows test
+
+**NOT_ACCEPTED.** Current-PC authorization supersedes earlier no-install restriction only for dedicated tester resources. Physical branch physical/master-windows-test: root/private venv prepared; actual own PG18 cluster55469 initialized, B/E migrations and app no-DDL/no-DELETE probes passed, retained backup, stopped. Existing PostgreSQL5432 untouched. First pg_ctl inherited PIPE hang diagnosed and repaired with guarded non-destructive resume. Native startup STOP/junction fixes independently24PASS; complete platform135PASS/14skips, root unittest258/48skips. Ten real Bybit candle windows50rows observed with original evidence; coverage PARTIAL, no full-history/trader claim. No native SCM service installed: standard-user create denied5, separate-admin normalUAC required after frozen payload review. See docs/physical-test/CHECKPOINT.json and COMPONENT_MATRIX.md for exact next steps. F/G/TI and financial-provider bindings remain not integrated; no main merge/trading/deletion.
+
+---
+
+# Current heartbeat — safe data errors and blocked future proof, 2026-11-07T17:40:25.947175+01:00
+
+**NOT_READY.** Current composed sources remain A0a6d/B e236/C3cb/E5fa/D6cf; new Aa628 catalog and Bdc545 bounded API are not composed. GitHub Issues1–18/25,9DraftPRs, A–G/H refs, Issue8/25/PR11 comments and CI refreshed. Main unchanged0a6ce227. Existing worktree only.
+
+Root fixed a real HTTP diagnostic defect: connected storage with unverified original run or invalid canonical values previously said provider notconnected. New typed503data_unavailable returns only whitelisted provenance/canonical/integrity/unavailable-range/continuation reasons; unsupported resources retainprovider_unavailable. Integrity is not downgraded to provenance, unavailable does not imply corruption, raw private diagnostics never echoed. Two oldHTTP regressionsRED;6HTTP+6legacyreaderGREEN, actualPGHTTP caller-onlyoriginal thenintegrity PASS. Final root254methods252PASS2root optin skips; separate platform113PASS2skips. Core/policypins, OpenAPIsemantic equality and targetedRuff lint/formatPASS; ownPGstopped. No record schema/Cmath/proof/default changes.
+
+New Bdc545 independently76actualPG+3literalchecksPASS, resource/snapshot narrowreviewPASS; but independent semantic reviewer found and root confirmed P1: one historical exchange-ID trade+matchedrun/operatorattestation[2023,2100) returnsCOMPLETE100% with nonemptyproofrefs at2026snapshot. Root extraPGprobeRED saved. Newproof NOTintegrated; composedoldreader remainsUNKNOWN. ExactP1PR13:6709945814; B idlecheckedthenresumedonce, actualactiveprogressconfirmed. Must gate both requested/candidate future horizons, no clipping into100%.
+
+New nonduplicate tasks: A1:6709792128 canonical instrument metadata/sourceincrements; E5:6709792406 explicit derived-query cutoff/step/cursor contract. Bothidlecheckedbeforefollowups and realactiveexecution confirmed. A publisheda628 docs/source/test metadata module, nowindependentreviewpending; not rootaccepted/composed. E typedcontract stillactive. B source/proof correctionactive. GAWAITING_AGENT_EXECUTION; no G/Hdispatchauthorization assumed. UI alreadyrenders structuredcode/message, no substitute data.
+
+Fifth actualheartbeat16:20:23.859Z recorded. Candidate19f306CI allqueued; storagejobsreadback4queued/ubuntu-latest/no runner assigned, reasonunknown. No successfulCI/billingcause claimed. Next: correctedBfutureproof, Ametadatareview, Etypedcontract, compositefinancialAPI/full-range→actualD browser, thenreal10instrument/history/resources/service/CI; F/G separate. TIinertS0,no mainmerge/physicaldeploy/trading/userdatadeletion.
+
+---
+
+## Historical checkpoints below
+
 # Current heartbeat — tested five-component composition, 2026-11-07T17:15:37.358876+01:00
 
 **NOT_READY.** Existing worktree preparation branch integration/pinned-ac-20261107 composes A0a6d07c / Be236395 / C3cb0735 / E5fa20ce / D6cf9a2a. No main merge; producer heads retained in integration history. Sources coexist, but configured optional API is still trades-only: catalog/derived-provider/full-range proof and actual financial browser path are pending. F/G/H not composed. TI inertS0.

@@ -1,0 +1,20 @@
+{
+  "scope": "SYNTHETIC_OWNED_RETAINED_SQL_COUNTEREXAMPLES",
+  "database": "tester_contract_ba8aa_20261107",
+  "all_data_retained": true,
+  "historical_certificate_issued": false,
+  "transaction_start_counterexample": {
+    "recorded_at": "2026-11-07 18:11:56.610300+00:00",
+    "cutoff": "2026-11-07 18:11:56.611158+00:00",
+    "recorded_before_cutoff": true,
+    "not_visible_at_cutoff": true,
+    "visible_only_after_commit": true
+  },
+  "rr_before_lock_counterexample": {
+    "writer_committed_before_reader_lock": true,
+    "old_RR_snapshot_still_omits_committed_fact": true,
+    "fresh_snapshot_sees_fact": true
+  },
+  "status": "PASS_COUNTEREXAMPLES_CONFIRMED",
+  "own_cluster_stopped": true
+}

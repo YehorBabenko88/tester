@@ -1,0 +1,57 @@
+{
+  "sha": "70a3ae5f82f707365c17048b2d58379a8e2456c4",
+  "database": "tester_contract_b70a3_20261107",
+  "fixture_kind": "SYNTHETIC_FOUNDATION_NOT_BYBIT_HISTORY",
+  "all_data_retained": true,
+  "historical_certificate_issued": false,
+  "started_at": "2026-11-07T18:43:02.847055+00:00",
+  "migration_6_to_7_repeat_preserves_raw_and_acl": true,
+  "status": "PASS",
+  "tests": 9,
+  "failures": 0,
+  "errors": 0,
+  "cases": [
+    {
+      "case": "test_01_upgrade_six_to_seven_twice_preserves_data_and_acl",
+      "status": "PASS"
+    },
+    {
+      "case": "test_02_hard_disabled_checks_and_null_time_bounds",
+      "status": "PASS"
+    },
+    {
+      "case": "test_03_old_transaction_and_rr_snapshot_are_rejected",
+      "status": "PASS"
+    },
+    {
+      "case": "test_04_atomic_body_sorted_generations_and_ledger",
+      "status": "PASS"
+    },
+    {
+      "case": "test_05_body_failure_rolls_back_rows_counters_and_ledger",
+      "status": "PASS"
+    },
+    {
+      "case": "test_06_common_gate_contends_across_epochs_and_releases",
+      "status": "PASS"
+    },
+    {
+      "case": "test_07_actual_transaction_exit_keeps_gate_until_commit",
+      "status": "PASS"
+    },
+    {
+      "case": "test_08_runtime_grants_unchanged_and_visibility_inaccessible",
+      "status": "PASS"
+    },
+    {
+      "case": "test_09_legacy_direct_writer_bypasses_without_enrollment_or_history_claim",
+      "status": "PASS"
+    }
+  ],
+  "source_sha256": {
+    "src\\storage\\visibility_foundation.py": "28f9380282fcbdc544a48e8997dab1dbf4a008fcb72bbd3d377eacbaf8abd836",
+    "src\\storage\\migrations\\007_visibility_foundation.sql": "5973d536cfc9d0b9c85b1dacc8c87a465605c701084b904b4a4f07ab4f56aa5a"
+  },
+  "own_cluster_stopped": true,
+  "finished_at": "2026-11-07T18:43:05.098898+00:00"
+}

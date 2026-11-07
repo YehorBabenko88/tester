@@ -1,0 +1,43 @@
+test_diagnostics_do_not_consume_repair_budget_and_no_false_acceptance (test_physical_journal.PhysicalJournalTests.test_diagnostics_do_not_consume_repair_budget_and_no_false_acceptance) ... ERROR
+test_foreign_owner_or_outside_path_refused_without_rewrite (test_physical_journal.PhysicalJournalTests.test_foreign_owner_or_outside_path_refused_without_rewrite) ... ERROR
+test_restart_dedup_and_three_failure_budget_persist (test_physical_journal.PhysicalJournalTests.test_restart_dedup_and_three_failure_budget_persist) ... ERROR
+test_stale_writer_cannot_overwrite_new_checkpoint (test_physical_journal.PhysicalJournalTests.test_stale_writer_cannot_overwrite_new_checkpoint) ... ERROR
+
+======================================================================
+ERROR: test_diagnostics_do_not_consume_repair_budget_and_no_false_acceptance (test_physical_journal.PhysicalJournalTests.test_diagnostics_do_not_consume_repair_budget_and_no_false_acceptance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_physical_journal.py", line 28, in test_diagnostics_do_not_consume_repair_budget_and_no_false_acceptance
+    journal=self.scope(directory)
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_physical_journal.py", line 9, in scope
+    from src.integration.physical_journal import PhysicalJournal
+ModuleNotFoundError: No module named 'src.integration.physical_journal'
+
+======================================================================
+ERROR: test_foreign_owner_or_outside_path_refused_without_rewrite (test_physical_journal.PhysicalJournalTests.test_foreign_owner_or_outside_path_refused_without_rewrite)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_physical_journal.py", line 35, in test_foreign_owner_or_outside_path_refused_without_rewrite
+    from src.integration.physical_journal import PhysicalJournal,JournalConflict
+ModuleNotFoundError: No module named 'src.integration.physical_journal'
+
+======================================================================
+ERROR: test_restart_dedup_and_three_failure_budget_persist (test_physical_journal.PhysicalJournalTests.test_restart_dedup_and_three_failure_budget_persist)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_physical_journal.py", line 14, in test_restart_dedup_and_three_failure_budget_persist
+    from src.integration.physical_journal import RepairBlocked
+ModuleNotFoundError: No module named 'src.integration.physical_journal'
+
+======================================================================
+ERROR: test_stale_writer_cannot_overwrite_new_checkpoint (test_physical_journal.PhysicalJournalTests.test_stale_writer_cannot_overwrite_new_checkpoint)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_physical_journal.py", line 43, in test_stale_writer_cannot_overwrite_new_checkpoint
+    from src.integration.physical_journal import JournalConflict
+ModuleNotFoundError: No module named 'src.integration.physical_journal'
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.005s
+
+FAILED (errors=4)
