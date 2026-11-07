@@ -54,10 +54,26 @@ def download_candles(client,cat,sym,kind,tf,a,b,progress=lambda *args:None):
             count=db.save_candles(cat,sym,kind,tf,rows,closed_before(tf,utc_ms()))
             if not valid:
                 status="empty"
-            elif tf.isdigit() or tf in ("D","W"):
-                gap=any(v-u!=tf_minutes(tf)*60000 for u,v in zip(sorted(valid),sorted(valid)[1:]))
-                status="gaps" if gap else "complete"
-            else: status="complete"
+            elif tf=="M":
+                # Calendar-month continuity (UTC) cannot be checked using fixed 31d steps.
+                from datetime import datetime, timezone
+                p=datetime.fromtimestamp(x/1000,timezone.utc)
+                year,month=p.year,p.month
+                expected=set()
+                while True:
+                    t=int(datetime(year,month,1,tzinfo=timezone.utc).timestamp()*1000)
+                    if t>=min(y,closed_before(tf,utc_ms())):break
+                    if t>=x:expected.add(t)
+                    month+=1
+                    if month==13:year,month=year+1,1
+                status="complete" if set(valid)==expected else "gaps"
+            else:
+                # Check both interior gaps AND missing leading/trailing closed bars.
+                width=tf_minutes(tf)*60000
+                offset=4*DAY if tf=="W" else 0
+                first=((x-offset+width-1)//width)*width+offset
+                expected=set(range(first,min(y,closed_before(tf,utc_ms())),width))
+                status="complete" if set(valid)==expected else "gaps"
             if y>closed_before(tf,utc_ms()):
                 status="provisional"
             db.coverage_set(cat,sym,kind,tf,x,y,status,count,
@@ -136,10 +152,17 @@ def download_archives(client,cat,sym,days,progress=lambda *args:None):
             url=client.archive_url(cat,sym,day)
             with client.s.get(url,stream=True,timeout=(20,150)) as response:
                 response.raise_for_status()
+                content_length=int(response.headers.get("Content-Length") or 0)
+                last_report=-1
                 with part.open("wb") as out:
                     for block in response.iter_content(1024*1024):
                         if block:
                             out.write(block);digest.update(block);size+=len(block)
+                            # Byte-level progress for long files when HTTP length is known.
+                            checkpoint=size//(16*1024*1024)
+                            if content_length>0 and checkpoint!=last_report:
+                                last_report=checkpoint
+                                progress(i-1+min(size/content_length,0.99),len(days),"archive bytes")
             if not size: raise ValueError("Empty archive")
             # Reading until EOF validates gzip CRC. Rows are never silently omitted.
             with gzip.open(part,"rt",encoding="utf-8-sig",newline="") as stream:
