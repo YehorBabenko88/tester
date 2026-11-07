@@ -47,10 +47,10 @@ def parse_command(payload: dict[str, Any]) -> Command:
     if not isinstance(actor,str) or not re.fullmatch(r"[a-zA-Z0-9:_-]{1,100}",actor):
         raise ValueError("invalid actor")
     action = payload.get("action")
-    if action not in ACTIONS:
+    if not isinstance(action, str) or action not in ACTIONS:
         raise ValueError("action not allowed")
     category, symbol = payload.get("category"),payload.get("symbol")
-    if category is not None and category not in CATEGORIES:
+    if category is not None and (not isinstance(category, str) or category not in CATEGORIES):
         raise ValueError("invalid category")
     if symbol is not None and (not isinstance(symbol,str) or not SYMBOL.fullmatch(symbol)):
         raise ValueError("invalid symbol")

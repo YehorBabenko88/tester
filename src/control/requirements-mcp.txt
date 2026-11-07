@@ -1,0 +1,4 @@
+# Optional stdio bridge, isolated from A-F application dependencies.
+mcp==1.30.0
+# Tested with the SDK 1.x settings model (newer settings emit forward-ref warnings).
+pydantic-settings==2.12.0
