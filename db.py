@@ -116,3 +116,35 @@ def footprint(cat,sym,tf,limit=700):
                  buy_volume-sell_volume,trade_count FROM clusters
                  WHERE category=%s AND symbol=%s AND timeframe=%s
                  ORDER BY bucket DESC,price DESC LIMIT %s""",(cat,sym,tf,limit)).fetchall()
+
+
+def reconcile_minute_volume(category,symbol,first_day,last_day):
+    """Compare complete archived trade sizes with exchange 1m candle volume.
+
+    Volume units may differ for some derivatives; flag rather than equate blindly.
+    """
+    with connect() as c:
+        return c.execute("""
+          WITH ticks AS (
+            SELECT (t.ts_ns/60000000000)*60000 AS minute_ts,
+                   sum(t.size) AS tick_qty, count(*) AS tick_count
+            FROM trades t
+            JOIN trade_files f ON f.category=t.category AND f.symbol=t.symbol
+                 AND f.day=t.day
+            WHERE t.category=%s AND t.symbol=%s AND t.day BETWEEN %s AND %s
+            GROUP BY 1
+          ), paired AS (
+            SELECT t.minute_ts,t.tick_qty,t.tick_count,k.volume AS kline_qty,
+                CASE WHEN k.ts IS NULL THEN 'missing_candle'
+                     WHEN abs(t.tick_qty-k.volume)>
+                         greatest(0.00000001::numeric,abs(k.volume)*0.000001::numeric)
+                     THEN 'volume_mismatch'
+                     ELSE 'matched' END AS state
+            FROM ticks t
+            LEFT JOIN candles k ON k.category=%s AND k.symbol=%s
+                 AND k.kind='trade' AND k.timeframe='1' AND k.ts=t.minute_ts
+          )
+          SELECT state,count(*) AS minute_count,sum(tick_count) AS trades,
+                 max(abs(tick_qty-kline_qty)) AS largest_difference
+          FROM paired GROUP BY state ORDER BY state
+        """,(category,symbol,first_day,last_day,category,symbol)).fetchall()
