@@ -1,0 +1,59 @@
+✔ pinned canonical AVAILABLE fixture and metadata survive adaptation (41.7432ms)
+✔ pinned canonical PARTIAL fixture and metadata survive adaptation (0.3179ms)
+✔ pinned canonical UNAVAILABLE fixture and metadata survive adaptation (0.1787ms)
+✔ pinned canonical UNVERIFIED fixture and metadata survive adaptation (0.1305ms)
+✔ row unavailability cannot be upgraded by an AVAILABLE envelope (0.1815ms)
+✔ nested metric unavailability retains its specific reason and structured sources (0.1482ms)
+✔ row coverage PARTIAL overrides envelope COMPLETE without losing evidence (0.166ms)
+✔ row coverage UNKNOWN overrides envelope COMPLETE without losing evidence (0.2535ms)
+✔ row coverage ERROR overrides envelope COMPLETE without losing evidence (0.2892ms)
+✔ chart forward and inverse coordinates share the exact plot area (0.9549ms)
+✔ sort exact decimals without rounding and leave unavailable last (0.2651ms)
+✔ metric cannot claim available without source and timestamp (0.2928ms)
+✔ progress never claims 100 before verified completion (0.1408ms)
+✔ corrupt candles are rejected, gaps preserved and bounded (0.6593ms)
+✔ HTTP and schema failures remain explicit errors (14.4046ms)
+✔ UTC months respect leap year and year boundary (0.9854ms)
+✔ UTC weeks start Monday and ignore local DST (0.0866ms)
+✔ month-end clamping never collapses a positive half-open range (0.0976ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 916.9031
+
+Running 24 tests using 1 worker
+
+(node:24736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24736) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\terminal.spec.js:139:1 › multi-selection survives search and reload, saves exact identities (354ms)
+  ok  2 tests\terminal.spec.js:151:1 › bounded opaque cursor pages preserve equal timestamp footprint levels beyond 1000 (318ms)
+  ok  3 tests\terminal.spec.js:207:3 › full loadCharts suppresses canonical UNAVAILABLE and retains evidence (281ms)
+  ok  4 tests\terminal.spec.js:207:3 › full loadCharts suppresses canonical UNVERIFIED and retains evidence (186ms)
+  ok  5 tests\terminal.spec.js:221:1 › canonical PARTIAL retains nested reason and record coverage (176ms)
+  ok  6 tests\terminal.spec.js:240:3 › full loadCharts cannot display COMPLETE over row coverage PARTIAL (177ms)
+  ok  7 tests\terminal.spec.js:240:3 › full loadCharts cannot display COMPLETE over row coverage UNKNOWN (285ms)
+  ok  8 tests\terminal.spec.js:240:3 › full loadCharts cannot display COMPLETE over row coverage ERROR (190ms)
+  ok  9 tests\terminal.spec.js:265:1 › partial candles show provenance, closure and synchronized time ranges (571ms)
+  ok 10 tests\terminal.spec.js:317:1 › large screener virtualizes rows (138ms)
+  ok 11 tests\terminal.spec.js:336:1 › saved-only filter resets deep virtual scroll (306ms)
+  ok 12 tests\terminal.spec.js:355:1 › slow job requests never create overlapping polling waves (140ms)
+  ok 13 tests\terminal.spec.js:374:1 › polls do not start for a job while retry is pending (211ms)
+  ok 14 tests\terminal.spec.js:407:1 › download creates per-instrument jobs with exclusive UTC range (321ms)
+  ok 15 tests\terminal.spec.js:427:1 › all derived panels render server strings, profile accepts many prices at one time (288ms)
+  ok 16 tests\terminal.spec.js:471:1 › sort is requested on server and unavailable panels explain why (284ms)
+  ok 17 tests\terminal.spec.js:490:1 › API outage is visible and retry works without fake rows (110ms)
+  ok 18 tests\terminal.spec.js:502:1 › unknown progress and per-source partial failure support retry (151ms)
+  ok 19 tests\terminal.spec.js:531:1 › corrupt candles are explicit and long range stays bounded (272ms)
+  ok 20 tests\terminal.spec.js:554:1 › desktop and narrow layouts contain page content without horizontal overflow (112ms)
+  ok 21 tests\terminal.spec.js:577:1 › E v1 raw arrays render OHLCV, OI and funding without claiming complete coverage (284ms)
+  ok 22 tests\terminal.spec.js:610:1 › monthly keyboard navigation uses UTC calendar edges and resize respects high DPI (333ms)
+  ok 23 tests\terminal.spec.js:666:1 › strategy workspace fails closed before validated F outputs exist (125ms)
+  ok 24 tests\terminal.spec.js:683:1 › editing range fields invalidates all old chart cursors before paging (333ms)
+
+  24 passed (6.9s)
