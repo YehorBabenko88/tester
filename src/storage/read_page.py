@@ -88,6 +88,28 @@ def window_complete(e,records):
                 and all(type(t) is int for t in expected) and sorted(set(expected))==times)
 
 
+def within_horizon(start,end,clock_ms):
+    """Half-open history must have elapsed at the single captured database cutoff."""
+    return all(type(v) is int for v in (start,end,clock_ms)) and 0<=start<end<=clock_ms
+
+
+def horizon_rejections(p,clock_ms):
+    reasons=[]; body=p['evidence']
+    pairs=[(p,'candidate_range')]
+    if isinstance(body,dict):
+        pairs.append((body,'candidate_range'))
+        if body.get('available_range') is not None:
+            pairs.append((body['available_range'],'availability_range'))
+    else: reasons.append('candidate_range_invalid')
+    for value,label in pairs:
+        if not isinstance(value,dict): reasons.append(label+'_invalid'); continue
+        start,end=value.get('start_ms'),value.get('end_ms')
+        if not within_horizon(start,end,clock_ms):
+            future=any(type(v) is int and v>clock_ms for v in (start,end))
+            reasons.append(label+('_in_future' if future else '_invalid'))
+    return sorted(set(reasons))
+
+
 def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',limit=1000,after=None,*,
               max_observations=4096,max_run_links=4096,max_evidence=256,max_intervals=512,max_findings=256,
               max_bytes=4*1024*1024,max_archive_bytes=16*1024*1024,statement_timeout_ms=3000):
@@ -123,9 +145,10 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
             c.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
             c.execute("SET LOCAL work_mem='4MB'")
             budget.timeout(c)
-            meta=c.execute("SELECT current_setting('transaction_isolation') AS isolation,transaction_timestamp()::text AS started_at,pg_snapshot_xmin(pg_current_snapshot())::text AS xmin").fetchone()
+            meta=c.execute("SELECT current_setting('transaction_isolation') AS isolation,transaction_timestamp()::text AS started_at,pg_snapshot_xmin(pg_current_snapshot())::text AS xmin,floor(extract(epoch FROM transaction_timestamp())*1000)::bigint AS clock_ms").fetchone()
             snapshot=dict(meta); response['snapshot']=snapshot
-            now_ms=time.time_ns()//1000000
+            now_ms=snapshot['clock_ms']
+            requested_elapsed=within_horizon(start_ms,end_ms,now_ms)
             where=range_where; args=range_args
             if after is not None: where+=' AND (r.timestamp_ms,r.record_key)>(%s,%s)'; args=(*args,*after)
             page_query='SELECT '+record_doc()+" AS doc,jsonb_build_array(r.timestamp_ms,r.record_key) AS sort_key FROM tester_storage.raw_records r WHERE "+where+' ORDER BY sort_key'
@@ -174,6 +197,9 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
                 FROM tester_storage.pagination_evidence p WHERE p.evidence_id=ANY(%s) ORDER BY sort_key'''
             evidences=list(budget.docs(c,evidence_query,(sorted(evidence_ids),),max_evidence,'evidence'))
             by_evidence={e['evidence_id']:e for e in evidences}
+            for p in evidences:
+                p['horizon_rejections']=horizon_rejections(p,now_ms)
+                p['within_read_horizon']=not p['horizon_rejections']
             support={eid:set() for eid in evidence_ids}; invalid=set(); conflicts=[]
             run_query='''SELECT jsonb_build_object('run_id',v.run_id,'job_key',v.job_key,'evidence_id',v.evidence_id,'run_origin',u.run_origin) AS doc,
                 jsonb_build_array(v.run_id,v.job_key,v.evidence_id) AS sort_key FROM tester_storage.ingestion_run_evidence v
@@ -226,7 +252,7 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
             valid=set(); checked_archives=set()
             for eid in sorted(proof_ids):
                 p=by_evidence.get(eid)
-                if not p or eid in invalid or eid in quarantined: continue
+                if not p or not p['within_read_horizon'] or eid in invalid or eid in quarantined: continue
                 try:
                     e,count=validate_evidence(p['evidence'])
                     checks=e.get('checks',{})
@@ -282,10 +308,14 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
                 if not resolves(f): active.append(dict(start=f['start'],end=f['end'],state=f['state'] if f['state'] in ('unknown','unavailable','corrupt') else 'corrupt'))
             report=coverage_report(start_ms,end_ms,active)
             interval_complete=report.pop('complete')  # only the outer authenticated flag is authoritative
-            complete=bool(rows and interval_complete and not conflicts)
+            complete=bool(requested_elapsed and rows and interval_complete and not conflicts)
             reasons=sorted(set(conflicts))
+            if not requested_elapsed: reasons.append('requested_range_in_future')
             if not rows: reasons.append('no_page_records')
             if not interval_complete: reasons.append('range_not_actively_verified')
+            if not complete:
+                reasons.extend(reason for p in evidences if p['evidence_id'] in proof_ids for reason in p['horizon_rejections'])
+                reasons=sorted(set(reasons))
             response['coverage']=dict(start_ms=start_ms,end_ms=end_ms,complete=complete,state='COMPLETE' if complete else 'UNKNOWN',
                 proof_refs=sorted(active_proofs) if complete else [],reasons=reasons,intervals=report)
             for p in evidences: p['active_proof']=complete and p['evidence_id'] in active_proofs
