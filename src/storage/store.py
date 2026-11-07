@@ -14,6 +14,7 @@ from src.quality.candles import inspect, next_boundary
 from .coverage import coverage_report
 from .models import CANDLES, DATASETS, canonical, digest, integer, normalize
 from .archives import verify_archive
+from .provenance import source_run_status
 
 SCOPE=('venue','category','symbol','dataset','interval')
 VALIDATOR='storage-1.0'
@@ -101,6 +102,8 @@ class Store:
         run_id=run_id if run_id is not None else 'legacy-job:'+job_key
         if not isinstance(run_id,str) or not 1<=len(run_id)<=300: raise ValueError('invalid ingestion run_id')
         if run_origin=='caller' and run_id.startswith('legacy-job:'): raise ValueError('reserved legacy run namespace')
+        if 'ingestion_run' in e and (run_origin!='caller' or source_run_status(e,run_id)!='matched'):
+            raise ValueError('evidence.ingestion_run requires a matching explicit run_id')
         try:
             with self.connect() as c:
                 self._lock(c,scope)
@@ -143,6 +146,8 @@ class Store:
                 count=0; composite=False; candle_rows=[]; observation_times=[]; rolling=hashlib.sha256(); seen=set()
                 for raw in records:
                     r=normalize(raw)
+                    if 'ingestion_run' in r['source'] and (run_origin!='caller' or source_run_status(r['source'],run_id)!='matched'):
+                        raise ValueError('source.ingestion_run requires a matching explicit run_id')
                     if any(r[k]!=e[k] for k in SCOPE): raise ValueError('record/evidence scope mismatch')
                     if not e['start_ms']<=r['timestamp_ms']<e['end_ms']: raise ValueError('record outside requested range')
                     if r['timestamp_ms']>time.time_ns()//1000000+2000: raise ValueError('future source timestamp')
@@ -448,7 +453,8 @@ class Store:
                     records,evidence,checkpoint=fetcher(copy.deepcopy(job)|dict(attempt_token=token))
                     claim.execute('SELECT 1')  # A lost lease must not publish through another connection.
                     e=copy.deepcopy(evidence); e['resolves']=job['resolves']
-                    result=self.ingest(records,e,key,checkpoint,run_id='recovery:'+token,_attempt_token=token)
+                    acquisition_run=e['ingestion_run'] if 'ingestion_run' in e else 'recovery:'+token
+                    result=self.ingest(records,e,key,checkpoint,run_id=acquisition_run,_attempt_token=token)
                     if not result['verified']: raise ValueError('recovery did not verify range')
                     results.append(dict(job_key=key,state='verified'))
                 except Exception as exc:

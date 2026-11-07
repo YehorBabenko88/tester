@@ -1,5 +1,7 @@
 # Execution ledger — docs/superpowers/plans/2026-11-07-storage.md
 
+Narrow resume: Issue2 comment6708925158. Reproduced explicit source.ingestion_run/caller mismatch and missing-original-status bugs. Store now rejects malformed/missing/mismatching original declarations atomically; resolver preserves original values and reports matched/undeclared/mismatched/invalid, failing authenticity for contradictions. Recovery can receive original acquisition identity through evidence.ingestion_run rather than replacing it with attempt identity. Six new realPG cases; branch57 tests pass, compatibility66 tests pass. No schema/lifecycle scope expansion; final exact HEAD/logs published with Draft13.
+
 Resume scope: MASTER PR13 comment6708160404 and Issue14 comment6708160604. Reproduced run collapse/exclusive-fetch failure, then implemented migration005 run/evidence observations + attempt fencing. Implemented initial dry-run-only lifecycle, disk gate, snapshot scan/logical quarantine/metrics and measured restore reporting via migration006. Reviewer found empty-run attribution, protected-path aliases and extensible backup evidence sets; all three reproduced failing tests and fixed. Current branch full suite51 PASS with real PG18.4, no raw deletion. Exact APIs documented in run-provenance-lifecycle.md; compatibility snapshot and final publication follow.
 
 Ruling: use the dedicated clone on workstream/b-integrity, already isolated from all other agent checkouts; no extra worktree needed.

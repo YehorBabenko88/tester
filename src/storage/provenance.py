@@ -2,6 +2,15 @@
 from .models import digest
 
 
+def source_run_status(source,run_id):
+    """Compare an explicit original declaration without rewriting or inventing one."""
+    if not isinstance(source,dict): return 'invalid'
+    if 'ingestion_run' not in source: return 'undeclared'
+    original=source['ingestion_run']
+    if not isinstance(original,str) or not 1<=len(original)<=300: return 'invalid'
+    return 'matched' if original==run_id else 'mismatched'
+
+
 def resolve(conn,record_keys):
     keys=list(dict.fromkeys(record_keys))
     if len(keys)>10000: raise ValueError('provenance query limited to 10000 record keys')
@@ -22,7 +31,10 @@ def resolve(conn,record_keys):
             continue
         observation={k:row[k] for k in ('observation_id','source_id','source','raw_envelope','run_id','job_key',
             'evidence_id','source_kind','timestamp_precision','pagination_status','verified','evidence','validator_version')}
-        observation['authentic_run']=row['run_origin']=='caller'
+        status=source_run_status(row['source'],row['run_id'])
+        observation['source_run_status']=status
+        observation['source_ingestion_run']=row['source'].get('ingestion_run') if isinstance(row['source'],dict) else None
+        observation['authentic_run']=row['run_origin']=='caller' and status in ('matched','undeclared')
         item['observations'].append(observation)
         item['evidence_refs'].append(row['evidence_id']); item['run_ids'].append(row['run_id'])
     for item in result.values():
