@@ -6,6 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.api.config import Settings
+from src.api.financial_query import FinancialRequest
 from src.api.main import create_app
 
 path = Path(__file__).resolve().parents[1] / "contracts/v1/openapi.json"
@@ -16,3 +17,16 @@ if "--check" in sys.argv:
 else:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+
+
+request_path = path.parents[1] / "requests/v1/financial-query.schema.json"
+request_schema = FinancialRequest.model_json_schema()
+request_schema["$id"] = "urn:tester:requests:financial-query:1.0"
+request_schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+request_content = json.dumps(request_schema, indent=2, sort_keys=True) + "\n"
+if "--check" in sys.argv:
+    if not request_path.exists() or request_path.read_text(encoding="utf-8") != request_content:
+        raise SystemExit("Financial request contract drift")
+else:
+    request_path.parent.mkdir(parents=True, exist_ok=True)
+    request_path.write_text(request_content, encoding="utf-8")

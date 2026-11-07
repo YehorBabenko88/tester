@@ -5,3 +5,5 @@ contracts/v1/validate.py -text
 contracts/v1/market.schema.json -text
 contracts/MIGRATIONS.md -text
 src/integration/standalone_policy.py -text
+
+tests/platform/reference/financial_query/** -text

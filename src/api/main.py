@@ -1,6 +1,6 @@
 import logging
 from copy import deepcopy
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 import psycopg
@@ -16,6 +16,7 @@ from contracts.v1.validate import ContractError
 from .canonical import dataset_model
 from .config import Settings, load_settings
 from .db import connect
+from .financial_query import FinancialQueryError, HttpTime, PriceStep, is_derived, read_derived
 from .jobs import AdmissionRejected, Conflict, JobQueue
 from .maintenance import storage_status
 from .models import (
@@ -84,6 +85,10 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
         return error(422, "validation_error", "Request does not match the API v1 schema")
+
+    @app.exception_handler(FinancialQueryError)
+    async def financial_query_error(request, exc):
+        return error(exc.status, exc.code, "Financial query cannot be served with these inputs")
 
     @app.exception_handler(ProviderUnavailable)
     async def provider_error(request, exc):
@@ -179,8 +184,13 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         venue: str = "bybit",
         category: str = "linear",
         symbol: str | None = None,
-        start_ms: int = 0,
-        end_ms: int = 253402300799000,
+        start_ms: HttpTime | None = None,
+        end_ms: HttpTime | None = None,
+        query_schema_version: Literal["1.0"] | None = None,
+        information_cutoff_ms: HttpTime | None = None,
+        price_step: PriceStep | None = None,
+        price_step_mode: Literal["explicit", "instrument_tick"] | None = None,
+        instrument_tick_ref: str | None = None,
         interval: str = "60",
         source_interval: str | None = None,
         candle_kind: str = "official_trade",
@@ -192,8 +202,13 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
                 venue=venue,
                 category=category,
                 symbol=symbol,
-                start_ms=start_ms,
-                end_ms=end_ms,
+                **({"start_ms": start_ms} if start_ms is not None else {}),
+                **({"end_ms": end_ms} if end_ms is not None else {}),
+                query_schema_version=query_schema_version,
+                information_cutoff_ms=information_cutoff_ms,
+                price_step=price_step,
+                price_step_mode=price_step_mode,
+                instrument_tick_ref=instrument_tick_ref,
                 interval=interval,
                 source_interval=source_interval,
                 candle_kind=candle_kind,
@@ -219,10 +234,15 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             def endpoint(query: Annotated[Query, Depends(validated_query)]):
                 # Providers must supply the complete envelope. Missing evidence is an error,
                 # never repaired using invented availability/provenance or precision.
+                derived = is_derived(name, query)
                 source_query = resource_query(name, query)
                 raw_cursor = cursor_codec.decode(name, source_query)
                 provider_query = source_query.model_copy(update={"cursor": raw_cursor})
-                value = deepcopy(reader.read(name, provider_query))
+                value = deepcopy(
+                    read_derived(reader, name, source_query, raw_cursor)
+                    if derived
+                    else reader.read(name, provider_query)
+                )
                 # The provider can normalize its private query copy. It must never
                 # rewrite the original request used as the authority for binding.
                 bound_response(name, record_kind, value, source_query)

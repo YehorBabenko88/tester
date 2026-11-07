@@ -191,3 +191,6 @@ a platform acceptance, not a claim of end-to-end market-data acceptance.
 The baseline E tests referenced `src.quality.candles` without including it. This
 branch carries the unchanged initial B implementation from its branch to make the
 existing suite runnable; B remains its owner.
+
+Derived candles/footprint use the separate explicit financial request contract:
+[Financial query v1](financial-query-v1.md). No derived provider/default is activated.

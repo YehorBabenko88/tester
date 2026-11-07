@@ -2572,9 +2572,17 @@
             "name": "start_ms",
             "required": false,
             "schema": {
-              "default": 0,
-              "title": "Start Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
             }
           },
           {
@@ -2582,9 +2590,116 @@
             "name": "end_ms",
             "required": false,
             "schema": {
-              "default": 253402300799000,
-              "title": "End Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
             }
           },
           {
@@ -2760,9 +2875,17 @@
             "name": "start_ms",
             "required": false,
             "schema": {
-              "default": 0,
-              "title": "Start Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
             }
           },
           {
@@ -2770,9 +2893,116 @@
             "name": "end_ms",
             "required": false,
             "schema": {
-              "default": 253402300799000,
-              "title": "End Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
             }
           },
           {
@@ -3346,9 +3576,17 @@
             "name": "start_ms",
             "required": false,
             "schema": {
-              "default": 0,
-              "title": "Start Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
             }
           },
           {
@@ -3356,9 +3594,116 @@
             "name": "end_ms",
             "required": false,
             "schema": {
-              "default": 253402300799000,
-              "title": "End Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
             }
           },
           {
@@ -3534,9 +3879,17 @@
             "name": "start_ms",
             "required": false,
             "schema": {
-              "default": 0,
-              "title": "Start Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
             }
           },
           {
@@ -3544,9 +3897,116 @@
             "name": "end_ms",
             "required": false,
             "schema": {
-              "default": 253402300799000,
-              "title": "End Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
             }
           },
           {
@@ -3790,9 +4250,17 @@
             "name": "start_ms",
             "required": false,
             "schema": {
-              "default": 0,
-              "title": "Start Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
             }
           },
           {
@@ -3800,9 +4268,116 @@
             "name": "end_ms",
             "required": false,
             "schema": {
-              "default": 253402300799000,
-              "title": "End Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
             }
           },
           {
@@ -3978,9 +4553,17 @@
             "name": "start_ms",
             "required": false,
             "schema": {
-              "default": 0,
-              "title": "Start Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
             }
           },
           {
@@ -3988,9 +4571,116 @@
             "name": "end_ms",
             "required": false,
             "schema": {
-              "default": 253402300799000,
-              "title": "End Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
             }
           },
           {
@@ -4166,9 +4856,17 @@
             "name": "start_ms",
             "required": false,
             "schema": {
-              "default": 0,
-              "title": "Start Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
             }
           },
           {
@@ -4176,9 +4874,116 @@
             "name": "end_ms",
             "required": false,
             "schema": {
-              "default": 253402300799000,
-              "title": "End Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
             }
           },
           {
@@ -4354,9 +5159,17 @@
             "name": "start_ms",
             "required": false,
             "schema": {
-              "default": 0,
-              "title": "Start Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Ms"
             }
           },
           {
@@ -4364,9 +5177,116 @@
             "name": "end_ms",
             "required": false,
             "schema": {
-              "default": 253402300799000,
-              "title": "End Ms",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "query_schema_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "1.0",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query Schema Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "information_cutoff_ms",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "ge": 0,
+                  "le": 9007199254740991,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Information Cutoff Ms"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 256,
+                  "not": {
+                    "anyOf": [
+                      {
+                        "pattern": "^0+(?:\\.0+)?$"
+                      },
+                      {
+                        "pattern": "[^0-9.]"
+                      }
+                    ]
+                  },
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_step_mode",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "explicit",
+                    "instrument_tick"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Step Mode"
+            }
+          },
+          {
+            "in": "query",
+            "name": "instrument_tick_ref",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Instrument Tick Ref"
             }
           },
           {
