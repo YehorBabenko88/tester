@@ -39,3 +39,14 @@ not PostgreSQL lock/MVCC/crash verification or proof of protocol sufficiency.
 compileall and diff --check PASS. Existing current UNAVAILABLE unchanged.
 No physical PostgreSQL/service/UAC/ACL/global settings/cleanup actions performed.
 MASTER review and retained-DB interleavings precede any success implementation.
+
+Visibility foundation v1, limited authorization Issue2 comment6711209526:
+33 pure unit/mock tests PASS (13 foundation +2 proposal +6 knowledge-time +12
+models/quality); compileall/diff check PASS. Initial new suite RED observed missing
+foundation module before implementation. Independent static code review found no
+material issues. Migration007 creates separate tester_visibility schema with hard
+UNENROLLED/disabled/null constraints; no grants or Store/Lifecycle defaults changed.
+Existing PG upgrade assertion advanced6→7 in source but NOT executed. No actualPG
+migration/constraint/lock/rollback/crash claims: ROOT owns retained-DB validation.
+No physical PG/service/UAC/ACL/global settings/deletion operations performed.
+Production knowledge_time still UNAVAILABLE/null; success issuance absent.

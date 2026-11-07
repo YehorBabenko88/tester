@@ -108,3 +108,13 @@ including stale RR, delayed commit, late facts, missing negative inventory, cras
 stale reuse, archive mutation and resource overflow. MASTER's retained-DB
 interleavings must separately establish actual lock, MVCC, crash and durability
 behavior before implementing a successful production certificate.
+
+## Limited foundation review checkpoint
+
+MASTER reviewed89221 in Issue2 comment6711209526 and authorized only the isolated
+schema/epoch/common-gate prototype, not this proposal's successful certificate path.
+Implementation boundaries/inventory are in visibility-foundation.md. Capture-bound
+and later receipt-publication observation must stay distinct: a C snapshot carrying
+a later receipt cannot use the earlier capture bound for the whole quality result.
+UTC clock uncertainty, trusted external restore enrollment and all-mutator DB
+closure remain separate unimplemented gates. Production remains UNAVAILABLE/null.
