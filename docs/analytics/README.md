@@ -1,5 +1,8 @@
 # C analytics integration v1
 
+P0 input-binding follow-up: [B/shared v1 input binding](INPUT_BINDING.md) documents
+the new boundary, exact B/MASTER/E pins and additional test-only requirements.
+
 Entry points (dictionary records; UTC epoch milliseconds):
 
 ```python

@@ -1,0 +1,3 @@
+# Test-only dependencies for exact pinned E bound_response and shared validation.
+jsonschema==4.26.0
+pydantic==2.12.5
