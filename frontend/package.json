@@ -1,1 +1,1 @@
-{"name":"bybit-terminal-ui","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","test:ui":"playwright test"},"devDependencies":{"@playwright/test":"1.56.1"}}
+{"name":"bybit-terminal-ui","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js","test:ui":"playwright test"},"devDependencies":{"@playwright/test":"1.56.1","ajv":"^8.18.0","ajv-formats":"^3.0.1","prettier":"^3.6.2"}}

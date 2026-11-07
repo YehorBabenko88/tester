@@ -1,0 +1,10 @@
+# D follow-up: canonical metadata and bounded navigation
+
+Authority: approved scope and MASTER #4/PR12 review; shared contract 9766c009; #17 comment 6708161108.
+1. Reproduce canonical UNAVAILABLE/UNVERIFIED/PARTIAL metadata bugs with schema-pinned fixtures and full loadCharts browser tests. Extract a lossless adapter; never promote by array presence; preserve reasons, coverage and source references. No drawing unavailable data.
+2. Add calendar-aware UTC W/M boundaries and navigation, bounded opaque-cursor chart paging (one page per panel; no automatic unbounded accumulation). Reset cursor history on range/timeframe/symbol changes. Equal timestamps across footprint pages must not be skipped through timestamp arithmetic. Test cursors >1000 and stale navigation.
+3. Add keyboard, resizable/high-DPI chart interactions and a strategy workspace consuming only validated F output. Until such contract/provider exists every strategy view is DATA_UNAVAILABLE, with no client simulation.
+4. Verify unit + full UI suite and pinned schema fixtures. Publish updated existing Draft PR12, issue status, tested HEAD and integration limitations. No merge into main or physical deployment.
+
+Execution: canonical UNAVAILABLE/UNVERIFIED regressions observed drawing before fix, now blocked by envelope/row quality gate. Partial and nested metric reasons preserved. Added schema-pinned fixtures and full browser loadCharts tests. Independent review found month-end collapse and stale cursor/query reuse; both reproduced and fixed. 15 unit tests and 21 browser tests passing before final proof-view cleanup; final verification follows. No financial backend or F simulation implemented.
+Final verification: 15 Node unit tests PASS, 21 Playwright Chromium browser tests PASS, npm audit 0 vulnerabilities, git diff --check clean. Independent review fixes rechecked: no remaining material findings for the targeted month/cursor fixes. Strategy views explicitly unavailable until validated F/E results exist; live provider/database acceptance remains outside the proven UI fixture tests.
