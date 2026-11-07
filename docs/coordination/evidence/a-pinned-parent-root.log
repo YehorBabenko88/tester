@@ -1,0 +1,16 @@
+{
+  "report": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\master-pinned-pair\\run-20261107T160710-2d09c011\\report.json",
+  "pins": {
+    "producer_sha": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+    "storage_sha": "e236395684d661f9464a62a0f6f67803d9000de6",
+    "contract_sha": "9766c0093e2608280875ac56db074414a3d62c69"
+  },
+  "tests": {
+    "tests_run": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "postgres_restart": true,
+  "scratch_server_stopped": true
+}

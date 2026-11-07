@@ -1,0 +1,31 @@
+
+> test
+> node --test tests/*.test.js
+
+✔ pinned canonical AVAILABLE fixture and metadata survive adaptation (45.566ms)
+✔ pinned canonical PARTIAL fixture and metadata survive adaptation (0.3282ms)
+✔ pinned canonical UNAVAILABLE fixture and metadata survive adaptation (0.1925ms)
+✔ pinned canonical UNVERIFIED fixture and metadata survive adaptation (0.142ms)
+✔ row unavailability cannot be upgraded by an AVAILABLE envelope (0.1943ms)
+✔ nested metric unavailability retains its specific reason and structured sources (0.1776ms)
+✔ row coverage PARTIAL overrides envelope COMPLETE without losing evidence (0.2002ms)
+✔ row coverage UNKNOWN overrides envelope COMPLETE without losing evidence (0.5733ms)
+✔ row coverage ERROR overrides envelope COMPLETE without losing evidence (0.3005ms)
+✔ OI line continuity follows source cadence rather than display timeframe (0.6923ms)
+✔ chart forward and inverse coordinates share the exact plot area (0.7824ms)
+✔ sort exact decimals without rounding and leave unavailable last (0.3236ms)
+✔ metric cannot claim available without source and timestamp (0.154ms)
+✔ progress never claims 100 before verified completion (0.1401ms)
+✔ corrupt candles are rejected, gaps preserved and bounded (0.4768ms)
+✔ HTTP and schema failures remain explicit errors (21.3389ms)
+✔ UTC months respect leap year and year boundary (1.5233ms)
+✔ UTC weeks start Monday and ignore local DST (0.1312ms)
+✔ month-end clamping never collapses a positive half-open range (0.1192ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 231.1389

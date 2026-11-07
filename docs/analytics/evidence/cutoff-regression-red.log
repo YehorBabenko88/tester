@@ -1,0 +1,107 @@
+test_fetch_ns_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_fetch_ns_after_cutoff_is_excluded) ... FAIL
+test_canonical_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_canonical_exact_event_residual_after_cutoff_is_excluded) ... 
+  test_canonical_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_canonical_exact_event_residual_after_cutoff_is_excluded) (precision='ns') ... FAIL
+  test_canonical_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_canonical_exact_event_residual_after_cutoff_is_excluded) (precision='us') ... FAIL
+test_b_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_b_exact_event_residual_after_cutoff_is_excluded) ... 
+  test_b_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_b_exact_event_residual_after_cutoff_is_excluded) (precision='ns') ... FAIL
+  test_b_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_b_exact_event_residual_after_cutoff_is_excluded) (precision='us') ... FAIL
+test_original_and_normalized_fetch_conflicts_fail_closed (tests.analytics.test_input_binding.InputBinding.test_original_and_normalized_fetch_conflicts_fail_closed) ... FAIL
+test_missing_original_fetch_time_fails_closed (tests.analytics.test_input_binding.InputBinding.test_missing_original_fetch_time_fails_closed) ... FAIL
+
+======================================================================
+FAIL: test_fetch_ns_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_fetch_ns_after_cutoff_is_excluded)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_input_binding.py", line 171, in test_fetch_ns_after_cutoff_is_excluded
+    self.assertEqual(bind_b([row]).response('candles',interval='1',price_step='1')['data'],[])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'schema_version': '1.0', 'venue': 'bybit[1256 chars]rue}] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'timestamp_ms': 0, 'provenance': [{'ingestion_run': 'fixture:run-1', 'parent_refs': ['storage:evidence:evidence:fixture:run-1', 'storage:job:fixture:job', 'storage:observation:obs:fixture:run-1', 'storage:record:367807050c40f542a92b206c1fdd82daf49dcd8a9660daebedeaf18c11a7fd10', 'storage:source:source:fixture:run-1'], 'source_hash': None, 'source_kind': 'bybit_rest', 'source_ref': 'fixture:B/synthetic-trades', 'source_timestamp': '100', 'timestamp_precision': 'ns'}, {'source_kind': 'derived', 'source_ref': 'analytics:40fbdbf450194f312f25431d462c08742e2bb2b39f314ca32de6c22625150f62', 'source_hash': None, 'ingestion_run': 'derived:tester-analytics/1.0', 'timestamp_precision': 'ms', 'source_timestamp': None, 'parent_refs': ['fixture:B/synthetic-trades'], 'method_version': 'tester-analytics/1.0'}], 'availability': {'status': 'UNVERIFIED', 'reason': 'Synthetic UNKNOWN history; Input sequence not attested exhausted; backend must drain pages'}, 'coverage': {'status': 'UNKNOWN', 'start_ms': 0, 'end_ms': 60000, 'evidence_refs': ['fixture:coverage']}, 'start_ms': 0, 'end_ms': 60000, 'interval': '1', 'kind': 'derived', 'open': '10', 'high': '10', 'low': '10', 'close': '10', 'volume': '2', 'is_closed': True}
+
+Diff is 1908 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_canonical_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_canonical_exact_event_residual_after_cutoff_is_excluded) (precision='ns')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_input_binding.py", line 195, in test_canonical_exact_event_residual_after_cutoff_is_excluded
+    self.assertEqual(batch.trades,[])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'schema_version': '1.0', 'venue': 'bybit[657 chars]ge'}] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'timestamp_ms': 60000, 'timestamp_ns': '60000000100', 'timestamp_precision': 'ns', 'price': '10', 'quantity': '2', 'taker_side': 'Buy', 'provenance': [{'source_kind': 'synthetic_fixture', 'source_ref': 'fixture:trades', 'source_hash': None, 'ingestion_run': 'synthetic-test', 'timestamp_precision': 'ns', 'source_timestamp': '60000'}], 'availability': {'status': 'UNVERIFIED', 'reason': 'Source range not verified; Input sequence not attested exhausted; backend must drain pages'}, 'coverage': {'status': 'UNKNOWN', 'start_ms': 60000, 'end_ms': 60001, 'evidence_refs': []}, 'trade_id': '1', 'id_origin': 'exchange'}
+
+Diff is 974 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_canonical_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_canonical_exact_event_residual_after_cutoff_is_excluded) (precision='us')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_input_binding.py", line 195, in test_canonical_exact_event_residual_after_cutoff_is_excluded
+    self.assertEqual(batch.trades,[])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'schema_version': '1.0', 'venue': 'bybit[657 chars]ge'}] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'timestamp_ms': 60000, 'timestamp_ns': '60000001000', 'timestamp_precision': 'us', 'price': '10', 'quantity': '2', 'taker_side': 'Buy', 'provenance': [{'source_kind': 'synthetic_fixture', 'source_ref': 'fixture:trades', 'source_hash': None, 'ingestion_run': 'synthetic-test', 'timestamp_precision': 'us', 'source_timestamp': '60000'}], 'availability': {'status': 'UNVERIFIED', 'reason': 'Source range not verified; Input sequence not attested exhausted; backend must drain pages'}, 'coverage': {'status': 'UNKNOWN', 'start_ms': 60000, 'end_ms': 60001, 'evidence_refs': []}, 'trade_id': '1', 'id_origin': 'exchange'}
+
+Diff is 974 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_b_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_b_exact_event_residual_after_cutoff_is_excluded) (precision='ns')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_input_binding.py", line 206, in test_b_exact_event_residual_after_cutoff_is_excluded
+    self.assertEqual(batch.trades,[])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'schema_version': '1.0', 'venue': 'bybit[915 chars][]}}] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'timestamp_ms': 60000, 'trade_id': 'id', 'timestamp_ns': '60000000100', 'timestamp_precision': 'ns', 'id_origin': 'exchange', 'price': '10', 'quantity': '2', 'taker_side': 'Buy', 'provenance': [{'source_kind': 'bybit_rest', 'source_ref': 'fixture:B/synthetic-trades', 'source_hash': None, 'ingestion_run': 'fixture:run-1', 'timestamp_precision': 'ns', 'source_timestamp': '60000000100', 'parent_refs': ['storage:evidence:evidence:fixture:run-1', 'storage:job:fixture:job', 'storage:observation:obs:fixture:run-1', 'storage:record:367807050c40f542a92b206c1fdd82daf49dcd8a9660daebedeaf18c11a7fd10', 'storage:source:source:fixture:run-1']}], 'availability': {'status': 'UNVERIFIED', 'reason': 'Synthetic UNKNOWN history; Input sequence not attested exhausted; backend must drain pages'}, 'coverage': {'status': 'UNKNOWN', 'start_ms': 0, 'end_ms': 120000, 'evidence_refs': []}}
+
+Diff is 1396 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_b_exact_event_residual_after_cutoff_is_excluded (tests.analytics.test_input_binding.InputBinding.test_b_exact_event_residual_after_cutoff_is_excluded) (precision='us')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_input_binding.py", line 206, in test_b_exact_event_residual_after_cutoff_is_excluded
+    self.assertEqual(batch.trades,[])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'schema_version': '1.0', 'venue': 'bybit[915 chars][]}}] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'timestamp_ms': 60000, 'trade_id': 'id', 'timestamp_ns': '60000001000', 'timestamp_precision': 'us', 'id_origin': 'exchange', 'price': '10', 'quantity': '2', 'taker_side': 'Buy', 'provenance': [{'source_kind': 'bybit_rest', 'source_ref': 'fixture:B/synthetic-trades', 'source_hash': None, 'ingestion_run': 'fixture:run-1', 'timestamp_precision': 'us', 'source_timestamp': '60000001000', 'parent_refs': ['storage:evidence:evidence:fixture:run-1', 'storage:job:fixture:job', 'storage:observation:obs:fixture:run-1', 'storage:record:367807050c40f542a92b206c1fdd82daf49dcd8a9660daebedeaf18c11a7fd10', 'storage:source:source:fixture:run-1']}], 'availability': {'status': 'UNVERIFIED', 'reason': 'Synthetic UNKNOWN history; Input sequence not attested exhausted; backend must drain pages'}, 'coverage': {'status': 'UNKNOWN', 'start_ms': 0, 'end_ms': 120000, 'evidence_refs': []}}
+
+Diff is 1396 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_original_and_normalized_fetch_conflicts_fail_closed (tests.analytics.test_input_binding.InputBinding.test_original_and_normalized_fetch_conflicts_fail_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_input_binding.py", line 211, in test_original_and_normalized_fetch_conflicts_fail_closed
+    with self.assertRaises(binding.BindingUnavailable): bind_b([row])
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: BindingUnavailable not raised
+
+======================================================================
+FAIL: test_missing_original_fetch_time_fails_closed (tests.analytics.test_input_binding.InputBinding.test_missing_original_fetch_time_fails_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_input_binding.py", line 215, in test_missing_original_fetch_time_fails_closed
+    with self.assertRaises(binding.BindingUnavailable): bind_b([row])
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: BindingUnavailable not raised
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.039s
+
+FAILED (failures=7)

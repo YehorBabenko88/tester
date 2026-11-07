@@ -1,0 +1,29 @@
+from pathlib import Path
+import zipfile,hashlib,subprocess,sys
+base=Path(__file__).parent
+wheel=base/'be-wheel/tester_platform-0.1.0-py3-none-any.whl'
+target=base/'be-wheel-extracted'
+with zipfile.ZipFile(wheel) as z:
+    names=set(z.namelist())
+    required={'src/api/main.py','src/ingest/transport.py','src/analytics/binding.py','src/storage/store.py','src/storage/migrations/006_lifecycle_dry_run.sql','src/api/migrations/002_admission.sql','src/integration/storage_reader.py','src/integration/POLICY_PIN.json','src/quality/candles.py','contracts/v1/market.schema.json','contracts/v1_1/price_candle.schema.json'}
+    assert required<=names,required-names
+    import json
+    pin=json.loads(z.read('src/integration/POLICY_PIN.json'))
+    assert hashlib.sha256(z.read('src/integration/standalone_policy.py')).hexdigest()==pin['sha256']['src/integration/standalone_policy.py']
+    z.extractall(target)
+code='''import sys,pathlib
+sys.path.insert(0,sys.argv[1])
+import src.api.main,src.storage.store,src.integration.storage_reader,src.quality.candles
+from src.api.providers import ProviderUnavailable
+from unittest.mock import patch
+from src.api.config import Settings
+for module in (src.api.main,src.storage.store,src.integration.storage_reader,src.quality.candles):
+    assert pathlib.Path(module.__file__).is_relative_to(sys.argv[1]),module.__file__
+with patch('src.api.config.load_settings',return_value=Settings()):
+    try:src.integration.storage_reader.create_reader()
+    except ProviderUnavailable:pass
+    else:raise AssertionError('Missing DSN must fail closed')
+print('PASS installed-wheel isolated imports from target; owned modules and migrations packaged; missing DSN fails closed')
+'''
+subprocess.run([sys.executable,'-I','-c',code,str(target.resolve())],check=True,cwd=base)
+print('WHEEL_SHA256',hashlib.sha256(wheel.read_bytes()).hexdigest())

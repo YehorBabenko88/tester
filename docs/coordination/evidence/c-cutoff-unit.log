@@ -1,0 +1,56 @@
+test_boundaries_and_gaps (analytics.test_analytics.Core.test_boundaries_and_gaps) ... ok
+test_comparison_requires_evidence_and_context (analytics.test_analytics.Core.test_comparison_requires_evidence_and_context) ... ok
+test_dedup_conflict_scoped_identity (analytics.test_analytics.Core.test_dedup_conflict_scoped_identity) ... ok
+test_equivalent_decimal_format_and_strict_provenance (analytics.test_analytics.Core.test_equivalent_decimal_format_and_strict_provenance) ... ok
+test_genuine_sub_ms_order (analytics.test_analytics.Core.test_genuine_sub_ms_order) ... ok
+test_independent_ohlcv_delta_reference (analytics.test_analytics.Core.test_independent_ohlcv_delta_reference) ... ok
+test_inheritance_closure_and_coverage (analytics.test_analytics.Core.test_inheritance_closure_and_coverage) ... ok
+test_invalid_and_unknown (analytics.test_analytics.Core.test_invalid_and_unknown) ... ok
+test_nested_metadata_schema_types (analytics.test_analytics.Core.test_nested_metadata_schema_types) ... ok
+test_normalize_and_schema (analytics.test_analytics.Core.test_normalize_and_schema) ... ok
+test_permutations_exact_huge_sum (analytics.test_analytics.Core.test_permutations_exact_huge_sum) ... ok
+test_profile_vwap_value_area_and_large_trades (analytics.test_analytics.Core.test_profile_vwap_value_area_and_large_trades) ... ok
+test_unknown_side_delta_cvd_and_clusters (analytics.test_analytics.Core.test_unknown_side_delta_cvd_and_clusters) ... ok
+test_unknown_side_metric_quality_is_partial (analytics.test_analytics.Core.test_unknown_side_metric_quality_is_partial) ... ok
+test_absent_oi_does_not_inherit_complete_price_quality (analytics.test_indicators.Indicators.test_absent_oi_does_not_inherit_complete_price_quality) ... ok
+test_archive_precision_and_synthetic_identity (analytics.test_indicators.Indicators.test_archive_precision_and_synthetic_identity) ... ok
+test_archive_side_is_not_asserted_from_rest_documentation (analytics.test_indicators.Indicators.test_archive_side_is_not_asserted_from_rest_documentation) ... ok
+test_atr_wilder (analytics.test_indicators.Indicators.test_atr_wilder) ... ok
+test_correlation_and_ranking (analytics.test_indicators.Indicators.test_correlation_and_ranking) ... ok
+test_gaps_are_explicit_and_mixed_series_rejected (analytics.test_indicators.Indicators.test_gaps_are_explicit_and_mixed_series_rejected) ... ok
+test_missing_oi_preserves_worse_upstream_error (analytics.test_indicators.Indicators.test_missing_oi_preserves_worse_upstream_error) ... ok
+test_oi_funding_alignment_and_units (analytics.test_indicators.Indicators.test_oi_funding_alignment_and_units) ... ok
+test_rounding_is_independent_of_caller_context (analytics.test_indicators.Indicators.test_rounding_is_independent_of_caller_context) ... ok
+test_volatility_and_distribution (analytics.test_indicators.Indicators.test_volatility_and_distribution) ... ok
+test_volume_anomaly_no_lookahead (analytics.test_indicators.Indicators.test_volume_anomaly_no_lookahead) ... ok
+test_duplicate_exchange_id_is_not_double_counted (analytics.test_initial_regressions.InitialRegressions.test_duplicate_exchange_id_is_not_double_counted) ... ok
+test_extreme_decimal_sum_is_exact (analytics.test_initial_regressions.InitialRegressions.test_extreme_decimal_sum_is_exact) ... ok
+test_all_runs_and_storage_refs_survive_without_mutation (analytics.test_input_binding.InputBinding.test_all_runs_and_storage_refs_survive_without_mutation) ... ok
+test_b_exact_event_residual_after_cutoff_is_excluded (analytics.test_input_binding.InputBinding.test_b_exact_event_residual_after_cutoff_is_excluded) ... ok
+test_b_microseconds_projection_is_source_preserved (analytics.test_input_binding.InputBinding.test_b_microseconds_projection_is_source_preserved) ... ok
+test_calendar_outputs_pass_e_scope_validation (analytics.test_input_binding.InputBinding.test_calendar_outputs_pass_e_scope_validation) ... ok
+test_canonical_cutoff_and_missing_availability_time (analytics.test_input_binding.InputBinding.test_canonical_cutoff_and_missing_availability_time) ... ok
+test_canonical_exact_event_residual_after_cutoff_is_excluded (analytics.test_input_binding.InputBinding.test_canonical_exact_event_residual_after_cutoff_is_excluded) ... ok
+test_canonical_unknown_side_partial_history (analytics.test_input_binding.InputBinding.test_canonical_unknown_side_partial_history) ... ok
+test_cutoff_filters_late_trade_and_late_observation (analytics.test_input_binding.InputBinding.test_cutoff_filters_late_trade_and_late_observation) ... ok
+test_empty_b_snapshot_preserves_upstream_error (analytics.test_input_binding.InputBinding.test_empty_b_snapshot_preserves_upstream_error) ... ok
+test_event_clock_and_original_event_metadata_conflicts_fail_closed (analytics.test_input_binding.InputBinding.test_event_clock_and_original_event_metadata_conflicts_fail_closed) ... ok
+test_event_cutoff_is_inclusive_for_both_paths (analytics.test_input_binding.InputBinding.test_event_cutoff_is_inclusive_for_both_paths) ... ok
+test_exact_b_ns_decimal_and_e_bound_response (analytics.test_input_binding.InputBinding.test_exact_b_ns_decimal_and_e_bound_response) ... ok
+test_extensions_and_misaligned_output_remain_unsupported (analytics.test_input_binding.InputBinding.test_extensions_and_misaligned_output_remain_unsupported) ... ok
+test_fetch_ns_after_cutoff_is_excluded (analytics.test_input_binding.InputBinding.test_fetch_ns_after_cutoff_is_excluded) ... ok
+test_footprint_future_bucket_cannot_claim_complete (analytics.test_input_binding.InputBinding.test_footprint_future_bucket_cannot_claim_complete) ... ok
+test_full_id_dedup_conflict_and_scoped_market (analytics.test_input_binding.InputBinding.test_full_id_dedup_conflict_and_scoped_market) ... ok
+test_missing_original_fetch_time_fails_closed (analytics.test_input_binding.InputBinding.test_missing_original_fetch_time_fails_closed) ... ok
+test_nonexhausted_sequence_cannot_claim_complete (analytics.test_input_binding.InputBinding.test_nonexhausted_sequence_cannot_claim_complete) ... ok
+test_original_and_normalized_fetch_conflicts_fail_closed (analytics.test_input_binding.InputBinding.test_original_and_normalized_fetch_conflicts_fail_closed) ... ok
+test_original_b_payload_time_fields_and_default_ms (analytics.test_input_binding.InputBinding.test_original_b_payload_time_fields_and_default_ms) ... ok
+test_original_fetch_cutoff_is_inclusive_at_exact_ns (analytics.test_input_binding.InputBinding.test_original_fetch_cutoff_is_inclusive_at_exact_ns) ... ok
+test_pinned_reference_hashes (analytics.test_input_binding.InputBinding.test_pinned_reference_hashes) ... ok
+test_response_limit_fails_closed_without_pagination_math (analytics.test_input_binding.InputBinding.test_response_limit_fails_closed_without_pagination_math) ... ok
+test_undeclared_or_missing_original_runs_fail_closed (analytics.test_input_binding.InputBinding.test_undeclared_or_missing_original_runs_fail_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 51 tests in 0.128s
+
+OK

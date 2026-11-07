@@ -1,0 +1,311 @@
+{
+  "checked_at": "2026-11-07T13:14:02.938354+00:00",
+  "listings": [
+    {
+      "url": "https://public.bybit.com/trading/BTCUSD/",
+      "count": 2594,
+      "first": [
+        {
+          "url": "https://public.bybit.com/trading/BTCUSD/BTCUSD2019-10-01.csv.gz",
+          "name": "BTCUSD2019-10-01.csv.gz",
+          "directory": false,
+          "date": "2019-10-01"
+        },
+        {
+          "url": "https://public.bybit.com/trading/BTCUSD/BTCUSD2019-10-02.csv.gz",
+          "name": "BTCUSD2019-10-02.csv.gz",
+          "directory": false,
+          "date": "2019-10-02"
+        },
+        {
+          "url": "https://public.bybit.com/trading/BTCUSD/BTCUSD2019-10-03.csv.gz",
+          "name": "BTCUSD2019-10-03.csv.gz",
+          "directory": false,
+          "date": "2019-10-03"
+        }
+      ],
+      "last": [
+        {
+          "url": "https://public.bybit.com/trading/BTCUSD/BTCUSD2026-11-05.csv.gz",
+          "name": "BTCUSD2026-11-05.csv.gz",
+          "directory": false,
+          "date": "2026-11-05"
+        },
+        {
+          "url": "https://public.bybit.com/trading/BTCUSD/BTCUSD2026-11-06.csv.gz",
+          "name": "BTCUSD2026-11-06.csv.gz",
+          "directory": false,
+          "date": "2026-11-06"
+        }
+      ],
+      "earliest_listed_date": "2019-10-01",
+      "latest_listed_date": "2026-11-06"
+    },
+    {
+      "url": "https://public.bybit.com/trading/BTCUSDT/",
+      "count": 2418,
+      "first": [
+        {
+          "url": "https://public.bybit.com/trading/BTCUSDT/BTCUSDT2020-03-25.csv.gz",
+          "name": "BTCUSDT2020-03-25.csv.gz",
+          "directory": false,
+          "date": "2020-03-25"
+        },
+        {
+          "url": "https://public.bybit.com/trading/BTCUSDT/BTCUSDT2020-03-26.csv.gz",
+          "name": "BTCUSDT2020-03-26.csv.gz",
+          "directory": false,
+          "date": "2020-03-26"
+        },
+        {
+          "url": "https://public.bybit.com/trading/BTCUSDT/BTCUSDT2020-03-27.csv.gz",
+          "name": "BTCUSDT2020-03-27.csv.gz",
+          "directory": false,
+          "date": "2020-03-27"
+        }
+      ],
+      "last": [
+        {
+          "url": "https://public.bybit.com/trading/BTCUSDT/BTCUSDT2026-11-05.csv.gz",
+          "name": "BTCUSDT2026-11-05.csv.gz",
+          "directory": false,
+          "date": "2026-11-05"
+        },
+        {
+          "url": "https://public.bybit.com/trading/BTCUSDT/BTCUSDT2026-11-06.csv.gz",
+          "name": "BTCUSDT2026-11-06.csv.gz",
+          "directory": false,
+          "date": "2026-11-06"
+        }
+      ],
+      "earliest_listed_date": "2020-03-25",
+      "latest_listed_date": "2026-11-06"
+    },
+    {
+      "url": "https://public.bybit.com/spot/BTCUSDT/",
+      "count": 1506,
+      "first": [
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT-2022-11.csv.gz",
+          "name": "BTCUSDT-2022-11.csv.gz",
+          "directory": false,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT-2022-12.csv.gz",
+          "name": "BTCUSDT-2022-12.csv.gz",
+          "directory": false,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT-2023-01.csv.gz",
+          "name": "BTCUSDT-2023-01.csv.gz",
+          "directory": false,
+          "date": null
+        }
+      ],
+      "last": [
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT_2026-11-05.csv.gz",
+          "name": "BTCUSDT_2026-11-05.csv.gz",
+          "directory": false,
+          "date": "2026-11-05"
+        },
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT_2026-11-06.csv.gz",
+          "name": "BTCUSDT_2026-11-06.csv.gz",
+          "directory": false,
+          "date": "2026-11-06"
+        }
+      ],
+      "earliest_listed_date": "2022-11-10",
+      "latest_listed_date": "2026-11-06"
+    },
+    {
+      "url": "https://public.bybit.com/premium_index/",
+      "count": 11,
+      "first": [
+        {
+          "url": "https://public.bybit.com/premium_index/ADAUSD/",
+          "name": "ADAUSD",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/premium_index/BITUSD/",
+          "name": "BITUSD",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/premium_index/BTCUSD/",
+          "name": "BTCUSD",
+          "directory": true,
+          "date": null
+        }
+      ],
+      "last": [
+        {
+          "url": "https://public.bybit.com/premium_index/SOLUSD/",
+          "name": "SOLUSD",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/premium_index/XRPUSD/",
+          "name": "XRPUSD",
+          "directory": true,
+          "date": null
+        }
+      ],
+      "earliest_listed_date": null,
+      "latest_listed_date": null
+    },
+    {
+      "url": "https://public.bybit.com/spot_index/",
+      "count": 11,
+      "first": [
+        {
+          "url": "https://public.bybit.com/spot_index/ADAUSD/",
+          "name": "ADAUSD",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/spot_index/BITUSD/",
+          "name": "BITUSD",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/spot_index/BTCUSD/",
+          "name": "BTCUSD",
+          "directory": true,
+          "date": null
+        }
+      ],
+      "last": [
+        {
+          "url": "https://public.bybit.com/spot_index/SOLUSD/",
+          "name": "SOLUSD",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/spot_index/XRPUSD/",
+          "name": "XRPUSD",
+          "directory": true,
+          "date": null
+        }
+      ],
+      "earliest_listed_date": null,
+      "latest_listed_date": null
+    },
+    {
+      "url": "https://public.bybit.com/kline_for_metatrader4/",
+      "count": 23,
+      "first": [
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/ADAUSDT/",
+          "name": "ADAUSDT",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/APEUSDT/",
+          "name": "APEUSDT",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/ATOMUSDT/",
+          "name": "ATOMUSDT",
+          "directory": true,
+          "date": null
+        }
+      ],
+      "last": [
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/UNFIUSDT/",
+          "name": "UNFIUSDT",
+          "directory": true,
+          "date": null
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/XRPUSDT/",
+          "name": "XRPUSDT",
+          "directory": true,
+          "date": null
+        }
+      ],
+      "earliest_listed_date": null,
+      "latest_listed_date": null
+    }
+  ],
+  "docs": [
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/kline",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/mark-kline",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/index-kline",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/premium-index-kline",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/open-interest",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/history-fund-rate",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/long-short-ratio",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/recent-trade",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/orderbook",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/instrument",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/tickers",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/historical-volatility",
+      "status": 404
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/insurance",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/delivery-price",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/risk-limit",
+      "status": 200
+    },
+    {
+      "url": "https://bybit-exchange.github.io/docs/v5/market/index-components",
+      "status": 200
+    }
+  ]
+}

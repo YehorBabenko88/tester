@@ -1,9 +1,12 @@
 """Explicit ports: no market data is invented when a workstream is absent."""
 
-import importlib
+from pathlib import Path
 from typing import Protocol
 
 from .models import Query
+from .owned_imports import owned_factory
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 class ProviderUnavailable(Exception):
@@ -20,7 +23,6 @@ class UnavailableReader:
 
 
 def load_factory(spec: str | None, default):
-    if not spec:
+    if spec is None:
         return default
-    module, name = spec.split(":", 1)
-    return getattr(importlib.import_module(module), name)()
+    return owned_factory(spec, REPOSITORY_ROOT)

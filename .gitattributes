@@ -1,6 +1,8 @@
-# Keep the external shared contract pin byte-identical on every checkout platform.
+# Preserve approved core contract and pinned consumer references byte-for-byte.
 contracts/__init__.py -text
 contracts/v1/__init__.py -text
 contracts/v1/validate.py -text
 contracts/v1/market.schema.json -text
 contracts/MIGRATIONS.md -text
+tests/analytics/reference/binding/** -text
+src/integration/standalone_policy.py -text

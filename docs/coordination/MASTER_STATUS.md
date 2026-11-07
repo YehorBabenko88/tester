@@ -1,3 +1,19 @@
+# Current heartbeat — tested five-component composition, 2026-11-07T17:15:37.358876+01:00
+
+**NOT_READY.** Existing worktree preparation branch integration/pinned-ac-20261107 composes A0a6d07c / Be236395 / C3cb0735 / E5fa20ce / D6cf9a2a. No main merge; producer heads retained in integration history. Sources coexist, but configured optional API is still trades-only: catalog/derived-provider/full-range proof and actual financial browser path are pending. F/G/H not composed. TI inertS0.
+
+Final actual owned-PG unittest247methods245PASS/2root optin skips; separate API113PASS/2skips. A immutable A3098→Be2366PGtestsPASS plus actual stop/start/newprocess replay, scratchcluster stopped. C original-fetch+1ns/eventns/us cutoff defects resolved and independently replayed; final25binding methodsPASS using actual modules. E final5fa anchors policy bootstrap before parent import, rejects foreigncache/origins/namespaces/junctions; root24loaderPASS/1symlinkskip and fullAPIabove. Both unchanged core/policy hash pinsPASS. Boundedproof API ownerB still actively implementing; do not claim COMPLETE.
+
+Frontend19Node+25fixturebrowserPASS using alreadyinstalledChrome(no installation); initial bundledbrowser absence was environment-only. Actual E→D static HTTP2PASS confirms owned HTML/JSbytes and JSON503/unsupported404, not fake rows. These are not live financial E2E or stress. Backendwheelbuild/isolatedimports/pinsPASS SHA01a7bb6c08e5fac9d012405ac5d132ecb8ab74d69d69994ee8c2277068fc54f7; includesA/B/C/E+SQL/schemas/policy. Frontend assets remain source-distribution; no service/OScredential-backend installcertified. Added dedicated hosted frontend fixtureCI; all actualCI observedqueued, no success.
+
+Integration fixes: union all byteattrs/packageassets; retainedBDecimalquality. C standalone vendoredreference subset shadowedrealE/src.api.main under combineddiscovery: reproducedRED, changed integration testpath toactualownedmoduleswhenpresent with standalonefallback, GREEN. ExistingworkingpolicyCRLF bytes restoredfromcorrectGitblob after new-textattribute; expectedpinunchanged, no policybehaviorrewrite. A hiddenrestartchildguardP2 fixedupstream0a6d and independentlyverified; normalparent6PG replayPASS. FocusedC/A/E tasks closed, fullcomponents remain READY_FOR_REVIEW only.
+
+Fourth actualheartbeat2026-11-07T15:57:23.794Z recorded. A/C/E actualchatsidlecompleted after corrections; B active/toolprogress confirmed; D/F idlecompleted; G AWAITING_AGENT_EXECUTION(no authorized G/Hdispatch assumed). Latestissues/PRs/HEADs/CI refreshed; taskmarkersdeduped. Next: boundedBproof→reader, typedC/catalogproviders/cutoff, actualfinancialUI, real10instrument/fullhistory/resources/service/CI, F/G separately. No physicaldeployment, mainmerge, trading or userdata deletion.
+
+---
+
+## Historical checkpoints below
+
 # Current heartbeat — composed B/E and blocked C, 2026-11-07T16:52:29.372082+01:00
 
 **NOT_READY.** Existing worktree retained; candidate imports reviewed B e236395 and E b15b1ce into one repository checkout. Local preparation branch integration/pinned-candidate-20261107; published coordination/master and integration/master will retain reviewed B/E commit parents. No main merge or default provider activation. A/C/D/F/G are not yet composed.

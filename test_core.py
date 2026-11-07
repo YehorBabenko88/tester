@@ -32,4 +32,37 @@ class BoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             c.api("/v5/order/create")
 
+
+class IntegrityTests(unittest.TestCase):
+    def test_missing_internal_minute_is_gap(self):
+        from engine import download_candles
+        start=ms(2026,11,1,0)
+        rows=[["%d"%start,"10","11","9","10","5","50"],
+              ["%d"%(start+120000),"10","11","9","10","5","50"]]
+        class FakeClient:
+            def api(self, path, params):
+                return {"list":rows}
+        with patch("engine.db.coverage_state",return_value=None), \
+             patch("engine.db.save_candles",return_value=2), \
+             patch("engine.db.coverage_set") as coverage, \
+             patch("engine.utc_ms",return_value=ms(2026,11,7)):
+            download_candles(FakeClient(),"linear","BTCUSDT","trade","1",
+                             start,start+180000)
+        self.assertEqual(coverage.call_args.args[6],"gaps")
+
+    def test_missing_trailing_minute_is_gap(self):
+        from engine import download_candles
+        start=ms(2026,11,1)
+        rows=[["%d"%start,"10","11","9","10","5","50"]]
+        class FakeClient:
+            def api(self, path, params):
+                return {"list":rows}
+        with patch("engine.db.coverage_state",return_value=None), \
+             patch("engine.db.save_candles",return_value=1), \
+             patch("engine.db.coverage_set") as coverage, \
+             patch("engine.utc_ms",return_value=ms(2026,11,7)):
+            download_candles(FakeClient(),"linear","BTCUSDT","trade","1",
+                             start,start+120000)
+        self.assertEqual(coverage.call_args.args[6],"gaps")
+
 if __name__=="__main__":unittest.main()
