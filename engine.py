@@ -192,7 +192,7 @@ def build_clusters(cat,sym,timeframes=INTERVALS):
     with db.connect() as c:
         for tf in timeframes:
             if tf=="M":
-                bucket="(extract(epoch from date_trunc('month',to_timestamp(ts_ns/1000000000.0)))::bigint*1000000000)"
+                bucket="(extract(epoch from date_trunc('month',to_timestamp(ts_ns/1000000000.0) AT TIME ZONE 'UTC'))::bigint*1000000000)"
                 args=(tf,cat,sym)
             else:
                 width=tf_minutes(tf)*60*1000000000
