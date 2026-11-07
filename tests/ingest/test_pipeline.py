@@ -85,7 +85,7 @@ class PipelineTests(unittest.TestCase):
 
     def test_corrupt_remote_archive_never_published(self):
         with tempfile.TemporaryDirectory() as d:
-            t=Mock(); t.get.side_effect=lambda *a,**k:response(gzip.compress(b'a,b\n1,2\n')[:-3])
+            t=Mock(); t.get.side_effect=lambda *a,**k:response(gzip.compress(b'timestamp,price\n1,2\n')[:-3])
             j=Journal(Path(d)/'j.db'); self.addCleanup(j.close)
             path=Path(d)/'a.csv.gz'
             with self.assertRaises((EOFError,OSError,ValueError)):
@@ -143,7 +143,7 @@ class PipelineTests(unittest.TestCase):
             j.close()
 
     def test_resume_requires_verified_content_range(self):
-        body = gzip.compress(b'a,b\n1,2\n')
+        body = gzip.compress(b'timestamp,price\n1,2\n')
         with tempfile.TemporaryDirectory() as d:
             path = Path(d)/'a.csv.gz'
             part = path.with_name(path.name+'.partial')
@@ -192,7 +192,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(item['end_date_exclusive'],'2022-12-01')
 
     def test_valid_range_resume(self):
-        body=gzip.compress(b'a,b\n1,2\n')
+        body=gzip.compress(b'timestamp,price\n1,2\n')
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'a.csv.gz'; part=path.with_name(path.name+'.partial')
             part.write_bytes(body[:10])

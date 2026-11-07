@@ -30,7 +30,7 @@ def main():
             repeated=backfill.run(category,symbol,'kline','1',1704067200000,1704067500000,limit=2)
             assert repeated['records']==5
             report['rest'].append({'category':category,**result,'restart_verified':True})
-        journal.export(root/'records.jsonl')
+        report['handoff']=journal.export(root/'handoff.json')
     finally: journal.close()
     (root/'report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps(report,indent=2))

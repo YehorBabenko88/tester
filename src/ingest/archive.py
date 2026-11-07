@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import json
 import re
+import uuid
 from datetime import date,timedelta,datetime,timezone
 from decimal import Decimal
 from itertools import chain
@@ -61,7 +62,7 @@ def discover(url=BASE+'/',transport=None):
         result.append({'url':target,'name':tail,'directory':not bool(re.search(r'\.(gz|csv|zip)$',tail)),'date':dates[0] if dates else None,'start_date':start,'end_date_exclusive':end})
     return sorted(result,key=lambda x:x['name'])
 
-def validate(path):
+def validate(path,source_url=None):
     path=Path(path); digest=hashlib.sha256()
     with path.open('rb') as f:
         for block in iter(lambda:f.read(1024*1024),b''): digest.update(block)
@@ -71,9 +72,13 @@ def validate(path):
     with opener(path,'rt',encoding='utf-8-sig',newline='') as f:
         reader=csv.reader(f,strict=True); header=next(reader,None)
         if not header or len(header)<2: raise ValueError('Missing CSV header')
+        if any(re.search(r'<\s*!?\s*(?:doctype|html|head|body|script)\b',cell,re.I) for cell in header): raise ValueError('HTML is not a CSV archive')
         header_present=not bool(re.fullmatch(r'\d{4}\.\d{2}\.\d{2} \d{2}:\d{2}',header[0]))
         if not header_present and len(header)!=6: raise ValueError('Invalid MT4 layout')
         columns=header if header_present else ['datetime_utc','open','high','low','close','volume']
+        root=urlsplit(source_url or '').path.split('/')[1:2]
+        expected={'trading':{'timestamp','price'},'spot':{'timestamp','price'},'premium_index':{'start_at','open','high','low','close'},'spot_index':{'start_at','open','high','low','close'}}.get(root[0] if root else '')
+        if expected and not expected.issubset(columns): raise ValueError('Archive CSV does not match source schema')
         time_column=next((columns.index(k) for k in ['timestamp','start_at','datetime_utc'] if k in columns),None)
         count=0; first=last=None
         for row in reader if header_present else chain([header],reader):
@@ -100,7 +105,8 @@ def iter_trade_records(path,category,symbol,provenance,allow_composite=False):
     checked=validate(path)
     if provenance.get('sha256') and provenance['sha256']!=checked['sha256']: raise ValueError('Provenance hash mismatch')
     if 'timestamp' not in checked['columns'] or not checked['header_present']: raise ValueError('Not a recognized trade archive')
-    source={**provenance,**checked,'fetched_at':provenance.get('fetched_at') or utcnow()}
+    source={**provenance,**checked,'fetched_at':provenance.get('fetched_at') or utcnow(),'source_kind':'bybit_archive','ingestion_run':provenance.get('ingestion_run') or 'run:'+uuid.uuid4().hex}
+    source['artifact_validation']={'kind':'archive_validation','ingestion_run':source['ingestion_run'],'url':source.get('url'),'validation_time':utcnow(),'checked':checked,'storage_uri':str(Path(path).resolve()),'hash_scope':'original_archive_bytes','declared_download_run':provenance.get('ingestion_run')}
     with open(path,'rb') as raw: magic=raw.read(2)
     opener=gzip.open if magic==b'\x1f\x8b' else open
     with opener(path,'rt',encoding='utf-8-sig',newline='') as f:
@@ -113,7 +119,11 @@ def iter_trade_records(path,category,symbol,provenance,allow_composite=False):
                 if not allow_composite: raise ValueError('Missing exchange trade ID; explicit composite opt-in required')
                 trade_id=hashlib.sha256(json.dumps([category,symbol,row],sort_keys=True,separators=(',',':')).encode()).hexdigest()
                 origin='composite_sha256_raw_row_v1'
-            yield {'schema_version':'1.0','venue':'bybit','category':category,'symbol':symbol,'dataset':'trades','interval':'','timestamp_ms':timestamp_ms,'timestamp_ns':timestamp_ns,'timestamp_precision':precision,'trade_id':str(trade_id),'id_origin':origin,'payload':row,'source':source}
+            result={'schema_version':'1.0','venue':'bybit','category':category,'symbol':symbol,'dataset':'trades','interval':'','timestamp_ms':timestamp_ms,'timestamp_ns':timestamp_ns,'timestamp_precision':precision,'trade_id':str(trade_id),'id_origin':origin,'payload':row,'source':{**source,'source_timestamp':row['timestamp']},'availability':{'status':'PARTIAL','reason':'Validated archive observations; complete exchange interval inventory not established'}}
+            if precision=='us':
+                raw=Decimal(row['timestamp'])
+                result['timestamp_us']=int(raw) if raw>=Decimal('1e14') else int(raw*1000000)
+            yield result
 
 class ArchiveLoader:
     def __init__(self,journal,transport=None): self.journal=journal; self.transport=transport or Transport()
@@ -123,7 +133,7 @@ class ArchiveLoader:
         key='archive:'+url; old=self.journal.task(key)
         if old and old['status']=='validated' and path.exists():
             try:
-                checked=validate(path)
+                checked=validate(path,url)
                 if checked['sha256']==old['sha256']:
                     info={**old,**checked,'path':str(path)}
                     info.pop('status',None)
@@ -131,7 +141,8 @@ class ArchiveLoader:
                     return info
             except (ValueError,OSError,EOFError,csv.Error,UnicodeError): pass
         part=path.with_name(path.name+'.partial'); meta=part.with_name(part.name+'.json')
-        self.journal.save(key,'running',{'url':url,'path':str(path)})
+        run_id=self.journal.start_run('archive_download',{'url':url,'path':str(path)})
+        self.journal.save(key,'running',{'url':url,'path':str(path)},run_id=run_id)
         try:
             for attempt in range(3):
                 headers={'Accept-Encoding':'identity'}; offset=0
@@ -160,8 +171,11 @@ class ArchiveLoader:
                             for block in r.iter_content(1024*1024):
                                 if block: out.write(block)
                         if expected is not None and part.stat().st_size!=expected: raise ValueError('Incomplete Content-Length')
-                        info={**validate(part),'url':url,'path':str(path),'fetched_at':utcnow(),'etag':r.headers.get('ETag'),'last_modified':r.headers.get('Last-Modified')}
-                    part.replace(path); self.journal.save(key,'validated',info); meta.unlink(missing_ok=True)
+                        info={**validate(part,url),'url':url,'path':str(path),'fetched_at':utcnow(),'etag':r.headers.get('ETag'),'last_modified':r.headers.get('Last-Modified'),'source_kind':'bybit_archive','ingestion_run':run_id}
+                    ref=self.journal.add_evidence({'kind':'archive_download','ingestion_run':run_id,'manifest':info,'http_status':r.status_code,'range_request':headers,'hash_scope':'original_archive_bytes'})
+                    info['evidence_refs']=[ref]
+                    part.replace(path); self.journal.save(key,'validated',info,run_id=run_id); meta.unlink(missing_ok=True)
+                    self.journal.finish_run(run_id,'PARTIAL')
                     return info
                 except requests.RequestException:
                     if attempt==2: raise
@@ -170,7 +184,8 @@ class ArchiveLoader:
                     if attempt==2: raise
             raise ValueError('Inconsistent Range responses')
         except Exception as exc:
-            self.journal.save(key,'failed',{'url':url,'path':str(path),'error':str(exc)}); raise
+            self.journal.save(key,'failed',{'url':url,'path':str(path),'error':str(exc)},run_id=run_id)
+            self.journal.finish_run(run_id,'FAILED'); raise
 
     def many(self,files,directory,workers=3):
         if not 1<=workers<=8: raise ValueError('workers must be 1..8')
