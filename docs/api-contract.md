@@ -85,6 +85,28 @@ handler finished; it does not imply independently verified coverage.
 
 ## Adapter ports and cross-workstream coordination
 
+Configured factory loading now enforces the tester-owned policy pinned to coordinator
+`d945b23ab940b67f569ed85aa4c8d6e9684f8149`; its unchanged source and hash manifest
+are shipped in src/integration. Only src.ingest/storage/quality/analytics/api/strategy/
+backtest/control/integration module specifications are eligible. URL/path/foreign
+specs, empty values, absent or ambiguous module/package sources and repository-escaped
+symlinks/junctions fail before configured imports. `None` alone preserves the disabled
+default; no default provider is activated by this change.
+
+The complete import parent chain is preflighted without importing parents. Cached and
+resolved origins, regular/namespace package paths and loader filenames must agree
+with owned sources. Foreign/merged/shadowed parents are rejected. Owned initializers
+are imported one at a time and rechecked before descendants, preventing an initializer's
+foreign __path__ from being followed. Loaded module and defining callable origin are
+checked again before invocation. Re-exports between verified owned components work;
+foreign callable aliases do not. The owned repository remains on the import path.
+
+This validates ownership for trusted local configuration. It is not an arbitrary
+Python sandbox: validated owned module code/initializers and host import finders are
+trusted and may execute. It does not authenticate market evidence, approve transitive
+business logic or establish a full runtime pipeline. Issue25 TI, optional v1.1 and
+external-repository Gateway activation are not introduced here.
+
 `TESTER_PROVIDER_FACTORY=package.module:factory` creates a `Reader` with
 `read(resource: str, query: Query) -> {data: list, next_cursor: str | None}`.
 Response rows must match the resource model in `src/api/models.py`; every market
