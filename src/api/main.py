@@ -1,4 +1,5 @@
 import logging
+import os
 from copy import deepcopy
 from typing import Annotated, Literal
 from uuid import UUID
@@ -181,10 +182,16 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             except psycopg.Error:
                 pass
         storage = storage_status(settings)
-        ok = database == worker == storage["storage"] == "ok"
+        provider_status = "unavailable" if isinstance(reader, UnavailableReader) else "configured"
+        ok = database == worker == storage["storage"] == "ok" and provider_status == "configured"
         body = Envelope(
             data=Health(
-                status="ok" if ok else "degraded", database=database, worker=worker, **storage
+                status="ok" if ok else "degraded",
+                database=database,
+                worker=worker,
+                provider=provider_status,
+                instance_id=os.environ.get("TESTER_SERVICE_INSTANCE"),
+                **storage,
             )
         )
         return JSONResponse(status_code=200 if ok else 503, content=body.model_dump(mode="json"))

@@ -1161,6 +1161,26 @@
             ],
             "title": "Free Bytes"
           },
+          "instance_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance Id"
+          },
+          "provider": {
+            "enum": [
+              "configured",
+              "unavailable"
+            ],
+            "title": "Provider",
+            "type": "string"
+          },
           "status": {
             "enum": [
               "ok",
@@ -1200,6 +1220,7 @@
           }
         },
         "required": [
+          "provider",
           "status",
           "database",
           "worker",
