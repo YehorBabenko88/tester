@@ -91,3 +91,30 @@ Independent reviewer reproduced material edge cases and rereviewed fixes. Its in
 Latest P1 horizon verification: **81 branch tests/15.596s/OK/zero skips**, including all prior76; **90 main+B snapshot tests/15.787s/OK/zero skips**, no merge. The unchanged MASTER adverse probe passed (1 actual-PG test/0.463s): original full bounds to2100 retained, UNKNOWN, verified_ms0, percent0 and proof_refs[]. Updated modules were preloaded because the original probe embeds its old checkout path; the probe body/assertion was not edited. The3 reviewer-authored checks also passed again. Narrow independent code review found no material issue in the horizon fix.
 
 PostgreSQL18.4/Python3.14/Windows, durability on. These are root-executed full suites/reproductions, not a claim of an independent full-suite pass. Exact HEAD and full logs are reported in PR13/Issue2. No user DB migration, physical deploy, trading or raw deletion occurs in this work.
+
+## Knowledge-time projection v1 (code-only follow-up)
+
+`read_page` adds `knowledge_time` from the same bounded repeatable-read fetches.
+`facts` contains the fact kind, identifiers and original PostgreSQL timestamp strings
+(raw inserted_at, source/observation recorded_at, run created_at, evidence/interval/
+finding created_at, resolution resolved_at and archive created_at where consulted).
+No second query or historical-as-of filtering is introduced. Unpaged support records
+are included through their existing observation fetch. Absent run-evidence/run-job
+link timestamps and quarantine timestamps are explicit nulls. Missing negative-fact
+history (for example absence of corruption) is also not certified.
+
+All currently supported schema versions use transaction-start DEFAULT now(), not a
+trusted commit/visibility upper bound. Therefore v1 deliberately returns
+`status: UNAVAILABLE`, `quality_available_at_ms: null`, `historical_as_of: false`.
+Neither fetched_at, market time, read clock, task completion nor a client cutoff is
+substituted. Original timestamp strings retain sub-millisecond database precision;
+no integer milliseconds or acquisition precision are fabricated. Consumers must
+reject historical quality binding when this value is null, even if present-time
+coverage is COMPLETE. Availability and coverage are distinct contracts.
+
+Projection documents consume the shared retained byte budget and final serialized
+response ceiling; all existing document caps and deadlines remain. Resource/database
+failures return UNKNOWN/no proof and discard the partial knowledge facts. Empty data
+has unavailable knowledge time. No migration or writer change is included: providing
+historical availability requires a separately designed trustworthy persisted
+visibility protocol; max(transaction-start timestamps) would be unsound.

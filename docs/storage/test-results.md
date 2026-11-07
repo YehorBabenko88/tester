@@ -21,3 +21,10 @@ Independent code review found three material problems; all were reproduced with 
 Limits: plain PostgreSQL tested, no TimescaleDB installation/hypertable tests; Parquet manifests supported but no codec; no large-archive throughput benchmark; ingestion retains per-window identity/candle state and uses per-record SQL; A/E downloader/HTTP wiring must use this API before its guarantees apply; existing main db.py/engine.py are not silently migrated or rewritten; confirmed-source corrections need an explicit audited revision policy; source availability attestations are trusted evidence, not a mathematical proof of exhaustive exchange history. Funding without event inventory and sparse/unknown periods stay unverified.
 
 Additional compatibility check: a separate read-only merge-tree snapshot of B + main (base 0a6ce227) passed **49 tests, 10.625s, OK, zero skips**. No branch merge or merge to main was performed. Two final failing regression tests reproduced checkpoint regression under late retries; monotonic sequence/offset and implicit checkpoint preservation fix both.
+
+Knowledge-time code-only follow-up: 18 unit/mock tests passed (6 knowledge-time,
+12 models/quality), compileall and git diff --check passed. No physical PostgreSQL,
+service, UAC, ACL or database cleanup actions were performed. These results do not
+constitute PostgreSQL or composed provider acceptance. Read-only code review found
+no actionable issues. The historical availability aggregate remains explicitly
+unavailable for current transaction-start-only schema; see bounded-read-page.md.

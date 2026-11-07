@@ -14,6 +14,7 @@ import psycopg
 from .coverage import coverage_report
 from .models import DATASETS, CANDLES, canonical, digest, integer, normalize
 from .provenance import source_run_status
+from .knowledge_time import project_knowledge
 from src.quality.candles import next_boundary
 
 
@@ -24,6 +25,7 @@ class Unavailable(Exception):
 
 class Budget:
     def __init__(self,limits):
+        self.knowledge_facts=[]
         self.limits=limits; self.deadline=time.monotonic()+limits['statement_timeout_ms']/1000
         self.usage=dict(rows=0,observations=0,run_links=0,evidence=0,intervals=0,findings=0,archives=0,
                         bytes=0,fetched_bytes=0,archive_bytes=0)
@@ -61,12 +63,20 @@ class Budget:
                 self.usage['bytes']+=row['size']; self.usage[label]+=1
                 try: decoded=json.loads(row['encoded'])
                 except (ValueError,TypeError,RecursionError): raise Unavailable('invalid_document','UNAVAILABLE')
+                timing={k:v for k,v in decoded.items() if k.endswith(('_at','_recorded_at','_created_at'))}
+                identity={k:decoded[k] for k in ('record_key','source_id','observation_id','run_id','evidence_id','archive_id','id') if k in decoded}
+                fact=dict(kind=label,identity=identity,timestamps=timing)
+                fact_bytes=len(canonical(fact).encode('utf-8'))
+                if self.usage['bytes']+fact_bytes>self.limits['max_bytes']-4096:
+                    raise Unavailable('bytes_limit')
+                self.usage['bytes']+=fact_bytes
+                self.knowledge_facts.append(fact)
                 yield decoded
 
 
 def record_doc(alias='r'):
     fields=('record_key','venue','category','symbol','dataset','interval','schema_version','timestamp_ms',
-            'timestamp_ns','timestamp_us','timestamp_precision','trade_id','id_origin','content_hash','payload')
+            'timestamp_ns','timestamp_us','timestamp_precision','trade_id','id_origin','content_hash','payload','inserted_at')
     return 'jsonb_build_object('+','.join("'%s',%s.%s"%(k,alias,k) for k in fields)+')'
 
 
@@ -177,8 +187,9 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
             if len(evidence_ids)>max_evidence: raise Unavailable('evidence_limit')
 
             observation_query='''SELECT jsonb_build_object('record','''+record_doc()+''','source_id',s.source_id,'source',s.source,
-                'raw_envelope',s.raw_envelope,'observation_id',o.observation_id,'run_id',o.run_id,'job_key',o.job_key,
-                'evidence_id',o.evidence_id,'source_kind',o.source_kind,'timestamp_precision',o.timestamp_precision,'run_origin',u.run_origin) AS doc,
+                'raw_envelope',s.raw_envelope,'source_recorded_at',s.recorded_at,
+                'observation_recorded_at',o.recorded_at,'raw_inserted_at',r.inserted_at,'observation_id',o.observation_id,'run_id',o.run_id,'job_key',o.job_key,
+                'evidence_id',o.evidence_id,'source_kind',o.source_kind,'timestamp_precision',o.timestamp_precision,'run_origin',u.run_origin,'run_created_at',u.created_at) AS doc,
                 jsonb_build_array(r.timestamp_ms,r.record_key,coalesce(s.source_id,''),coalesce(o.observation_id,'')) AS sort_key
                 FROM tester_storage.raw_records r LEFT JOIN tester_storage.record_sources s USING(record_key)
                 LEFT JOIN tester_storage.source_observations o USING(source_id) LEFT JOIN tester_storage.ingestion_runs u USING(run_id) WHERE '''
@@ -201,7 +212,8 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
                 p['horizon_rejections']=horizon_rejections(p,now_ms)
                 p['within_read_horizon']=not p['horizon_rejections']
             support={eid:set() for eid in evidence_ids}; invalid=set(); conflicts=[]
-            run_query='''SELECT jsonb_build_object('run_id',v.run_id,'job_key',v.job_key,'evidence_id',v.evidence_id,'run_origin',u.run_origin) AS doc,
+            run_query='''SELECT jsonb_build_object('run_id',v.run_id,'job_key',v.job_key,'evidence_id',v.evidence_id,'run_origin',u.run_origin,'run_created_at',u.created_at,
+                'link_created_at',NULL,'run_job_link_created_at',NULL) AS doc,
                 jsonb_build_array(v.run_id,v.job_key,v.evidence_id) AS sort_key FROM tester_storage.ingestion_run_evidence v
                 JOIN tester_storage.ingestion_runs u USING(run_id) WHERE v.evidence_id=ANY(%s) ORDER BY sort_key'''
             run_links=list(budget.docs(c,run_query,(sorted(evidence_ids),),max_run_links,'run_links'))
@@ -222,7 +234,7 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
                 authentic=o['run_origin']=='caller' and status=='matched' and o['source_kind'] in ('rest','archive','import')
                 try:
                     n=normalize(o['raw_envelope'])
-                    semantic=all(n.get(k)==r.get(k) for k in r if k!='schema_version') and n['schema_version']==r['schema_version']
+                    semantic=all(n.get(k)==r.get(k) for k in r if k not in ('schema_version','inserted_at')) and n['schema_version']==r['schema_version']
                     semantic &= n['source']==o['source'] and digest([rk,n['source'],o['raw_envelope']])==o['source_id']
                     semantic &= o['source_kind']==n['source'].get('source_kind',o['raw_envelope'].get('source_kind','unknown'))
                     semantic &= o['timestamp_precision']==r['timestamp_precision'] and r['timestamp_ms']<=now_ms+2000
@@ -243,7 +255,7 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
             response['observations']=observations; response['evidence']=evidences
 
             relevant_ids=list(record_keys|source_ids|evidence_ids)
-            quarantine_query='''SELECT jsonb_build_object('id',object_id,'reason',reason) AS doc,jsonb_build_array(object_id,scan_id) AS sort_key
+            quarantine_query='''SELECT jsonb_build_object('id',object_id,'reason',reason,'recorded_at',NULL) AS doc,jsonb_build_array(object_id,scan_id) AS sort_key
                 FROM tester_storage.lifecycle_quarantine WHERE object_id=ANY(%s) ORDER BY sort_key'''
             quarantine=list(budget.docs(c,quarantine_query,(relevant_ids,),max_findings-budget.usage['findings'],'findings'))
             quarantined={q['id'] for q in quarantine}
@@ -273,7 +285,7 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
                     available=e['available_range']
                     if available['method']=='archive_manifest':
                         archive_query='''SELECT jsonb_build_object('archive_id',archive_id,'start_ms',start_ms,'end_ms',end_ms,'row_count',row_count,
-                            'url',url,'storage_uri',storage_uri,'sha256',sha256,'bytes',bytes) AS doc,jsonb_build_array(archive_id) AS sort_key
+                            'url',url,'storage_uri',storage_uri,'sha256',sha256,'bytes',bytes,'created_at',created_at) AS doc,jsonb_build_array(archive_id) AS sort_key
                             FROM tester_storage.source_archives WHERE scope_key=%s AND sha256=%s AND start_ms=%s AND end_ms=%s ORDER BY sort_key'''
                         archives=list(budget.docs(c,archive_query,(key,available['sha256'],e['start_ms'],e['end_ms']),max_evidence-budget.usage['archives'],'archives'))
                         new_archive_ids={a['archive_id'] for a in archives}-checked_archives
@@ -320,6 +332,7 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
                 proof_refs=sorted(active_proofs) if complete else [],reasons=reasons,intervals=report)
             for p in evidences: p['active_proof']=complete and p['evidence_id'] in active_proofs
             budget.timeout(c)
+            response['knowledge_time']=project_knowledge(budget.knowledge_facts)
             # Final serialized response ceiling includes duplicated refs/envelope overhead.
             if len(canonical(response).encode('utf-8'))>max_bytes: raise Unavailable('bytes_limit')
         return response
@@ -333,7 +346,7 @@ def read_page(store,dataset,venue,category,symbol,start_ms,end_ms,interval='',li
         outcome,reason='UNAVAILABLE','invalid_document'
     return dict(outcome=outcome,scope=scope,rows=[],observations=[],run_links=[],evidence=[],next_cursor=None,page_exhausted=False,
         coverage=dict(start_ms=start_ms,end_ms=end_ms,complete=False,state='UNKNOWN',proof_refs=[],reasons=[reason]),
-        snapshot=snapshot,limits=response['limits'],usage=budget.usage)
+        snapshot=snapshot,limits=response['limits'],usage=budget.usage,knowledge_time=project_knowledge([],reason))
 
 
 def _archive_ok(manifest,budget,c):
