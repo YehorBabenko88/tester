@@ -1,0 +1,41 @@
+name: Storage integrity
+on:
+  push:
+    branches: [workstream/b-integrity]
+  pull_request:
+    paths: ['src/storage/**', 'src/quality/**', 'tests/storage/**', '.github/workflows/storage.yml']
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        postgres: ['14', '18']
+        python: ['3.11', '3.13']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: storage_test_admin
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U storage_test_admin'
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -r src/storage/requirements.txt
+      - name: Matching backup tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-${{ matrix.postgres }}
+          echo "/usr/lib/postgresql/${{ matrix.postgres }}/bin" >> "$GITHUB_PATH"
+      - name: Unit, PostgreSQL, crash and backup tests
+        env:
+          TESTER_TEST_ADMIN_DSN: host=127.0.0.1 port=5432 user=storage_test_admin dbname=storage_test_admin connect_timeout=5
+        run: python -m unittest discover -v
