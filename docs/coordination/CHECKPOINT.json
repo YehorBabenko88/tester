@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "repository": "YehorBabenko88/tester",
-  "cycle_id": "heartbeat-2026-11-07-1818-native-job-repair-browser",
-  "checked_at": "2026-11-07T18:30:01.497495+00:00",
-  "checked_at_europe_berlin": "2026-11-07T19:30:01.497495+01:00",
+  "cycle_id": "heartbeat-2026-11-07-1834-repaired-immutable-candidate-foundation-pg",
+  "checked_at": "2026-11-07T18:47:51.939617+00:00",
+  "checked_at_europe_berlin": "2026-11-07T19:47:51.939617+01:00",
   "readiness": "NOT_READY",
   "coordination_branch": "coordination/master",
   "integration_branch": "integration/master",
@@ -20,8 +20,8 @@
     "first_invocation_at": "2026-11-07T14:40:23.454Z",
     "prompt_revision": "Retired0ff/nativeJobrepair/actualforegroundChrome/B70a3 nextPG; officialupdate+configreadback ACTIVE",
     "prompt_update_verified": true,
-    "last_invocation_at": "2026-11-07T18:18:52.516Z",
-    "last_invocation_evidence": "Actual matching heartbeat; real non-elevated nativeJob failure reproduced, regressionfixed, actual foregroundAPIworkerPG/Chrome retest and safe stop performed; noSCM/UACretry"
+    "last_invocation_at": "2026-11-07T18:34:52.561Z",
+    "last_invocation_evidence": "Actual matching heartbeat rebuilt immutable7df+externalverification+exactnativehostforegroundAPIworkerPG/Chrome; independent9actualPGfoundationtests; noSCM/UAC"
   },
   "agents": {
     "A": {
@@ -43,9 +43,9 @@
       "execution_evidence": "Actual fresh wait_threads snapshot; no duplicate dispatch",
       "pr": 13,
       "reviewed_head": "70a3ae5f82f707365c17048b2d58379a8e2456c4",
-      "new_head_review": "FOUNDATION_11_MOCK_SQL_INVENTORY_STATIC_PASS_ACTUAL_PG_PENDING",
+      "new_head_review": "LIMITED_DISABLED_FOUNDATION_9ACTUALPG_ACCEPTED_NO_ENROLLMENT",
       "composition": "SOURCE_AND_COMPONENT_TESTS_COMPOSED_NOT_FULL_PIPELINE",
-      "pg_reviewed_head": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec"
+      "pg_reviewed_head": "70a3ae5f82f707365c17048b2d58379a8e2456c4"
     },
     "C": {
       "observed_head": "3cb073586ccc9213e6cb5c5f304dce43d8e46322",
@@ -685,20 +685,21 @@
     "issue": 27,
     "branch": "physical/master-windows-test",
     "checkpoint": "docs/physical-test/CHECKPOINT.json",
-    "status": "BLOCKED_REBUILD_RETIRED_CANDIDATE_AND_UAC_CANCELLED",
+    "status": "BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED",
     "service_installed": false,
     "owned_database_prepared": true,
     "own_cluster_stopped": true,
     "acceptance": "NOT_ACCEPTED",
-    "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+    "frozen_sha": "7df3ee987c2a7cefbff13db82442faf0fb09e689",
     "draft_pr": "https://github.com/YehorBabenko88/tester/pull/29",
     "uac_pending": false,
-    "next_checkpoint": "Verify E producer backport and publish/build a repaired immutable candidate before any replacement wrapper",
+    "next_checkpoint": "New7df candidate and read-only proposed payload ready for review; only new explicit human administrator action may register/start own services",
     "automatic_uac_retry_forbidden": true,
     "data_restore_probe": "PASS_50_ROWS_TEN_INSTRUMENTS_FULL_HISTORY_NOT_PROVEN",
-    "frozen_candidate_installable": false,
-    "native_job_repair": "ROOT_FIXED_135PASS_NOT_REBUILT",
-    "foreground_ui": "PASS_EXPECTED_UNAVAILABLE_NOT_SCM"
+    "frozen_candidate_installable": "PROPOSED_NATIVE_INSTALL_PENDING_HUMAN_ADMINISTRATOR_ACTION",
+    "native_job_repair": "EXACT_REBUILT_7DF_FOREGROUND_PASS_NOT_SCM",
+    "foreground_ui": "PASS_EXPECTED_UNAVAILABLE_NOT_SCM",
+    "manifest_sha256": "002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf"
   },
   "latest_independent_b_review": {
     "sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec",
@@ -742,7 +743,7 @@
     "same_head_defect_dedup_marker": "73766-quality-knowledge-time-port",
     "consumer": "C3cb bind_storage_trades quality_available_at_ms <= information_cutoff_ms",
     "reason": "DEFAULTnow timestamps are transaction-start, not proved commit/visibility; null historical quality is truthful",
-    "next": "Retained-DB migration/constraints/rollback/contention checks before prototype acceptance",
+    "next": "All-writer enforcement/UTC/restore/publication technical gates; no C mapping or positive receipt",
     "published_sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec",
     "next_task_comment": 6711141791,
     "next_task_marker": "a8aa-prospective-visibility-design",
@@ -756,8 +757,11 @@
     "next_stage": "B foundation schema/epoch/common-gate scaffolding; production success disabled; no C mapping",
     "independent_review": "docs/coordination/reviews/VISIBILITY_PROTOCOL_89221.md",
     "foundation_sha": "70a3ae5f82f707365c17048b2d58379a8e2456c4",
-    "foundation_review": "11 independentmockPASS plus exactSQL/inventory static; actualPGNOTRUN",
-    "foundation_report": "docs/coordination/reviews/FOUNDATION_70A3.md"
+    "foundation_review": "INDEPENDENT9ACTUALPG_PASS_PLUS_PRIOR11MOCK_STATIC",
+    "foundation_report": "docs/coordination/reviews/FOUNDATION_70A3.md",
+    "foundation_actual_pg_tests": 9,
+    "foundation_acceptance": "LIMITED_DISABLED_PROTOTYPE_ONLY",
+    "foundation_root_acceptance_comment": 6711530726
   },
   "visibility_counterexamples": {
     "actual_pg_cases": 2,

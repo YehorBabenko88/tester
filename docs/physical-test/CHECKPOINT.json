@@ -5,7 +5,7 @@
   "installation_id": "f23dab63-92c6-4e56-9027-4213c6b4dc60",
   "host_fingerprint": "658ac47c38eb17a6",
   "phase": "BLOCKED",
-  "status": "BLOCKED_REBUILD_RETIRED_CANDIDATE_AND_UAC_CANCELLED",
+  "status": "BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED",
   "root": "C:/ProgramData/TesterPhysicalTest20261107",
   "services": [
     "TesterPhysicalTest20261107",
@@ -25,19 +25,19 @@
   "scm_access_error": 5,
   "administrator_group_member": false,
   "elevated": false,
-  "required_os_action": "First rebuild/verify repaired immutable candidate; then separate human administrator action; never automatic UAC retry",
+  "required_os_action": "New explicit human administrator action for the separately proposed7df payload; no automatic UAC retry",
   "private_journal": "C:/ProgramData/TesterPhysicalTest20261107/state/journal.json",
   "no_existing_db_service_network_security_changes": true,
   "no_data_deleted": true,
   "repair_failures": {},
   "acceptance": "NOT_ACCEPTED",
   "next": [
-    "Do not install retired0ff or run old UAC payload; its immutable bytes and original wrapper are retained",
-    "Verify E producer backport and publish/build a repaired immutable candidate before any replacement wrapper",
-    "Keep actual SCM/LocalService/install/upgrade/crash gates unaccepted; human administrator action still required, no automatic RunAs",
-    "Root next: actual retained-DB migration/constraints/rollback/interleavings for B70a3 foundation; no enrollment/historical success/C mapping"
+    "Do not run old retired0ff wrapper; preserved old release/config/backups remain intact",
+    "New7df candidate and read-only proposed payload ready for review; only new explicit human administrator action may register/start own services",
+    "No automatic RunAs/UAC. After actual human action inspect SCM/account/image/dependency/process/API/DB; do not infer service acceptance from foreground proof",
+    "Keep B70a3 prototype UNENROLLED/disabled; next enforcement/clock/restore/publication design gates remain before C/provider activation"
   ],
-  "checked_at": "2026-11-07T18:30:01.497495+00:00",
+  "checked_at": "2026-11-07T18:47:51.939617+00:00",
   "own_database_prepared": true,
   "own_cluster_running": false,
   "database": "tester_physical_20261107",
@@ -59,8 +59,8 @@
     "JUNCTION_METADATA_FOLLOW_STAT",
     "PG_CTL_CAPTURE_PIPE"
   ],
-  "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
-  "manifest_sha256": "ec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec",
+  "frozen_sha": "7df3ee987c2a7cefbff13db82442faf0fb09e689",
+  "manifest_sha256": "002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf",
   "draft_pr": "https://github.com/YehorBabenko88/tester/pull/29",
   "external_manifest_verification": "VERIFIED_READ_ONLY_431_FILES",
   "dependency_integrity": {
@@ -101,7 +101,7 @@
     }
   ],
   "blocking_reason": "ENVIRONMENT:UAC_CANCELLED_NO_ELEVATED_PROCESS",
-  "last_heartbeat": "2026-11-07T18:18:52.516Z",
+  "last_heartbeat": "2026-11-07T18:34:52.561Z",
   "completed_data_probe": {
     "operation_id": "data-restore-hb1738",
     "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
@@ -148,7 +148,7 @@
     "sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec"
   },
   "visibility_counterexamples_confirmed": 2,
-  "install_candidate_status": "FROZEN_0FF_RETIRED_NOT_INSTALLABLE",
+  "install_candidate_status": "7DF_FROZEN_EXTERNAL_VERIFY_EXACT_FOREGROUND_PASS_NATIVE_PENDING",
   "retired_candidate": {
     "candidate": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
     "reason": "APP_CODE:WIN32_JOB_NAME_NONE",
@@ -159,7 +159,7 @@
   },
   "native_code_repair": {
     "defect": "APP_CODE:WIN32_JOB_NAME_NONE",
-    "status": "ROOT_FIXED_NOT_REBUILT",
+    "status": "ROOT_FIXED_REBUILT_7DF_EXACT_NON_ELEVATED_PASS_NOT_SCM",
     "old_native_call": "CreateJobObject(None,None)",
     "new_native_call": "CreateJobObject(None,empty_string)",
     "regression": "RED then platform135PASS/14SKIP/8subtests",
@@ -184,5 +184,52 @@
     "own_cluster_stopped": true,
     "evidence": "docs/physical-test/foreground-ui-repair1.json",
     "screenshot": "docs/physical-test/terminal-unavailable.png"
+  },
+  "original_frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+  "repaired_candidate": {
+    "repository": "YehorBabenko88/tester",
+    "release_sha": "7df3ee987c2a7cefbff13db82442faf0fb09e689",
+    "tree_sha": "6ab0aadfadad7699181186773670aa8fbb79a565",
+    "manifest_sha256": "002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf",
+    "files": 464,
+    "bytes": 3050866,
+    "release": "C:\\ProgramData\\TesterPhysicalTest20261107\\releases\\7df3ee987c2a7cefbff13db82442faf0fb09e689",
+    "status": "EXTERNAL_VERIFY_AND_EXACT_FOREGROUND_UI_PASS_NOT_SCM",
+    "original0ff_retained_retired": true,
+    "old_config_retained": "private/config-before-7df.json",
+    "scm_actions": false,
+    "installed_sha": null,
+    "approved_launcher_stays_blocked": true,
+    "external_verify": "VERIFIED_READ_ONLY",
+    "health_http": 503,
+    "provider": "unavailable",
+    "instance_id": null,
+    "database_worker_storage": "ok",
+    "foreground_exit_code": 0,
+    "browser_errors": 0,
+    "financial_charts_accepted": false,
+    "own_cluster_stopped": true,
+    "scm_registered": false,
+    "accepted": false,
+    "checked_at": "2026-11-07T18:47:51.939617+00:00",
+    "ui_evidence": "runtime/foreground-ui-7df",
+    "ui_screenshot_sha256": "33d4a931b1d975219e647c48d78c2403ce33b09f064caddb5917ba19b963e3f9",
+    "proposed_payload": "C:/ProgramData/TesterPhysicalTest20261107/proposals/Proposed-Install-7df.ps1",
+    "proposed_payload_sha256": "6a4702d2d875afebc2a99971ad4b424c4551b22fc1ae17d06ddce87213c6bf4d",
+    "proposed_payload_default_readonly_pass": true,
+    "nonadmin_rejected_before_scm": true,
+    "automatic_elevation": false
+  },
+  "b70a3_foundation_actual_pg": {
+    "sha": "70a3ae5f82f707365c17048b2d58379a8e2456c4",
+    "tests_pass": 9,
+    "failures": 0,
+    "errors": 0,
+    "database": "tester_contract_b70a3_20261107",
+    "fixture_kind": "SYNTHETIC_FOUNDATION_NOT_REAL_HISTORY",
+    "all_data_retained": true,
+    "own_cluster_stopped": true,
+    "historical_certificate_issued": false,
+    "evidence": "docs/coordination/evidence/b70a3-foundation-pg-pass.json"
   }
 }

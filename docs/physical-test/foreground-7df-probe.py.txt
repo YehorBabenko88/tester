@@ -1,0 +1,66 @@
+"""Owned regular-user API/worker/browser smoke; explicitly NOT SCM acceptance."""
+import importlib.util,json,os,subprocess,sys,time,http.client
+from pathlib import Path
+root=Path('C:/ProgramData/TesterPhysicalTest20261107')
+release=root/'releases/7df3ee987c2a7cefbff13db82442faf0fb09e689'
+sys.path.insert(0,str(release))
+from src.api.physical_scope import validate_owner,validate_release
+from src.api.physical_host import JobProcess
+validate_owner();validate_release(release,'002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf')
+spec=importlib.util.spec_from_file_location('pg',release/'scripts/windows/prepare_physical_database.py')
+pg=importlib.util.module_from_spec(spec);spec.loader.exec_module(pg);pg.preflight()
+for key in list(os.environ):
+    if key.startswith(('TESTER_','PYTHON','PG')):os.environ.pop(key,None)
+os.environ.update(TESTER_CONFIG_FILE=str(root/'config.json'),PYTHONDONTWRITEBYTECODE='1',PYTHONNOUSERSITE='1')
+output=root/'runtime/foreground-ui-7df';output.mkdir()
+report={'scope':'EXACT_FROZEN_7DF_FOREGROUND_NOT_SCM','scm_acceptance':False,
+        'host_source':str(release/'src/api/physical_host.py'),'child_app_sha':release.name};started=False;child=None
+try:
+    import socket
+    for number in (55469,18765):
+        with socket.socket() as sock:sock.bind(('127.0.0.1',number))
+    assert pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'status'],allowed=(0,3)).returncode==3
+    started=True
+    pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'-l',root/'runtime/database-ui-test.log','-w','start'])
+    report['stage']='owned_job_start'
+    child=JobProcess(release)
+    report['stage']='health_readiness'
+    deadline=time.monotonic()+30
+    while time.monotonic()<deadline:
+        if child.poll() is not None:raise RuntimeError('Owned foreground supervisor exited')
+        connection=http.client.HTTPConnection('127.0.0.1',18765,timeout=1)
+        try:
+            connection.request('GET','/api/health');response=connection.getresponse();data=json.loads(response.read())
+            health=data.get('data',{})
+            if all(health.get(k)=='ok' for k in ('database','worker','storage')):
+                assert response.status==503 and health['provider']=='unavailable' and health['instance_id'] is None
+                report['health']=health;report['health_http_status']=503;break
+        except OSError:pass
+        finally:connection.close()
+        time.sleep(.2)
+    else:raise RuntimeError('Operational foreground readiness timeout')
+    report['stage']='browser'
+    node=Path('C:/Program Files/nodejs/node.exe')
+    result=subprocess.run([str(node),str(Path(__file__).with_name('probe_real_degraded_ui_7df.cjs'))],
+        capture_output=True,text=True,timeout=90,creationflags=subprocess.CREATE_NO_WINDOW)
+    report['browser_exit_code']=result.returncode
+    report['browser']=json.loads((output/'browser-report.json').read_text(encoding='utf8'))
+    assert result.returncode==0 and report['browser']['status']=='PASS_EXPECTED_UNAVAILABLE'
+    report['status']='PASS_EXPECTED_UNAVAILABLE_NOT_NATIVE_SERVICE'
+    report['stage']='verified'
+except Exception as error:report.update(status='FAIL',error_type=type(error).__name__)
+finally:
+    if child:
+        (root/'runtime/stop.request').touch()
+        deadline=time.monotonic()+30
+        while child.poll() is None and time.monotonic()<deadline:
+            (root/'runtime/stop.request').touch();time.sleep(.2)
+        if child.poll() is None:
+            child.kill_tree();report['forced_shutdown']=True;report['status']='FAIL'
+        else:report['foreground_exit_code']=child.poll()
+        child.close()
+    if started:
+        pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'-m','fast','-w','stop']);report['owned_cluster_stopped']=True
+    (output/'report.json').write_text(json.dumps(report,indent=2),encoding='utf8')
+print(json.dumps({k:report[k] for k in ('status','browser_exit_code','foreground_exit_code','error_type') if k in report}))
+raise SystemExit(0 if report['status']=='PASS_EXPECTED_UNAVAILABLE_NOT_NATIVE_SERVICE' else 1)
