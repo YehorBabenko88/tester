@@ -80,6 +80,7 @@ def main():
     parser.add_argument("--security", action="store_true")
     args = parser.parse_args()
     check("scripts/runtime_preflight.py")
+    check("scripts/check_contract_pin.py")
     check("-m", "ruff", "check", "src/api", "tests/platform", "scripts")
     check("-m", "ruff", "format", "--check", "src/api", "tests/platform", "scripts")
     check("scripts/export_contract.py", "--check")

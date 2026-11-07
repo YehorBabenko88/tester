@@ -1,0 +1,6 @@
+# Keep the external shared contract pin byte-identical on every checkout platform.
+contracts/__init__.py -text
+contracts/v1/__init__.py -text
+contracts/v1/validate.py -text
+contracts/v1/market.schema.json -text
+contracts/MIGRATIONS.md -text
