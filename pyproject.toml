@@ -29,4 +29,3 @@ include = ["src/api/**/*.py", "tests/platform/**/*.py", "scripts/*.py"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 ignore = ["E501"]
-

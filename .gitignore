@@ -1,12 +1,6 @@
+.env
 .venv/
-.scratch/
-.superpowers/
 __pycache__/
 .pytest_cache/
-.ruff_cache/
-*.egg-info/
-.env
-.env.*
-!*.example
-runtime/
-*.log
+.data/
+*.pyc
