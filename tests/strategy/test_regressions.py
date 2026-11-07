@@ -1,7 +1,7 @@
 import copy
 import unittest
 from test_dsl import config
-from test_engine import snapshot
+from test_engine import snapshot, liquidity
 from src.backtest import run
 from src.strategy import preview_text, confirm_preview
 from src.strategy.text import compile_text
@@ -12,7 +12,7 @@ class RegressionTests(unittest.TestCase):
         c=config();c['order']['max_participation']='1'
         s=snapshot([('100','101','99','100')]*2+[('94','94','90','94')]*3)
         for b,q in zip(s['candles'],['1','1','0.4','0.2','1']):
-            b['liquidity']={'quantity':q,'evidence_refs':['fixture:executions']}
+            b['liquidity']=liquidity(b,q)
         c['entry']['long']['right']['value']='99'
         r=run(c,s)
         self.assertIsNone(r['open_position'])
@@ -22,7 +22,7 @@ class RegressionTests(unittest.TestCase):
     def test_partial_ioc_requires_full_request_margin(self):
         c=config();c['risk']['size']['value']='100';c['order']['max_participation']='0.5'
         s=snapshot()
-        for b in s['candles']:b['liquidity']={'quantity':'1','evidence_refs':['fixture:executions']}
+        for b in s['candles']:b['liquidity']=liquidity(b,'1')
         self.assertEqual(run(c,s)['orders'][0]['status'],'rejected_margin')
 
     def test_close_exit_executes_before_later_intrabar_target(self):

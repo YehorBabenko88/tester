@@ -13,6 +13,15 @@ def provenance():
              'source_timestamp': None}]
 
 
+def liquidity(bar,quantity):
+    return {'quantity':quantity,'start_ms':bar['start_ms'],'end_ms':bar['end_ms'],
+            'available_at_ms':bar['end_ms'],'evidence_refs':['fixture:executions'],
+            'availability':{'status':'AVAILABLE','reason':None},
+            'coverage':{'status':'COMPLETE','start_ms':bar['start_ms'],
+                        'end_ms':bar['end_ms'],'evidence_refs':['fixture:executions']},
+            'provenance':provenance()}
+
+
 def snapshot(prices=None):
     prices = prices or [('100', '101', '99', '100'), ('100', '112', '94', '100'), ('100', '101', '99', '100')]
     end = len(prices)*60000
@@ -123,7 +132,7 @@ class EngineTests(unittest.TestCase):
     def test_limit_stop_latency_spread_and_partial_ioc(self):
         c=config(); c['order']={'type':'limit','offset_bps':'100','latency_bars':1,'max_participation':'0.5'}
         s=snapshot()
-        for b in s['candles']: b['liquidity']={'quantity':'1','evidence_refs':['fixture:ticks']}
+        for b in s['candles']: b['liquidity']=liquidity(b,'1')
         r=run(c,s)
         self.assertEqual(r['fills'][0]['quantity'],'0.5')
         self.assertEqual(r['fills'][0]['price'],'99.00')

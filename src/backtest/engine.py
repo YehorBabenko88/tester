@@ -5,7 +5,7 @@ from src.strategy.dsl import validate_strategy, evaluate, decimal, digest
 from .quality import validate_snapshot
 from .metrics import scorecard
 
-ENGINE_VERSION='strategy-bar-1.0.0'
+ENGINE_VERSION='strategy-bar-1.1.0'
 ZERO=Decimal(0)
 
 
@@ -45,10 +45,15 @@ class Backtest:
 
     def _fill(self,o,b,price,qty,intrabar=False):
         fee=qty*price*decimal(self.strategy['costs']['fee_rate'])
+        # A whole-bar capacity is known at close, even when its price reference is
+        # the open. Never publish that quantity as a known, exact opening fill.
+        uncertain=intrabar or self.capacity is not None
         f={'id':f'f{len(self.fills)+1}','order_id':o['id'],'side':o['side'],'role':o['role'],
-           'timestamp_ms':b['end_ms']-1 if intrabar else b['start_ms'],
+           'timestamp_ms':b['end_ms']-1 if uncertain else b['start_ms'],
+           'known_at_ms':b['end_ms'] if uncertain else b['start_ms'],
            'time_window':{'start_ms':b['start_ms'],'end_ms':b['end_ms']},
-           'time_precision':'bar' if intrabar else 'modeled_open',
+           'time_precision':'bar' if uncertain else 'modeled_open',
+           'liquidity_evidence_refs':b['liquidity']['evidence_refs'] if self.capacity is not None else [],
            'quantity':qty,'price':price,'fee':fee,'reason':o['reason']}
         self.fills.append(f); self.cash-=fee
         if self.capacity is not None: self.capacity-=qty
@@ -87,9 +92,7 @@ class Backtest:
         self.pending=None
 
     def _exit(self,b,price,reason,intrabar=False,order=None):
-        p=self.position; qty=self._cap(p['quantity'])
-        step=decimal(self.snapshot['quantity_step']); qty=(qty/step).to_integral_value(rounding=ROUND_FLOOR)*step
-        if qty<=0: return
+        p=self.position
         if order is None:
             if self.pending is not None and self.pending['role']=='exit' and self.pending['reason']==reason:
                 order=self.pending
@@ -97,9 +100,18 @@ class Backtest:
                 if self.pending is not None: self.pending['status']='partial_cancelled' if self.pending['status']=='partially_filled' else 'cancelled_protection'
                 order={'id':f'o{len(self.orders)+1}','side':p['side'],'role':'exit','type':'market',
                        'reason':reason,'created_at_ms':b['end_ms']-1 if intrabar else b['start_ms'],
-                       'eligible_index':self.index,'status':'pending'}
+                       'eligible_index':self.index,'status':'pending','triggered':True,
+                       'trigger_window':{'start_ms':b['start_ms'],'end_ms':b['end_ms']},
+                       'trigger_known_at_ms':b['end_ms'] if intrabar else b['start_ms']}
                 self.orders.append(order)
         if 'requested_quantity' not in order: order['requested_quantity']=p['quantity']
+        order.setdefault('filled_quantity',ZERO)
+        qty=self._cap(p['quantity'])
+        step=decimal(self.snapshot['quantity_step']); qty=(qty/step).to_integral_value(rounding=ROUND_FLOOR)*step
+        if qty<=0:
+            # Triggering is an order-state transition even with no executable size.
+            order['eligible_index']=self.index+1; self.pending=order
+            return
         order['filled_quantity']=order.get('filled_quantity',ZERO)+qty
         price=self._price(price,p['side']=='short')
         f=self._fill(order,b,price,qty,intrabar)
@@ -122,6 +134,9 @@ class Backtest:
 
     def _protect(self,b,entry_intrabar=False,open_only=False):
         if not self.position: return
+        # An already-triggered reduce-only market residual cannot be untriggered by
+        # a rebound or reclassified as another bracket. It awaits eligible evidence.
+        if self.pending is not None and self.pending.get('triggered'): return
         p=self.position; sign=p['sign']; op=decimal(b['open']); lo=decimal(b['low']); hi=decimal(b['high'])
         if open_only: lo=hi=op
         stop=p['stop']; reason='stop_loss'
@@ -154,7 +169,8 @@ class Backtest:
         b=self.snapshot['candles'][self.index]
         gap=(self.history[-1]['end_ms'] if self.history else self.snapshot['start_ms']) != b['start_ms']
         if gap:
-            if self.pending: self.pending['status']='cancelled_gap'; self.pending=None
+            if self.pending and not self.pending.get('triggered'):
+                self.pending['status']='cancelled_gap'; self.pending=None
             self.history=[]  # reset all signal windows; do not fabricate candles
         participation=self.strategy['order'].get('max_participation')
         if participation is not None and 'liquidity' not in b: raise ValueError('partial fills require verified liquidity evidence on every eligible bar')
@@ -224,7 +240,8 @@ class Backtest:
         with localcontext() as ctx:
             ctx.prec=50
             markers=[{'id':f'm-{f["id"]}','fill_id':f['id'],'order_id':f['order_id'],
-                      'timestamp_ms':f['timestamp_ms'],'price':f['price'],'quantity':f['quantity'],
+                      'timestamp_ms':f['timestamp_ms'],'known_at_ms':f['known_at_ms'],
+                      'price':f['price'],'quantity':f['quantity'],
                       'side':f['side'],'role':f['role'],'reason':f['reason'],
                       'time_window':f['time_window'],'time_precision':f['time_precision']} for f in self.fills]
             return wire({'schema_version':'1.0','run_id':self.input_hash,'engine_version':ENGINE_VERSION,

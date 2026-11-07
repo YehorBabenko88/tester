@@ -7,7 +7,7 @@ Independent code reviewer examined the implementation and ran the original 24 te
 
 ## Observed verification
 
-- `python -m unittest discover -s tests/strategy -p "test_*.py" -v`: **31 passed**.
+- `python -m unittest discover -s tests/strategy -p "test_*.py" -v`: **39 passed**.
 - `python -m unittest discover -p "test_*.py" -v`: **9 passed** (existing baseline).
 - `python -m compileall -q src tests/strategy`: exit 0.
 - JSON Schema Draft202012 schema check: accepted; example accepted; unsupported
@@ -55,6 +55,29 @@ Ruling: full-request margin is reserved before partial participation. This preve
 oversized requests from relying on unknown eventual liquidity; it can reject a
 request whose smaller actual partial quantity would have been affordable. It is
 intentional, documented in FORMULAS.md and covered by a regression test.
+
+## MASTER corrective follow-up — engine 1.1.0
+
+PR19 comment 6708269302 identified two further P1 behaviors that the original31
+green tests did not cover. Both were reproduced with explicit synthetic JSON DSL:
+entry consumes current capacity and stop disappears after rebound; whole-bar future
+capacity controls a fill falsely labeled modeled_open. The reviewed baseline was
+c72cf50504b23935b256c7bf5d904f963a126c95; root MASTER independently confirmed31/31
+baseline passes (the reviewer's os.link sandbox error did not reproduce full-access).
+
+Corrections: latch protective market exits before the zero-size check; preserve
+trigger/order/reason through rebound, gaps and replay. Require matching liquidity
+range, close-time availability, complete coverage, provenance and evidence refs;
+reject late/premature/partial/unavailable or legacy evidence. All whole-bar-capacity
+fills and overlays now have bar uncertainty and known_at_ms at close, never an exact
+opening liquidity claim. Conservative no-same-bar-target applies to these entries.
+Engine version is bumped to strategy-bar-1.1.0; MIGRATIONS.md details compatibility.
+
+Eight added test methods cover consumed entry capacity, zero-capacity TP/liquidation,
+gap/checkpoint persistence, future-capacity mutation prefix, uncertain fill/overlay
+knowledge, legacy rejection and eight invalid-evidence subcases. All39 strategy
+tests pass; an independent focused reviewer also ran39/39 with no new findings.
+Evidence and source-tree digest: evidence/MASTER_FOLLOWUP_TESTS.log.
 
 ## Integration gates / declared model limits
 

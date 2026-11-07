@@ -1,4 +1,4 @@
-# Numerical and event semantics — engine strategy-bar-1.0.0
+# Numerical and event semantics — engine strategy-bar-1.1.0
 
 All financial arithmetic uses a local Decimal context with precision 50. Unit sizes
 are floored to `quantity_step`; there is no arbitrary cent rounding. Fee rates and
@@ -6,8 +6,9 @@ risk distances are fractions, e.g. 0.001=0.1%, 0.05=5%; spread/slippage are bps.
 
 ## Event order and evidence
 
-1. At observed bar open: cancel stale pending orders if a data gap occurred; clear
+1. At observed bar open: cancel stale untriggered orders if a data gap occurred; clear
    indicator windows. Carry existing positions across gaps with NON_CERTIFIED warning.
+   Preserve already-triggered protective market residuals across gaps.
 2. Apply funding to positions held immediately before this boundary. New entries do
    not collect/pay that already-due funding event.
 3. Evaluate open-price protective triggers. An open beyond TP executes the resting
@@ -17,7 +18,8 @@ risk distances are fractions, e.g. 0.001=0.1%, 0.05=5%; spread/slippage are bps.
 5. Evaluate remaining bar range for protection. If adverse and favorable barriers
    both touch and open has not resolved order, adverse stop wins. An intrabar entry
    may suffer a stop in the same bar but never receives a same-bar target. This
-   pessimism is intentional; it does not assert the unobserved tick path.
+   pessimism is intentional; it does not assert the unobserved tick path. Whole-bar
+   capacity-dependent entries are also timing-uncertain and cannot collect same-bar TP.
 6. At close: mark equity; evaluate closed-bar rules; schedule future orders. Trailing
    stop ratchets from this close and activates on the following bar, never from the
    future high/low. Record SL/TP/trailing snapshots for chart integration.
@@ -35,9 +37,25 @@ cap is applied. An unaffordable oversized request is rejected even if its eventu
 partial fill might be affordable. IOC on first touched eligible bar: filled fraction
 opens a position, entry remainder is cancelled. Limit/stop wait until touched;
 zero capacity cancels the touched entry. Exit residuals persist across bars, sharing
-bar capacity with other fills; the same residual order is reused. Failed-to-fill
-protection is not fabricated as executed. No queue priority, tick-path reconstruction,
-or true exchange matching behavior is claimed.
+bar capacity with other fills; the same residual order is reused. A protective
+stop/target/liquidation trigger latches a reduce-only market exit before sizing,
+including zero executable quantity. It keeps its reason and order identity through
+rebounds and gaps, and executes at the next available reference price; a rebound
+does not restore its old untriggered bracket. Failed-to-fill protection is not
+fabricated as executed. No queue priority, tick-path reconstruction, or true exchange
+matching behavior is claimed.
+
+Whole-bar capacity is admitted only with a complete quality/provenance envelope,
+matching [start_ms,end_ms) and available_at_ms=end_ms. Late, premature, incomplete
+or unverified evidence is rejected. The bar is processed to completion as one step;
+its capacity quantity is never claimed to have been known at its opening. All fills
+using that budget have time_precision=bar, time_window=[start_ms,end_ms),
+known_at_ms=end_ms and representative timestamp_ms=end_ms-1. A price may still use
+the modeled open/range reference described above, but does not assert liquidity
+or execution at that reference time. Overlay replay must wait for known_at_ms.
+The budget is consumed across all fills and cannot be spent twice in a bar. Without
+a participation cap, open-reference fills retain modeled_open and open known_at_ms;
+range-based fills remain uncertain/known at close.
 
 Funding cost = side_sign * quantity * settlement_mark * funding_rate; a negative
 cost is a receipt. Cash wallet changes only by realized PnL, fees and funding.

@@ -1,0 +1,159 @@
+MASTER follow-up validation
+Baseline source: c72cf50504b23935b256c7bf5d904f963a126c95
+Python: 3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]
+Platform: Windows-11-10.0.26200-SP0
+All fixtures are explicit synthetic JSON DSL. No exchange/order transport.
+
+RED: original production source; legacy test liquidity format only.
+COMMAND: C:\Python314\python.exe -m unittest test_master_review.ProtectivePersistenceTests.test_entry_consumes_capacity_stop_survives_rebound test_master_review.ProtectivePersistenceTests.test_zero_capacity_latched_target_not_replaced_by_rebound_stop test_master_review.LiquidityTimingTests.test_whole_bar_capacity_uses_uncertain_interval_and_close_knowledge -v
+
+test_entry_consumes_capacity_stop_survives_rebound (test_master_review.ProtectivePersistenceTests.test_entry_consumes_capacity_stop_survives_rebound) ... FAIL
+test_zero_capacity_latched_target_not_replaced_by_rebound_stop (test_master_review.ProtectivePersistenceTests.test_zero_capacity_latched_target_not_replaced_by_rebound_stop) ... FAIL
+test_whole_bar_capacity_uses_uncertain_interval_and_close_knowledge (test_master_review.LiquidityTimingTests.test_whole_bar_capacity_uses_uncertain_interval_and_close_knowledge) ... FAIL
+
+======================================================================
+FAIL: test_entry_consumes_capacity_stop_survives_rebound (test_master_review.ProtectivePersistenceTests.test_entry_consumes_capacity_stop_survives_rebound)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-f-historical-strategy-research\work\master-red-_wajau_z\test_master_review.py", line 24, in test_entry_consumes_capacity_stop_survives_rebound
+    self.assertEqual(len(stops),1)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_zero_capacity_latched_target_not_replaced_by_rebound_stop (test_master_review.ProtectivePersistenceTests.test_zero_capacity_latched_target_not_replaced_by_rebound_stop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-f-historical-strategy-research\work\master-red-_wajau_z\test_master_review.py", line 39, in test_zero_capacity_latched_target_not_replaced_by_rebound_stop
+    self.assertEqual(r['trades'][0]['reason'],'take_profit')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'stop_loss' != 'take_profit'
+- stop_loss
++ take_profit
+
+
+======================================================================
+FAIL: test_whole_bar_capacity_uses_uncertain_interval_and_close_knowledge (test_master_review.LiquidityTimingTests.test_whole_bar_capacity_uses_uncertain_interval_and_close_knowledge)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-f-historical-strategy-research\work\master-red-_wajau_z\test_master_review.py", line 88, in test_whole_bar_capacity_uses_uncertain_interval_and_close_knowledge
+    self.assertEqual(f['time_precision'],'bar')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'modeled_open' != 'bar'
+- modeled_open
++ bar
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.003s
+
+FAILED (failures=3)
+
+EXIT CODE: 1
+
+GREEN: current corrected source, engine strategy-bar-1.1.0.
+Source manifest uses relative paths and SHA256 of UTF8 text with normalized LF.
+SOURCE MANIFEST SHA256: a3d1c7c4ce4705568871e46c4bb7c23026e3f16770024a41e4570725c54217c5
+{
+  "src/strategy/__init__.py": "59c0ae77041a0c21963f6f7cd5f1ee95b80164d952d9dd018fb810993f774b26",
+  "src/strategy/dsl.py": "a372cda7e873af4cc3b5f98475ad417f1d4f6a83f3bf0189ea0fca6158bf62bf",
+  "src/strategy/levels.py": "7879141e645fcd8ebe5684214195e2c87a147cab116920850320fb10d58ed54a",
+  "src/strategy/text.py": "cf4f211737dd043739e4dedf56409255a3c73a7d81585348bd15121d3fe3dd5a",
+  "src/backtest/__init__.py": "f5d35f3bf872a788259a9f5bc538a6790e09f5cee8dd0f75e12d27730b15f076",
+  "src/backtest/artifacts.py": "fe0cb237d126e10c4e15cbc0be3e483f2098f467fe6ce20e87ff3a1777287ca3",
+  "src/backtest/engine.py": "1ab9c2e0cc936f9b215078f585dcbfbb8ea7046b7ee6187d4ea6fa1a17f60fac",
+  "src/backtest/metrics.py": "77ac47f4a8ccaa2c22be2b666894c03dd36ecd2ff33003977df38cb2c0faebe4",
+  "src/backtest/quality.py": "cce7c2a155e6d0ccf18d8988764b96427875e6414332441aebbc366bd0289bd1",
+  "src/backtest/research.py": "042d30559f26184dc5f07315f28a44f80ce45ad311ff3143726fffff1ff48d8c",
+  "tests/strategy/test_dsl.py": "0e3bc5fce99a00a696797afa50aac72bde180177cf01e97ea17d100e738bf640",
+  "tests/strategy/test_engine.py": "e5aebc1882e9c382edfa78371ddca78d52b3546cf781591ae7951a573b6acffa",
+  "tests/strategy/test_levels.py": "d5b471077a88adb3870b880ffc3076139b18c7f40bacba95d8d1bd8c41ccdeab",
+  "tests/strategy/test_master_review.py": "6fb3635a46755abeabfc69ca056e46fdebc6e4705c833ba1da7625225d59f416",
+  "tests/strategy/test_regressions.py": "5e14f15a7d917e9787d6bc291f96a166927a27d42560a3d8e9ae3e86518b43f2",
+  "tests/strategy/test_research.py": "c36031453ee6b90f00f6dca5bd1b5044e4ae6f27242d720713a96118ad4577c9"
+}
+
+COMMAND: C:\Python314\python.exe -m unittest discover -s tests/strategy -p test_*.py -v
+
+test_and_or_missing_does_not_pass (test_dsl.DSLTests.test_and_or_missing_does_not_pass) ... ok
+test_cross_requires_previous_bar (test_dsl.DSLTests.test_cross_requires_previous_bar) ... ok
+test_feature_available_at_cutoff (test_dsl.DSLTests.test_feature_available_at_cutoff) ... ok
+test_indicators_and_sessions_numeric_fixtures (test_dsl.DSLTests.test_indicators_and_sessions_numeric_fixtures) ... ok
+test_preview_must_be_confirmed_and_digest_pinned (test_dsl.DSLTests.test_preview_must_be_confirmed_and_digest_pinned) ... ok
+test_unknown_code_and_float_rejected (test_dsl.DSLTests.test_unknown_code_and_float_rejected) ... ok
+test_validation_independent_of_ambient_decimal_precision (test_dsl.DSLTests.test_validation_independent_of_ambient_decimal_precision) ... ok
+test_ambiguous_stop_first_fees_and_markers (test_engine.EngineTests.test_ambiguous_stop_first_fees_and_markers) ... ok
+test_decimal_and_no_trades (test_engine.EngineTests.test_decimal_and_no_trades) ... ok
+test_deterministic_resume_and_concurrency (test_engine.EngineTests.test_deterministic_resume_and_concurrency) ... ok
+test_funding_held_position_and_missing_schedule (test_engine.EngineTests.test_funding_held_position_and_missing_schedule) ... ok
+test_future_mutation_does_not_change_prefix (test_engine.EngineTests.test_future_mutation_does_not_change_prefix) ... ok
+test_gap_stop_executes_at_adverse_open (test_engine.EngineTests.test_gap_stop_executes_at_adverse_open) ... ok
+test_limit_stop_latency_spread_and_partial_ioc (test_engine.EngineTests.test_limit_stop_latency_spread_and_partial_ioc) ... ok
+test_margin_rejection_and_liquidation (test_engine.EngineTests.test_margin_rejection_and_liquidation) ... ok
+test_quality_gaps_duplicates_and_unclosed (test_engine.EngineTests.test_quality_gaps_duplicates_and_unclosed) ... ok
+test_short_and_funding (test_engine.EngineTests.test_short_and_funding) ... ok
+test_trailing_updates_next_bar (test_engine.EngineTests.test_trailing_updates_next_bar) ... ok
+test_breakout_retest_false_break_and_invalidation (test_levels.LevelTests.test_breakout_retest_false_break_and_invalidation) ... ok
+test_pivot_confirmation_has_no_earlier_visibility (test_levels.LevelTests.test_pivot_confirmation_has_no_earlier_visibility) ... ok
+test_six_calendar_months_leap_and_expiration (test_levels.LevelTests.test_six_calendar_months_leap_and_expiration) ... ok
+test_wick_break_and_ties (test_levels.LevelTests.test_wick_break_and_ties) ... ok
+test_future_capacity_changes_cannot_mutate_an_earlier_open_fill (test_master_review.LiquidityTimingTests.test_future_capacity_changes_cannot_mutate_an_earlier_open_fill) ... ok
+test_late_partial_unavailable_or_wrong_range_capacity_fails_closed (test_master_review.LiquidityTimingTests.test_late_partial_unavailable_or_wrong_range_capacity_fails_closed) ... ok
+test_legacy_capacity_cannot_claim_unqualified_open_liquidity (test_master_review.LiquidityTimingTests.test_legacy_capacity_cannot_claim_unqualified_open_liquidity) ... ok
+test_whole_bar_capacity_uses_uncertain_interval_and_close_knowledge (test_master_review.LiquidityTimingTests.test_whole_bar_capacity_uses_uncertain_interval_and_close_knowledge) ... ok
+test_entry_consumes_capacity_stop_survives_rebound (test_master_review.ProtectivePersistenceTests.test_entry_consumes_capacity_stop_survives_rebound) ... ok
+test_triggered_stop_survives_gap_and_checkpoint (test_master_review.ProtectivePersistenceTests.test_triggered_stop_survives_gap_and_checkpoint) ... ok
+test_zero_capacity_latched_target_not_replaced_by_rebound_stop (test_master_review.ProtectivePersistenceTests.test_zero_capacity_latched_target_not_replaced_by_rebound_stop) ... ok
+test_zero_capacity_liquidation_remains_triggered_after_recovery (test_master_review.ProtectivePersistenceTests.test_zero_capacity_liquidation_remains_triggered_after_recovery) ... ok
+test_close_exit_executes_before_later_intrabar_target (test_regressions.RegressionTests.test_close_exit_executes_before_later_intrabar_target) ... ok
+test_open_gap_target_precedes_later_stop (test_regressions.RegressionTests.test_open_gap_target_precedes_later_stop) ... ok
+test_partial_ioc_requires_full_request_margin (test_regressions.RegressionTests.test_partial_ioc_requires_full_request_margin) ... ok
+test_partial_protective_exits_leave_no_abandoned_orders (test_regressions.RegressionTests.test_partial_protective_exits_leave_no_abandoned_orders) ... ok
+test_text_compiles_preview_and_unknown_text_cannot_run (test_regressions.RegressionTests.test_text_compiles_preview_and_unknown_text_cannot_run) ... ok
+test_artifact_integrity_and_comparison (test_research.ResearchTests.test_artifact_integrity_and_comparison) ... ok
+test_chronological_out_of_sample_and_walk_forward (test_research.ResearchTests.test_chronological_out_of_sample_and_walk_forward) ... ok
+test_grid_reproducible_bounded_and_original_unchanged (test_research.ResearchTests.test_grid_reproducible_bounded_and_original_unchanged) ... ok
+test_split_no_leaked_funding_or_future_bars (test_research.ResearchTests.test_split_no_leaked_funding_or_future_bars) ... ok
+
+----------------------------------------------------------------------
+Ran 39 tests in 0.047s
+
+OK
+
+EXIT CODE: 0
+
+COMMAND: C:\Python314\python.exe -m unittest discover -p test_*.py -v
+
+test_closed_minute (test_core.BoundaryTests.test_closed_minute) ... ok
+test_market_api_path_restricted (test_core.BoundaryTests.test_market_api_path_restricted) ... ok
+test_month_leap (test_core.BoundaryTests.test_month_leap) ... ok
+test_safe_symbols (test_core.BoundaryTests.test_safe_symbols) ... ok
+test_small_one_minute_windows (test_core.BoundaryTests.test_small_one_minute_windows) ... ok
+test_trade_era_timestamps (test_core.BoundaryTests.test_trade_era_timestamps) ... ok
+test_week_utc_monday (test_core.BoundaryTests.test_week_utc_monday) ... ok
+test_missing_internal_minute_is_gap (test_core.IntegrityTests.test_missing_internal_minute_is_gap) ... ok
+test_missing_trailing_minute_is_gap (test_core.IntegrityTests.test_missing_trailing_minute_is_gap) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.002s
+
+OK
+
+EXIT CODE: 0
+
+COMMAND: C:\Python314\python.exe -m compileall -q src tests/strategy
+
+
+EXIT CODE: 0
+
+COMMAND: git diff --check
+
+warning: in the working copy of 'docs/strategy/FORMULAS.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/strategy/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/strategy/TEST_REPORT.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/backtest/engine.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/backtest/quality.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/strategy/test_engine.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/strategy/test_regressions.py', LF will be replaced by CRLF the next time Git touches it
+
+EXIT CODE: 0

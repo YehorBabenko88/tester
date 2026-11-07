@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "run_id": "714e02f036c0bd05b173269dae53f4dc51fc5dd54f009b6f9c6f4b6ebf3e2645",
-  "engine_version": "strategy-bar-1.0.0",
+  "run_id": "8149a0fa864d0cf6355fc048b30dbc49d72d68eed9b16d82fa2e479cac3aae6a",
+  "engine_version": "strategy-bar-1.1.0",
   "strategy_id": "fixture",
   "strategy_version": "1",
   "strategy_hash": "e9402663de8c19e05bbdd3720dff81b997a489131d758f127f461196050f0cf7",
@@ -127,6 +127,12 @@
       "created_at_ms": 119999,
       "eligible_index": 1,
       "status": "filled",
+      "triggered": true,
+      "trigger_window": {
+        "start_ms": 60000,
+        "end_ms": 120000
+      },
+      "trigger_known_at_ms": 120000,
       "requested_quantity": "1",
       "filled_quantity": "1"
     },
@@ -151,11 +157,13 @@
       "side": "long",
       "role": "entry",
       "timestamp_ms": 60000,
+      "known_at_ms": 60000,
       "time_window": {
         "start_ms": 60000,
         "end_ms": 120000
       },
       "time_precision": "modeled_open",
+      "liquidity_evidence_refs": [],
       "quantity": "1",
       "price": "100",
       "fee": "0.100",
@@ -167,11 +175,13 @@
       "side": "long",
       "role": "exit",
       "timestamp_ms": 119999,
+      "known_at_ms": 120000,
       "time_window": {
         "start_ms": 60000,
         "end_ms": 120000
       },
       "time_precision": "bar",
+      "liquidity_evidence_refs": [],
       "quantity": "1",
       "price": "95.00",
       "fee": "0.09500",
@@ -183,11 +193,13 @@
       "side": "long",
       "role": "entry",
       "timestamp_ms": 120000,
+      "known_at_ms": 120000,
       "time_window": {
         "start_ms": 120000,
         "end_ms": 180000
       },
       "time_precision": "modeled_open",
+      "liquidity_evidence_refs": [],
       "quantity": "1",
       "price": "100",
       "fee": "0.100",
@@ -233,6 +245,7 @@
       "fill_id": "f1",
       "order_id": "o1",
       "timestamp_ms": 60000,
+      "known_at_ms": 60000,
       "price": "100",
       "quantity": "1",
       "side": "long",
@@ -249,6 +262,7 @@
       "fill_id": "f2",
       "order_id": "o2",
       "timestamp_ms": 119999,
+      "known_at_ms": 120000,
       "price": "95.00",
       "quantity": "1",
       "side": "long",
@@ -265,6 +279,7 @@
       "fill_id": "f3",
       "order_id": "o3",
       "timestamp_ms": 120000,
+      "known_at_ms": 120000,
       "price": "100",
       "quantity": "1",
       "side": "long",
@@ -327,5 +342,5 @@
       "reason": "dependent, selected historical trades; no IID confidence claim"
     }
   },
-  "replay_digest": "a403b3ff044536de74fe5c6d51b43aa4aa73170dcffb719c0b924f703507fc21"
+  "replay_digest": "4682b36ba6ac3f21e0c65bad021bcde0f628a323f0467b6f8a94a1f2bddc31b6"
 }

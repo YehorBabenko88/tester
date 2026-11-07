@@ -80,11 +80,22 @@ actually available at its close, and inherit full source/coverage evidence. Late
 versions remain unavailable for that historical decision. C/E must not inject
 retrospectively revised values with an invented earlier `available_at_ms`.
 
-Liquidity extension: `{quantity: Decimal-string, evidence_refs: [source IDs]}` is
-an execution-volume capacity bound from verified finer evidence for that bar.
-With `max_participation` all bars require this evidence; OHLCV volume alone is not
-promoted to queue liquidity. Available capacity is shared across entry/exit fills
-in the same bar. This is a participation model, not an order-book queue reconstruction.
+Liquidity extension (engine 1.1): `{quantity: Decimal-string, start_ms, end_ms,
+available_at_ms, evidence_refs: [source IDs], availability, coverage, provenance}`
+is a whole-bar execution-volume capacity bound from verified finer evidence. Its
+range must equal the containing bar and `available_at_ms` must equal its close.
+Premature claims about a whole bar, evidence arriving after the decision close,
+PARTIAL/UNAVAILABLE evidence and legacy unqualified quantities are rejected, including
+in exploratory mode. With `max_participation` all bars require this complete evidence;
+OHLCV volume alone is not promoted to queue liquidity.
+
+Capacity is consumed across all fills in that bar. Every capacity-dependent fill is
+explicitly uncertain within `time_window`, has `time_precision='bar'`, representative
+`timestamp_ms=end_ms-1` and `known_at_ms=end_ms`, even if its price reference is the
+open and even if its capacity bound does not bind. The result carries
+`BAR_CAPACITY_TIMING_UNCERTAIN`; these fills do not establish opening liquidity or
+tick ordering. Capacity-dependent entries cannot collect a same-bar target. This is
+a conservative bar participation model, not finer-time execution reconstruction.
 
 Funding for linear contracts must be `required` or explicitly `ignore_exploratory`
 (NON_CERTIFIED). Required funding is `{availability, coverage, provenance,
@@ -103,7 +114,10 @@ only if upstream evidence establishes no settlement during that interval.
   derivation provenance before strategy evaluation. No derived metadata is fabricated.
 - D: `result.overlays` is exactly one marker per fill; join on `fill_id` and `order_id`.
   For `time_precision='bar'`, draw uncertainty across `time_window`, not a precise
-  tick execution. `brackets` contains risk snapshots; tracker events use `known_at_ms`
+  tick execution. The last-ms timestamp is a representative marker, not a measured
+  execution time. In replay, reveal fills and markers only at `known_at_ms`; never
+  reinterpret the containing interval's start as their availability. `brackets`
+  contains risk snapshots; tracker events use `known_at_ms`
   for first visibility, not `pivot_ms`. E handles range paging and revision pins.
 - B: store portable artifact payload or project it into canonical PostgreSQL.
   Artifacts include full strategy, full snapshot, result and SHA-256 integrity.
@@ -114,6 +128,9 @@ Results pin strategy ID/version, strategy SHA, snapshot SHA, engine version, run
 replay digest, sources, quality, orders, fills, signals, exit legs, risk, equity and
 metrics. Open positions remain marked to final close; they are not fictitiously
 liquidated at the end. Orders beyond the final eligible bar are cancelled.
+Triggered protective exits remain pending even if no quantity can fill, and survive
+price rebounds and data gaps until later eligible evidence (or end-of-run cancellation).
+See MIGRATIONS.md for the 1.0 -> 1.1 evidence/checkpoint compatibility boundary.
 
 ## Reproducible research
 

@@ -75,8 +75,25 @@ def validate_snapshot(snapshot, strategy):
                 decimal(f['value']); integer(f['available_at_ms'],0,9007199254740991)
                 metadata(f,b['start_ms'],b['end_ms'],exploratory,warnings)
         if 'liquidity' in b:
-            keys(b['liquidity'],['quantity','evidence_refs'])
-            if decimal(b['liquidity']['quantity'])<0 or not b['liquidity']['evidence_refs']: raise ValueError('liquidity evidence')
+            q=b['liquidity']
+            keys(q,['quantity','start_ms','end_ms','available_at_ms','evidence_refs',
+                    'availability','coverage','provenance'])
+            integer(q['start_ms'],0,9007199254740991)
+            integer(q['end_ms'],q['start_ms']+1,9007199254740991)
+            integer(q['available_at_ms'],0,9007199254740991)
+            if (q['start_ms'],q['end_ms']) != (b['start_ms'],b['end_ms']):
+                raise ValueError('liquidity range must match its bar')
+            if q['available_at_ms']!=b['end_ms']:
+                raise ValueError('whole-bar liquidity must become available exactly at close; late or premature evidence rejected')
+            if (decimal(q['quantity'])<0 or not isinstance(q['evidence_refs'],list) or
+                    not q['evidence_refs'] or not all(isinstance(r,str) and r for r in q['evidence_refs'])):
+                raise ValueError('liquidity quantity/evidence required')
+            # Exploratory price policy never upgrades incomplete execution evidence.
+            metadata(q,b['start_ms'],b['end_ms'],False,warnings)
+    if 'max_participation' in strategy['order']:
+        if any('liquidity' not in b for b in s['candles']):
+            raise ValueError('partial fills require liquidity evidence on every bar')
+        warnings.add('BAR_CAPACITY_TIMING_UNCERTAIN')
     if expected < s['end_ms']: gaps.append([expected,s['end_ms']])
     if gaps:
         if strategy['data_policy']['gaps']=='reject': raise ValueError('data gaps')
