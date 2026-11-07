@@ -2,6 +2,8 @@
 
 Verified consumer pins: shared contract/validator `9766c0093e2608280875ac56db074414a3d62c69`; B baseline `5154efab05d44b96f4aa83819672396d75679f2e` and B run ledger `47fd36f32389174377682a13862f5b36c7a886da`. A changes only its ingestion, fixtures and documentation; it neither changes the shared schema nor B's tables.
 
+Subsequent original-run matching compatibility is verified separately for immutable A `3098d55f2bb41c5389f83b955d87a3050ca52f85` and B `e236395684d661f9464a62a0f6f67803d9000de6`: [six-case disposable PostgreSQL command](pinned-A3098-B-e236.md), `pinned-pair-report.json`. No production-code changes were required; evidence is synthetic and includes an actual server restart.
+
 ## Export format and migration
 
 `Journal.export(path)` now writes **one atomic JSON object**, `format='bybit-ingest-handoff', schema_version='1.0'`. This intentionally replaces unsafe row-only JSONL. File extensions do not change the content type; the CLI default is `handoff.json`. Consumers must read the package and select the appropriate projection. Do not stream its top-level object as if it were an old market row.

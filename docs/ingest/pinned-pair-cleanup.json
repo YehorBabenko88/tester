@@ -1,0 +1,9 @@
+{
+  "expected_exit_code": 1,
+  "observed_exit_code": 1,
+  "cleanup": {
+    "running_before_cleanup": true,
+    "stopped": true,
+    "stop_returncode": 0
+  }
+}
