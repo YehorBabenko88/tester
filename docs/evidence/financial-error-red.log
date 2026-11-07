@@ -1,0 +1,197 @@
+.......................................FFFFFFFF                          [100%]
+================================== FAILURES ===================================
+_ test_financial_provider_diagnostics_never_reach_http[postgresql://private_user:synthetic-secret@127.0.0.1/private_database] _
+
+tmp_path = WindowsPath('C:/Users/maxkr/AppData/Local/Temp/pytest-of-LS4/pytest-37/test_financial_provider_diagno0')
+private_code = 'postgresql://private_user:synthetic-secret@127.0.0.1/private_database'
+
+    @pytest.mark.parametrize("private_code", [
+        "postgresql://private_user:synthetic-secret@127.0.0.1/private_database",
+        "source request failed: synthetic-secret /private/archive/file.json",
+    ])
+    def test_financial_provider_diagnostics_never_reach_http(tmp_path, private_code):
+        class FailingReader:
+            def read_derived(self, resource, request):
+                raise FinancialQueryError(private_code, 503)
+    
+        response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+        assert response.status_code == 503
+>       assert response.json()["error"]["code"] == "financial_provider_error"
+E       AssertionError: assert 'postgresql:/...vate_database' == 'financial_provider_error'
+E         
+E         - financial_provider_error
+E         + postgresql://private_user:synthetic-secret@127.0.0.1/private_database
+
+tests\platform\test_financial_query.py:361: AssertionError
+_ test_financial_provider_diagnostics_never_reach_http[source request failed: synthetic-secret /private/archive/file.json] _
+
+tmp_path = WindowsPath('C:/Users/maxkr/AppData/Local/Temp/pytest-of-LS4/pytest-37/test_financial_provider_diagno1')
+private_code = 'source request failed: synthetic-secret /private/archive/file.json'
+
+    @pytest.mark.parametrize("private_code", [
+        "postgresql://private_user:synthetic-secret@127.0.0.1/private_database",
+        "source request failed: synthetic-secret /private/archive/file.json",
+    ])
+    def test_financial_provider_diagnostics_never_reach_http(tmp_path, private_code):
+        class FailingReader:
+            def read_derived(self, resource, request):
+                raise FinancialQueryError(private_code, 503)
+    
+        response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+        assert response.status_code == 503
+>       assert response.json()["error"]["code"] == "financial_provider_error"
+E       AssertionError: assert 'source reque...ive/file.json' == 'financial_provider_error'
+E         
+E         - financial_provider_error
+E         + source request failed: synthetic-secret /private/archive/file.json
+
+tests\platform\test_financial_query.py:361: AssertionError
+_ test_financial_public_codes_have_fixed_http_status[financial_query_required-422] _
+
+tmp_path = WindowsPath('C:/Users/maxkr/AppData/Local/Temp/pytest-of-LS4/pytest-37/test_financial_public_codes_ha0')
+code = 'financial_query_required', expected_status = 422
+
+    @pytest.mark.parametrize("code,expected_status", [
+        ("financial_query_required", 422),
+        ("financial_query_unsupported", 422),
+        ("price_step_selection_invalid", 422),
+        ("instrument_tick_unavailable", 503),
+        ("derived_provider_unavailable", 503),
+    ])
+    def test_financial_public_codes_have_fixed_http_status(tmp_path, code, expected_status):
+        class FailingReader:
+            def read_derived(self, resource, request):
+                raise FinancialQueryError(code, 200)
+    
+        response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+>       assert response.status_code == expected_status
+E       assert 200 == 422
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests\platform\test_financial_query.py:380: AssertionError
+_ test_financial_public_codes_have_fixed_http_status[financial_query_unsupported-422] _
+
+tmp_path = WindowsPath('C:/Users/maxkr/AppData/Local/Temp/pytest-of-LS4/pytest-37/test_financial_public_codes_ha1')
+code = 'financial_query_unsupported', expected_status = 422
+
+    @pytest.mark.parametrize("code,expected_status", [
+        ("financial_query_required", 422),
+        ("financial_query_unsupported", 422),
+        ("price_step_selection_invalid", 422),
+        ("instrument_tick_unavailable", 503),
+        ("derived_provider_unavailable", 503),
+    ])
+    def test_financial_public_codes_have_fixed_http_status(tmp_path, code, expected_status):
+        class FailingReader:
+            def read_derived(self, resource, request):
+                raise FinancialQueryError(code, 200)
+    
+        response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+>       assert response.status_code == expected_status
+E       assert 200 == 422
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests\platform\test_financial_query.py:380: AssertionError
+_ test_financial_public_codes_have_fixed_http_status[price_step_selection_invalid-422] _
+
+tmp_path = WindowsPath('C:/Users/maxkr/AppData/Local/Temp/pytest-of-LS4/pytest-37/test_financial_public_codes_ha2')
+code = 'price_step_selection_invalid', expected_status = 422
+
+    @pytest.mark.parametrize("code,expected_status", [
+        ("financial_query_required", 422),
+        ("financial_query_unsupported", 422),
+        ("price_step_selection_invalid", 422),
+        ("instrument_tick_unavailable", 503),
+        ("derived_provider_unavailable", 503),
+    ])
+    def test_financial_public_codes_have_fixed_http_status(tmp_path, code, expected_status):
+        class FailingReader:
+            def read_derived(self, resource, request):
+                raise FinancialQueryError(code, 200)
+    
+        response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+>       assert response.status_code == expected_status
+E       assert 200 == 422
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests\platform\test_financial_query.py:380: AssertionError
+_ test_financial_public_codes_have_fixed_http_status[instrument_tick_unavailable-503] _
+
+tmp_path = WindowsPath('C:/Users/maxkr/AppData/Local/Temp/pytest-of-LS4/pytest-37/test_financial_public_codes_ha3')
+code = 'instrument_tick_unavailable', expected_status = 503
+
+    @pytest.mark.parametrize("code,expected_status", [
+        ("financial_query_required", 422),
+        ("financial_query_unsupported", 422),
+        ("price_step_selection_invalid", 422),
+        ("instrument_tick_unavailable", 503),
+        ("derived_provider_unavailable", 503),
+    ])
+    def test_financial_public_codes_have_fixed_http_status(tmp_path, code, expected_status):
+        class FailingReader:
+            def read_derived(self, resource, request):
+                raise FinancialQueryError(code, 200)
+    
+        response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+>       assert response.status_code == expected_status
+E       assert 200 == 503
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests\platform\test_financial_query.py:380: AssertionError
+_ test_financial_public_codes_have_fixed_http_status[derived_provider_unavailable-503] _
+
+tmp_path = WindowsPath('C:/Users/maxkr/AppData/Local/Temp/pytest-of-LS4/pytest-37/test_financial_public_codes_ha4')
+code = 'derived_provider_unavailable', expected_status = 503
+
+    @pytest.mark.parametrize("code,expected_status", [
+        ("financial_query_required", 422),
+        ("financial_query_unsupported", 422),
+        ("price_step_selection_invalid", 422),
+        ("instrument_tick_unavailable", 503),
+        ("derived_provider_unavailable", 503),
+    ])
+    def test_financial_public_codes_have_fixed_http_status(tmp_path, code, expected_status):
+        class FailingReader:
+            def read_derived(self, resource, request):
+                raise FinancialQueryError(code, 200)
+    
+        response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+>       assert response.status_code == expected_status
+E       assert 200 == 503
+E        +  where 200 = <Response [200 OK]>.status_code
+
+tests\platform\test_financial_query.py:380: AssertionError
+_____________ test_http_boundary_rechecks_mutated_financial_error _____________
+
+tmp_path = WindowsPath('C:/Users/maxkr/AppData/Local/Temp/pytest-of-LS4/pytest-37/test_http_boundary_rechecks_mu0')
+
+    def test_http_boundary_rechecks_mutated_financial_error(tmp_path):
+        class FailingReader:
+            def read_derived(self, resource, request):
+                exc = FinancialQueryError("derived_provider_unavailable", 503)
+                exc.code = "synthetic-secret after construction"
+                exc.status = 201
+                raise exc
+    
+        response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+>       assert response.status_code == 503
+E       assert 201 == 503
+E        +  where 201 = <Response [201 Created]>.status_code
+
+tests\platform\test_financial_query.py:393: AssertionError
+============================== warnings summary ===============================
+..\repo\.venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-e-platform-windows-deployment\work\repo\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/platform/test_financial_query.py::test_financial_provider_diagnostics_never_reach_http[postgresql://private_user:synthetic-secret@127.0.0.1/private_database]
+FAILED tests/platform/test_financial_query.py::test_financial_provider_diagnostics_never_reach_http[source request failed: synthetic-secret /private/archive/file.json]
+FAILED tests/platform/test_financial_query.py::test_financial_public_codes_have_fixed_http_status[financial_query_required-422]
+FAILED tests/platform/test_financial_query.py::test_financial_public_codes_have_fixed_http_status[financial_query_unsupported-422]
+FAILED tests/platform/test_financial_query.py::test_financial_public_codes_have_fixed_http_status[price_step_selection_invalid-422]
+FAILED tests/platform/test_financial_query.py::test_financial_public_codes_have_fixed_http_status[instrument_tick_unavailable-503]
+FAILED tests/platform/test_financial_query.py::test_financial_public_codes_have_fixed_http_status[derived_provider_unavailable-503]
+FAILED tests/platform/test_financial_query.py::test_http_boundary_rechecks_mutated_financial_error
+8 failed, 39 passed, 1 warning in 2.22s

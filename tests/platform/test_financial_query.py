@@ -345,3 +345,71 @@ def test_source_event_after_cutoff_is_excluded_by_actual_c(tmp_path):
     assert r.status_code == 200, r.text
     assert r.json()["data"] == []
     assert r.json()["coverage"]["status"] != "COMPLETE"
+
+
+@pytest.mark.parametrize(
+    "private_code",
+    [
+        "postgresql://private_user:synthetic-secret@127.0.0.1/private_database",
+        "source request failed: synthetic-secret /private/archive/file.json",
+    ],
+)
+def test_financial_provider_diagnostics_never_reach_http(tmp_path, private_code):
+    class FailingReader:
+        def read_derived(self, resource, request):
+            raise FinancialQueryError(private_code, 503)
+
+    response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "financial_provider_error"
+    assert private_code not in response.text
+    assert "synthetic-secret" not in response.text
+    assert "private_database" not in response.text
+
+
+@pytest.mark.parametrize(
+    "code,expected_status",
+    [
+        ("financial_query_required", 422),
+        ("financial_query_unsupported", 422),
+        ("price_step_selection_invalid", 422),
+        ("instrument_tick_unavailable", 503),
+        ("derived_provider_unavailable", 503),
+    ],
+)
+def test_financial_public_codes_have_fixed_http_status(tmp_path, code, expected_status):
+    class FailingReader:
+        def read_derived(self, resource, request):
+            raise FinancialQueryError(code, 200)
+
+    response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+    assert response.status_code == expected_status
+    assert response.json()["error"]["code"] == code
+
+
+def test_http_boundary_rechecks_mutated_financial_error(tmp_path):
+    class FailingReader:
+        def read_derived(self, resource, request):
+            exc = FinancialQueryError("derived_provider_unavailable", 503)
+            exc.code = "synthetic-secret after construction"
+            exc.status = 201
+            raise exc
+
+    response = client(tmp_path, FailingReader()).get("/api/footprint", params=PARAMS)
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "financial_provider_error"
+    assert "synthetic-secret" not in response.text
+
+
+def test_unknown_financial_error_does_not_retain_or_format_diagnostic():
+    class PrivateDiagnostic:
+        def __str__(self):
+            pytest.fail("Private diagnostic must not be formatted")
+
+        def __hash__(self):
+            pytest.fail("Private diagnostic must not be hashed")
+
+    exc = FinancialQueryError(PrivateDiagnostic(), {"private_status": "synthetic-secret"})
+    assert exc.args == ("financial_provider_error",)
+    assert str(exc) == "financial_provider_error"
+    assert exc.status == 503

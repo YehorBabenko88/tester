@@ -16,7 +16,14 @@ from contracts.v1.validate import ContractError
 from .canonical import dataset_model
 from .config import Settings, load_settings
 from .db import connect
-from .financial_query import FinancialQueryError, HttpTime, PriceStep, is_derived, read_derived
+from .financial_query import (
+    FinancialQueryError,
+    HttpTime,
+    PriceStep,
+    is_derived,
+    public_financial_error,
+    read_derived,
+)
 from .jobs import AdmissionRejected, Conflict, JobQueue
 from .maintenance import storage_status
 from .models import (
@@ -88,7 +95,9 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
 
     @app.exception_handler(FinancialQueryError)
     async def financial_query_error(request, exc):
-        return error(exc.status, exc.code, "Financial query cannot be served with these inputs")
+        # Recheck at serialization: an owned provider can mutate exception attributes.
+        code, status = public_financial_error(exc.code)
+        return error(status, code, "Financial query cannot be served with these inputs")
 
     @app.exception_handler(ProviderUnavailable)
     async def provider_error(request, exc):

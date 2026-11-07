@@ -1,6 +1,7 @@
 """Versioned, explicit financial inputs; no clock or instrument metadata defaults."""
 
 import re
+from types import MappingProxyType
 from typing import Annotated, Literal, Protocol
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StrictInt, model_validator
@@ -88,10 +89,31 @@ class FinancialReader(Protocol):
     def read_derived(self, resource: str, request: FinancialRequest) -> dict: ...
 
 
+# Only these literals may cross the HTTP boundary. Provider diagnostics are never
+# response codes, status selectors, exception args or formatted fallback text.
+PUBLIC_FINANCIAL_ERRORS = MappingProxyType(
+    {
+        "financial_query_required": 422,
+        "financial_query_unsupported": 422,
+        "price_step_selection_invalid": 422,
+        "instrument_tick_unavailable": 503,
+        "derived_provider_unavailable": 503,
+        "financial_provider_error": 503,
+    }
+)
+
+
+def public_financial_error(code):
+    if type(code) is str and code in PUBLIC_FINANCIAL_ERRORS:
+        return code, PUBLIC_FINANCIAL_ERRORS[code]
+    return "financial_provider_error", 503
+
+
 class FinancialQueryError(ValueError):
     def __init__(self, code, status=422):
-        self.code = code
-        self.status = status
+        # Retain the status argument for existing owned ports, but never trust it.
+        self.code, self.status = public_financial_error(code)
+        super().__init__(self.code)
 
 
 FIELDS = {

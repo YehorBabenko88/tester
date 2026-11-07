@@ -71,3 +71,14 @@ Machine-readable frozen provider snapshot:
 `contracts/requests/v1/financial-query.schema.json`.
 Public query parameters are in `contracts/v1/openapi.json`.
 Regenerate both with `python scripts/export_contract.py`; CI checks drift.
+## Public financial errors
+
+Financial errors expose only fixed codes/statuses: financial_query_required422,
+financial_query_unsupported422, price_step_selection_invalid422,
+instrument_tick_unavailable503, derived_provider_unavailable503 and
+financial_provider_error503. Unknown provider codes map to financial_provider_error;
+the supplied status is not a response selector. Raw provider diagnostics (including
+DSNs, paths and credentials) are discarded, not interpolated into HTTP or exception
+args. The HTTP boundary repeats the whitelist check even if an exception was
+mutated after construction. Existing request/source semantics and defaults are
+unchanged by this error handling correction.
