@@ -94,6 +94,21 @@ class Store:
                 request={k:e[k] for k in (*SCOPE,'start_ms','end_ms')}
                 old=c.execute('SELECT request FROM tester_storage.download_jobs WHERE job_key=%s FOR UPDATE',(job_key,)).fetchone()
                 if old and old['request']!=request: raise ValueError('job key reused for different request')
+                previous=c.execute('SELECT checkpoint FROM tester_storage.ingestion_checkpoints WHERE job_key=%s',(job_key,)).fetchone()
+                previous=previous['checkpoint'] if previous else {}
+                next_checkpoint=copy.deepcopy(previous if checkpoint is None else checkpoint)
+                if not isinstance(next_checkpoint,dict): raise ValueError('checkpoint must be an object')
+                canonical(next_checkpoint)
+                for position in ('sequence','offset'):
+                    if position in next_checkpoint: integer(next_checkpoint[position],'checkpoint '+position)
+                if previous and next_checkpoint!=previous:
+                    position='sequence' if 'sequence' in previous else 'offset' if 'offset' in previous else None
+                    if position is None:
+                        if 'sequence' not in next_checkpoint: raise ValueError('changed opaque checkpoint requires sequence')
+                    elif position not in next_checkpoint or next_checkpoint[position]<previous[position]:
+                        raise ValueError('checkpoint cannot regress')
+                    elif next_checkpoint[position]==previous[position]:
+                        raise ValueError('same checkpoint position has different cursor/state')
                 c.execute('''INSERT INTO tester_storage.download_jobs(job_key,scope_key,symbol,request,state)
                     VALUES(%s,%s,%s,%s,'running') ON CONFLICT(job_key) DO UPDATE SET state='running',updated_at=now()''',
                     (job_key,scope,e['symbol'],Jsonb(request)))
@@ -166,7 +181,7 @@ class Store:
                         SELECT coverage_id,%s FROM tester_storage.coverage_intervals WHERE coverage_id=%s ON CONFLICT DO NOTHING''',(evidence_id,finding_id))
                 c.execute('''INSERT INTO tester_storage.ingestion_checkpoints(job_key,checkpoint,commit_hash) VALUES(%s,%s,%s)
                     ON CONFLICT(job_key) DO UPDATE SET checkpoint=EXCLUDED.checkpoint,commit_hash=EXCLUDED.commit_hash,updated_at=now()''',
-                    (job_key,Jsonb(checkpoint or {}),evidence_id))
+                    (job_key,Jsonb(next_checkpoint),evidence_id))
                 c.execute("UPDATE tester_storage.download_jobs SET state='committed',updated_at=now() WHERE job_key=%s",(job_key,))
                 self._audit(c,e,'ingest',dict(job_key=job_key,evidence_id=evidence_id,count=count,verified=verified))
             return dict(count=count,verified=verified,evidence_id=evidence_id)

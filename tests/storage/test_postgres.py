@@ -185,5 +185,19 @@ class PostgresTests(unittest.TestCase):
             with psycopg.connect(self.admin,autocommit=True) as c:
                 c.execute(sql.SQL('DROP DATABASE {} WITH (FORCE)').format(sql.Identifier(database)))
 
+    def test_late_retry_cannot_regress_checkpoint_or_clear_it_implicitly(self):
+        self.store.ingest([self.record()],self.ev(),self.symbol,checkpoint={'offset':2})
+        with self.assertRaises(ValueError):
+            self.store.ingest([self.record()],self.ev(),self.symbol,checkpoint={'offset':1})
+        self.store.ingest([self.record()],self.ev(),self.symbol)
+        self.assertEqual(self.store.checkpoint(self.symbol),{'offset':2})
+
+    def test_opaque_cursor_changes_require_monotonic_sequence(self):
+        self.store.ingest([self.record()],self.ev(),self.symbol,checkpoint={'sequence':1,'cursor':'page2'})
+        with self.assertRaises(ValueError):
+            self.store.ingest([self.record()],self.ev(),self.symbol,checkpoint={'sequence':1,'cursor':'page1'})
+        self.store.ingest([self.record()],self.ev(),self.symbol,checkpoint={'sequence':2,'cursor':'done'})
+        self.assertEqual(self.store.checkpoint(self.symbol),{'sequence':2,'cursor':'done'})
+
 
 if __name__=='__main__': unittest.main()

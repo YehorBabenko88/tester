@@ -29,6 +29,8 @@ coverage = store.coverage('bybit','linear','BTCUSDT','trades','',start_ms,end_ms
 
 Trade interval must be empty. Time precision supports `s`, `ms`, `us`, `ns`; seconds require whole-second epoch-ms, microseconds use exact timestamp_us, ns requires exact timestamp_ns; the latter is NULL otherwise. Original envelope is preserved separately from canonical numeric payload, so formatting changes such as 123.00 vs 1.23E+2 do not cause semantic conflicts.
 
+Checkpoints: `None` preserves the previous checkpoint. For changing opaque cursors provide a strictly increasing integer `sequence`; integer `offset` may be used for ordered file positions. Late retries cannot decrease a position, change state at the same position or silently clear a checkpoint. This comparison runs under the same publication/job lock as raw writes.
+
 Evidence scope fields match records exactly. Example (not verified; no invented availability):
 
 ```json
