@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 from typing import Annotated
 from uuid import UUID
 
@@ -12,7 +13,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from contracts.v1.validate import ContractError
 
-from .canonical import dataset_model, dataset_response
+from .canonical import dataset_model
 from .config import Settings, load_settings
 from .db import connect
 from .jobs import AdmissionRejected, Conflict, JobQueue
@@ -26,6 +27,7 @@ from .models import (
     Query,
 )
 from .providers import ProviderUnavailable, UnavailableReader, load_factory
+from .scope import CursorCodec, CursorError, ScopeError, bound_response
 
 
 def error(status, code, message):
@@ -38,6 +40,7 @@ def error(status, code, message):
 def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
     settings = settings or load_settings()
     reader = provider or load_factory(settings.provider_factory, UnavailableReader())
+    cursor_codec = CursorCodec()
     queue = (
         JobQueue(settings.dsn, settings.lease_seconds, settings.max_pending)
         if settings.dsn
@@ -47,6 +50,7 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         title="Tester local market API",
         version="1.0.0",
         responses={
+            502: {"model": ErrorEnvelope},
             503: {"model": ErrorEnvelope},
             409: {"model": ErrorEnvelope},
             404: {"model": ErrorEnvelope},
@@ -82,6 +86,26 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
     async def contract_error(request, exc):
         return error(
             502, "provider_contract_error", "Provider response violates approved contract v1"
+        )
+
+    @app.exception_handler(ScopeError)
+    async def scope_error(request, exc):
+        return JSONResponse(
+            status_code=502,
+            content={
+                "schema_version": "1.0",
+                "error": {
+                    "code": "provider_scope_mismatch",
+                    "message": "Provider response does not match requested scope",
+                    "context": exc.context,
+                },
+            },
+        )
+
+    @app.exception_handler(CursorError)
+    async def cursor_error(request, exc):
+        return error(
+            422, "cursor_scope_mismatch", "Invalid, stale, or cross-scope continuation token"
         )
 
     @app.exception_handler(psycopg.Error)
@@ -139,21 +163,25 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         return JSONResponse(status_code=200 if ok else 503, content=body.model_dump(mode="json"))
 
     def validated_query(
+        venue: str = "bybit",
         category: str = "linear",
         symbol: str | None = None,
         start_ms: int = 0,
         end_ms: int = 253402300799000,
         interval: str = "60",
+        candle_kind: str = "official_trade",
         limit: int = 100,
         cursor: str | None = None,
     ):
         try:
             return Query(
+                venue=venue,
                 category=category,
                 symbol=symbol,
                 start_ms=start_ms,
                 end_ms=end_ms,
                 interval=interval,
+                candle_kind=candle_kind,
                 limit=limit,
                 cursor=cursor,
             )
@@ -176,13 +204,13 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             def endpoint(query: Annotated[Query, Depends(validated_query)]):
                 # Providers must supply the complete envelope. Missing evidence is an error,
                 # never repaired using invented availability/provenance or precision.
-                value = reader.read(name, query)
-                dataset_response(record_kind, value)
-                expected_kind = {"open-interest": "oi", "funding": "funding"}.get(name)
-                if expected_kind and any(row["kind"] != expected_kind for row in value["data"]):
-                    raise ContractError("Provider returned a different observation dataset")
-                if len(value["data"]) > query.limit:
-                    raise ContractError("Provider exceeded requested page limit")
+                raw_cursor = cursor_codec.decode(name, query)
+                provider_query = query.model_copy(update={"cursor": raw_cursor})
+                value = deepcopy(reader.read(name, provider_query))
+                # The provider can normalize its private query copy. It must never
+                # rewrite the original request used as the authority for binding.
+                bound_response(name, record_kind, value, query)
+                value["next_cursor"] = cursor_codec.encode(name, query, value["next_cursor"])
                 return value
 
             return endpoint

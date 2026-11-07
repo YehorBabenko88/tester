@@ -83,6 +83,7 @@ def test_provider_response_and_contract_paths(tmp_path):
         row.pop(key)
     row.update(status="Trading", tick_size="0.01", qty_step="0.001")
     expected = envelope(row)
+    expected["next_cursor"] = None
 
     class Provider:
         def read(self, resource, query):
@@ -92,7 +93,12 @@ def test_provider_response_and_contract_paths(tmp_path):
         create_app(Settings(data_dir=tmp_path), provider=Provider()),
         base_url="http://127.0.0.1:8765",
     ) as c:
-        assert c.get("/api/instruments").json() == expected
+        assert (
+            c.get(
+                "/api/instruments", params={"start_ms": 1700000000000, "end_ms": 1700000060000}
+            ).json()
+            == expected
+        )
         paths = c.get("/openapi.json").json()["paths"]
         assert "/api/downloads/{id}/pause" in paths
         assert "/api/funding" in paths

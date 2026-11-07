@@ -40,8 +40,10 @@ Health returns the Health envelope on both 200 and 503 (rather than the generic 
 
 Time ranges are UTC epoch milliseconds `[start_ms, end_ms)`. Monetary values and
 quantities are JSON strings. `limit` defaults to 100 and cannot exceed 1000.
-Opaque cursors are provider-owned, at most 512 characters, and must bind to the
-resource and filters. Readers must return deterministic ordering, respect the range
+HTTP cursors are E-authenticated tokens (at most 4096 characters), bound to the
+resource and every query filter, including page limit. Provider-owned source cursors
+are decoded before `Reader.read` and wrapped on return (at most 2048 source characters
+and within the transport byte budget). Readers must return deterministic ordering, respect the range
 and hard limit, and return a cursor only if another page exists.
 
 | Endpoint | Data |
@@ -61,8 +63,9 @@ and hard limit, and return a cursor only if another page exists.
 | GET /api/open-interest | OpenInterest[] |
 | GET /api/funding | Funding[] |
 
-Read query fields: category (`linear`, `inverse`, `spot`), symbol, start_ms,
-end_ms, interval (Bybit-style string, default `60`), limit, cursor. Readers may
+Read query fields: venue (`bybit` only), category (`linear`, `inverse`, `spot`), symbol, start_ms,
+end_ms, interval (Bybit-style string, default `60`), candle_kind (default
+`official_trade`; also official_mark/official_index/official_premium/derived), limit, cursor. Readers may
 add resource-specific fields in a coordinated additive contract revision.
 
 Download body example (one symbol/source/range per job):
@@ -86,6 +89,33 @@ Response rows must match the resource model in `src/api/models.py`; every market
 row has explicit provenance. Errors must distinguish absent capabilities from
 an available source whose actual range is empty. Coverage complete requires B's
 verification evidence; no inferred completion from record count.
+
+Schema validation alone is insufficient. E now checks each market row against the
+original request, never the mutable query copy passed to the provider: venue/category,
+symbol when supplied, timestamp in `[start_ms,end_ms)`, requested resource kind,
+observation/candle interval, candle_kind and bounded bar windows. Footprint v1 has no
+interval field; its declared UTC window must have the requested interval duration.
+Calendar-month validation checks successive UTC month boundaries; it computes no
+market aggregate. Query ranges must contain returned full bar windows. Align a bar
+request accordingly. OI clients must explicitly request their source interval (e.g.
+5min); funding uses interval=event rather than the generic default60.
+
+The envelope coverage range must exactly equal the requested range, including empty
+pages. Row coverage must lie within it and contain the row timestamp. Coverage-only
+rows are checked for contained bounds. Shared v1 coverage/source-capability records
+do not encode a market identity; their identity authenticity remains the scoped
+storage resolver's responsibility. E cannot infer evidence ownership from bare bounds.
+No shared v1.0 schema file was changed.
+
+Wrong provider scope returns502 provider_scope_mismatch. Error context retains
+upstream availability status and a bounded provenance summary (kind/content hash and
+digests of source/run/reason), never raw payloads, source URLs, DSNs or credential text.
+The provider response is copied before checking and serializing it. Public continuation
+tokens use an app-local HMAC key, so tampering/cross-resource/filter reuse is rejected
+with422 cursor_scope_mismatch BEFORE provider invocation. A process restart or another
+API instance invalidates these page tokens; restart pagination from the first page.
+This does not affect persisted job checkpoints. Provider source cursors remain lossless
+behind the wrapper, and providers should retain their own scoped cursor validation.
 
 `TESTER_HANDLER_FACTORY=package.module:factory` creates a handler with:
 

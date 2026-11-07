@@ -20,6 +20,7 @@ class Envelope(BaseModel, Generic[T]):
 class ErrorDetail(BaseModel):
     code: str
     message: str
+    context: dict[str, Any] | None = None
 
 
 class ErrorEnvelope(BaseModel):
@@ -28,13 +29,17 @@ class ErrorEnvelope(BaseModel):
 
 
 class Query(BaseModel):
+    venue: Literal["bybit"] = "bybit"
     category: Category = "linear"
     symbol: str | None = Field(default=None, pattern=r"^[A-Z0-9_-]{1,40}$")
     start_ms: int = Field(default=0, ge=0)
     end_ms: int = Field(default=253402300799000, ge=1, le=253402300799000)
     interval: str = Field(default="60", pattern=r"^[a-zA-Z0-9]{1,12}$")
     limit: int = Field(default=100, ge=1, le=1000)
-    cursor: str | None = Field(default=None, max_length=512)
+    cursor: str | None = Field(default=None, max_length=4096)
+    candle_kind: Literal[
+        "official_trade", "official_mark", "official_index", "official_premium", "derived"
+    ] = "official_trade"
 
     @model_validator(mode="after")
     def valid_range(self):

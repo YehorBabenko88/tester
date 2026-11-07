@@ -17,14 +17,19 @@ def test_http_canonical_roundtrip_and_reject_invalid_provider(tmp_path):
             return deepcopy(self.value)
 
     provider = Provider()
+    provider.value["next_cursor"] = None
     with TestClient(
         create_app(Settings(data_dir=tmp_path), provider), base_url="http://127.0.0.1:8765"
     ) as client:
-        response = client.get("/api/trades")
+        response = client.get(
+            "/api/trades", params={"start_ms": 1700000000000, "end_ms": 1700000060000}
+        )
         assert response.status_code == 200
         assert response.json() == provider.value
         provider.value["data"][0]["schema_version"] = "wrong"
-        response = client.get("/api/trades")
+        response = client.get(
+            "/api/trades", params={"start_ms": 1700000000000, "end_ms": 1700000060000}
+        )
         assert response.status_code == 502
         assert response.json()["error"]["code"] == "provider_contract_error"
         assert "wrong" not in response.text
@@ -33,6 +38,7 @@ def test_http_canonical_roundtrip_and_reject_invalid_provider(tmp_path):
 @pytest.mark.timeout(10)
 def test_http_ms_source_and_unknown_side_remain_truthful(tmp_path):
     value = envelope()
+    value["next_cursor"] = None
     row = value["data"][0]
     row.update(timestamp_ns=None, timestamp_precision="ms")
     row["provenance"][0].update(timestamp_precision="ms", source_timestamp="1700000000123")
@@ -47,7 +53,9 @@ def test_http_ms_source_and_unknown_side_remain_truthful(tmp_path):
     with TestClient(
         create_app(Settings(data_dir=tmp_path), Provider()), base_url="http://127.0.0.1:8765"
     ) as client:
-        response = client.get("/api/trades")
+        response = client.get(
+            "/api/trades", params={"start_ms": 1700000000000, "end_ms": 1700000060000}
+        )
         assert response.status_code == 200
         assert response.json() == value
 
@@ -75,5 +83,6 @@ def test_observation_cannot_be_served_under_wrong_resource(tmp_path):
     with TestClient(
         create_app(Settings(data_dir=tmp_path), Provider()), base_url="http://127.0.0.1:8765"
     ) as client:
-        assert client.get("/api/open-interest").status_code == 200
-        assert client.get("/api/funding").status_code == 502
+        params = {"start_ms": 1700000000000, "end_ms": 1700000060000, "interval": "5min"}
+        assert client.get("/api/open-interest", params=params).status_code == 200
+        assert client.get("/api/funding", params=params).status_code == 502

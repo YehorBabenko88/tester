@@ -726,6 +726,18 @@
             "title": "Code",
             "type": "string"
           },
+          "context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -2521,6 +2533,16 @@
         "parameters": [
           {
             "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "category",
             "required": false,
             "schema": {
@@ -2572,6 +2594,16 @@
             "schema": {
               "default": "60",
               "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
               "type": "string"
             }
           },
@@ -2643,6 +2675,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -2661,6 +2703,16 @@
       "get": {
         "operationId": "read_coverage",
         "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "category",
@@ -2714,6 +2766,16 @@
             "schema": {
               "default": "60",
               "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
               "type": "string"
             }
           },
@@ -2785,6 +2847,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -2852,6 +2924,16 @@
               }
             },
             "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
             "content": {
@@ -2923,6 +3005,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -2992,6 +3084,16 @@
               }
             },
             "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
             "content": {
@@ -3063,6 +3165,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3133,6 +3245,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3151,6 +3273,16 @@
       "get": {
         "operationId": "read_footprint",
         "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "category",
@@ -3204,6 +3336,16 @@
             "schema": {
               "default": "60",
               "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
               "type": "string"
             }
           },
@@ -3275,6 +3417,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3293,6 +3445,16 @@
       "get": {
         "operationId": "read_funding",
         "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "category",
@@ -3346,6 +3508,16 @@
             "schema": {
               "default": "60",
               "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
               "type": "string"
             }
           },
@@ -3417,6 +3589,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3475,6 +3657,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3493,6 +3685,16 @@
       "get": {
         "operationId": "read_instruments",
         "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "category",
@@ -3546,6 +3748,16 @@
             "schema": {
               "default": "60",
               "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
               "type": "string"
             }
           },
@@ -3617,6 +3829,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3635,6 +3857,16 @@
       "get": {
         "operationId": "read_open-interest",
         "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "category",
@@ -3688,6 +3920,16 @@
             "schema": {
               "default": "60",
               "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
               "type": "string"
             }
           },
@@ -3759,6 +4001,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3777,6 +4029,16 @@
       "get": {
         "operationId": "read_sources",
         "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "category",
@@ -3830,6 +4092,16 @@
             "schema": {
               "default": "60",
               "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
               "type": "string"
             }
           },
@@ -3901,6 +4173,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -3919,6 +4201,16 @@
       "get": {
         "operationId": "read_trades",
         "parameters": [
+          {
+            "in": "query",
+            "name": "venue",
+            "required": false,
+            "schema": {
+              "default": "bybit",
+              "title": "Venue",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "category",
@@ -3972,6 +4264,16 @@
             "schema": {
               "default": "60",
               "title": "Interval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "candle_kind",
+            "required": false,
+            "schema": {
+              "default": "official_trade",
+              "title": "Candle Kind",
               "type": "string"
             }
           },
@@ -4042,6 +4344,16 @@
               }
             },
             "description": "Unprocessable Content"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
             "content": {
