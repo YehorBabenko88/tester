@@ -28,3 +28,14 @@ service, UAC, ACL or database cleanup actions were performed. These results do n
 constitute PostgreSQL or composed provider acceptance. Read-only code review found
 no actionable issues. The historical availability aggregate remains explicitly
 unavailable for current transaction-start-only schema; see bounded-read-page.md.
+
+Prospective visibility proposal v0.1 (Issue2 comment6711141791): docs and pure
+negative-trace harness only; NO production code or successful certificate path.
+20 unit/mock tests PASS (2 proposal tests exercising 10 named counterexamples,
+6 knowledge-time and 12 model/quality tests). `python -m tests.storage.visibility_protocol_cases
+--demonstrate-red` intentionally exits1: 10/10 assertions FAIL for the deliberately
+unsafe sampled-time-only candidate. This is an executable specification probe,
+not PostgreSQL lock/MVCC/crash verification or proof of protocol sufficiency.
+compileall and diff --check PASS. Existing current UNAVAILABLE unchanged.
+No physical PostgreSQL/service/UAC/ACL/global settings/cleanup actions performed.
+MASTER review and retained-DB interleavings precede any success implementation.
