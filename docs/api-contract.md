@@ -101,6 +101,10 @@ foreign __path__ from being followed. Loaded module and defining callable origin
 checked again before invocation. Re-exports between verified owned components work;
 foreign callable aliases do not. The owned repository remains on the import path.
 
+The policy bootstrap itself uses the repository-anchored policy file without importing
+its parent packages. A foreign src.integration initializer cannot run just to obtain
+the ownership validator; cached policy origins must match the anchored file as well.
+
 This validates ownership for trusted local configuration. It is not an arbitrary
 Python sandbox: validated owned module code/initializers and host import finders are
 trusted and may execute. It does not authenticate market evidence, approve transitive

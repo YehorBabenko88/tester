@@ -1,18 +1,50 @@
 """Import ownership attestation for trusted local configuration, not a Python sandbox."""
 
 import importlib
+import importlib.util
 import inspect
 import sys
 import threading
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.integration.standalone_policy import (
-    FactoryTarget,
-    StandaloneViolation,
-    assert_loaded_origin,
-    validate_factory_spec,
-)
+
+def _trusted_policy():
+    # Bootstrap from our anchored source, not by importing src.integration parents:
+    # a foreign regular package can otherwise win over the owned namespace package.
+    root = Path(__file__).resolve().parents[2]
+    source = (root / "src/integration/standalone_policy.py").resolve(strict=True)
+    if not source.is_relative_to(root):
+        raise ValueError("Ownership policy source escapes tester repository")
+    name = "src.integration.standalone_policy"
+    if name in sys.modules:
+        module = sys.modules[name]
+    else:
+        spec = importlib.util.spec_from_file_location(name, source)
+        if spec is None or spec.loader is None:
+            raise ValueError("Ownership policy source cannot be loaded")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module  # Required by the policy's dataclass metadata.
+        try:
+            spec.loader.exec_module(module)
+        except BaseException:
+            if sys.modules.get(name) is module:
+                del sys.modules[name]
+            raise
+    try:
+        origins = (module.__file__, module.__spec__.origin)
+        if any(Path(origin).resolve(strict=True) != source for origin in origins):
+            raise ValueError
+    except (AttributeError, OSError, TypeError, ValueError):
+        raise ValueError("Cached or loaded ownership policy has an invalid source origin") from None
+    return module
+
+
+_POLICY = _trusted_policy()
+FactoryTarget = _POLICY.FactoryTarget
+StandaloneViolation = _POLICY.StandaloneViolation
+assert_loaded_origin = _POLICY.assert_loaded_origin
+validate_factory_spec = _POLICY.validate_factory_spec
 
 _LOCK = threading.RLock()
 

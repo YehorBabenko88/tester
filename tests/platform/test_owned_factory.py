@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import types
+from pathlib import Path
 
 import pytest
 from canonical_fixtures import envelope
@@ -253,6 +254,53 @@ def test_foreign_callable_reexport_is_not_invoked(owned, tmp_path, monkeypatch):
         providers.load_factory("src.integration.owned:build", None)
     assert not marker.exists()
     sys.modules.pop("outside", None)
+
+
+def test_policy_bootstrap_does_not_import_a_foreign_integration_parent(tmp_path):
+    root = Path(providers.__file__).resolve().parents[2]
+    foreign = tmp_path / "foreign"
+    (foreign / "src/integration").mkdir(parents=True)
+    marker = tmp_path / "foreign-parent-imported"
+    (foreign / "src/integration/__init__.py").write_text(
+        f"from pathlib import Path\nPath({str(marker)!r}).touch()\n"
+    )
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = os.pathsep.join([str(root), str(foreign)])
+    code = """
+from src.api.providers import load_factory
+assert load_factory(None, 'disabled') == 'disabled'
+try:
+    load_factory('src.api.providers:UnavailableReader', None)
+except ValueError:
+    print('foreign merged parent blocked')
+else:
+    raise AssertionError('foreign namespace accepted')
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=root,
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    assert not marker.exists()
+
+
+def test_cached_foreign_policy_origin_is_rejected(tmp_path, monkeypatch):
+    from src.api.owned_imports import _trusted_policy
+
+    foreign = tmp_path / "foreign_policy.py"
+    marker = tmp_path / "foreign-executed"
+    foreign.write_text(f"from pathlib import Path\nPath({str(marker)!r}).touch()\n")
+    module = types.ModuleType("src.integration.standalone_policy")
+    module.__file__ = str(foreign)
+    module.__spec__ = importlib.util.spec_from_file_location(module.__name__, foreign)
+    monkeypatch.setitem(sys.modules, module.__name__, module)
+    with pytest.raises(ValueError):
+        _trusted_policy()
+    assert not marker.exists()
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows junction coverage")
