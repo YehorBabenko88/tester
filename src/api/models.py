@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Any, Generic, Literal, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
 from .canonical import CanonicalRecord
+from .financial_query import MAX_TIME, PriceStep
 
 T = TypeVar("T")
 Category = Literal["linear", "inverse", "spot"]
@@ -29,6 +30,13 @@ class ErrorEnvelope(BaseModel):
 
 
 class Query(BaseModel):
+    query_schema_version: Literal["1.0"] | None = None
+    information_cutoff_ms: StrictInt | None = Field(default=None, ge=0, le=MAX_TIME)
+    price_step: PriceStep | None = None
+    price_step_mode: Literal["explicit", "instrument_tick"] | None = None
+    instrument_tick_ref: str | None = Field(
+        default=None, min_length=1, max_length=256, pattern=r"^[A-Za-z0-9_:.@/-]+$"
+    )
     venue: Literal["bybit"] = "bybit"
     category: Category = "linear"
     symbol: str | None = Field(default=None, pattern=r"^[A-Z0-9_-]{1,40}$")

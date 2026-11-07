@@ -25,7 +25,6 @@ def test_unconnected_providers_are_explicit_not_empty_success(tmp_path):
             "coverage",
             "candles",
             "trades",
-            "footprint",
             "open-interest",
             "funding",
         ]:

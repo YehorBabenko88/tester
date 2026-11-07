@@ -6,3 +6,5 @@ contracts/v1/market.schema.json -text
 contracts/MIGRATIONS.md -text
 tests/analytics/reference/binding/** -text
 src/integration/standalone_policy.py -text
+
+tests/platform/reference/financial_query/** -text

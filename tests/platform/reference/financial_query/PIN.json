@@ -1,0 +1,55 @@
+{
+  "source_commit": "19f306cd8314cd9ce0cf488b143a3338d2393442",
+  "files": [
+    {
+      "path": "src/analytics/__init__.py",
+      "local": "c_analytics/__init__.py",
+      "sha256": "8aa722e25ff916ac53e6c9521cf948ee49004af6468c7d7ee9f96c000c62ddc4"
+    },
+    {
+      "path": "src/analytics/binding.py",
+      "local": "c_analytics/binding.py",
+      "sha256": "4a601b6907c01f9e11499e2d080542b6b137bb8e3174969bc0c394887b3855d9"
+    },
+    {
+      "path": "src/analytics/comparison.py",
+      "local": "c_analytics/comparison.py",
+      "sha256": "7048d8b09cca17cd53e04e1e72d6a20d039fdc681c0eca0f67892773dbffd359"
+    },
+    {
+      "path": "src/analytics/core.py",
+      "local": "c_analytics/core.py",
+      "sha256": "f486d192a2d993e302adb0a181bf8937d1287f0334c719c5be00a07e91d94fa7"
+    },
+    {
+      "path": "src/analytics/exact.py",
+      "local": "c_analytics/exact.py",
+      "sha256": "5fea958c76799a8850f7e6396ea790eb880ab8f45797039b255e1b8be1b59c6c"
+    },
+    {
+      "path": "src/analytics/footprint.py",
+      "local": "c_analytics/footprint.py",
+      "sha256": "d8b11298a3e4862d7ec61dc928acac437ed257f8f08778c51587eb67ea8d1a88"
+    },
+    {
+      "path": "src/analytics/indicators.py",
+      "local": "c_analytics/indicators.py",
+      "sha256": "0b9d7bde339b77cc1b29846853ab5dd691e32cfca1970ced673396be24effc0a"
+    },
+    {
+      "path": "src/analytics/statistics.py",
+      "local": "c_analytics/statistics.py",
+      "sha256": "235a4b80ae174d386cc0eb07a04660c53d860a37d5a4385335e34c8af377249c"
+    },
+    {
+      "path": "src/storage/models.py",
+      "local": "b_models.py",
+      "sha256": "510719341ad49a34b2c3b54d72232a88c7a50825e7df5756034db550da1053f2"
+    },
+    {
+      "path": "src/integration/storage_api.py",
+      "local": "master_storage_api.py",
+      "sha256": "760a3c8a6c1c7e93a5dbc5f95d9b892c825153a0ad65b3548fe64a13382a88d7"
+    }
+  ]
+}
