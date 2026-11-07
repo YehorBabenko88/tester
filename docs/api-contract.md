@@ -41,7 +41,8 @@ Health returns the Health envelope on both 200 and 503 (rather than the generic 
 Time ranges are UTC epoch milliseconds `[start_ms, end_ms)`. Monetary values and
 quantities are JSON strings. `limit` defaults to 100 and cannot exceed 1000.
 HTTP cursors are E-authenticated tokens (at most 4096 characters), bound to the
-resource and every query filter, including page limit. Provider-owned source cursors
+resource and normalized data filters, including native source cadence and page limit.
+An observation's display viewport does not change its source cursor scope. Provider-owned source cursors
 are decoded before `Reader.read` and wrapped on return (at most 2048 source characters
 and within the transport byte budget). Readers must return deterministic ordering, respect the range
 and hard limit, and return a cursor only if another page exists.
@@ -64,7 +65,8 @@ and hard limit, and return a cursor only if another page exists.
 | GET /api/funding | Funding[] |
 
 Read query fields: venue (`bybit` only), category (`linear`, `inverse`, `spot`), symbol, start_ms,
-end_ms, interval (Bybit-style string, default `60`), candle_kind (default
+end_ms, interval (bar interval or observation display viewport; default `60`),
+source_interval (native observation cadence), candle_kind (default
 `official_trade`; also official_mark/official_index/official_premium/derived), limit, cursor. Readers may
 add resource-specific fields in a coordinated additive contract revision.
 
@@ -93,12 +95,29 @@ verification evidence; no inferred completion from record count.
 Schema validation alone is insufficient. E now checks each market row against the
 original request, never the mutable query copy passed to the provider: venue/category,
 symbol when supplied, timestamp in `[start_ms,end_ms)`, requested resource kind,
-observation/candle interval, candle_kind and bounded bar windows. Footprint v1 has no
+native observation/candle interval, candle_kind and bounded bar windows. Footprint v1 has no
 interval field; its declared UTC window must have the requested interval duration.
-Calendar-month validation checks successive UTC month boundaries; it computes no
-market aggregate. Query ranges must contain returned full bar windows. Align a bar
-request accordingly. OI clients must explicitly request their source interval (e.g.
-5min); funding uses interval=event rather than the generic default60.
+Fixed minute bars start on their exact Unix UTC grid; daily bars start at UTC midnight,
+weekly bars start Monday00:00 UTC. Calendar-month validation checks successive UTC
+month boundaries using integer timedelta from the epoch, never floating timestamps.
+Floats/bools are rejected as source timestamps/boundaries even when numerically integral.
+This computes no market aggregate. Query ranges must contain returned full bar windows.
+Align a bar request accordingly.
+
+Observation source cadence is independent of chart display timeframe. Funding always
+resolves to `event`; explicit source_interval other than event fails422 before provider
+invocation. OI accepts explicit source_interval in5min/15min/30min/1h/4h/1d, default5min.
+The display interval never implicitly chooses OI cadence, even when it looks like1h.
+Examples: funding with `interval=D&source_interval=event`; OI with
+`interval=60&source_interval=1h`. There is no E/browser resampling or C calculation.
+For bars, a source_interval override that differs from interval is rejected rather
+than silently resampling. The additive input is documented in OpenAPI.
+
+Reader receives a private Query with interval=effective native cadence,
+source_interval=the same cadence, viewport_interval=original display interval. Scope
+checking and cursor signatures use an independent normalized query that is never
+passed to the provider. For observations, viewport changes60→D do not invalidate a
+cursor if native source cadence stays the same; changing native cadence does.
 
 The envelope coverage range must exactly equal the requested range, including empty
 pages. Row coverage must lie within it and contain the row timestamp. Coverage-only
@@ -111,7 +130,7 @@ Wrong provider scope returns502 provider_scope_mismatch. Error context retains
 upstream availability status and a bounded provenance summary (kind/content hash and
 digests of source/run/reason), never raw payloads, source URLs, DSNs or credential text.
 The provider response is copied before checking and serializing it. Public continuation
-tokens use an app-local HMAC key, so tampering/cross-resource/filter reuse is rejected
+tokens use an app-local HMAC key, so tampering/cross-resource/data-filter reuse is rejected
 with422 cursor_scope_mismatch BEFORE provider invocation. A process restart or another
 API instance invalidates these page tokens; restart pagination from the first page.
 This does not affect persisted job checkpoints. Provider source cursors remain lossless

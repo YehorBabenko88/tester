@@ -35,6 +35,9 @@ class Query(BaseModel):
     start_ms: int = Field(default=0, ge=0)
     end_ms: int = Field(default=253402300799000, ge=1, le=253402300799000)
     interval: str = Field(default="60", pattern=r"^[a-zA-Z0-9]{1,12}$")
+    source_interval: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9]{1,12}$")
+    # Internal reader context, not an additional HTTP input.
+    viewport_interval: str | None = None
     limit: int = Field(default=100, ge=1, le=1000)
     cursor: str | None = Field(default=None, max_length=4096)
     candle_kind: Literal[

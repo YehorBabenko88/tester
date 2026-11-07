@@ -226,9 +226,9 @@ def test_explicit_venue_and_candle_kind_are_bound(tmp_path):
     ]:
         row.pop(key)
     row.update(
-        timestamp_ms=START,
-        start_ms=START,
-        end_ms=END,
+        timestamp_ms=1700000040000,
+        start_ms=1700000040000,
+        end_ms=1700000100000,
         interval="1",
         kind="official_mark",
         open="100",
@@ -238,6 +238,8 @@ def test_explicit_venue_and_candle_kind_are_bound(tmp_path):
         volume="1",
         is_closed=True,
     )
+    row["coverage"].update(start_ms=1700000040000, end_ms=1700000100000)
+    value["coverage"] = deepcopy(row["coverage"])
 
     class Provider:
         def read(self, resource, query):
@@ -246,9 +248,12 @@ def test_explicit_venue_and_candle_kind_are_bound(tmp_path):
     with TestClient(
         create_app(Settings(data_dir=tmp_path), Provider()), base_url="http://127.0.0.1:8765"
     ) as client:
-        assert client.get("/api/candles", params=params()).status_code == 502
+        scoped = params(start_ms=1700000040000, end_ms=1700000100000)
+        assert client.get("/api/candles", params=scoped).status_code == 502
         assert (
-            client.get("/api/candles", params=params(candle_kind="official_mark")).status_code
+            client.get(
+                "/api/candles", params={**scoped, "candle_kind": "official_mark"}
+            ).status_code
             == 200
         )
         assert client.get("/api/candles", params=params(venue="other")).status_code == 422
@@ -270,7 +275,7 @@ def test_cursor_restart_and_unicode_budget_fail_closed():
     [
         ("1", 0, 60000, True),
         ("D", 0, 86400000, True),
-        ("W", 0, 604800000, True),
+        ("W", 345600000, 950400000, True),
         ("M", 1706745600000, 1709251200000, True),
         ("M", 1706745600000, 1709337600000, False),
     ],

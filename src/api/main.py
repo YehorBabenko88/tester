@@ -27,7 +27,14 @@ from .models import (
     Query,
 )
 from .providers import ProviderUnavailable, UnavailableReader, load_factory
-from .scope import CursorCodec, CursorError, ScopeError, bound_response
+from .scope import (
+    CursorCodec,
+    CursorError,
+    ScopeError,
+    SourceIntervalError,
+    bound_response,
+    resource_query,
+)
 
 
 def error(status, code, message):
@@ -108,6 +115,12 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             422, "cursor_scope_mismatch", "Invalid, stale, or cross-scope continuation token"
         )
 
+    @app.exception_handler(SourceIntervalError)
+    async def source_interval_error(request, exc):
+        return error(
+            422, "source_interval_invalid", "Unsupported source interval for this resource"
+        )
+
     @app.exception_handler(psycopg.Error)
     async def database_error(request, exc):
         logging.getLogger("tester.api").error(
@@ -169,6 +182,7 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         start_ms: int = 0,
         end_ms: int = 253402300799000,
         interval: str = "60",
+        source_interval: str | None = None,
         candle_kind: str = "official_trade",
         limit: int = 100,
         cursor: str | None = None,
@@ -181,6 +195,7 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
                 start_ms=start_ms,
                 end_ms=end_ms,
                 interval=interval,
+                source_interval=source_interval,
                 candle_kind=candle_kind,
                 limit=limit,
                 cursor=cursor,
@@ -204,13 +219,14 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             def endpoint(query: Annotated[Query, Depends(validated_query)]):
                 # Providers must supply the complete envelope. Missing evidence is an error,
                 # never repaired using invented availability/provenance or precision.
-                raw_cursor = cursor_codec.decode(name, query)
-                provider_query = query.model_copy(update={"cursor": raw_cursor})
+                source_query = resource_query(name, query)
+                raw_cursor = cursor_codec.decode(name, source_query)
+                provider_query = source_query.model_copy(update={"cursor": raw_cursor})
                 value = deepcopy(reader.read(name, provider_query))
                 # The provider can normalize its private query copy. It must never
                 # rewrite the original request used as the authority for binding.
-                bound_response(name, record_kind, value, query)
-                value["next_cursor"] = cursor_codec.encode(name, query, value["next_cursor"])
+                bound_response(name, record_kind, value, source_query)
+                value["next_cursor"] = cursor_codec.encode(name, source_query, value["next_cursor"])
                 return value
 
             return endpoint

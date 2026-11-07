@@ -2599,6 +2599,22 @@
           },
           {
             "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
             "name": "candle_kind",
             "required": false,
             "schema": {
@@ -2767,6 +2783,22 @@
               "default": "60",
               "title": "Interval",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
             }
           },
           {
@@ -3341,6 +3373,22 @@
           },
           {
             "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
             "name": "candle_kind",
             "required": false,
             "schema": {
@@ -3509,6 +3557,22 @@
               "default": "60",
               "title": "Interval",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
             }
           },
           {
@@ -3753,6 +3817,22 @@
           },
           {
             "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
             "name": "candle_kind",
             "required": false,
             "schema": {
@@ -3921,6 +4001,22 @@
               "default": "60",
               "title": "Interval",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
             }
           },
           {
@@ -4097,6 +4193,22 @@
           },
           {
             "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
+            }
+          },
+          {
+            "in": "query",
             "name": "candle_kind",
             "required": false,
             "schema": {
@@ -4265,6 +4377,22 @@
               "default": "60",
               "title": "Interval",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_interval",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Interval"
             }
           },
           {

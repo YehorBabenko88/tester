@@ -5,7 +5,7 @@ import hashlib
 import hmac
 import json
 import secrets
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from contracts.v1.validate import ContractError
 
@@ -41,14 +41,26 @@ class ScopeError(ContractError):
 
 def _bar_interval(start, end, interval):
     # Time-boundary validation only, not C price/volume aggregation.
+    if (
+        type(start) is not int
+        or type(end) is not int
+        or not 0 <= start < end
+        or not isinstance(interval, str)
+    ):
+        return False
     if interval in {"1", "3", "5", "15", "30", "60", "120", "240", "360", "720"}:
-        return end - start == int(interval) * 60000
-    if interval in {"D", "W"}:
-        return end - start == (86400000 if interval == "D" else 604800000)
+        step = int(interval) * 60000
+        return start % step == 0 and end - start == step
+    if interval == "D":
+        return start % 86400000 == 0 and end - start == 86400000
+    if interval == "W":
+        # 1970-01-05 is the first nonnegative Monday UTC in the Unix epoch.
+        return (start - 345600000) % 604800000 == 0 and end - start == 604800000
     if interval == "M":
         try:
-            begin = datetime.fromtimestamp(start / 1000, UTC)
-            finish = datetime.fromtimestamp(end / 1000, UTC)
+            epoch = datetime(1970, 1, 1, tzinfo=UTC)
+            begin = epoch + timedelta(milliseconds=start)
+            finish = epoch + timedelta(milliseconds=end)
             return (
                 begin.day == finish.day == 1
                 and (begin.hour, begin.minute, begin.second, begin.microsecond) == (0, 0, 0, 0)
@@ -60,6 +72,32 @@ def _bar_interval(start, end, interval):
     return False
 
 
+class SourceIntervalError(ValueError):
+    pass
+
+
+def resource_query(resource, query):
+    """Resolve native source cadence; display changes never resample source observations."""
+    source = query.source_interval
+    if resource == "funding":
+        if source not in {None, "event"}:
+            raise SourceIntervalError("Funding source interval must be event")
+        source = "event"
+    elif resource == "open-interest":
+        cadences = {"5min", "15min", "30min", "1h", "4h", "1d"}
+        if source is None:
+            source = "5min"
+        if source not in cadences:
+            raise SourceIntervalError("Unsupported open-interest source cadence")
+    else:
+        if source is not None and source != query.interval:
+            raise SourceIntervalError("Source interval differs from requested bar interval")
+        source = query.interval
+    return query.model_copy(
+        update={"interval": source, "source_interval": source, "viewport_interval": query.interval}
+    )
+
+
 def bound_response(resource, kind, value, query):
     dataset_response(kind, value)
 
@@ -68,6 +106,7 @@ def bound_response(resource, kind, value, query):
             raise ScopeError(violation, value)
 
     def coverage(bounds, *, envelope=False):
+        require(type(bounds["start_ms"]) is int and type(bounds["end_ms"]) is int, "coverage")
         if envelope:
             require(
                 (bounds["start_ms"], bounds["end_ms"]) == (query.start_ms, query.end_ms), "coverage"
@@ -92,6 +131,7 @@ def bound_response(resource, kind, value, query):
         require(row["venue"] == query.venue, "venue")
         require(row["category"] == query.category, "category")
         require(query.symbol is None or row["symbol"] == query.symbol, "symbol")
+        require(type(row["timestamp_ms"]) is int, "timestamp")
         require(query.start_ms <= row["timestamp_ms"] < query.end_ms, "timestamp")
         coverage(row["coverage"])
         require(
@@ -120,7 +160,7 @@ class CursorCodec:
         self._key = secrets.token_bytes(32)
 
     def _scope(self, resource, query):
-        scope = {"resource": resource, **query.model_dump(exclude={"cursor"})}
+        scope = {"resource": resource, **query.model_dump(exclude={"cursor", "viewport_interval"})}
         return digest(json.dumps(scope, sort_keys=True, separators=(",", ":")))
 
     def encode(self, resource, query, cursor):
