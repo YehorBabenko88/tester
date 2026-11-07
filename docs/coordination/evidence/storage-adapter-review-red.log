@@ -1,0 +1,48 @@
+test_empty_corrupt_page_retains_integrity_error_and_original_reason (test_storage_api_adapter.StorageApiAdapterTests.test_empty_corrupt_page_retains_integrity_error_and_original_reason) ... FAIL
+test_empty_page_is_not_complete (test_storage_api_adapter.StorageApiAdapterTests.test_empty_page_is_not_complete) ... ok
+test_microseconds_preserve_only_genuine_source_precision (test_storage_api_adapter.StorageApiAdapterTests.test_microseconds_preserve_only_genuine_source_precision) ... ok
+test_out_of_range_or_nonmonotonic_storage_page_is_rejected (test_storage_api_adapter.StorageApiAdapterTests.test_out_of_range_or_nonmonotonic_storage_page_is_rejected) ... 
+  test_out_of_range_or_nonmonotonic_storage_page_is_rejected (test_storage_api_adapter.StorageApiAdapterTests.test_out_of_range_or_nonmonotonic_storage_page_is_rejected) (rows=[{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'dataset': 'trades', 'interval': '', 'record_key': 'b', 'timestamp_ms': 1700000000123, 'timestamp_ns': 1700000000123456789, 'timestamp_precision': 'ns', 'trade_id': 'fixture-b', 'id_origin': 'exchange', 'payload': {'price': '9007199254740993.001', 'size': '0.00000001', 'side': 'Buy'}, 'source': {'url': 'fixture://batch'}}, {'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'dataset': 'trades', 'interval': '', 'record_key': 'a', 'timestamp_ms': 1700000000123, 'timestamp_ns': 1700000000123456789, 'timestamp_precision': 'ns', 'trade_id': 'fixture-a', 'id_origin': 'exchange', 'payload': {'price': '9007199254740993.001', 'size': '0.00000001', 'side': 'Buy'}, 'source': {'url': 'fixture://batch'}}]) ... FAIL
+  test_out_of_range_or_nonmonotonic_storage_page_is_rejected (test_storage_api_adapter.StorageApiAdapterTests.test_out_of_range_or_nonmonotonic_storage_page_is_rejected) (rows=[{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'dataset': 'trades', 'interval': '', 'record_key': 'a', 'timestamp_ms': 1700000000123, 'timestamp_ns': 1700000000123456789, 'timestamp_precision': 'ns', 'trade_id': 'fixture-a', 'id_origin': 'exchange', 'payload': {'price': '9007199254740993.001', 'size': '0.00000001', 'side': 'Buy'}, 'source': {'url': 'fixture://batch'}}, {'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'dataset': 'trades', 'interval': '', 'record_key': 'a', 'timestamp_ms': 1700000000123, 'timestamp_ns': 1700000000123456789, 'timestamp_precision': 'ns', 'trade_id': 'fixture-a', 'id_origin': 'exchange', 'payload': {'price': '9007199254740993.001', 'size': '0.00000001', 'side': 'Buy'}, 'source': {'url': 'fixture://batch'}}]) ... FAIL
+test_projection_preserves_financial_strings_precision_and_identity (test_storage_api_adapter.StorageApiAdapterTests.test_projection_preserves_financial_strings_precision_and_identity) ... ok
+test_same_ms_keyset_cursor_does_not_drop_records_or_cross_scope (test_storage_api_adapter.StorageApiAdapterTests.test_same_ms_keyset_cursor_does_not_drop_records_or_cross_scope) ... ok
+test_storage_complete_without_evidence_is_unverified (test_storage_api_adapter.StorageApiAdapterTests.test_storage_complete_without_evidence_is_unverified) ... ok
+test_ten_synthetic_market_identities_do_not_mix (test_storage_api_adapter.StorageApiAdapterTests.test_ten_synthetic_market_identities_do_not_mix) ... ok
+test_unavailable_never_becomes_available_and_reason_survives (test_storage_api_adapter.StorageApiAdapterTests.test_unavailable_never_becomes_available_and_reason_survives) ... ok
+test_unknown_original_run_is_not_reconstructed_at_read_time (test_storage_api_adapter.StorageApiAdapterTests.test_unknown_original_run_is_not_reconstructed_at_read_time) ... ok
+
+======================================================================
+FAIL: test_empty_corrupt_page_retains_integrity_error_and_original_reason (test_storage_api_adapter.StorageApiAdapterTests.test_empty_corrupt_page_retains_integrity_error_and_original_reason)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_api_adapter.py", line 101, in test_empty_corrupt_page_retains_integrity_error_and_original_reason
+    self.assertEqual(value['coverage']['status'],'ERROR')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'UNKNOWN' != 'ERROR'
+- UNKNOWN
++ ERROR
+
+
+======================================================================
+FAIL: test_out_of_range_or_nonmonotonic_storage_page_is_rejected (test_storage_api_adapter.StorageApiAdapterTests.test_out_of_range_or_nonmonotonic_storage_page_is_rejected) (rows=[{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'dataset': 'trades', 'interval': '', 'record_key': 'b', 'timestamp_ms': 1700000000123, 'timestamp_ns': 1700000000123456789, 'timestamp_precision': 'ns', 'trade_id': 'fixture-b', 'id_origin': 'exchange', 'payload': {'price': '9007199254740993.001', 'size': '0.00000001', 'side': 'Buy'}, 'source': {'url': 'fixture://batch'}}, {'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'dataset': 'trades', 'interval': '', 'record_key': 'a', 'timestamp_ms': 1700000000123, 'timestamp_ns': 1700000000123456789, 'timestamp_precision': 'ns', 'trade_id': 'fixture-a', 'id_origin': 'exchange', 'payload': {'price': '9007199254740993.001', 'size': '0.00000001', 'side': 'Buy'}, 'source': {'url': 'fixture://batch'}}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_api_adapter.py", line 91, in test_out_of_range_or_nonmonotonic_storage_page_is_rejected
+    self.assertRaises(IntegrationUnavailable,read_trades,Store(rows),**kwargs)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: IntegrationUnavailable not raised by read_trades
+
+======================================================================
+FAIL: test_out_of_range_or_nonmonotonic_storage_page_is_rejected (test_storage_api_adapter.StorageApiAdapterTests.test_out_of_range_or_nonmonotonic_storage_page_is_rejected) (rows=[{'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'dataset': 'trades', 'interval': '', 'record_key': 'a', 'timestamp_ms': 1700000000123, 'timestamp_ns': 1700000000123456789, 'timestamp_precision': 'ns', 'trade_id': 'fixture-a', 'id_origin': 'exchange', 'payload': {'price': '9007199254740993.001', 'size': '0.00000001', 'side': 'Buy'}, 'source': {'url': 'fixture://batch'}}, {'schema_version': '1.0', 'venue': 'bybit', 'category': 'linear', 'symbol': 'BTCUSDT', 'dataset': 'trades', 'interval': '', 'record_key': 'a', 'timestamp_ms': 1700000000123, 'timestamp_ns': 1700000000123456789, 'timestamp_precision': 'ns', 'trade_id': 'fixture-a', 'id_origin': 'exchange', 'payload': {'price': '9007199254740993.001', 'size': '0.00000001', 'side': 'Buy'}, 'source': {'url': 'fixture://batch'}}])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_api_adapter.py", line 91, in test_out_of_range_or_nonmonotonic_storage_page_is_rejected
+    self.assertRaises(IntegrationUnavailable,read_trades,Store(rows),**kwargs)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: IntegrationUnavailable not raised by read_trades
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.035s
+
+FAILED (failures=3)
+

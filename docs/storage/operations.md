@@ -1,0 +1,45 @@
+# PostgreSQL storage operations
+
+## Installation and credentials
+
+Python 3.11+ and a local PostgreSQL 14+ server are required. The application never installs a system service, opens a port, resets an existing password, or deletes another database. Run `python -m pip install -r src/storage/requirements.txt`; `python -m src.storage.cli doctor` checks installed clients and connectivity without printing a DSN. If PostgreSQL is absent, install it through the platform installer (agent E owns the Windows installer).
+
+Use a private libpq service/OS authentication for administrator access, or `--prompt-admin-password`; no password argument exists. `TESTER_STORAGE_ADMIN_DSN` supplies nonlogged setup connection configuration. Example with a preconfigured service: set it to `service=tester-admin`. Then run:
+
+```powershell
+python -m src.storage.cli bootstrap --database tester_history --owner-role tester_history_owner --runtime-role tester_history_runtime --prompt-admin-password
+```
+
+Bootstrap creates a tagged dedicated database, a NOLOGIN owner/migrator role, and a LOGIN runtime role with no superuser/CREATEDB/CREATEROLE/replication/bypass privileges. Runtime has CONNECT, schema USAGE, SELECT/INSERT, and UPDATE only on jobs/checkpoints; raw/evidence tables also reject UPDATE/DELETE via triggers. Existing roles, ownership, tags and memberships must match, or setup refuses to proceed. It never resets a password. SecretStore accepts Windows Credential Manager, macOS Keychain or Secret Service keyring backends, and rejects plaintext/fallback backends. Generated random secrets are written to the OS store before role creation and never printed. Missing stored credentials for an existing role cause refusal rather than reset. Bootstrap requires an administrator permitted to create roles/databases, SET ROLE, and suppress statement/error/duration logging during password DDL; active pgaudit statement logging causes refusal. External server/proxy logging must respect the same credential policy.
+
+The result contains a nonsecret `runtime_secret_key`. At application start, retrieve `SecretStore().get(runtime_secret_key)` in memory and supply it to `psycopg.conninfo.make_conninfo`; construct Store with that private DSN. Do not render or log DSNs. Alternatively use libpq service with OS-managed credentials. Default Store uses `TESTER_STORAGE_DSN`, then libpq settings. Store never automatically runs migrations. Upgrades run `migrate(conn)` under the owner (administrator SET ROLE), followed by bootstrap to refresh grants. Migrations are serialized, transactional and checksummed (LF-normalized across platforms); newer/changed/out-of-order versions are refused.
+
+If a process crashes between CREATE DATABASE and COMMENT ON DATABASE, rerun refuses the untagged object; an administrator must inspect and tag the known newly created database. This fails safely and does not delete or adopt existing data.
+
+## Publication and coverage
+
+`Store.ingest(records, evidence, job_key, checkpoint=None)` consumes an iterable and atomically commits raw data, original envelope/provenance links, request evidence, coverage, audit and checkpoint. No commit is made per individual raw record. Use bounded acquisition windows. Archive CRC/SHA validation must finish before publication; `publish_archive` reads gzip through EOF and publishes a flushed hash-addressed file atomically. `register_archive` stores manifest metadata and indexed ranges; `archive_overlaps` exposes overlap candidates. An archive-manifest verification requires matching file SHA on disk, matching provenance, complete manifest row count and exact archive bounds. Empty results and partial windows never verify. A checksum hash validates bytes, not the exchange's historical exhaustiveness.
+
+EXHAUSTED only certifies the recorded terminal cursor chain. Source availability must be explicitly evidenced by `available_range`: start_ms/end_ms, method (`archive_manifest`, `exchange_metadata`, or explicitly trusted `operator_attestation`), source_url and sha256 of the availability document. Attestation is a trust boundary: ingestion code must not fabricate it from HTTP success or an empty page. Candle verification additionally requires aligned closed bars, valid OHLC/volume, no internal gaps and both requested boundaries. OI/ratio verification requires full known cadence (5min/15min/30min/1h/4h/1d); funding requires the availability document's exact `expected_timestamps` inventory because funding cadence can change. Missing low-liquidity bars remain unknown, not corrupt; no synthetic bars are inserted. Composite-ID trades cannot independently verify a range.
+
+Coverage uses [start_ms,end_ms), unions overlaps and reports available/requested/downloaded/verified/unknown/corrupt/unavailable separately. Any active finding blocks its interval. Verified retry supersedes old empty-acquisition unknown intervals; explicit findings require matching `resolves` IDs and fresh full-range verified evidence. Old evidence remains in the ledger. Loss/tampering of referenced archive bytes blocks COMPLETE even if prior database evidence was verified. COMPLETE applies to the requested, evidenced available scope, never all historical data at the exchange.
+
+## Recovery and backup
+
+`mark_range(evidence, state, reason)` appends a finding and coverage interval. Repeated identical incident evidence is idempotent; provide a new `incident_id` for a genuinely new incident at the same range. `recovery_jobs(...)` returns deterministic retry requests and required finding IDs. `recover(fetcher, venue, category, symbol, dataset, interval='', max_jobs=10, retry_delay_ms=30000)` runs due jobs fairly. `fetcher(job)` is the public-data downloader adapter supplied by A/E and returns `(record_iterable, evidence, checkpoint)`. Failed downloads store a safe exception class only, retain confirmed records and schedule retry; only verified recovery resolves a finding. Network download cancellation/crashes leave retry work durable. `repair_archive(downloaded_path, manifest)` atomically repairs a damaged file only when redownloaded bytes exactly match the original SHA/size; a different source revision is refused. Conflicting writes are serialized per dataset/instrument with transaction advisory locks; a killed writer releases locks and rolls back. Different source values under an already confirmed identity are quarantined with a separately committed finding, never silently overwritten. Source corrections require an explicit revision policy, not automatic replacement of confirmed data.
+
+Take `pg_dump --format=custom --no-owner --no-privileges` plus a filesystem backup of immutable archive objects and a manifest of hashes. Authenticate through OS/service/env, never put passwords in argv. Restore only into a new dedicated database using `pg_restore --exit-on-error --no-owner --no-privileges`, then run migrations and provision dedicated roles/grants. Archive object paths must be restored consistently with stored manifests. Validate hashes and coverage before serving COMPLETE. The automated backup test covers raw/provenance/checkpoint/migrations; external-object copies and production-role remapping are separate operator obligations.
+
+## Optional extensions and scale
+
+Core migrations and all tests use ordinary PostgreSQL; TimescaleDB is never required or automatically installed. It may coexist in the dedicated database. Enabling hypertables is a separate deployment migration: preserve the global trade identity ledger because Timescale unique indexes must include partition keys; do not blindly convert raw_records. Existing B-tree scope/time and BRIN timestamp indexes support normal PostgreSQL operation. Archive manifests support Parquet objects with checksum/range metadata, but this package does not implement a Parquet codec/exporter. Raw publication currently uses per-record SQL and retains a batch identity set/candle timestamps; tune acquisition windows and benchmark large archives before deployment. No claim of multi-million-row throughput or full exchange-history certification is made.
+
+## Tests
+
+`python -m unittest discover -v` runs unit tests and clearly skips PostgreSQL cases unless TESTER_TEST_ADMIN_DSN is configured. For a complete synthetic local run:
+
+```powershell
+./tests/storage/run-isolated.ps1 -PGBin "C:/Program Files/PostgreSQL/18/bin" -WorkDir ../pg-runs
+```
+
+The runner creates a new synthetic loopback-only cluster and database/role names, trusts only its test administrator, checks generated runtime passwords with SCRAM, leaves cluster/log artifacts for inspection, and stops its server in finally. fsync/synchronous_commit/full_page_writes stay on. Never point the test administrator at a production server: tests create and remove only their own randomly named test databases/roles. Crash tests forcibly kill ingestion clients around commit; backup tests require matching pg_dump/pg_restore tools. Storage CI proposes PostgreSQL 14/18 × Python 3.11/3.13; CI results are reported separately from local results.

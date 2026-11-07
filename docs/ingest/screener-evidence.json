@@ -1,0 +1,15 @@
+{
+  "symbol": "BTCUSDT",
+  "category": "linear",
+  "asof_ms": 1794057720000,
+  "volatility_1h": 0.001806105437995593,
+  "volatility_24h": 0.01991512682354243,
+  "turnover_24h": "3390490824.6902",
+  "price_change_24h": "-0.001715",
+  "open_interest": "69515.097",
+  "oi_change_24h": "1215.13200000",
+  "ticker_source": "https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT",
+  "coverage_status": "observed",
+  "oi_change_24h_pct": "1.779519854809297052957825000",
+  "oi_asof_ms": 1794057600000
+}

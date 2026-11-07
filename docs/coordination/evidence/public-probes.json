@@ -1,0 +1,45 @@
+{
+  "classification": "LIVE_PUBLIC_PROBE",
+  "started_at_ms": 1794058911845,
+  "catalog": {
+    "url": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1000",
+    "http_status": 200,
+    "received_count": 930,
+    "selected_ten": [
+      "0GUSDT",
+      "1000000BABYDOGEUSDT",
+      "1000000MOGUSDT",
+      "10000NEXUSDT",
+      "10000SATSUSDT",
+      "1000BONKPERP",
+      "1000BONKUSDT",
+      "1000BTTUSDT",
+      "1000CATUSDT",
+      "1000FLOKIUSDT"
+    ],
+    "has_next_cursor": false,
+    "status": "PASS"
+  },
+  "archive": {
+    "url": "https://public.bybit.com/trading/XRPUSDT/XRPUSDT2023-01-01.csv.gz",
+    "http_status": 200,
+    "status": "PASS",
+    "bytes": 1727986,
+    "sha256": "9270eb6758065a9bd6a5ca1cae825195c3d298e9249b4930e99b8ccc9c0929e9",
+    "row_count": 43210,
+    "fields": [
+      "timestamp",
+      "symbol",
+      "side",
+      "size",
+      "price",
+      "tickDirection",
+      "trdMatchID",
+      "grossValue",
+      "homeNotional",
+      "foreignNotional"
+    ],
+    "gzip_crc": "verified"
+  }
+}
+

@@ -1,0 +1,12 @@
+test_bad_source_metadata_cannot_reach_common_contract (test_storage_provenance_adapter.StorageProvenanceTests.test_bad_source_metadata_cannot_reach_common_contract) ... ok
+test_exact_run_hash_timestamp_and_all_observations_survive (test_storage_provenance_adapter.StorageProvenanceTests.test_exact_run_hash_timestamp_and_all_observations_survive) ... ok
+test_explicit_original_run_mismatch_is_not_silently_replaced (test_storage_provenance_adapter.StorageProvenanceTests.test_explicit_original_run_mismatch_is_not_silently_replaced) ... ok
+test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) ... ok
+test_legacy_unlinked_or_noncaller_run_fails_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_legacy_unlinked_or_noncaller_run_fails_closed) ... ok
+test_missing_original_timestamp_and_hash_remain_null (test_storage_provenance_adapter.StorageProvenanceTests.test_missing_original_timestamp_and_hash_remain_null) ... ok
+test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.029s
+
+OK

@@ -1,0 +1,9 @@
+ADVERSE_FIRST_RESULT [{'job_key': 'recovery:1ca4faa5e606cf54732e212c3661874c0915207eb9818393e6bbdf030b21f8e8', 'state': 'retry', 'error_code': 'ValueError'}] JOB {'state': 'retry', 'attempt_token': None}
+ADVERSE_PARTIAL_ROLLBACK_PROVEN raw=0 evidence=0 checkpoint=None
+ADVERSE_SECOND_RESULT [{'job_key': 'recovery:1ca4faa5e606cf54732e212c3661874c0915207eb9818393e6bbdf030b21f8e8', 'state': 'verified'}] CALLS ['incomplete', 'complete']
+test_unverified_repair_remains_retryable_then_verified_fetch_runs (adverse_recovery_probe.AdverseRecoveryProbe.test_unverified_repair_remains_retryable_then_verified_fetch_runs) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.865s
+
+OK

@@ -1,0 +1,47 @@
+# Historical Laboratory UI
+
+A local, read-only browser client. Serve this directory at `/` from agent E's local API (same origin). No external CDN, trading key, raw tick download, or browser-side financial aggregation is used. No deployment is performed by this PR.
+
+## Controls
+Search/category/sort, instrument checkboxes and Save watchlist; saved identities include category. The screener displays one bounded server page at a time and keeps at most 20 row elements in the DOM. Search/sort parameters are sent upstream; current E API ignores these extra parameters, so fallback search/order is explicitly limited to the current page. Next page replaces the current page and preserves selection. Hover or focus a metric to inspect source, observation time, units and availability. Unverified metric envelopes display unavailable.
+
+Select a source and data kind, then Download History creates one E job per selected instrument. Pause/Resume/Retry operate on E's durable job IDs. IDs are stored locally (maximum 100 tracked jobs); job polling is serialized, four requests at most concurrently, terminal jobs only on explicit refresh. No browser estimate of completion or ETA is invented. Numeric legacy progress is capped at 99% without explicit verified completion. Unknown byte counts, throughput and verification counts remain unknown. Counters refer to upstream-reported received bytes, not database size.
+
+Select a symbol name for charts. All panels share the same UTC range and timeframe. Buttons, wheel zoom, drag pan and Shift-drag range selection request new bounded server ranges; superseded requests are cancelled. Range fields are explicitly UTC, including in locales whose datetime widgets use local-looking formatting. End is exclusive. Maximum 1000 rows per panel response, 8 MB per HTTP response, 20-second request timeout. Pagination remains visibly partial; Previous/Next data page requests one bounded page at a time with opaque server cursors. Decimal strings are preserved; Number conversions only project values to canvas pixels. Exact source records remain available under each panel.
+
+## E API compatibility and remaining integration
+Current v1 endpoints consumed: GET `/api/instruments`, `/api/sources`, `/api/candles`, `/api/footprint`, `/api/open-interest`, `/api/funding`, `/api/coverage`; POST `/api/downloads`; GET `/api/downloads/{id}`; POST `/{pause,resume,retry}` under each download. E has no job-list GET; only IDs created by this browser are restored/polled.
+Envelope: `{schema_version:"1.0", data, next_cursor}`. E array rows use `timestamp_ms` and `provenance`; funding uses `rate`, footprint flat rows use `price,buy_volume,sell_volume`. The client groups footprint rows for display only; it never recomputes taker volumes, delta, CVD, VWAP, profile or POC. E candle arrays provide OHLCV. OI rows use value. Without explicit coverage metadata, nonempty legacy arrays are PARTIAL, as_of UNKNOWN, closure UNKNOWN. Empty arrays are DATA_UNAVAILABLE, never confirmed complete.
+
+Required optional extension proposed in Issue #4, pending E/C integration: `/api/analytics?metric=delta|cvd|profile|poc|vwap|mark|index` with standard range Query. `data` is `{availability,reason,source,as_of,completeness,rows}`. Generic rows: `{timestamp_ms,value}`; profile: `{timestamp_ms,price,volume,is_poc}`. Same-timestamp price bins are supported. Structured candle/footprint/OI/funding envelopes may use the same metadata. Candle rows may provide `is_closed` and `gap_before`. Footprint envelope rows use `{timestamp_ms,levels:[{price,taker_buy,taker_sell}]}`. No rows are invented when extension is absent: the real 404/503 reason is displayed. No `/api/trades` request is made.
+
+Screener extension: instrument `metrics[name] = {value:decimal_string,source,as_of:epoch_ms,availability:AVAILABLE|PARTIAL,unit,reason?,formula?}`. Names: price,volatility,change_1h,change_24h,volume,turnover,open_interest,oi_change_1h,oi_change_24h,market_cap. Market cap requires a verified external source/asset mapping. No formula is performed locally.
+
+Job extensions: uppercase DISCOVERING/DOWNLOADING/VERIFYING/COMPLETE/PARTIAL/FAILED plus PAUSED; `progress:{completed,total,verified}` or legacy numeric fraction with `verified:true`; `sources:[{source,state,progress,bytes,verified_records,bytes_per_second,error}]`; `counters:{bytes,verified_records,bytes_per_second,eta_seconds,eta_confident}`. Legacy queued/running/paused/completed/failed states map to UI labels but are not promoted to verified success. Provider errors are visible. Coverage is shown independently of raw/derived labels: local record hashing does not prove historical completeness.
+
+## Tests
+From `frontend/`, Node 22+:
+
+```powershell
+npm ci
+$env:PLAYWRIGHT_BROWSERS_PATH="$PWD/.browsers"
+npx playwright install chromium
+npm test
+npm run test:ui
+```
+
+Playwright intercepts the test origin and serves the actual HTML/ES modules from disk, with fixtures confined to `tests/`. It requires no listening port or live database and tests browser behavior, not a duplicated implementation. Actual E/A/B/C provider and PostgreSQL end-to-end verification remains an integration dependency, not claimed by these tests. Optional `UI_SCREENSHOT` saves an explicitly marked test-fixture preview. `.browsers`, node_modules and test artifacts are ignored. No runtime dependencies or build step.
+
+## Canonical contract follow-up (#4 / #17)
+Canonical metadata is interpreted losslessly from both the E envelope and each row: `availability:{status,reason}`, structured `provenance[]` and `coverage`. The weakest state controls rendering; UNAVAILABLE and UNVERIFIED suppress the whole panel, even if numeric rows exist. PARTIAL retains its reason; source references, ingestion run, hashes and coverage evidence are inspectable in a collapsed evidence view. Missing price levels in canonical footprint totals produce DATA_UNAVAILABLE rather than an invented price cluster. Legacy string metadata remains a compatibility path and never proves range completeness. Availability status and raw/derived origin are independent; canonical source_kind determines the displayed origin, otherwise origin remains unknown. Schema fixtures are pinned byte-for-byte (line ending normalization only) to contracts/v1/market.schema.json at 9766c009 and validated in tests with Ajv2020; this does not authenticate real upstream evidence.
+
+All 13 exchange timeframes are selectable. W is Monday UTC; M uses real UTC month boundaries, leap years and year transitions, never a 30-day approximation. Month-end navigation preserves a positive half-open range if calendar clamping collapses its endpoints. Canvas supports focusable keyboard arrows and +/- as well as pointer zoom/pan/selection, vertical resizing and devicePixelRatio-scaled drawing.
+
+Each chart has Previous/Next data page controls. Exactly one bounded server page is retained per panel (1000 input rows, no eager accumulation); cursor history holds at most 100 opaque tokens. The token is passed unchanged with its original query identity; editing symbol/range/timeframe resets all cursor histories. Timestamp arithmetic is never used to skip to the next page, preserving price-level rows that share boundary timestamps. Coverage and page status remain distinct; a last cursor page does not establish complete history. E/C must validate cursor/query binding server-side and provide aggregate/coverage semantics. Paging is independent per panel while the UTC viewport remains shared. No full-history array, trade download or client analytics is introduced.
+
+Strategy workspace exposes preview, SL/TP, journal, equity, drawdown and overlay regions in an explicit DATA_UNAVAILABLE state. The current F branch provides only an initial contract; validated run-result/overlay response schemas and a connected E/F provider are still required. This client does not execute strategies, fabricate fills or draw profitability before that dependency is fulfilled.
+
+Coverage precedence correction (PR12 comment6708414839): panel completeness is now reduced across envelope, metadata and row coverage, including legacy completeness fields. PARTIAL/UNKNOWN/ERROR cannot be overridden by envelope COMPLETE; pagination and weaker availability also bound completeness. Original coverage objects, reasons and evidence_refs remain unchanged in the proof view. Canonical availability remains a separate axis. Regression tests exercise both the adapter and full loadCharts path for PARTIAL, UNKNOWN and ERROR.
+
+Observation cadence integration (E additive API contract): chart requests retain viewport `interval`; funding always adds `source_interval=event`, while OI adds the explicit selector value (5min default; 15min/30min/1h/4h/1d supported). The selected source cadence is displayed and included in client cursor identity. Changing display timeframe still conservatively resets client paging, even though E may permit observation cursor reuse across display-only changes. No browser resampling is performed. E enforces valid resource/cadence combinations and must validate the effective source cadence in its server cursor; live provider verification remains pending that E release.
+OI continuity uses the selected source cadence independently of display geometry: missing 5-minute observations break the line even on a daily viewport, and continuous daily OI remains connected on an hourly viewport. This is only a drawing continuity rule; records and financial values are neither resampled nor recomputed.

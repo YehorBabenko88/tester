@@ -1,0 +1,885 @@
+{
+  "checked_at": "2026-11-07T13:22:27.408794+00:00",
+  "archives": [
+    {
+      "status": "validated",
+      "sha256": "61bb5a9f9f5378f4732b3f895dd6cecc87c243321c1ca192dfd567446684831c",
+      "bytes": 4009459,
+      "rows": 93598,
+      "columns": [
+        "timestamp",
+        "symbol",
+        "side",
+        "size",
+        "price",
+        "tickDirection",
+        "trdMatchID",
+        "grossValue",
+        "homeNotional",
+        "foreignNotional"
+      ],
+      "url": "https://public.bybit.com/trading/BTCUSD/BTCUSD2019-10-01.csv.gz",
+      "path": "work/smoke/BTCUSD2019-10-01.csv.gz",
+      "fetched_at": "2026-11-07T13:14:57.019150+00:00",
+      "etag": "\"7e31d94d8de95bdbc8d77a40d7b86c1f\"",
+      "last_modified": "Wed, 23 Oct 2019 10:20:04 GMT",
+      "restart_same_sha256": true,
+      "header_present": true,
+      "first_timestamp_ms": 1569888000719,
+      "last_timestamp_ms": 1569974396557
+    },
+    {
+      "status": "validated",
+      "sha256": "cbca6933a8f0a11429661cfa93b04056055d776ee199209e8af9719ad2060a33",
+      "bytes": 121118,
+      "rows": 2693,
+      "columns": [
+        "timestamp",
+        "symbol",
+        "side",
+        "size",
+        "price",
+        "tickDirection",
+        "trdMatchID",
+        "grossValue",
+        "homeNotional",
+        "foreignNotional"
+      ],
+      "url": "https://public.bybit.com/trading/BTCUSDT/BTCUSDT2020-03-25.csv.gz",
+      "path": "work/smoke/BTCUSDT2020-03-25.csv.gz",
+      "fetched_at": "2026-11-07T13:14:57.501356+00:00",
+      "etag": "\"2bcba5ed0de8182dc4114f5c57f7e07b\"",
+      "last_modified": "Tue, 28 Jul 2020 01:45:29 GMT",
+      "restart_same_sha256": true,
+      "header_present": true,
+      "first_timestamp_ms": 1585132572982,
+      "last_timestamp_ms": 1585180700064
+    },
+    {
+      "status": "validated",
+      "sha256": "8e8969877d274feb810d205231cf10ed377b97503150c9b4341ded238a27a35a",
+      "bytes": 797221,
+      "rows": 88542,
+      "columns": [
+        "id",
+        "timestamp",
+        "price",
+        "volume",
+        "side"
+      ],
+      "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT_2023-01-01.csv.gz",
+      "path": "work/smoke/BTCUSDT_2023-01-01.csv.gz",
+      "fetched_at": "2026-11-07T13:14:58.856868+00:00",
+      "etag": "\"85add0f5f1a726ea754610b5db1963b2\"",
+      "last_modified": "Mon, 02 Jan 2023 02:00:01 GMT",
+      "restart_same_sha256": true,
+      "header_present": true,
+      "first_timestamp_ms": 1672531202252,
+      "last_timestamp_ms": 1672617597124
+    },
+    {
+      "status": "validated",
+      "sha256": "4c2feb4b57480bd39ffd7ef99b945a1295408c8e907d943196ab2cf966de8c1b",
+      "bytes": 27648,
+      "rows": 1440,
+      "columns": [
+        "start_at",
+        "symbol",
+        "period",
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "url": "https://public.bybit.com/premium_index/BTCUSD/BTCUSD2019-10-01_premium_index.csv.gz",
+      "path": "work/smoke/BTCUSD2019-10-01_premium_index.csv.gz",
+      "fetched_at": "2026-11-07T13:14:59.271239+00:00",
+      "etag": "\"9aab6c733ee50dc1bea72a8dbab2c992\"",
+      "last_modified": "Thu, 05 Mar 2020 10:53:07 GMT",
+      "restart_same_sha256": true,
+      "header_present": true,
+      "first_timestamp_ms": 1569888000000,
+      "last_timestamp_ms": 1569974340000
+    },
+    {
+      "status": "validated",
+      "sha256": "82cf0d8c65dc77577865d07c5712272facc12a186826e7ef80aebcb1c0c1d8ed",
+      "bytes": 19898,
+      "rows": 1440,
+      "columns": [
+        "start_at",
+        "symbol",
+        "period",
+        "open",
+        "high",
+        "low",
+        "close"
+      ],
+      "url": "https://public.bybit.com/spot_index/BTCUSD/BTCUSD2019-10-01_index_price.csv.gz",
+      "path": "work/smoke/BTCUSD2019-10-01_index_price.csv.gz",
+      "fetched_at": "2026-11-07T13:14:59.488207+00:00",
+      "etag": "\"f12e87c0b2290a188607d12b8f9d2d47\"",
+      "last_modified": "Thu, 05 Mar 2020 10:53:18 GMT",
+      "restart_same_sha256": true,
+      "header_present": true,
+      "first_timestamp_ms": 1569888000000,
+      "last_timestamp_ms": 1569974340000
+    },
+    {
+      "status": "validated",
+      "sha256": "748e1763a1e26ee569cccdc516f49eaa5f7d1fc7ccc312e7cc346d55dba78add",
+      "bytes": 45684,
+      "rows": 2881,
+      "columns": [
+        "datetime_utc",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume"
+      ],
+      "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2020/BTCUSDT_15_2020-04-01_2020-04-30.csv.gz",
+      "path": "work/smoke/mt4.csv.gz",
+      "fetched_at": "2026-11-07T13:24:26.962212+00:00",
+      "etag": "\"28a0426ceeda7558195b681904460b79\"",
+      "last_modified": "Tue, 05 Sep 2023 01:02:06 GMT",
+      "header_present": false,
+      "first_timestamp_ms": 1585699200000,
+      "last_timestamp_ms": 1588291200000
+    }
+  ],
+  "rest": [
+    {
+      "category": "spot",
+      "kind": "kline",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704067500000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704067440000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067499999",
+              "fetched_at": "2026-11-07T13:22:28.398466+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067500000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067379999",
+              "fetched_at": "2026-11-07T13:22:28.694088+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067380000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067259999",
+              "fetched_at": "2026-11-07T13:22:29.026108+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067260000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "linear",
+      "kind": "kline",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704067500000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704067440000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067499999",
+              "fetched_at": "2026-11-07T13:22:30.359963+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067500000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067379999",
+              "fetched_at": "2026-11-07T13:22:30.691966+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067380000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067259999",
+              "fetched_at": "2026-11-07T13:22:31.029454+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067260000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "linear",
+      "kind": "mark",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704067500000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704067440000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067499999",
+              "fetched_at": "2026-11-07T13:22:32.024760+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067500000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067379999",
+              "fetched_at": "2026-11-07T13:22:32.358465+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067380000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067259999",
+              "fetched_at": "2026-11-07T13:22:32.691412+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067260000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "linear",
+      "kind": "index",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704067500000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704067440000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067499999",
+              "fetched_at": "2026-11-07T13:22:33.696387+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067500000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067379999",
+              "fetched_at": "2026-11-07T13:22:34.028099+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067380000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067259999",
+              "fetched_at": "2026-11-07T13:22:34.362665+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067260000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "linear",
+      "kind": "premium",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704067500000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704067440000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/premium-index-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067499999",
+              "fetched_at": "2026-11-07T13:22:35.358621+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067500000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/premium-index-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067379999",
+              "fetched_at": "2026-11-07T13:22:35.691458+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067380000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/premium-index-price-kline?category=linear&symbol=BTCUSDT&limit=2&interval=1&start=1704067200000&end=1704067259999",
+              "fetched_at": "2026-11-07T13:22:36.030901+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067260000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "linear",
+      "kind": "open_interest",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704068700000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704068400000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&limit=2&intervalTime=5min&startTime=1704067200000&endTime=1704068699999",
+              "fetched_at": "2026-11-07T13:22:36.692760+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&limit=2&intervalTime=5min&startTime=1704067200000&endTime=1704068699999&cursor=lastid%253D84869450%2526lasttime%253D1704068100",
+              "fetched_at": "2026-11-07T13:22:37.027028+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&limit=2&intervalTime=5min&startTime=1704067200000&endTime=1704068699999&cursor=lastid%253D84868658%2526lasttime%253D1704067500",
+              "fetched_at": "2026-11-07T13:22:37.359188+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "linear",
+      "kind": "funding",
+      "status": "observed",
+      "records": 3,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704153600000,
+          "records": 3,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704124800000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=2&startTime=1704067200000&endTime=1704153599999",
+              "fetched_at": "2026-11-07T13:22:37.693216+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704153600000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&limit=2&startTime=1704067200000&endTime=1704095999999",
+              "fetched_at": "2026-11-07T13:22:38.024422+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704096000000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "linear",
+      "kind": "long_short_ratio",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704068700000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704068400000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&limit=2&period=5min&startTime=1704067200000&endTime=1704068699999",
+              "fetched_at": "2026-11-07T13:22:38.360784+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&limit=2&period=5min&startTime=1704067200000&endTime=1704068699999&cursor=lastid%253D0%2526lasttime%253D1704068100",
+              "fetched_at": "2026-11-07T13:22:38.694326+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=BTCUSDT&limit=2&period=5min&startTime=1704067200000&endTime=1704068699999&cursor=lastid%253D0%2526lasttime%253D1704067500",
+              "fetched_at": "2026-11-07T13:22:39.026069+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "inverse",
+      "kind": "kline",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704067500000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704067440000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067499999",
+              "fetched_at": "2026-11-07T13:22:40.108204+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067500000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067379999",
+              "fetched_at": "2026-11-07T13:22:40.436166+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067380000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067259999",
+              "fetched_at": "2026-11-07T13:22:40.773280+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067260000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "inverse",
+      "kind": "mark",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704067500000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704067440000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/mark-price-kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067499999",
+              "fetched_at": "2026-11-07T13:22:41.770521+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067500000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/mark-price-kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067379999",
+              "fetched_at": "2026-11-07T13:22:42.100842+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067380000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/mark-price-kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067259999",
+              "fetched_at": "2026-11-07T13:22:42.433706+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067260000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "inverse",
+      "kind": "index",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704067500000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704067440000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/index-price-kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067499999",
+              "fetched_at": "2026-11-07T13:22:43.438289+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067500000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/index-price-kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067379999",
+              "fetched_at": "2026-11-07T13:22:43.774683+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067380000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/index-price-kline?category=inverse&symbol=BTCUSD&limit=2&interval=1&start=1704067200000&end=1704067259999",
+              "fetched_at": "2026-11-07T13:22:44.101759+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704067260000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "inverse",
+      "kind": "open_interest",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704068700000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704068400000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/open-interest?category=inverse&symbol=BTCUSD&limit=2&intervalTime=5min&startTime=1704067200000&endTime=1704068699999",
+              "fetched_at": "2026-11-07T13:22:44.769715+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/open-interest?category=inverse&symbol=BTCUSD&limit=2&intervalTime=5min&startTime=1704067200000&endTime=1704068699999&cursor=lastid%253D84869460%2526lasttime%253D1704068100",
+              "fetched_at": "2026-11-07T13:22:45.111668+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/open-interest?category=inverse&symbol=BTCUSD&limit=2&intervalTime=5min&startTime=1704067200000&endTime=1704068699999&cursor=lastid%253D84868657%2526lasttime%253D1704067500",
+              "fetched_at": "2026-11-07T13:22:45.435670+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "inverse",
+      "kind": "funding",
+      "status": "observed",
+      "records": 3,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704153600000,
+          "records": 3,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704124800000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/funding/history?category=inverse&symbol=BTCUSD&limit=2&startTime=1704067200000&endTime=1704153599999",
+              "fetched_at": "2026-11-07T13:22:45.769162+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704153600000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/funding/history?category=inverse&symbol=BTCUSD&limit=2&startTime=1704067200000&endTime=1704095999999",
+              "fetched_at": "2026-11-07T13:22:46.103544+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704096000000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    },
+    {
+      "category": "inverse",
+      "kind": "long_short_ratio",
+      "status": "observed",
+      "records": 5,
+      "observations": [
+        {
+          "start_ms": 1704067200000,
+          "end_ms": 1704068700000,
+          "records": 5,
+          "first_observed_ms": 1704067200000,
+          "last_observed_ms": 1704068400000,
+          "missing_count": 0,
+          "missing_sample": [],
+          "requests": [
+            {
+              "url": "https://api.bybit.com/v5/market/account-ratio?category=inverse&symbol=BTCUSD&limit=2&period=5min&startTime=1704067200000&endTime=1704068699999",
+              "fetched_at": "2026-11-07T13:22:46.436060+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/account-ratio?category=inverse&symbol=BTCUSD&limit=2&period=5min&startTime=1704067200000&endTime=1704068699999&cursor=lastid%253D0%2526lasttime%253D1704068100",
+              "fetched_at": "2026-11-07T13:22:46.768489+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 2
+            },
+            {
+              "url": "https://api.bybit.com/v5/market/account-ratio?category=inverse&symbol=BTCUSD&limit=2&period=5min&startTime=1704067200000&endTime=1704068699999&cursor=lastid%253D0%2526lasttime%253D1704067500",
+              "fetched_at": "2026-11-07T13:22:47.101449+00:00",
+              "start_ms": 1704067200000,
+              "end_ms": 1704068700000,
+              "returned": 1
+            }
+          ],
+          "status": "observed"
+        }
+      ],
+      "restart_status": "observed"
+    }
+  ],
+  "instruments": [
+    {
+      "category": "spot",
+      "count": 521,
+      "sample": {
+        "symbolId": 9,
+        "symbol": "BTCUSDT",
+        "baseCoin": "BTC",
+        "quoteCoin": "USDT",
+        "innovation": "0",
+        "status": "Trading",
+        "marginTrading": "utaOnly",
+        "stTag": "0",
+        "lotSizeFilter": {
+          "basePrecision": "0.000001",
+          "quotePrecision": "0.0000001",
+          "minOrderQty": "0.000001",
+          "maxOrderQty": "230",
+          "minOrderAmt": "5",
+          "maxOrderAmt": "8000000",
+          "maxLimitOrderQty": "230",
+          "maxMarketOrderQty": "120",
+          "postOnlyMaxLimitOrderSize": "1150"
+        },
+        "priceFilter": {
+          "tickSize": "0.1"
+        },
+        "riskParameters": {
+          "priceLimitRatioX": "0.005",
+          "priceLimitRatioY": "0.01"
+        },
+        "symbolType": "",
+        "xstockMultiplier": "1",
+        "source": {
+          "url": "https://api.bybit.com/v5/market/instruments-info?category=spot",
+          "fetched_at": "2026-11-07T13:22:29.700311+00:00"
+        }
+      }
+    },
+    {
+      "category": "linear",
+      "count": 930,
+      "sample": {
+        "symbol": "BTCUSDT",
+        "contractType": "LinearPerpetual",
+        "status": "Trading",
+        "baseCoin": "BTC",
+        "quoteCoin": "USDT",
+        "launchTime": "1584230400000",
+        "deliveryTime": "0",
+        "deliveryFeeRate": "",
+        "priceScale": "2",
+        "leverageFilter": {
+          "minLeverage": "1",
+          "maxLeverage": "150.00",
+          "leverageStep": "0.01"
+        },
+        "priceFilter": {
+          "minPrice": "0.10",
+          "maxPrice": "1999999.80",
+          "tickSize": "0.10"
+        },
+        "lotSizeFilter": {
+          "maxOrderQty": "1500.000",
+          "minOrderQty": "0.001",
+          "qtyStep": "0.001",
+          "postOnlyMaxOrderQty": "1500.000",
+          "maxMktOrderQty": "150.000",
+          "minNotionalValue": "5"
+        },
+        "unifiedMarginTrade": true,
+        "fundingInterval": 480,
+        "settleCoin": "USDT",
+        "copyTrading": "both",
+        "upperFundingRate": "0.00333",
+        "lowerFundingRate": "-0.00333",
+        "isPreListing": false,
+        "preListingInfo": null,
+        "riskParameters": {
+          "priceLimitRatioX": "0.01",
+          "priceLimitRatioY": "0.02"
+        },
+        "displayName": "BTCUSDT",
+        "symbolType": "",
+        "forbidUplWithdrawal": false,
+        "symbolId": 5,
+        "fullName": "Bitcoin",
+        "marketRegion": "",
+        "underlyingTicker": "",
+        "tags": [],
+        "source": {
+          "url": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1000",
+          "fetched_at": "2026-11-07T13:22:39.586296+00:00"
+        }
+      }
+    },
+    {
+      "category": "inverse",
+      "count": 26,
+      "sample": {
+        "symbol": "BTCUSD",
+        "contractType": "InversePerpetual",
+        "status": "Trading",
+        "baseCoin": "BTC",
+        "quoteCoin": "USD",
+        "launchTime": "1542211200000",
+        "deliveryTime": "0",
+        "deliveryFeeRate": "",
+        "priceScale": "2",
+        "leverageFilter": {
+          "minLeverage": "1",
+          "maxLeverage": "100.00",
+          "leverageStep": "0.01"
+        },
+        "priceFilter": {
+          "minPrice": "0.10",
+          "maxPrice": "1999999.80",
+          "tickSize": "0.10"
+        },
+        "lotSizeFilter": {
+          "maxOrderQty": "25000000",
+          "minOrderQty": "1",
+          "qtyStep": "1",
+          "postOnlyMaxOrderQty": "25000000",
+          "maxMktOrderQty": "5000000",
+          "minNotionalValue": "5"
+        },
+        "unifiedMarginTrade": true,
+        "fundingInterval": 480,
+        "settleCoin": "BTC",
+        "copyTrading": "none",
+        "upperFundingRate": "0.005",
+        "lowerFundingRate": "-0.005",
+        "isPreListing": false,
+        "preListingInfo": null,
+        "riskParameters": {
+          "priceLimitRatioX": "0.03",
+          "priceLimitRatioY": "0.05"
+        },
+        "displayName": "BTCUSD",
+        "symbolType": "",
+        "forbidUplWithdrawal": false,
+        "symbolId": 1,
+        "fullName": "Bitcoin",
+        "marketRegion": "",
+        "underlyingTicker": "",
+        "tags": [],
+        "source": {
+          "url": "https://api.bybit.com/v5/market/instruments-info?category=inverse&limit=1000",
+          "fetched_at": "2026-11-07T13:22:47.603165+00:00"
+        }
+      }
+    }
+  ],
+  "later_rerun": {
+    "status": "environment_failure",
+    "detail": "OS DNS resolution failed for api.bybit.com/public.bybit.com after successful run; retries were interrupted. Never treated as empty history."
+  }
+}
