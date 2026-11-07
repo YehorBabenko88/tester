@@ -207,6 +207,19 @@ if chosen:
         st.caption("100% здесь относится ТОЛЬКО к зарегистрированным сегментам, не ко всей истории существования Bybit.")
     else:st.info("Нет завершённых попыток загрузки.")
 
+    with st.expander("Сверка тиковых архивов с минутными свечами"):
+        st.caption("Сопоставляет объём архивных сделок и официальных закрытых 1m свечей за выбранные даты. "
+                   "Для некоторых деривативов единицы объёма могут различаться.")
+        if st.button("Проверить минутные объёмы",key="reconcile_"+category+"_"+selected):
+            try:
+                comparison=db.reconcile_minute_volume(category,selected,begin,end)
+                if comparison:
+                    st.dataframe(pd.DataFrame(comparison,columns=[
+                      "Результат","Минут","Сделок","Макс. абсолютное расхождение"]),
+                      use_container_width=True,hide_index=True)
+                else: st.info("Нет полных архивных файлов с тиками в выбранном периоде.")
+            except Exception as exc: st.error("Ошибка сверки: "+str(exc))
+
     st.subheader("Интерактивный график")
     x,y,z=st.columns(3)
     with x:tf=st.selectbox("Таймфрейм",INTERVALS,index=3)
