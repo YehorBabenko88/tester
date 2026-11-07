@@ -1,0 +1,977 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/YehorBabenko88/tester/contracts/v1/market.schema.json",
+  "title": "Approved cross-agent contract v1 \u2014 Issue 8",
+  "description": "Issue #8 is normative. This file fixes concrete JSON field names for integration. Runtime validation enforces relational and completeness rules. API retains data/next_cursor; all financial endpoint data must be separately validated.",
+  "$defs": {
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "bybit_rest",
+            "bybit_archive",
+            "synthetic_fixture",
+            "derived"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}(?![\\s\\S])"
+        },
+        "ingestion_run": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp_precision": {
+          "enum": [
+            "s",
+            "ms",
+            "us",
+            "ns"
+          ]
+        },
+        "source_timestamp": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parent_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "method_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "source_kind",
+        "source_ref",
+        "source_hash",
+        "ingestion_run",
+        "timestamp_precision",
+        "source_timestamp"
+      ],
+      "additionalProperties": false
+    },
+    "availability": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "AVAILABLE",
+            "PARTIAL",
+            "UNAVAILABLE",
+            "UNVERIFIED"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "NOT_STARTED",
+            "RUNNING",
+            "COMPLETE",
+            "PARTIAL",
+            "GAPS",
+            "EMPTY",
+            "PROVISIONAL",
+            "UNKNOWN",
+            "ERROR",
+            "UNAVAILABLE"
+          ]
+        },
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "status",
+        "start_ms",
+        "end_ms",
+        "evidence_refs"
+      ],
+      "additionalProperties": false
+    },
+    "trade": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "venue": {
+          "const": "bybit"
+        },
+        "category": {
+          "enum": [
+            "spot",
+            "linear",
+            "inverse"
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])"
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "timestamp_ns": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{1,19}(?![\\s\\S])"
+        },
+        "timestamp_precision": {
+          "enum": [
+            "s",
+            "ms",
+            "us",
+            "ns"
+          ]
+        },
+        "trade_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id_origin": {
+          "enum": [
+            "exchange",
+            "synthetic"
+          ]
+        },
+        "identity_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "price": {
+          "type": "string",
+          "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])"
+        },
+        "quantity": {
+          "type": "string",
+          "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])"
+        },
+        "taker_side": {
+          "enum": [
+            "Buy",
+            "Sell",
+            "Unknown"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "venue",
+        "category",
+        "symbol",
+        "timestamp_ms",
+        "provenance",
+        "availability",
+        "coverage",
+        "timestamp_ns",
+        "timestamp_precision",
+        "trade_id",
+        "id_origin",
+        "price",
+        "quantity",
+        "taker_side"
+      ],
+      "additionalProperties": false
+    },
+    "instrument": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "venue": {
+          "const": "bybit"
+        },
+        "category": {
+          "enum": [
+            "spot",
+            "linear",
+            "inverse"
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])"
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tick_size": {
+          "type": "string",
+          "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])"
+        },
+        "qty_step": {
+          "type": "string",
+          "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])"
+        }
+      },
+      "required": [
+        "schema_version",
+        "venue",
+        "category",
+        "symbol",
+        "timestamp_ms",
+        "provenance",
+        "availability",
+        "coverage",
+        "status",
+        "tick_size",
+        "qty_step"
+      ],
+      "additionalProperties": false
+    },
+    "candle": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "venue": {
+          "const": "bybit"
+        },
+        "category": {
+          "enum": [
+            "spot",
+            "linear",
+            "inverse"
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])"
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "interval": {
+          "enum": [
+            "1",
+            "3",
+            "5",
+            "15",
+            "30",
+            "60",
+            "120",
+            "240",
+            "360",
+            "720",
+            "D",
+            "W",
+            "M"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "official_trade",
+            "official_mark",
+            "official_index",
+            "official_premium",
+            "derived"
+          ]
+        },
+        "open": {
+          "type": "string",
+          "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])"
+        },
+        "high": {
+          "type": "string",
+          "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])"
+        },
+        "low": {
+          "type": "string",
+          "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])"
+        },
+        "close": {
+          "type": "string",
+          "pattern": "^(?:0\\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(?:\\.[0-9]+)?)(?![\\s\\S])"
+        },
+        "volume": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+        },
+        "is_closed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schema_version",
+        "venue",
+        "category",
+        "symbol",
+        "timestamp_ms",
+        "provenance",
+        "availability",
+        "coverage",
+        "start_ms",
+        "end_ms",
+        "interval",
+        "kind",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "is_closed"
+      ],
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "venue": {
+          "const": "bybit"
+        },
+        "category": {
+          "enum": [
+            "spot",
+            "linear",
+            "inverse"
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])"
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "kind": {
+          "enum": [
+            "oi",
+            "funding",
+            "ratio"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interval": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "schema_version",
+        "venue",
+        "category",
+        "symbol",
+        "timestamp_ms",
+        "provenance",
+        "availability",
+        "coverage",
+        "kind",
+        "value",
+        "unit",
+        "interval"
+      ],
+      "additionalProperties": false
+    },
+    "footprint": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "venue": {
+          "const": "bybit"
+        },
+        "category": {
+          "enum": [
+            "spot",
+            "linear",
+            "inverse"
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])"
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "side_basis": {
+          "const": "taker"
+        },
+        "buy_volume": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+        },
+        "sell_volume": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+        },
+        "unknown_side_volume": {
+          "type": "string",
+          "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+        },
+        "delta": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "venue",
+        "category",
+        "symbol",
+        "timestamp_ms",
+        "provenance",
+        "availability",
+        "coverage",
+        "start_ms",
+        "end_ms",
+        "side_basis",
+        "buy_volume",
+        "sell_volume",
+        "unknown_side_volume",
+        "delta"
+      ],
+      "additionalProperties": false
+    },
+    "pagination": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "request_params": {
+          "type": "object"
+        },
+        "start_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "end_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "cursor_in": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "cursor_out": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "response_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "terminal_condition": {
+          "enum": [
+            "EXHAUSTED",
+            "EMPTY",
+            "PARTIAL",
+            "FAILED",
+            "UNVERIFIED"
+          ]
+        },
+        "coverage_status": {
+          "enum": [
+            "PARTIAL",
+            "UNKNOWN"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "request_id",
+        "endpoint",
+        "request_params",
+        "start_ms",
+        "end_ms",
+        "cursor_in",
+        "cursor_out",
+        "response_count",
+        "terminal_condition",
+        "coverage_status"
+      ],
+      "additionalProperties": false
+    },
+    "progress": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "state": {
+          "enum": [
+            "DISCOVERING",
+            "DOWNLOADING",
+            "VERIFYING",
+            "COMPLETE",
+            "PARTIAL",
+            "FAILED",
+            "PAUSED"
+          ]
+        },
+        "completed_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_units": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "unit": {
+          "enum": [
+            "segments",
+            "bytes",
+            "records"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "job_id",
+        "timestamp_ms",
+        "state",
+        "completed_units",
+        "total_units",
+        "unit"
+      ],
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": false
+    },
+    "comparison": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "venue": {
+          "const": "bybit"
+        },
+        "category": {
+          "enum": [
+            "spot",
+            "linear",
+            "inverse"
+          ]
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,50}(?![\\s\\S])"
+        },
+        "timestamp_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "provenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calculated": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "official": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "difference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "enum": [
+            "MATCH",
+            "MISMATCH",
+            "MISSING_CALCULATED",
+            "MISSING_OFFICIAL",
+            "NOT_COMPARABLE"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "context": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "calculated_coverage": {
+                  "enum": [
+                    "COMPLETE",
+                    "PARTIAL",
+                    "UNKNOWN"
+                  ]
+                },
+                "official_coverage": {
+                  "enum": [
+                    "COMPLETE",
+                    "PARTIAL",
+                    "UNKNOWN"
+                  ]
+                },
+                "boundary_policy": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "rounding": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tolerance": {
+                  "type": "string",
+                  "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?![\\s\\S])"
+                },
+                "evidence_refs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "required": [
+                "calculated_coverage",
+                "official_coverage",
+                "boundary_policy",
+                "rounding",
+                "tolerance",
+                "evidence_refs"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "venue",
+        "category",
+        "symbol",
+        "timestamp_ms",
+        "provenance",
+        "availability",
+        "coverage",
+        "field",
+        "calculated",
+        "official",
+        "difference",
+        "status",
+        "reason",
+        "context"
+      ],
+      "additionalProperties": false
+    },
+    "api_response": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "data": {},
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "availability": {
+          "$ref": "#/$defs/availability"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coverage"
+        },
+        "provenance": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/provenance"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "data",
+        "next_cursor",
+        "availability",
+        "coverage",
+        "provenance"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/trade"
+    },
+    {
+      "$ref": "#/$defs/instrument"
+    },
+    {
+      "$ref": "#/$defs/candle"
+    },
+    {
+      "$ref": "#/$defs/observation"
+    },
+    {
+      "$ref": "#/$defs/footprint"
+    },
+    {
+      "$ref": "#/$defs/pagination"
+    },
+    {
+      "$ref": "#/$defs/progress"
+    },
+    {
+      "$ref": "#/$defs/api_response"
+    },
+    {
+      "$ref": "#/$defs/comparison"
+    }
+  ]
+}
+
+
