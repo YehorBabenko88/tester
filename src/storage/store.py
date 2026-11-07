@@ -289,6 +289,11 @@ class Store:
                 if isinstance(v,Decimal): row[k]=str(v)
         return rows
 
+    def read_page(self,dataset,venue,category,symbol,start_ms,end_ms,interval='',limit=1000,after=None,**limits):
+        """Additive bounded snapshot API. Legacy read/provenance/coverage are unchanged."""
+        from .read_page import read_page
+        return read_page(self,dataset,venue,category,symbol,start_ms,end_ms,interval,limit,after,**limits)
+
     def provenance(self,record_keys):
         from .provenance import resolve
         with self.connect() as c: return resolve(c,record_keys)

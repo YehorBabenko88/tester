@@ -159,7 +159,7 @@ class StorageLifecycle:
                         findings.append(dict(code='raw_identity_or_content_mismatch',object_id=row['record_key']))
                     if n['source']!=row['source'] or digest([n['record_key'],n['source'],row['raw_envelope']])!=row['source_id']:
                         findings.append(dict(code='source_identity_hash_mismatch',object_id=row['source_id']))
-                except (ValueError,TypeError): findings.append(dict(code='raw_envelope_invalid',object_id=row['record_key']))
+                except (ValueError,TypeError,RecursionError): findings.append(dict(code='raw_envelope_invalid',object_id=row['record_key']))
             for row in c.execute('''SELECT r.record_key FROM tester_storage.raw_records r WHERE NOT EXISTS
                 (SELECT 1 FROM tester_storage.record_sources s WHERE s.record_key=r.record_key) LIMIT %s''',(max_records,)):
                 findings.append(dict(code='raw_without_source',object_id=row['record_key']))
