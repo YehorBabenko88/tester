@@ -70,6 +70,183 @@ def _connection_belongs(row, client):
     )
 
 
+_OBSERVER_WAIT_SECONDS = 2.0
+_OBSERVER_POLL_SECONDS = 0.05
+_SAFE_STATUSES = frozenset(
+    {
+        "ESTABLISHED",
+        "LISTEN",
+        "NONE",
+        "SYN_SENT",
+        "SYN_RECV",
+        "FIN_WAIT1",
+        "FIN_WAIT2",
+        "TIME_WAIT",
+        "CLOSE",
+        "CLOSED",
+        "CLOSE_WAIT",
+        "LAST_ACK",
+        "CLOSING",
+    }
+)
+_OWNERSHIP_REASONS = frozenset(
+    {
+        "api_record_mismatch",
+        "api_process_identity_changed",
+        "api_process_arguments_mismatch",
+        "api_process_birth_changed",
+        "api_process_unavailable",
+        "api_observer_unavailable",
+        "api_observer_data_invalid",
+        "api_connection_deadline",
+        "api_probe_unavailable",
+    }
+)
+
+
+def _bounded_count(value):
+    return min(max(value, 0), 4096) if type(value) is int else 0
+
+
+def _safe_observer(value):
+    value = value if isinstance(value, dict) else {}
+    result = {
+        key: _bounded_count(value.get(key, 0))
+        for key in (
+            "polls",
+            "rows_seen",
+            "matching_tuple_rows",
+            "local_endpoint_rows",
+            "elapsed_ms",
+        )
+    }
+    result["samples"] = []
+    samples = value.get("samples", [])
+    for sample in samples[:8] if isinstance(samples, list) else []:
+        if not isinstance(sample, dict):
+            continue
+        status = sample.get("status")
+        kind = sample.get("type_kind")
+        code = sample.get("type_code")
+        result["samples"].append(
+            dict(
+                scope="exact_tuple" if sample.get("scope") == "exact_tuple" else "local_endpoint",
+                status=status
+                if isinstance(status, str) and status in _SAFE_STATUSES
+                else "UNRECOGNIZED",
+                type_kind=kind
+                if isinstance(kind, str) and kind in {"SocketKind", "int", "str"}
+                else "other",
+                type_code=code if type(code) is int and 0 <= code <= 255 else None,
+                count=_bounded_count(sample.get("count", 0)),
+            )
+        )
+    return result
+
+
+class ApiOwnershipError(ValueError):
+    """Only finite reason codes and bounded enum/counter metadata leave the CLI."""
+
+    def __init__(self, reason_code, *, observer=None):
+        self.reason_code = (
+            reason_code
+            if isinstance(reason_code, str) and reason_code in _OWNERSHIP_REASONS
+            else "api_observer_data_invalid"
+        )
+        self.observer = _safe_observer(observer)
+        super().__init__("Owned API ownership check refused: " + self.reason_code)
+
+    def public(self):
+        return dict(reason_code=self.reason_code, observer=_safe_observer(self.observer))
+
+
+def _assert_api_birth(pid, created):
+    import psutil
+
+    try:
+        # Use a fresh Process every time: create_time() on one instance can cache
+        # its old birth value and must not authorize a reused PID.
+        fresh = psutil.Process(pid)
+        if fresh.pid != pid or fresh.create_time() != created:
+            raise ApiOwnershipError("api_process_birth_changed")
+    except psutil.Error:
+        raise ApiOwnershipError("api_process_unavailable") from None
+
+
+def _observe_rows(evidence, rows, client):
+    evidence["polls"] += 1
+    evidence["rows_seen"] += len(rows)
+    for row in rows:
+        if tuple(row.laddr) != ("127.0.0.1", 18767):
+            continue
+        evidence["local_endpoint_rows"] += 1
+        exact = tuple(row.raddr) == tuple(client)
+        if exact:
+            evidence["matching_tuple_rows"] += 1
+        raw = row.type
+        sample = dict(
+            scope="exact_tuple" if exact else "local_endpoint",
+            status=row.status
+            if isinstance(row.status, str) and row.status in _SAFE_STATUSES
+            else "UNRECOGNIZED",
+            type_kind="SocketKind"
+            if isinstance(raw, socket.SocketKind)
+            else "int"
+            if type(raw) is int
+            else "str"
+            if isinstance(raw, str)
+            else "other",
+            type_code=int(raw)
+            if isinstance(raw, int) and not isinstance(raw, bool) and 0 <= raw <= 255
+            else None,
+        )
+        for existing in evidence["samples"]:
+            if all(existing[key] == value for key, value in sample.items()):
+                existing["count"] += 1
+                break
+        else:
+            if len(evidence["samples"]) < 8:
+                evidence["samples"].append(dict(sample, count=1))
+
+
+def _wait_for_owned_connection(process, client, check_birth):
+    """Bound observer retries, never weaken the exact accepted-row predicate.
+
+    The caller holds the same harmless TCP probe open for this entire wait.
+    Native snapshot calls remain synchronous; the deadline bounds polling and
+    sleeps, rather than promising interruption of an OS call that itself stalls.
+    """
+    import psutil
+
+    started = time.monotonic()
+    deadline = started + _OBSERVER_WAIT_SECONDS
+    evidence = dict(
+        polls=0, rows_seen=0, matching_tuple_rows=0, local_endpoint_rows=0, elapsed_ms=0, samples=[]
+    )
+    while True:
+        try:
+            check_birth()
+            rows = process.net_connections(kind="tcp")
+            check_birth()
+            _observe_rows(evidence, rows, client)
+            matched = any(_connection_belongs(row, client) for row in rows)
+        except ApiOwnershipError as exc:
+            evidence["elapsed_ms"] = round((time.monotonic() - started) * 1000)
+            raise ApiOwnershipError(exc.reason_code, observer=evidence) from None
+        except (psutil.Error, OSError):
+            evidence["elapsed_ms"] = round((time.monotonic() - started) * 1000)
+            raise ApiOwnershipError("api_observer_unavailable", observer=evidence) from None
+        except (TypeError, AttributeError, ValueError):
+            raise ApiOwnershipError("api_observer_data_invalid", observer=evidence) from None
+        evidence["elapsed_ms"] = round((time.monotonic() - started) * 1000)
+        if matched and time.monotonic() <= deadline:
+            return _safe_observer(evidence)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ApiOwnershipError("api_connection_deadline", observer=evidence)
+        time.sleep(min(_OBSERVER_POLL_SECONDS, remaining))
+
+
 def assert_api_process(root, application_sha, source):
     """Prove the owned loopback listener before disclosing its capability.
 
@@ -85,41 +262,46 @@ def assert_api_process(root, application_sha, source):
         or owner.get("root") != str(root)
         or owner.get("application_source_sha") != application_sha
     ):
-        raise ValueError("Owned API record differs")
+        raise ApiOwnershipError("api_record_mismatch")
     process = psutil.Process(owner["pid"])
     if (
-        process.create_time() != owner["created"]
+        process.pid != owner["pid"]
+        or process.create_time() != owner["created"]
         or plain(process.exe()) != plain(owner["image"])
         or plain(process.cwd()) != plain(source)
     ):
-        raise ValueError("Owned API process changed")
+        raise ApiOwnershipError("api_process_identity_changed")
     args = process.cmdline()
     if "-m" not in args or args[args.index("-m") + 1] != "src.integration.research_runtime":
-        raise ValueError("Owned API module differs")
+        raise ApiOwnershipError("api_process_arguments_mismatch")
     for flag, expected in (
         ("--application-source-sha", application_sha),
         ("--lab-source-sha", owner["lab_source_sha"]),
         ("--root", str(root)),
     ):
         if flag not in args or args[args.index(flag) + 1] != expected:
-            raise ValueError("Owned API process arguments differ")
+            raise ApiOwnershipError("api_process_arguments_mismatch")
+
     # On this Windows host the listening row can have an unmapped state NONE.
     # Never accept that row on faith: establish a harmless no-credential TCP
     # connection and require the exact accepted four-tuple in this owned PID.
-    with socket.create_connection(("127.0.0.1", 18767), timeout=3) as probe:
-        client = probe.getsockname()
-        matched = False
-        for _ in range(5):
-            if any(_connection_belongs(c, client) for c in process.net_connections(kind="tcp")):
-                matched = True
-                break
-            time.sleep(0.02)
-        if not matched:
-            raise ValueError("Owned API accepted TCP connection differs")
+    def check_birth():
+        _assert_api_birth(owner["pid"], owner["created"])
+
+    try:
+        with socket.create_connection(("127.0.0.1", 18767), timeout=3) as probe:
+            observation = _wait_for_owned_connection(process, probe.getsockname(), check_birth)
+        try:
+            check_birth()
+        except ApiOwnershipError as exc:
+            raise ApiOwnershipError(exc.reason_code, observer=observation) from None
+    except OSError:
+        raise ApiOwnershipError("api_probe_unavailable") from None
     return dict(
         pid=process.pid,
         created=owner["created"],
         binding="OS process image/creation/cwd/module arguments/accepted TCP four-tuple",
+        observer=observation,
     )
 
 
@@ -346,7 +528,10 @@ def main():
             _save(args.out, receipt, new=True)
         print(json.dumps(receipt))
     except Exception as exc:
-        print(json.dumps(dict(status="REFUSED_OR_FAILED", error_type=type(exc).__name__)))
+        refusal = dict(status="REFUSED_OR_FAILED", error_type=type(exc).__name__)
+        if isinstance(exc, ApiOwnershipError):
+            refusal.update(exc.public())
+        print(json.dumps(refusal))
         raise SystemExit(1) from None
 
 
