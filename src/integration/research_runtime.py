@@ -9,6 +9,7 @@ import asyncio
 import json
 import os
 import re
+import socket
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -60,6 +61,15 @@ def context(root, lab_sha, application_sha):
     return source, root, marker, private, store
 
 
+def _connection_belongs(row, client):
+    return (
+        row.type == socket.SOCK_STREAM
+        and row.status == "ESTABLISHED"
+        and tuple(row.laddr) == ("127.0.0.1", 18767)
+        and tuple(row.raddr) == tuple(client)
+    )
+
+
 def assert_api_process(root, application_sha, source):
     """Prove the owned loopback listener before disclosing its capability.
 
@@ -93,17 +103,23 @@ def assert_api_process(root, application_sha, source):
     ):
         if flag not in args or args[args.index(flag) + 1] != expected:
             raise ValueError("Owned API process arguments differ")
-    listeners = [
-        c
-        for c in process.net_connections(kind="inet")
-        if c.status == psutil.CONN_LISTEN and c.laddr.port == 18767
-    ]
-    if len(listeners) != 1 or listeners[0].laddr.ip != "127.0.0.1":
-        raise ValueError("Owned API listening socket differs")
+    # On this Windows host the listening row can have an unmapped state NONE.
+    # Never accept that row on faith: establish a harmless no-credential TCP
+    # connection and require the exact accepted four-tuple in this owned PID.
+    with socket.create_connection(("127.0.0.1", 18767), timeout=3) as probe:
+        client = probe.getsockname()
+        matched = False
+        for _ in range(5):
+            if any(_connection_belongs(c, client) for c in process.net_connections(kind="tcp")):
+                matched = True
+                break
+            time.sleep(0.02)
+        if not matched:
+            raise ValueError("Owned API accepted TCP connection differs")
     return dict(
         pid=process.pid,
         created=owner["created"],
-        binding="OS process image/creation/cwd/module arguments/loopback socket",
+        binding="OS process image/creation/cwd/module arguments/accepted TCP four-tuple",
     )
 
 
