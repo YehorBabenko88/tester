@@ -227,3 +227,38 @@ def test_actual_g_http_postgres_roundtrip(persistent):
         server.should_exit = True
         thread.join(timeout=5)
         sock.close()
+
+
+def test_connection_pins_validated_numeric_host_over_environment(monkeypatch):
+    # Unit call-boundary check only. Real PostgreSQL counterpart is below.
+    from src.api import research_ledger
+
+    monkeypatch.setenv("PGHOSTADDR", "127.0.0.2")
+    seen = {}
+    sentinel = object()
+
+    def connect(dsn, **kwargs):
+        seen.update(kwargs)
+        return sentinel
+
+    monkeypatch.setattr(research_ledger.psycopg, "connect", connect)
+    store = PersistentResearchLedger("host=127.0.0.1 port=55471 dbname=tester_research_test")
+    assert store.connection() is sentinel
+    assert seen["hostaddr"] == "127.0.0.1"
+
+
+@pytest.mark.integration
+def test_actual_postgres_hostaddr_environment_cannot_redirect(persistent, monkeypatch):
+    from psycopg.conninfo import conninfo_to_dict
+
+    expected = conninfo_to_dict(persistent.dsn)
+    monkeypatch.setenv("PGHOSTADDR", "127.0.0.2")
+    with persistent.connection() as conn:
+        actual = conn.execute(
+            "SELECT inet_server_addr()::text AS host,inet_server_port() AS port,current_database() AS db"
+        ).fetchone()
+    assert actual == {
+        "host": expected["host"],
+        "port": int(expected["port"]),
+        "db": expected["dbname"],
+    }
