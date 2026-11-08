@@ -78,7 +78,7 @@ def research_db():
     dsn = make_conninfo(raw, hostaddr=conninfo_to_dict(raw)["host"])
     with research_connect(dsn) as guard:
         actual = guard.execute(
-            "SELECT current_database(),inet_server_port(),inet_server_addr()::text"
+            "SELECT current_database(),inet_server_port(),host(inet_server_addr())"
         ).fetchone()
         assert actual == (database, port, conninfo_to_dict(raw)["host"]), (
             "Research endpoint mismatch"
