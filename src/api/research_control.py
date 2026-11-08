@@ -79,6 +79,8 @@ class Command(Binding):
 
 
 class Marker(Strict):
+    role: Literal["entry", "exit"]
+    side: Literal["buy", "sell"]
     fill_id: Identifier
     order_id: Identifier
     position_id: Identifier
@@ -104,12 +106,22 @@ class Marker(Strict):
         return self
 
 
+class Candle(Strict):
+    start_ms: Timestamp
+    end_ms: Timestamp
+    open: Annotated[str, Field(pattern=r"^[0-9]{1,30}(\.[0-9]{1,18})?$")]
+    high: Annotated[str, Field(pattern=r"^[0-9]{1,30}(\.[0-9]{1,18})?$")]
+    low: Annotated[str, Field(pattern=r"^[0-9]{1,30}(\.[0-9]{1,18})?$")]
+    close: Annotated[str, Field(pattern=r"^[0-9]{1,30}(\.[0-9]{1,18})?$")]
+
+
 class Artifact(Binding):
     schema_version: Literal["tester.research-chart/2"]
     execution_mode: Literal["SIMULATED"]
     coverage: Literal["complete", "partial", "unavailable"]
     source_ids: Annotated[list[Identifier], Field(min_length=1, max_length=100)]
     synthetic: bool
+    candles: Annotated[list[Candle], Field(max_length=2000)]
     markers: Annotated[list[Marker], Field(max_length=500)]
 
     @model_validator(mode="after")
@@ -213,16 +225,22 @@ class Control:
             "artifact_digest": digest,
         }
 
-    def ack(self, identity: Identity, job_id: str, digest: str):
+    def ack(self, identity: Identity, job_id: str, digest: str, rendered_fill_ids: list[str]):
         result = self.result(identity, job_id)
         if result.get("artifact_digest") != digest or not re.fullmatch(r"[0-9a-f]{64}", digest):
             raise ValueError("render acknowledgment digest mismatch")
-        self.store.acknowledge(identity.actor, job_id, digest)
+        expected = [marker["fill_id"] for marker in result["artifact"]["markers"]]
+        if len(rendered_fill_ids) != len(set(rendered_fill_ids)) or sorted(
+            rendered_fill_ids
+        ) != sorted(expected):
+            raise ValueError("complete rendered fill set required")
+        self.store.acknowledge(identity.actor, job_id, digest, rendered_fill_ids)
         return {"job_id": job_id, "artifact_digest": digest, "acknowledged": True}
 
 
 class Ack(Strict):
     artifact_digest: Digest
+    rendered_fill_ids: Annotated[list[Identifier], Field(max_length=500)]
 
 
 def create_control_app(control: Control | None, authenticate: Callable) -> FastAPI:
@@ -239,8 +257,8 @@ def create_control_app(control: Control | None, authenticate: Callable) -> FastA
     async def origin(request: Request, call_next):
         if (
             request.headers.get("origin") is not None
-            or request.headers.get("sec-fetch-site") == "cross-site"
-        ):
+            and request.headers["origin"] != str(request.base_url).rstrip("/")
+        ) or request.headers.get("sec-fetch-site") == "cross-site":
             from fastapi.responses import JSONResponse
 
             return JSONResponse(status_code=403, content={"detail": "browser origins denied"})
@@ -278,6 +296,8 @@ def create_control_app(control: Control | None, authenticate: Callable) -> FastA
 
     @app.post("/api/control/research/{job_id}/ack")
     def acknowledge(job_id: UUID, ack: Ack, actor: Identity = Depends(identity)):
-        return invoke(lambda: control.ack(actor, str(job_id), ack.artifact_digest))
+        return invoke(
+            lambda: control.ack(actor, str(job_id), ack.artifact_digest, ack.rendered_fill_ids)
+        )
 
     return app
