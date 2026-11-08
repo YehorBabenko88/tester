@@ -1,0 +1,18 @@
+{
+  "schema": "tester-lab-upgrade/v1",
+  "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+  "old_source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
+  "new_source_sha": "fbf1b9721e784f61bb2e495ad0ae9b8b0bbf96e7",
+  "script_sha256": "75d04e70b0a4c683788fa7430c985743b29117dbddb0695bbbbcaa2935994e79",
+  "old_payload_sha256": "21b2854d02ac1d27563cd263e89504a13d4a6eb1724d3681588e63803eea506c",
+  "new_payload_path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\outputs\\deploy-payload-fbf1b9721e784f61bb2e495ad0ae9b8b0bbf96e7.json",
+  "new_payload_sha256": "73018144df01bb7da544221ea502cd32263c6395690603f0bb86482b25de72cc",
+  "old_runtime_manifest_sha256": "c27820f6f6d4752dcc1eb3211dd03c39f7093d982e1326058af8a2dcc5d2982b",
+  "new_runtime_root": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\native-upgrade-fbf1b9721e784f61bb2e495ad0ae9b8b0bbf96e7",
+  "new_runtime_manifest_path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\outputs\\followup-native-runtime.json",
+  "new_runtime_manifest_sha256": "c2000e96456b502a03eb30baa8ac4690afc150f64144d346318c868bfccc7a65",
+  "new_source_root": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\published\\fbf1b9721e784f61bb2e495ad0ae9b8b0bbf96e7",
+  "postgres_system_identifier": "7705746177415623736",
+  "worker_recovery_script_sha256": "3c2ab086e0929cf747aebbd9af3c13d3aec9a3a89ca96206d140ff8992f92b06",
+  "worker_termination_limit": 1
+}
