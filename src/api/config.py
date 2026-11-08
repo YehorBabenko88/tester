@@ -21,10 +21,18 @@ class Settings(BaseSettings):
     provider_factory: str | None = None
     handler_factory: str | None = None
     frontend_dir: Path = Path("frontend")
+    market_catalog_enabled: bool = False
+    market_catalog_database_url: SecretStr | None = None
 
     @model_validator(mode="after")
     def validate_paths(self):
         self.data_dir = self.data_dir.resolve()
+        if self.market_catalog_enabled and not self.market_catalog_database_url:
+            raise ValueError("Enabled catalog requires explicit market_catalog_database_url")
+        if self.market_catalog_database_url:
+            from .catalog_store import validate_catalog_dsn
+
+            validate_catalog_dsn(self.market_catalog_database_url.get_secret_value())
         if self.database_url:
             from psycopg.conninfo import conninfo_to_dict
 
@@ -40,6 +48,14 @@ class Settings(BaseSettings):
     @property
     def dsn(self) -> str | None:
         return self.database_url.get_secret_value() if self.database_url else None
+
+    @property
+    def market_catalog_dsn(self) -> str | None:
+        return (
+            self.market_catalog_database_url.get_secret_value()
+            if self.market_catalog_database_url
+            else None
+        )
 
 
 def load_settings() -> Settings:

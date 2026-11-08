@@ -78,6 +78,7 @@ class CatalogService:
         self._cancel = threading.Event()
         self._wake = None
         self._task = None
+        self._event_loop = None
         self._lifecycle = asyncio.Lock()
         self._manual = set()
 
@@ -202,6 +203,8 @@ class CatalogService:
         *,
         search="",
         status="Trading",
+        contract_kind=None,
+        watchlist=None,
         contract_type=None,
         settle_coin=None,
         sort="symbol",
@@ -211,7 +214,22 @@ class CatalogService:
         revision=None,
     ):
         _category(category)
-        fields = {"symbol", "category", "status", "contract_type", "settle_coin"}
+        fields = {"symbol", "category", "status", "contract_type", "contract_kind", "settle_coin"}
+        if contract_kind not in {None, "perpetual", "dated", "unknown"}:
+            raise ValueError("Unsupported contract kind")
+        if status not in {"", "Trading", "PreLaunch", "PendingOpen", "Delivering", "Closed"}:
+            raise ValueError("Unsupported status")
+        if watchlist is not None:
+            if len(watchlist) > 1000 or any(
+                not isinstance(item, str)
+                or len(item) > 110
+                or item.count(":") != 1
+                or item.split(":")[0] not in CATEGORIES
+                or not item.split(":")[1]
+                for item in watchlist
+            ):
+                raise ValueError("Invalid watchlist")
+            watchlist = set(watchlist)
         if sort not in fields | METRICS.keys() | set(UNAVAILABLE) or direction not in {
             "asc",
             "desc",
@@ -255,6 +273,8 @@ class CatalogService:
             and (not status or row["status"] == status)
             and (not contract_type or row["contract_type"] == contract_type)
             and (not settle_coin or row["settle_coin"] == settle_coin)
+            and (not contract_kind or row.get("contract_kind", "unknown") == contract_kind)
+            and (not watchlist or row["category"] + ":" + row["symbol"] in watchlist)
         ]
         rows.sort(key=lambda row: (row["category"], row["symbol"]))
         if direction != "none":
@@ -300,6 +320,7 @@ class CatalogService:
                 self._cancel.clear()
             self._manual.clear()
             self._wake = asyncio.Event()
+            self._event_loop = asyncio.get_running_loop()
             self._task = asyncio.create_task(self._poll())
 
     async def stop(self):
@@ -320,15 +341,17 @@ class CatalogService:
             await asyncio.to_thread(drain_refreshes)
             self._manual.clear()
             self._task = self._wake = None
+            self._event_loop = None
 
     def request_refresh(self, category):
         _category(category)
         if self._wake is None:
             raise RuntimeError("Catalog poller not running")
         self._manual.add(category)
-        self._wake.set()
+        self._event_loop.call_soon_threadsafe(self._wake.set)
 
     async def _poll(self):
+        self._event_loop = asyncio.get_running_loop()
         due = dict.fromkeys(CATEGORIES, 0.0)
         eligible = dict.fromkeys(CATEGORIES, 0.0)
         failures = dict.fromkeys(CATEGORIES, 0)
@@ -377,9 +400,13 @@ def create_market_router(service):
         revision: str | None = None,
         contract_type: str | None = None,
         settle_coin: str | None = None,
+        status: str = "Trading",
+        contract_kind: str | None = None,
+        watchlist: list[str] | None = Query(None),
     ):
         try:
-            data = service.query(
+            data = await asyncio.to_thread(
+                service.query,
                 category,
                 search=search,
                 sort=sort,
@@ -389,6 +416,9 @@ def create_market_router(service):
                 revision=revision,
                 contract_type=contract_type,
                 settle_coin=settle_coin,
+                status=status,
+                contract_kind=contract_kind,
+                watchlist=watchlist,
             )
         except SnapshotConflict as exc:
             raise HTTPException(409, str(exc)) from exc
@@ -400,5 +430,15 @@ def create_market_router(service):
         if request.headers.get("if-none-match") == etag:
             return Response(status_code=304, headers=headers)
         return JSONResponse({"schema_version": "1.0", "data": data}, headers=headers)
+
+    @router.post("/{category}/refresh", status_code=202)
+    async def refresh(category: str):
+        try:
+            await asyncio.to_thread(service.request_refresh, category)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(503, "Catalog scheduler is unavailable") from exc
+        return {"schema_version": "1.0", "data": {"category": category, "queued": True}}
 
     return router
