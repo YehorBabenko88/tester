@@ -1,0 +1,10 @@
+{
+  "schema_version": "tester.g-source-pin/1",
+  "source_sha": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+  "files": {
+    "commands.py": "867a0a49995cf3161706bb8f69fc48501956f0dde27d2b22ee1cdd4f6be57b83",
+    "contracts.py": "03e94f8fbca3951bd512320251cb9628ca4f1f1dc2702237049ed3f1be72b396",
+    "types.py": "7a0563f53f7061762f21e32285ec18c02b796184d53e042cfc4b973c3410bb1f",
+    "bridge.py": "28447b21535dad6319bb461d01317b504f2924fec360794e1195ba49cfffe8ff"
+  }
+}
