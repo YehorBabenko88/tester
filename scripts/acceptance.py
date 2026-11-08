@@ -16,7 +16,15 @@ sys.path.insert(0, str(ROOT))
 
 
 def check(*args):
-    subprocess.run([sys.executable, *args], cwd=ROOT, check=True)
+    # pwsh 7 prepends incompatible built-ins to the inherited PSModulePath.
+    # Windows PowerShell 5 descendants must rebuild their own edition defaults.
+    # Isolate only the child environment; never change host/user settings.
+    child_env = (
+        {key: value for key, value in os.environ.items() if key.upper() != "PSMODULEPATH"}
+        if os.name == "nt"
+        else None
+    )
+    subprocess.run([sys.executable, *args], cwd=ROOT, check=True, env=child_env)
 
 
 def wait_health(port, process):
