@@ -8,3 +8,9 @@ tests/analytics/reference/binding/** -text
 src/integration/standalone_policy.py -text
 
 tests/platform/reference/financial_query/** -text
+
+# Exact Agent G producer sources; preserve committed bytes for pin verification.
+src/control/commands.py -text
+src/control/contracts.py -text
+src/control/types.py -text
+src/control/bridge.py -text
