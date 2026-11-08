@@ -50,6 +50,41 @@ function Assert-RecoveryTool([string]$Manifest,[string]$ManifestHash,[string]$Ap
     Assert-RecoveryHash $Actual $Tool.script_sha256
     return $Tool
 }
+function Assert-RecoveryPinnedFiles {
+    Assert-RecoveryPlain $script:Root
+    Assert-RecoveryPlain (Join-Path $Root '.tester-lab.json')
+    Assert-RecoveryPlain (Join-Path $Root 'config.json')
+    $Owner=Get-Content -LiteralPath (Join-Path $Root '.tester-lab.json') -Raw|ConvertFrom-Json
+    if ($Owner.schema -ne 'tester-lab/v1' -or $Owner.installation_id -ne $Id -or $Owner.root -cne $Root -or $Owner.repository -ne 'YehorBabenko88/tester' -or $Owner.active_sha -ne $SourceSHA -or $Owner.services.app -ne $AppName -or $Owner.services.postgres -ne $PGName -or $Owner.ports.api -ne 18766 -or $Owner.ports.postgres -ne 55470) {throw 'Fixed installation ownership differs.'}
+    $PayloadPath=Join-Path $Root 'state\deploy-payload.json'
+    Assert-RecoveryHash $PayloadPath $DeployManifestSHA256
+    $Payload=Get-Content -LiteralPath $PayloadPath -Raw|ConvertFrom-Json
+    if ($Payload.schema_version -ne 'tester-lab-payload/v1' -or $Payload.source_sha -ne $SourceSHA -or $Payload.tree_sha -notmatch '^[0-9a-f]{40}$') {throw 'Published payload identity differs.'}
+    $Release=Join-Path $Root ('releases\'+$SourceSHA)
+    Assert-RecoveryTree $Release $Payload.files
+    $OwnerFiles=$Owner.releases.PSObject.Properties[$SourceSHA].Value
+    if (@($OwnerFiles.PSObject.Properties).Count -ne @($Payload.files.PSObject.Properties).Count) {throw 'Owner source inventory count differs.'}
+    foreach ($Entry in $Payload.files.PSObject.Properties) {
+        $Recorded=$OwnerFiles.PSObject.Properties[$Entry.Name]
+        if ($null -eq $Recorded -or $Recorded.Value -cne $Entry.Value) {throw 'Owner source inventory differs.'}
+    }
+    if ($ToolManifest -or $ToolManifestSHA256) {
+        if (-not $ToolManifest -or -not $ToolManifestSHA256) {throw 'Both external tool manifest pins required.'}
+        $Published='C:\Users\Administrator\Documents\Codex\2026-11-08\files-pasted-by-the-user-codex\work\published'
+        $Tool=Assert-RecoveryTool $ToolManifest $ToolManifestSHA256 $SourceSHA $DeployManifestSHA256 $RuntimeManifestSHA256 $PSCommandPath $Published
+        $script:Report.tool_source_sha=$Tool.tool_source_sha
+        $script:Report.tool_manifest_sha256=$ToolManifestSHA256
+    } else {
+        Assert-RecoveryHash $PSCommandPath $Payload.files.PSObject.Properties['scripts/windows/Test-TesterLabWorkerRecovery.ps1'].Value
+        $script:Report.tool_source_sha=$SourceSHA
+    }
+    $RuntimeManifest=Join-Path $Root 'state\service-runtime.json'
+    Assert-RecoveryHash $RuntimeManifest $RuntimeManifestSHA256
+    $NativeInventory=Get-Content -LiteralPath $RuntimeManifest -Raw|ConvertFrom-Json
+    if ($NativeInventory.schema_version -ne 'tester-lab-service-runtime/v1') {throw 'Wrong private native receipt.'}
+    Assert-RecoveryTree (Join-Path $Root 'dependencies\service') $NativeInventory.files
+    return $Payload
+}
 function Test-RecoveryModule($Process,[string]$Module,[string]$Root='C:\TesterLab') {
     $Allowed=@(($Root+'\dependencies\python\python.exe'),($Root+'\dependencies\venv\Scripts\python.exe'))
     if ($Process.ExecutablePath -inotIn $Allowed) {return $false}
@@ -119,6 +154,7 @@ function Close-RecoveryProcess([IntPtr]$Handle) {
     if (-not [TesterRecoveryNative]::CloseHandle($Handle)) {throw 'Worker handle close failed.'}
 }
 function Invoke-RecoveryTermination($Candidate) {
+    if ($null -eq (Get-Variable Report -Scope Script -ErrorAction SilentlyContinue) -or $script:Report.termination_attempts -ne 0 -or $script:Report.termination_count -ne 0) {throw 'Termination receipt missing or already attempted; no retry permitted.'}
     $Handle=Open-RecoveryProcess ([int]$Candidate.ProcessId)
     try {
         $Actual=Read-RecoveryHandle $Handle
@@ -126,7 +162,12 @@ function Invoke-RecoveryTermination($Candidate) {
         $ExpectedTime=$Candidate.CreationDate.ToUniversalTime().ToFileTimeUtc()
         if ($Actual.Image -ine $Candidate.ExecutablePath -or [Math]::Floor([decimal]$Actual.CreatedFileTime/10) -ne [Math]::Floor([decimal]$ExpectedTime/10)) {throw 'Held worker image/creation differs; PID reuse refused.'}
         Assert-RecoveryFreshCandidate $Candidate
+        $script:Report.termination_attempts=1
+        $script:Report.termination_outcome='ATTEMPTED_NOT_CONFIRMED'
         Stop-RecoveryHandle $Handle
+        # Record native success before cleanup can throw; never reset these fields.
+        $script:Report.termination_count=1
+        $script:Report.termination_outcome='CONFIRMED'
     } finally {Close-RecoveryProcess $Handle}
 }
 function Get-RecoveryOtherPG {
@@ -190,6 +231,7 @@ function Get-RecoveryGraphSummary($Graph,[int]$ServiceId,[string]$Root) {
 }
 function Assert-RecoveryFreshCandidate($Candidate) {
     if ($null -eq (Get-Variable RecoveryContext -Scope Script -ErrorAction SilentlyContinue)) {throw 'Held-handle recovery context missing.'}
+    $null=Assert-RecoveryPinnedFiles
     $Ready=Assert-RecoveryReady
     if ([int]$Ready.Native.supervisor_pid -ne $script:RecoveryContext.SupervisorId -or [int]$Ready.App.ProcessId -ne $script:RecoveryContext.ServiceId) {throw 'Service/supervisor changed before held-handle termination.'}
     $Graph=@(Get-CimInstance Win32_Process)
@@ -245,44 +287,15 @@ if ($FunctionsOnly) {return}
 $Root='C:\TesterLab';$Id='89189096-be4c-4cb3-bf2b-07b44f25fd60'
 $AppName='TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60';$PGName='TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60'
 $Instance='';$AppProcessId=0;$PGProcessId=0;$CanReport=$false
-$Report=[ordered]@{schema='tester-lab-worker-recovery/v1';status='FAILED';stage='PREFLIGHT';reason_code='PREFLIGHT_FAILED';source_sha=$SourceSHA;installation_id=$Id;termination_count=0;recovery_job_id=$null;replay_job_id=$null;error_type=$null}
+$Report=[ordered]@{schema='tester-lab-worker-recovery/v1';status='FAILED';stage='PREFLIGHT';reason_code='PREFLIGHT_FAILED';source_sha=$SourceSHA;installation_id=$Id;termination_count=0;termination_attempts=0;termination_outcome='NOT_ATTEMPTED';recovery_job_id=$null;replay_job_id=$null;error_type=$null}
 $Principal=[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {throw 'Requires separately approved administrator action covering one owned worker termination; never self-elevates.'}
 if (-not $SourceSHA -or -not $DeployManifestSHA256 -or -not $RuntimeManifestSHA256) {throw 'Explicit published source/deployment/native manifest pins required.'}
 try {
     Assert-RecoveryPlain $Root
     $OtherPGBefore=Get-RecoveryOtherPG
-    Assert-RecoveryPlain (Join-Path $Root '.tester-lab.json')
-    Assert-RecoveryPlain (Join-Path $Root 'config.json')
-    $Owner=Get-Content -LiteralPath (Join-Path $Root '.tester-lab.json') -Raw|ConvertFrom-Json
-    if ($Owner.schema -ne 'tester-lab/v1' -or $Owner.installation_id -ne $Id -or $Owner.root -cne $Root -or $Owner.repository -ne 'YehorBabenko88/tester' -or $Owner.active_sha -ne $SourceSHA -or $Owner.services.app -ne $AppName -or $Owner.services.postgres -ne $PGName -or $Owner.ports.api -ne 18766 -or $Owner.ports.postgres -ne 55470) {throw 'Fixed installation ownership differs.'}
-    $PayloadPath=Join-Path $Root 'state\deploy-payload.json'
-    Assert-RecoveryHash $PayloadPath $DeployManifestSHA256
-    $Payload=Get-Content -LiteralPath $PayloadPath -Raw|ConvertFrom-Json
-    if ($Payload.schema_version -ne 'tester-lab-payload/v1' -or $Payload.source_sha -ne $SourceSHA -or $Payload.tree_sha -notmatch '^[0-9a-f]{40}$') {throw 'Published payload identity differs.'}
+    $Payload=Assert-RecoveryPinnedFiles
     $Release=Join-Path $Root ('releases\'+$SourceSHA)
-    Assert-RecoveryTree $Release $Payload.files
-    $OwnerFiles=$Owner.releases.PSObject.Properties[$SourceSHA].Value
-    if (@($OwnerFiles.PSObject.Properties).Count -ne @($Payload.files.PSObject.Properties).Count) {throw 'Owner source inventory count differs.'}
-    foreach ($Entry in $Payload.files.PSObject.Properties) {
-        $Recorded=$OwnerFiles.PSObject.Properties[$Entry.Name]
-        if ($null -eq $Recorded -or $Recorded.Value -cne $Entry.Value) {throw 'Owner source inventory differs.'}
-    }
-    if ($ToolManifest -or $ToolManifestSHA256) {
-        if (-not $ToolManifest -or -not $ToolManifestSHA256) {throw 'Both external tool manifest pins required.'}
-        $Published='C:\Users\Administrator\Documents\Codex\2026-11-08\files-pasted-by-the-user-codex\work\published'
-        $Tool=Assert-RecoveryTool $ToolManifest $ToolManifestSHA256 $SourceSHA $DeployManifestSHA256 $RuntimeManifestSHA256 $PSCommandPath $Published
-        $Report.tool_source_sha=$Tool.tool_source_sha
-        $Report.tool_manifest_sha256=$ToolManifestSHA256
-    } else {
-        Assert-RecoveryHash $PSCommandPath $Payload.files.PSObject.Properties['scripts/windows/Test-TesterLabWorkerRecovery.ps1'].Value
-        $Report.tool_source_sha=$SourceSHA
-    }
-    $RuntimeManifest=Join-Path $Root 'state\service-runtime.json'
-    Assert-RecoveryHash $RuntimeManifest $RuntimeManifestSHA256
-    $NativeInventory=Get-Content -LiteralPath $RuntimeManifest -Raw|ConvertFrom-Json
-    if ($NativeInventory.schema_version -ne 'tester-lab-service-runtime/v1') {throw 'Wrong private native receipt.'}
-    Assert-RecoveryTree (Join-Path $Root 'dependencies\service') $NativeInventory.files
     $Ready=Assert-RecoveryReady
     $Instance=$Ready.Native.instance_id;$AppProcessId=[int]$Ready.App.ProcessId;$PGProcessId=[int]$Ready.PG.ProcessId
     Assert-RecoveryPlain (Join-Path $Root 'runtime')
@@ -315,7 +328,6 @@ try {
     $RecoveryContext=[pscustomobject]@{SupervisorId=[int]$Ready.Native.supervisor_pid;ServiceId=[int]$Ready.App.ProcessId;Root=$Root}
     $Report.reason_code='TERMINATION_FAILED'
     Invoke-RecoveryTermination $Worker
-    $Report.termination_count=1
     $Report.stage='WAIT_RECOVERY';$Report.reason_code='RECOVERY_INCOMPLETE'
     $Deadline=[DateTime]::UtcNow.AddSeconds(180);$NewWorker=$null
     do {

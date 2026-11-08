@@ -1,6 +1,7 @@
 import hashlib
 import importlib
 import json
+import os
 import uuid
 
 import pytest
@@ -115,17 +116,33 @@ def test_reparse_root_refused(tmp_path):
     m = api()
     target = tmp_path / "target"
     target.mkdir()
+    sentinel = target / "sentinel.txt"
+    sentinel.write_text("retain target contents", encoding="utf-8")
     link = tmp_path / "junction"
     import subprocess
 
-    subprocess.run(
-        ["cmd", "/c", "mklink", "/J", str(link), str(target)], check=True, capture_output=True
-    )
+    windows = os.name == "nt"
+    if windows:
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+            check=True,
+            capture_output=True,
+        )
+    else:
+        link.symlink_to(target, target_is_directory=True)
     try:
-        with pytest.raises(m.LabViolation):
-            m.plain(link)
+        for path in (link, link / sentinel.name):
+            with pytest.raises(m.LabViolation, match="Reparse|symlink"):
+                m.plain(path)
     finally:
-        link.rmdir()
+        if windows:
+            link.rmdir()  # Remove only the junction, never recurse into its target.
+        else:
+            link.unlink()  # POSIX directory symlinks must be unlinked, not rmdir'd.
+        assert target.is_dir()
+        assert sentinel.read_text(encoding="utf-8") == "retain target contents"
+        assert set(target.iterdir()) == {sentinel}
+    assert not link.exists()
 
 
 def test_scm_rejects_foreign_image_before_any_mutation(tmp_path):

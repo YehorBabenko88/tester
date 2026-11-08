@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Synthetic research chart</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="research.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Synthetic strategy research</h1>
+      <p>
+        SIMULATED | SYNTHETIC ONLY | Real market coverage NOT PROVEN. This
+        isolated opt-in view reads authorized persisted research artifacts. It
+        cannot submit orders.
+      </p>
+      <form id="research-form">
+        <label
+          >Capability token
+          <input
+            id="capability"
+            type="password"
+            autocomplete="off"
+            spellcheck="false" /></label
+        ><label
+          >Approved research command JSON
+          <textarea
+            id="research-command"
+            rows="9"
+            spellcheck="false"
+            required
+            aria-describedby="command-help"
+          ></textarea>
+        </label>
+        <p id="command-help">
+          Paste the approved tester.research-command/1 binding and expected
+          artifact digest. The token stays in this page's memory and is cleared
+          after use.
+        </p>
+        <button id="research-submit" type="submit">
+          Read authorized research chart
+        </button>
+      </form>
+      <p id="research-status" role="status">
+        DATA_UNAVAILABLE | No authorized persisted artifact loaded.
+      </p>
+      <p id="research-provenance"></p>
+      <div class="toolbar">
+        <button id="research-left" type="button">Pan left</button
+        ><button id="research-right" type="button">Pan right</button
+        ><button id="research-in" type="button">Zoom in</button
+        ><button id="research-out" type="button">Zoom out</button
+        ><button id="research-reset" type="button">Full range</button>
+      </div>
+      <canvas
+        id="research-canvas"
+        role="img"
+        aria-label="Simulated research candles, entry triangles, exit crosses and uncertainty spans"
+        aria-describedby="research-legend"
+      ></canvas>
+      <p id="research-legend">
+        SIMULATED entry triangle | SIMULATED exit cross | shaded spans show
+        uncertain time windows. Modeled-open is an assumption, never an exchange
+        execution. Wheel zoom, drag to pan, arrow keys and plus/minus are
+        supported.
+      </p>
+      <p id="research-range"></p>
+      <div class="research-table">
+        <table>
+          <caption>
+            Persisted simulated fill correspondence | exact source values
+          </caption>
+          <thead>
+            <tr>
+              <th>Fill / order / position</th>
+              <th>Classification</th>
+              <th>Price</th>
+              <th>Timestamp / known at (UTC ms)</th>
+              <th>Precision / half-open window</th>
+              <th>Closed trade</th>
+            </tr>
+          </thead>
+          <tbody id="research-fills"></tbody>
+        </table>
+      </div>
+      <p>
+        External trader overlays: DATA_UNAVAILABLE | Source permission UNKNOWN.
+        DISCLOSED events and INFERRED hypotheses require separately qualified
+        source evidence. Anonymous prints cannot identify a trader.
+      </p>
+    </main>
+    <script type="module" src="research-app.js"></script>
+  </body>
+</html>
