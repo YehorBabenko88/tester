@@ -2,7 +2,7 @@
   "SOURCE_SHA": "a3138eb9813832e9a839a99e54547001343ab3fd",
   "TREE_SHA": "f2814cd8a12a7ea6f119bfad37a3e40a4e39bc67",
   "DEPLOY_PAYLOAD_SHA256": "21b2854d02ac1d27563cd263e89504a13d4a6eb1724d3681588e63803eea506c",
-  "INSTALLER_TEST": "PASS: 21 source security tests + actual published file prepare/stage/rollback/remove retaining all bytes; native SCM install/uninstall NOT_RUN",
+  "INSTALLER_TEST": "PASS_PUBLISHED_PORTABLE_LIFECYCLE_AND_NATIVE_REMOVE_REINSTALL_RETAIN_DATA",
   "PORTABLE_SMOKE": {
     "status": "PORTABLE_SMOKE_PASS_NOT_SCM",
     "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
@@ -15,8 +15,8 @@
     "keyring": "OWN_RANDOM_PROBE_PASS_REMOVED",
     "real_trading": false
   },
-  "SCM_APPROVAL": "SECOND_APPROVED_UAC_EXECUTED_ONCE; THIRD_REPAIR_AWAITS_NEW_EXPLICIT_APPROVAL",
-  "SCM_STATUS": "OWNED_PG_RUNNING_LOCALSERVICE; OWNED_APP_STOPPED_FIRST_START_1053",
+  "SCM_APPROVAL": "THREE_SEPARATELY_APPROVED_SINGLE_UAC_ATTEMPTS; THIRD_REPAIR_PASS; NO_AUTOMATIC_RETRY",
+  "SCM_STATUS": "NATIVE_LOCALSERVICE_APP_AND_PG_RUNNING; REMOVE_REINSTALL_START_STOP_START_PASS",
   "PG_ISOLATION": {
     "status": "PASS_OWN_NATIVE_PG_SERVICE_55470",
     "endpoint": "127.0.0.1:55470",
@@ -25,15 +25,16 @@
     "runtime_role": "tester_lab_app, no storage DDL/DELETE or visibility grants"
   },
   "BROWSER_SMOKE": {
-    "status": "PASS_BOUNDED_BTC_CANDLES_VOLUME_UI_DOWNLOAD",
-    "tested_source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
-    "frontend_unchanged_in_current_candidate": true,
+    "status": "PASS_NATIVE_API_UI_HISTORY_AND_CHART",
+    "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
     "url": "http://127.0.0.1:18766/#terminal",
-    "rendered_panels": "2/12; remaining resources truthfully unavailable",
+    "ui_job": "bd8174b2-e0c2-4050-8dbd-72bbbbc19d8d",
     "rows": 30,
-    "ui_job": "770458e9-5eb9-4487-b171-147222c8ca56",
-    "timeframe_change": "1m/3m/1m interaction; no comprehensive mouse/DPI qualification",
-    "screenshot_sha256": "6584c59591bd7cd955f907a4897fe019b8170ed7f2e84f292e92c17c063f2787"
+    "panels": "2/12",
+    "timeframes": "1m/3m/1m",
+    "interaction": "keyboard activation used after browser click timeout; broad mouse/DPI qualification NOT_RUN",
+    "verification": "coverage UNKNOWN; UI99percent verification not confirmed",
+    "screenshot_sha256": "ebda37a6c8343947c34bcec89cff8c1298e7832f42cbc1137813eaf883055077"
   },
   "CI_EXACT_HEAD": {
     "source_commit": "a3138eb9813832e9a839a99e54547001343ab3fd",
@@ -45,14 +46,47 @@
         "url": "https://github.com/YehorBabenko88/tester/actions/runs/42474942463"
       }
     ],
-    "success": false
+    "success": false,
+    "repair_source_sha": "aded56998dae16cf13e9c2707fc52012f12a1bfb",
+    "repair_runs": [
+      {
+        "conclusion": "",
+        "databaseId": 42477365297,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477365297"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42477365293,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477365293"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42477365354,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477365354"
+      },
+      {
+        "conclusion": "cancelled",
+        "databaseId": 42477365333,
+        "status": "completed",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477365333"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42477361751,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477361751"
+      }
+    ]
   },
   "REMAINING_BLOCKERS": [
-    "New separate approval for published native-host repair",
-    "Actual app SCM startup and remove/reinstall/start-stop-start pending native-host repair",
-    "Exact-source hosted CI queued; no release GO",
-    "Native pywin32 pythonservice host is Authenticode NotSigned; wheel SHA256 is pinned, not an independent signature",
-    "F/G/H and derived financial provider remain NOT_INTEGRATED; historical visibility UNAVAILABLE/null; full-history/physical stress qualification absent"
+    "Exact application/repair source hosted CI queued; no release GO",
+    "Native pythonservice host Authenticode NotSigned; locked wheel SHA256 is integrity evidence, not an independent signature",
+    "Full historical completeness, stress/crash injection and broad mouse/DPI qualification not performed",
+    "F/G/H and derived financial providers NOT_INTEGRATED; unsupported panels and historical visibility remain UNAVAILABLE/null",
+    "LocalService keyring vault behavior not tested; only current-user own-entry roundtrip passed in portable smoke"
   ],
   "ten_instruments": {
     "status": "PORTABLE_TEN_INSTRUMENT_BOUNDED_PASS_NOT_SCM_OR_STRESS",
@@ -201,5 +235,126 @@
       "subtests": 57,
       "native_console_loader": "PASS_NOT_SCM"
     }
+  },
+  "NATIVE_SMOKE": {
+    "status": "NATIVE_HTTP_BYBIT_HISTORY_PASS",
+    "health": {
+      "schema_version": "1.0",
+      "data": {
+        "provider": "configured",
+        "instance_id": "968c8f56c3944cbe9c1f8e4920400fd3",
+        "status": "ok",
+        "database": "ok",
+        "worker": "ok",
+        "storage": "ok",
+        "free_bytes": 762950270976,
+        "used_bytes": 4527845
+      },
+      "next_cursor": null
+    },
+    "job": {
+      "id": "c7cea7d1-ed1c-4bae-9bf8-c012d6fb6847",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "1",
+        "start_ms": 1794136800000,
+        "end_ms": 1794138600000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "PARTIAL",
+        "source_records": 30
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-08T11:51:50.448684Z",
+      "updated_at": "2026-11-08T11:51:52.318843Z"
+    },
+    "candles": 30,
+    "coverage": {
+      "status": "UNKNOWN",
+      "start_ms": 1794136800000,
+      "end_ms": 1794138600000,
+      "evidence_refs": []
+    },
+    "start_ms": 1794136800000,
+    "end_ms": 1794138600000,
+    "real_trading": false
+  },
+  "native_ten_instruments": {
+    "status": "NATIVE_TEN_INSTRUMENT_BOUNDED_PASS",
+    "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
+    "instance_id": "968c8f56c3944cbe9c1f8e4920400fd3",
+    "start_ms": 1794138480000,
+    "end_ms": 1794138780000,
+    "results": [
+      {
+        "symbol": "ADAUSDT",
+        "job_id": "3127ed26-93f7-4762-acfe-19a3fb1a175f",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "AVAXUSDT",
+        "job_id": "be0c673b-8c23-43b7-8708-0b3904e11cdc",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "BTCUSDT",
+        "job_id": "a1f1dcf3-e8ea-43fa-95f7-af075baa6b4f",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "job_id": "bd55ab47-ed4a-4c45-8952-a828486f38b1",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "DOTUSDT",
+        "job_id": "fca2c63c-3e0b-451a-929e-390fa0eef7f1",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "ETHUSDT",
+        "job_id": "136b3975-eefa-4633-bb18-52a2a5e3fca4",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "LINKUSDT",
+        "job_id": "2ab93f74-cdbd-482b-9680-cd9f74fc3395",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "LTCUSDT",
+        "job_id": "c3578b84-0230-4e6a-a34b-9c5289720bad",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "SOLUSDT",
+        "job_id": "a47bb31e-2ef4-4b37-bfe1-9a2ab8622309",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "XRPUSDT",
+        "job_id": "60681f8b-70cc-44a9-83f3-b6494117f0b8",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      }
+    ],
+    "real_trading": false
   }
 }

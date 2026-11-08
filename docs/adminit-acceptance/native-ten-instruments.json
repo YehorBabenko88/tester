@@ -1,0 +1,70 @@
+{
+  "status": "NATIVE_TEN_INSTRUMENT_BOUNDED_PASS",
+  "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
+  "instance_id": "968c8f56c3944cbe9c1f8e4920400fd3",
+  "start_ms": 1794138480000,
+  "end_ms": 1794138780000,
+  "results": [
+    {
+      "symbol": "ADAUSDT",
+      "job_id": "3127ed26-93f7-4762-acfe-19a3fb1a175f",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "job_id": "be0c673b-8c23-43b7-8708-0b3904e11cdc",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "job_id": "a1f1dcf3-e8ea-43fa-95f7-af075baa6b4f",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "job_id": "bd55ab47-ed4a-4c45-8952-a828486f38b1",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "DOTUSDT",
+      "job_id": "fca2c63c-3e0b-451a-929e-390fa0eef7f1",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "job_id": "136b3975-eefa-4633-bb18-52a2a5e3fca4",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "LINKUSDT",
+      "job_id": "2ab93f74-cdbd-482b-9680-cd9f74fc3395",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "LTCUSDT",
+      "job_id": "c3578b84-0230-4e6a-a34b-9c5289720bad",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "job_id": "a47bb31e-2ef4-4b37-bfe1-9a2ab8622309",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "job_id": "60681f8b-70cc-44a9-83f3-b6494117f0b8",
+      "candles": 5,
+      "coverage": "UNKNOWN"
+    }
+  ],
+  "real_trading": false
+}

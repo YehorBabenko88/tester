@@ -74,5 +74,29 @@
     "Native pywin32 pythonservice host is Authenticode NotSigned; wheel SHA256 is pinned, not an independent signature",
     "F/G/H and derived financial provider remain NOT_INTEGRATED; historical visibility UNAVAILABLE/null; full-history/physical stress qualification absent"
   ],
-  "deploy_payload_sha256": "21b2854d02ac1d27563cd263e89504a13d4a6eb1724d3681588e63803eea506c"
+  "deploy_payload_sha256": "21b2854d02ac1d27563cd263e89504a13d4a6eb1724d3681588e63803eea506c",
+  "native_host_repair": {
+    "schema": "tester-native-host-repair/v1",
+    "application_source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
+    "application_deploy_manifest_sha256": "21b2854d02ac1d27563cd263e89504a13d4a6eb1724d3681588e63803eea506c",
+    "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+    "packager_source_sha": "aded56998dae16cf13e9c2707fc52012f12a1bfb",
+    "packager_tree_sha": "cbcb1f62b2b5ad4eb78d5ed6efdc5606b39a0642",
+    "repair_script_sha256": "effb90c87fae95dd803afde4f4960d2a3573985c963d1da7e6cabd415f6a8dcb",
+    "old_runtime_manifest_sha256": "e0c33f1b49d744c44d68c4e70415170c0383ff4fe741fb5461278636bed5d3a3",
+    "servicemanager_sha256": "0582ec19772bc11d9e745a2f7094b5f6ad0df76024bc1e8ab6df32314d674e28",
+    "pth_sha256": "fd310b5916940423b70f2d4df8c06798d5f0c168b7c361a9fbe345f224a38877",
+    "python_class": "C:\\TesterLab\\dependencies\\service\\lab_service_bootstrap.LabService",
+    "new_runtime_manifest_sha256": "c27820f6f6d4752dcc1eb3211dd03c39f7093d982e1326058af8a2dcc5d2982b",
+    "repair_archive_sha256": "edd9d7a20cdbde5f2646f49fc0a7593a5907c5ff6070d37e1cd24aa5321d254a",
+    "validation": {
+      "passed": 378,
+      "skipped": 84,
+      "subtests": 57,
+      "native_console_loader": "PASS_NOT_SCM"
+    }
+  },
+  "native_host_repair_manifest_sha256": "39db695756ecc07b632981e70c01c3fa54b82427c7026b456950854e0a29859d",
+  "physical_status": "NATIVE_APP_API_HISTORY_UI_PASS_LIMITED_ACCEPTANCE",
+  "release_go": false
 }

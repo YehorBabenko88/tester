@@ -1,0 +1,7 @@
+{
+  "status": "SOURCE_AND_NATIVE_INVENTORY_PASS",
+  "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
+  "source_files": 554,
+  "native_files": 1892,
+  "native_manifest_sha256": "c27820f6f6d4752dcc1eb3211dd03c39f7093d982e1326058af8a2dcc5d2982b"
+}
