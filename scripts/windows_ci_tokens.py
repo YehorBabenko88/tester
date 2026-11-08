@@ -79,8 +79,37 @@ def default_dacl(kernel, adv, token):
         kernel.LocalFree(text)
 
 
-def _exact_aces(summary, sids):
-    expected = [dict(type=0, flags=0, mask=0x10000000, sid=sid) for sid in sids]
+def measured_logon_sid(original_profile, restricted_profile):
+    """Resolve exactly one matching enabled, non-deny logon SID from both tokens."""
+    resolved = []
+    for profile in (original_profile, restricted_profile):
+        groups = profile.get("admin_and_logon_groups")
+        if not isinstance(groups, list):
+            raise ValueError("Measured token logon groups unavailable")
+        found = []
+        for group in groups:
+            attributes = group.get("attributes")
+            sid = group.get("sid")
+            if type(attributes) is not int or not isinstance(sid, str):
+                raise ValueError("Invalid measured token group")
+            if attributes & 0xC0000000 == 0xC0000000:
+                if (
+                    not attributes & 4
+                    or attributes & 0x10
+                    or not re.fullmatch(r"S-1-5-5-[0-9]{1,10}-[0-9]{1,10}", sid)
+                ):
+                    raise ValueError("Token logon SID must be enabled and non-deny")
+                found.append((sid, attributes))
+        if len(found) != 1:
+            raise ValueError("Exactly one measured token logon SID required")
+        resolved.append(found[0])
+    if resolved[0] != resolved[1]:
+        raise ValueError("Original and restricted token logon SID/attributes differ")
+    return resolved[0][0]
+
+
+def _exact_aces(summary, grants):
+    expected = [dict(type=0, flags=0, mask=mask, sid=sid) for sid, mask in grants.items()]
     return (
         summary.get("null") is False
         and len(summary.get("entries", [])) == len(expected)
@@ -89,12 +118,17 @@ def _exact_aces(summary, sids):
     )
 
 
-def replacement_default_dacl(original, restricted, user_sid):
+def replacement_default_dacl(original, restricted, user_sid, logon_sid):
     if not re.fullmatch(r"S-1-5-21-(?:[0-9]{1,10}-){3}[0-9]{1,10}", user_sid):
         raise ValueError("Individual user SID required")
-    if original != restricted or not _exact_aces(original, {"S-1-5-32-544", "S-1-5-18"}):
+    if not re.fullmatch(r"S-1-5-5-[0-9]{1,10}-[0-9]{1,10}", logon_sid):
+        raise ValueError("Measured token logon SID required")
+    # Exact published CI evidence: BA GA + SYSTEM GA + that token's logon GXGR.
+    # The logon SID is measured per job, never a literal runner/session SID.
+    grants = {"S-1-5-32-544": 0x10000000, "S-1-5-18": 0x10000000, logon_sid: 0xA0000000}
+    if original != restricted or not _exact_aces(original, grants):
         raise ValueError("Unproven default DACL hypothesis; repair refused")
-    return f"D:(A;;GA;;;{user_sid})(A;;GA;;;SY)"
+    return f"D:(A;;GA;;;{user_sid})(A;;GA;;;SY)(A;;GXGR;;;{logon_sid})"
 
 
 def install_copy_default_dacl(kernel, adv, restricted, sddl):
@@ -121,6 +155,9 @@ def install_copy_default_dacl(kernel, adv, restricted, sddl):
         kernel.LocalFree(descriptor)
 
 
-def verify_replacement(summary, user_sid):
-    if not _exact_aces(summary, {user_sid, "S-1-5-18"}):
-        raise ValueError("Restricted token default DACL did not match exact user/SYSTEM policy")
+def verify_replacement(summary, user_sid, logon_sid):
+    grants = {user_sid: 0x10000000, "S-1-5-18": 0x10000000, logon_sid: 0xA0000000}
+    if not _exact_aces(summary, grants):
+        raise ValueError(
+            "Restricted default DACL must match exact user/SYSTEM and unchanged logon GXGR"
+        )
