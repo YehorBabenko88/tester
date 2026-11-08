@@ -182,7 +182,7 @@ function renderRows() {
         detail = el("details"),
         summary = el(
           "summary",
-          `Download ${jobState(j)} | Coverage ${p.coverage}`,
+          `Download ${jobState(j)} | Coverage ${p.coverage} | ${p.bytes_received ?? "unknown"} bytes | ${p.records_ingested ?? "unknown"} records | ${p.bytes_per_second ?? "unknown"} B/s`,
         ),
         bar = el("progress");
       detail.dataset.jobId = j.id;
@@ -192,7 +192,6 @@ function renderRows() {
       bar.setAttribute("aria-label", `Inline progress ${j.id}`);
       detail.append(
         summary,
-        bar,
         el(
           "small",
           `${j.id} | ${j.request?.source || p.source} | ${j.request?.interval || "unknown"} | ${iso(j.request?.start_ms)} | ${iso(j.request?.end_ms)}`,
@@ -202,7 +201,7 @@ function renderRows() {
           `${p.bytes_received ?? "unknown"} bytes | ${p.records_ingested ?? "unknown"} records | ${p.bytes_per_second ?? "unknown"} B/s`,
         ),
       );
-      action.append(detail);
+      action.append(bar, detail);
     }
     tr.append(action);
     body.append(tr);
