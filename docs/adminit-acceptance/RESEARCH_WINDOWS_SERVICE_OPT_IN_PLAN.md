@@ -1,174 +1,78 @@
-# Opt-in Windows Research Lab service — review plan only
+﻿# Windows Research Lab additive opt-in integration — review plan
 
-**Status: DOC_ONLY / NOT_IMPLEMENTED / NOT_AUTHORIZED_FOR_NATIVE_ACTIVATION.**
-Requested after the synthetic vertical acceptance and PR #39 CI failures. This
-document prepares a future, separately reviewed service implementation. It does
-not register/start/stop a service, change ACLs or registry, access installed
-ADMINIT, use PostgreSQL 5432, invoke UAC, perform recovery or authorize deployment.
-The root coordinator remains the sole physical operator.
+**DOC_ONLY / NOT_IMPLEMENTED / NOT_AUTHORIZED_FOR_NATIVE_ACTIVATION.** Root is the sole physical operator. This plan grants no UAC, service/ACL/registry change, installed read, worker recovery, PostgreSQL 5432 operation, deployment or automatic scheduling authority.
 
-## Source baseline and current behavior
+## Source baseline and intended behavior
 
-Reviewed application source `68e59b5` (exact full SHA must be resolved in the
-eventual release manifest), with subsequent CI-only import/format fix `8a0e894`.
-The relevant current files are `src/integration/research_lab.py`,
-`research_runtime.py`, `src/api/research_ledger.py`, `research_control.py`,
-`research_worker.py`, the research SQL migration and pinned F/G producer manifests.
+Reviewed source baseline `68e59b5965c1d6bc055bc4700b3a80d8c50c9bc6`, CI-only correction `8a0e894aaa04d41fa6a07c746c44412acd665b59`, and the source Research Lab composition. A future implementation and every native operation must freeze their own exact reviewed candidate rather than reuse this historical baseline as a current head.
 
-The working composition is explicitly portable: a fresh non-service research
-cluster and `research_runtime serve`, a loopback API plus one in-process polling
-task. Its identity truthfully reports `native_service=false`. It is not imported
-by the installed service. `src/api/lab_service.py` currently launches only
-`src.api.supervisor`, uses the existing lab marker and fixed 18766/55470 service
-contract, and cannot be repurposed by changing a registry string. The older
-`windows_service.py` is also a download-supervisor host, not a Research Lab host.
+The portable `src/integration/research_lab.py` and `research_runtime.py` composition is a separately created owner-user cluster at 55471 and research-only HTTP app at 18767. It uses a user-only private directory, bootstrap owner and one-hour demo capability. It reports `native_service=false`. These properties are not a native service launch/configuration/authentication contract. LocalService cannot be assumed able to read the current owner-only `private.json`.
 
-The portable marker, user-only workspace ACL, bootstrap database owner and
-one-hour capability are not a finished unattended-service contract. Directory
-name equality in `require_published_origin` is an origin guard, not independent
-full source/inventory verification. All of these differences require explicit
-implementation and tests before native activation.
+The primary proposed integration is **additive inside the existing main application and its owned app service**. Preserve all existing market/download APIs, canonical market storage, operational worker, chart behavior, identity and health contracts. Do not replace `src.api.main` with `research_runtime.create_app`, its root static mount or its research-only worker. The present native host launches the existing supervisor; a future addon requires explicit source composition, not a registry module-string substitution.
 
-## Proposed scope and ownership
+## Typed default-off boundary
 
-Use a new opt-in Research Lab service and marker schema. Keep the installed
-ADMINIT service, its root, native inventory, app/API ports, PostgreSQL cluster,
-data, registry and account permissions outside its ownership. Do not adopt a
-portable marker or move a user workspace under a service account automatically.
+Define and review versioned typed configuration with `research_enabled=false` by default, an independent secret Research DSN and explicit owned database/role identity. Keep the market DSN separate. Add reviewed worker/resource bounds and expected research source/schema versions. Reject unknown fields, unsupported combinations and enabled-without-provisioned-identity rather than selecting defaults.
 
-The future review should freeze these decisions in a typed service plan:
+With the feature disabled, startup must preserve the existing main application behavior, make no research database connection or migration and start no research polling task. Existing unavailable UI states must stay honest. Research-enabled startup validates the pre-provisioned owned database and schema, checks current credentials/source pins, then mounts only the reviewed bounded research routes/assets. Failure must be visible in versioned health and cannot be represented as successful research activation.
 
-| Boundary | Required decision/behavior |
-| --- | --- |
-| Installation | Explicit new dedicated root and installation UUID; reject an occupied root, reparse path, unowned marker or foreign service name |
-| Service identity | Names such as TesterResearchApp_<uuid> and, only if separately included, TesterResearchPG_<uuid>; no generic service-name matching |
-| Account | Reviewed least-privilege service identity; no LocalSystem/default administrator runtime |
-| API | Loopback 127.0.0.1:18767 only; conflict refuses activation without a fallback port |
-| Research database | Explicit owned tester_research_<uuid> database/cluster, loopback 55471; no reuse of 5432, 55470, installed tester_lab or arbitrary DSN |
-| Existing portable lab | Remains retained; if it occupies Research ports, report a conflict. A separately authorized graceful owner-scoped stop or explicit alternative design is needed, never a broad kill |
-| Code | Immutable SHA release directory and exact source/runtime inventory; read-only to service account; no imports from worktrees, user-site packages or arbitrary plugins |
-| State | Canonical PostgreSQL only for jobs, grants, immutable bundle/artifact, ACK and audit; no parallel SQLite or success-state file ledger |
-| Physical operation | Separate install/start approval after exact implementation, manifest, backup and rollback review |
+Preserve the existing owned main API endpoint (currently 18766) and all existing paths. Mount reviewed research namespaces without shadowing `/api/downloads`, market/chart routes, main identity/health or the frontend root. Fix the standalone control factory's hard-coded origin/port assumptions through typed reviewed composition; do not widen Host/Origin/CORS to arbitrary origins. Any genuinely necessary sidecar/listener is a separate design decision and approval, never an automatic port fallback.
 
-The source adapter remains the real pinned F engine and the actual G typed
-client. No engine execution is accepted from an arbitrary HTTP payload. A future
-seeding/import command must publish a digest-verified bundle through the real
-replay verifier, with its own operator authorization. Synthetic source namespaces
-remain SYNTHETIC_ONLY / real_market_coverage NOT_PROVEN.
+## Database, migration and roles
 
-## Version, manifest and launch contract
+Use a new owned `tester_research_<installation-id>` database with its own DSN and least-privilege runtime role. Its PostgreSQL endpoint and cluster system identifier must be explicitly selected and approved. If the existing owned lab cluster on 55470 is selected, use a distinct Research database/role and reviewed backup scope; never use its market `tester_lab` database as an implicit fallback. If a distinct research cluster is selected, review its ownership and lifecycle separately. Never connect to, migrate, stop or adopt PostgreSQL 5432.
 
-Before enabling a service, publish a release manifest binding the complete
-repository commit/tree, archive hash, complete file inventory, F/G source pins,
-SQL migration checksums, reviewed service-host SHA, Python/pywin32/psycopg/psutil
-and other runtime wheel hashes, installation ID, root, service names, account,
-ports and PostgreSQL system identifier. Pin psutil explicitly for the runtime:
-it is currently a development extra even though portable process ownership
-verification imports it. No dependency installation should occur at service start.
+The portable fixed 55471/18767 marker is not a substitute for this native ownership decision. Reject occupied ports, foreign cluster identity, missing database/role, ambient libpq redirects and unsupported DSN fields. Preserve established ownership checks and exact endpoint authentication.
 
-The service must validate its registered identity against its new marker, source
-manifest and actual binary/runtime inventory. Build identity returned by HTTP
-does not substitute for OS process ownership. The launch entrypoint must be a
-fixed reviewed module and fixed typed arguments, not a caller-provided shell,
-Python expression, SQL command or provider path.
+Bootstrap/provisioning and checksummed migration must occur as explicit reviewed operator actions **before application startup**. Do not execute DDL from client requests, service startup or app factory construction. Separate the migration owner from the runtime role; the portable initdb `research_owner` bootstrap account is not production least privilege. Review only necessary table/sequence permissions and immutable artifact/audit/ACK triggers. Test denied DDL, cross-database/schema access and forbidden evidence mutation.
 
-Sanitize inherited Python/TESTER/libpq overrides; inject only the owned reviewed
-configuration. Tokens and DSNs stay outside command lines, stdout, audit payloads
-and Git evidence. Hide background windows. Use a reviewed owned descendant/job
-lifetime boundary; never terminate a process selected only by name or PID.
-SCM running status follows source validation plus actual API/database/worker
-readiness, not merely successful process creation.
+Canonical Research PostgreSQL remains the sole authority for credentials/grants, jobs, fencing/leases, immutable bundle/artifact bytes, ACKs and audit. No parallel SQLite/state-file success ledger. A separately approved seed/import path must run the actual pinned F verifier and publish canonical bytes; an HTTP command cannot request arbitrary engine code, shell, SQL or provider expressions.
 
-## Access control and capability lifecycle
+## Account, secret ACL and source protection
 
-Prepare explicit directory ACL fixtures before applying any ACL. The service
-account needs read/execute only on source and runtime; write access only to its
-specific state/log locations and reviewed database credential material. Existing
-ADMINIT and office-machine ACLs must remain untouched. Root-owned source pins and
-private configuration must not be writable by the API actor.
+The running identity remains a reviewed least-privilege app service account, such as the existing scoped LocalService contract. Use the exact owned service name/installation identity rather than generic process/service matching. Do not adopt an owner-user portable directory or copy its demo capability into a public service configuration.
 
-Separate bootstrap/migration ownership from the long-running database role.
-Portable `research_owner` is created by initdb as a bootstrap owner; do not
-silently treat that role as production least privilege. Review the necessary
-table/sequence privileges and immutable evidence triggers, then test denied DDL,
-foreign schemas/databases and data mutation. Migrations run only as an explicit
-reviewed operator action, never automatically from HTTP or service startup.
+Before any physical ACL operation, prepare fixture-tested ACL plans for a dedicated reviewed native secret/config path: operator write, only the required service identity read, no ordinary client read/write. LocalService access must be proven on that path under the real identity, not inferred from an administrator test. Source and Python/runtime inventories are read/execute-only to the service; writes are restricted to its reviewed state/log paths. Existing installed market, office-machine and foreign-cluster ACLs remain outside the change.
 
-Keep authentication and current object/action grants persisted and rechecked on
-submit, replay, dispatch, retrieval and ACK. A browser capability is not a service
-password and must not be embedded into a public page. Define operator-mediated
-credential issue/rotation/revocation, expiration handling and service behavior
-after expiry. The current one-hour seeded capability cannot justify silently
-issuing a replacement or retaining access after revocation.
+Keep DSNs/tokens out of argv, stdout, public pages, receipts and audit bodies. Bind the secret version to a redacted configuration receipt. Define operator-mediated credential issue/rotation/revocation and expiry behavior; no silent replacement of the demo's one-hour token, infinite grant or continued access after revocation. Browser capabilities remain separately persisted actor/action/artifact grants, not the service's database password.
 
-Host/Origin/CSRF policy must be reviewed for the actual service browser/client
-flow; preserve the current typed loopback restrictions. Before a client discloses
-its capability, verify the exact owned process image/creation/source/arguments
-and accepted TCP endpoint, then independently verify the application identity.
-ACK records the exact artifact digest and rendered visible fill IDs; it remains a
-client assertion with separate real-browser evidence, never independent proof of
-pixels or real trading.
+Sanitize inherited Python/TESTER/libpq overrides and user-site imports. Launch only the fixed reviewed source/runtime entrypoint; do not install dependencies at service start. Pin runtime psutil explicitly where required: it is currently a development extra although portable process ownership checks import it.
 
-## Graceful stop, upgrade and rollback
+## Source/version and OS-authenticated identity receipts
 
-Implement an explicit Research-only draining/stop protocol. Stop new admissions,
-finish or release/fence owned leases, cancel the in-process polling task, close
-the owned HTTP listener and report SCM state within reviewed deadlines. Do not
-reuse the ADMINIT download stop.request protocol without a reviewed adapter. Do
-not stop PostgreSQL merely because the API stops. Abnormal process containment
-must target only the new service's verified descendants; native worker-recovery
-termination is not part of this plan.
+Freeze a candidate manifest containing full commit/tree, archive SHA-256, complete source inventory, actual F/G origin pins, SQL checksums, Python/native dependency hashes, installation root/ID, app service identity/account, Research DB name/role/endpoint/system identifier, configuration schema/version and active source/runtime pointers.
 
-An upgrade is a separately approved transaction over a new immutable release and
-new private runtime inventory. Retain the previous source/runtime/configuration
-and a tested backup of this Research database. Record exact registry/SCM config,
-ACLs, marker bytes, PostgreSQL system identifier, migration checksums, canonical
-row/artifact/audit hashes and service identity before any physical change.
+Retain exact **before and after** source/native/pointer/config receipts. A SHA-named directory and self-reported HTTP SHA alone are not independent verification. Validate immutable files and registered ownership, then bind the real OS process image, PID creation, command/module, cwd and owned accepted TCP endpoint before disclosing a capability. Verify application identity/health separately against those pins.
 
-Compatibility must be decided before migration: a code rollback cannot undo an
-incompatible schema. Prefer additive/versioned migrations and reject a rollback
-whose old code cannot read the retained schema. Any restore requires its own
-explicit data-loss review; never overwrite the installed ADMINIT cluster or
-silently delete newer research artifacts/audit to make a downgrade succeed.
+Do not leak raw unrelated process commands/environment in receipts. Normal service stop/start and fresh instance identity must be covered independently of worker-recovery tests. The existing ban on native recovery termination remains; this addon does not create a recovery action or schedule one.
 
-On failed upgrade, fail closed, stop only the newly owned Research app if
-necessary, preserve diagnostics and switch back to the retained compatible
-release/runtime/config with explicit identity checks. Revalidate canonical data
-and readiness. If identity or schema compatibility is uncertain, leave the
-Research service stopped and report rollback NOT_PROVEN; no automatic privilege
-retry, broad service stop, recursive deletion or main merge.
+## Health, concurrency and renderer parity
 
-## Implementation and acceptance gates before an activation request
+Maintain existing main API/download readiness and degraded-provider behavior. Add explicit versioned Research health (disabled, not provisioned, ready, capability expired/revoked, worker failed) without rewriting the existing market health meaning. Never report SCM Running solely because a subprocess exists. Bound admission, workers, memory, result size, retries and shutdown deadlines through typed source-reviewed configuration.
 
-1. Repair current PR #39 CI from observed logs. Record Linux 3.11/3.14 and Windows
-   results separately. Research database tests require an explicit disposable
-   non-5432 TEST_RESEARCH_DATABASE_URL; existing platform CI's 5432 database must
-   not be substituted to remove skips.
-2. Implement source-only typed service plan/host/bootstrap, marker, environment,
-   account/ACL and rollback checks using mocked SCM and temporary fixture roots.
-   Reject wrong root/ID/source/hash, unknown files, unsafe paths, occupied ports,
-   foreign service/account/DB, PID reuse and stale capabilities. Publish and
-   independently review the exact source candidate before physical tooling.
-3. In a disposable Windows environment, test native install/start/drain/stop,
-   bounded crash/restart and upgrade/rollback against a separately created owned
-   research cluster. Use actual F/G/E, durable PostgreSQL and real renderer;
-   no successful backend substitutes. Restore a backup into another disposable
-   destination and compare immutable bundle/artifact/audit evidence.
-4. Verify denied/expired/revoked credentials, actor isolation, idempotency
-   conflicts, fenced stale workers, scoped retrieval, all-fill correspondence,
-   half-open windows/cutoff, exact ACK and actual browser rendering. No real
-   market completeness, disclosed trader identity or real-order claim follows
-   from the synthetic fixture.
-5. Prepare a concrete activation package listing exact service names/root,
-   account, manifests, approved DB scope, changed registry/ACL paths, backup,
-   compatibility and rollback commands. Only then may the coordinator request
-   the separate native/elevation authorization. This document grants none.
+Authentication/authorization must be rechecked on submit/replay/dispatch/result/ACK. Preserve actor-scoped idempotency, canonical-byte digests, stale-worker fencing and immutable audit continuity across normal restart. Confirm the actual F result/input digests and one-to-one fill/overlay correspondence, including open entries and partial exits. Preserve bar windows, knowledge cutoff, exact decimals and null closed-trade IDs.
 
-## Current diagnosis limits
+Validate real browser rendering against the actual authenticated main-app addon and canonical PostgreSQL, including resize/zoom/keyboard behavior and exact rendered visible fill IDs. ACK is a client assertion about a digest and visible fills; independent browser evidence is still needed. Synthetic source qualification never establishes authentic historical completeness, trader identity or real execution.
 
-The supplied Linux job 128799792170 at source 68e59b5 stops at Ruff I001 in
-`tests/platform/test_research_postgres.py:173`. It never reaches pytest, lifecycle
-or security checks. Root owns that lint/format correction. No additional Linux
-runtime failure has been reproduced from that log; future CI logs must determine
-the next fix. This plan was prepared solely from Git source and the provided CI
-log, with no installed path, service, registry, API or database access.
+## Backup, upgrade and rollback
+
+Before a future approved change, make consistent backups of every owned database in the explicit change scope, including the owned market database if it is affected and the new Research database. Record exact scope, roles, schema/migration checksums and canonical row/artifact/audit hashes. Restore-probe into separately owned disposable databases/destinations and compare evidence. Do not overwrite the source/market cluster as a restore test.
+
+Publish immutable new source/runtime/configuration and retain the exact prior compatible app 719 source/runtime/pointer/configuration receipts. Compatibility must be reviewed before migration. Prefer additive/versioned Research schema; no destructive down migration or deletion of newer research evidence to make old code appear compatible.
+
+Rollback changes **app configuration and active source/runtime pointers only**, stopping/restarting only the exact owned app service when required. Do not stop PostgreSQL, the market cluster, a separate research cluster or unrelated services. Retain the new Research database, immutable artifacts and audit. Restore the exact compatible prior configuration, not merely `research_enabled=false`: old strict configuration models can reject newly added fields. Old app code must be able to resume its original market/download behavior without reading unsupported Research schema.
+
+After rollback, revalidate source/native/config/pointers, process identity, ordinary stop/start, health, existing market/download API parity and the unchanged database identities/data. If compatibility or ownership is uncertain, leave the addon disabled and report rollback NOT_PROVEN. Do not retry UAC, use a broad stop/kill, invoke worker recovery, change main or destroy data automatically.
+
+## Reviewable implementation phases before any activation request
+
+1. Complete PR #39 CI repair using observed logs. Keep Linux 3.11/3.14 and Windows results separate. Existing CI `TEST_DATABASE_URL` on disposable CI 5432 is not an authorized replacement for explicit non-5432 Research integration tests.
+2. Implement typed default-off config and main-app addon composition with no research connection/migration when disabled. Fixture-test routing/health parity and missing/foreign/expired source/auth/DB cases before native tooling.
+3. Implement explicit operator-only provisioning/migration/secret ACL and versioned receipts. Test least-privilege access and restore probes in disposable environments. Prepare no action against installed ADMINIT as part of these source tests.
+4. Test actual F/G/E plus durable PostgreSQL and D browser path under the reviewed main application. Exercise actor isolation, revocation, canonical replay, fenced crash/restart and exact fill ACK without fake successful backends.
+5. In a separately authorized disposable Windows native test, verify service-account secret access, normal stop/start/restart, process/instance/source identity, migration compatibility and app-only rollback. Keep PostgreSQL running and preserve all new DB evidence.
+6. Prepare the exact concrete native change package: service identity/root, candidate/source/native/pointer/config pins, typed opt-in setting, owned database/role/migration, changed ACL/registry paths if any, backup/restore probe, stop/start health/parity and app-only rollback. Only then request **one new explicit UAC/native scope authorization** from the user. No authorization, automatic scheduling or activation follows from this document.
+
+## CI diagnosis scope
+
+The first supplied Linux job 128799792170 at source 68e59b5 failed Ruff I001 before tests. The subsequent 8a0e894 Linux job 128827228145 reached pytest and failed internally because a sampler fixture mutated shared `os.name`, causing pathlib to instantiate WindowsPath on Linux. The separately published J source fix isolates the platform selector and retains real synthetic PowerShell-template coverage. Earlier ordinary test failures remain to be diagnosed from the next complete CI report; no guessed fixes or blanket exclusions are proposed.
