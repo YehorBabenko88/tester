@@ -1,0 +1,19 @@
+{
+  "status": "ACTUAL_F_BUNDLE_PERSISTED",
+  "application_source_sha": "00baad05ad78cf77524600d37ace39dd42e3159e",
+  "lab_source_sha": "00baad05ad78cf77524600d37ace39dd42e3159e",
+  "engine_source_sha": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+  "run_id": "8149a0fa864d0cf6355fc048b30dbc49d72d68eed9b16d82fa2e479cac3aae6a",
+  "snapshot_id": "synthetic:c5e6df427501dd9de9f1683c126e5f1066f51f317e5f90604c0f392f2880aa0b",
+  "chart_digest": "b2704ca080a0987622b062fa088372894537372a3b8cd15705f518edcd4b6d44",
+  "result_digest": "ee3dfdfe16568503748369abc641cbc1b55cfc7e64e091a624f29fde32615f46",
+  "snapshot_digest": "c5e6df427501dd9de9f1683c126e5f1066f51f317e5f90604c0f392f2880aa0b",
+  "candles": 3,
+  "fills": 3,
+  "synthetic": true,
+  "execution_mode": "SIMULATED",
+  "real_market_coverage": "NOT_PROVEN",
+  "database": "tester_research_a44790295c3a4c66b57c6a31cab7d563",
+  "postgres_port": 55471,
+  "source_root": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\published\\00baad05ad78cf77524600d37ace39dd42e3159e"
+}

@@ -23,26 +23,26 @@ Published GitHub SHA only for acceptance; no installed719 mutation, worker termi
 - [x] Record PR30 and I-L exact heads and normative architecture.
 - [x] J normal-merges PR30 into its own branch, combines raw-byte Git attributes, tests and pushes.
 - [x] Root composes existing published heads into separate integration/adminit-wave-il branch.
-- [ ] Publish candidate Draft PR against integration/adminit-acceptance; never main.
+- [x] Publish candidate Draft PR against integration/adminit-acceptance; never main.
 
 ### Task2: actual F execution and result projection (J)
-- [ ] Add failing real-engine synthetic admission/replay/all-fill/timing/tamper tests.
-- [ ] Pin/vend F998c5bc self-contained modules and genuine source fixture; implement bundle/projection callable.
-- [ ] Run tests, publish J head and report exact API to K/L/root.
+- [x] Add failing real-engine synthetic admission/replay/all-fill/timing/tamper tests.
+- [x] Pin/vend F998c5bc self-contained modules and genuine source fixture; implement bundle/projection callable.
+- [x] Run tests, publish J head and report exact API to K/L/root.
 
 ### Task3: durable authorized G/E (K)
-- [ ] Add canonical research PostgreSQL migration/ledger, scoped token expiry/revocation and transactional job/result/ACK/audit with fencing tests.
-- [ ] Implement actual G typed HTTP client and opt-in persistent app factory; default native app unchanged.
-- [ ] Publish head; root runs real disposable PostgreSQL E2E, not a test store.
+- [x] Add canonical research PostgreSQL migration/ledger, scoped token expiry/revocation and transactional job/result/ACK/audit with fencing tests.
+- [x] Implement actual G typed HTTP client and opt-in persistent app factory; default native app unchanged.
+- [x] Publish head; root runs real disposable PostgreSQL E2E, not a test store.
 
 ### Task4: actual D renderer (L)
-- [ ] Add real persisted candles/artifact endpoint consumer, canvas fills/windows and digest ACK.
-- [ ] Add unit timing/permission cases and separate unmocked backend browser suite including mouse/zoom.
-- [ ] Publish head; root runs it against real candidate API/PG.
+- [x] Add real persisted candles/artifact endpoint consumer, canvas fills/windows and digest ACK.
+- [x] Add unit timing/permission cases and separate unmocked backend browser suite including mouse/zoom.
+- [x] Publish head; root runs it against real candidate API/PG.
 
 ### Task5: isolated runner/composition (root)
-- [ ] TDD owned-workspace cluster/config validation: non-reparse new paths, loopback ports excluding5432/55470/18766, create-only identity, bounded process handles, no SCM/UAC.
-- [ ] Compose F seed>PG store>API worker/runtime and G acceptance client, recording actual immutable digests.
-- [ ] Publish runner and candidate before nonadmin cluster/API acceptance.
-- [ ] Run core/contract suites, actual PG/restart/auth/tamper/G tests and actual browser rendering; document failures and fix GitHub-first.
-- [ ] Review all branches, pin source/tree/payload/native compatibility; prepare exact SHA for later physical trial, preserve installed719.
+- [x] TDD owned-workspace cluster/config validation: non-reparse new paths, loopback ports excluding5432/55470/18766, create-only identity, bounded process handles, no SCM/UAC.
+- [x] Compose F seed>PG store>API worker/runtime and G acceptance client, recording actual immutable digests.
+- [x] Publish runner and candidate before nonadmin cluster/API acceptance.
+- [x] Run core/contract suites, actual PG/restart/auth/tamper/G tests and actual browser rendering; document failures and fix GitHub-first.
+- [x] Review branches and pin source/tree/archive for scoped research physical trial; preserve installed719. Native opt-in packaging/activation remains a separate gate.

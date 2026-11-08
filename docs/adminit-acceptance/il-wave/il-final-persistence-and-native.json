@@ -1,0 +1,33 @@
+{
+  "research_database": "tester_research_a44790295c3a4c66b57c6a31cab7d563",
+  "postgres_port": 55471,
+  "canonical_counts": {
+    "artifacts": 1,
+    "jobs": 4,
+    "audit": 22,
+    "acknowledgments": 4
+  },
+  "job_states": [
+    [
+      "complete",
+      4
+    ]
+  ],
+  "native_identity": {
+    "source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+    "tree_sha": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+    "deploy_manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+    "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+    "services": {
+      "app": "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60",
+      "postgres": "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60"
+    },
+    "instance_id": "8d7e04a83b07471d8282cdc02af51c46",
+    "api_endpoint": "http://127.0.0.1:18766",
+    "postgres_port": 55470,
+    "provenance": "host_reported",
+    "scm_state": "not_independently_verified"
+  },
+  "installed_version_unchanged": true,
+  "scope": "read-only final owned research and native identity checks"
+}
