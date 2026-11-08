@@ -16,7 +16,26 @@ sys.path.insert(0, str(ROOT))
 
 
 def check(*args):
-    subprocess.run([sys.executable, *args], cwd=ROOT, check=True)
+    # pwsh 7 prepends incompatible built-ins to the inherited PSModulePath.
+    # Windows PowerShell 5 descendants must rebuild their own edition defaults.
+    # Isolate only the child environment; never change host/user settings.
+    child_env = (
+        {key: value for key, value in os.environ.items() if key.upper() != "PSMODULEPATH"}
+        if os.name == "nt"
+        else None
+    )
+    if (
+        os.name == "nt"
+        and os.environ.get("GITHUB_ACTIONS") == "true"
+        and args[:2] == ("-m", "pytest")
+    ):
+        # CI runners are elevated; owner-only ACL assertions require a real
+        # standard-user token, not weakened guards or skipped Windows tests.
+        from scripts.windows_ci_tests import run_pytest
+
+        run_pytest(args, cwd=ROOT, env=child_env)
+        return
+    subprocess.run([sys.executable, *args], cwd=ROOT, check=True, env=child_env)
 
 
 def wait_health(port, process):
@@ -97,8 +116,7 @@ def main():
     if args.security:
         check("-m", "bandit", "-r", "src/api", "scripts", "-ll", "-q")
         check(
-            "-m",
-            "pip_audit",
+            "scripts/audit_transport.py",
             "--skip-editable",
             "--cache-dir",
             str(ROOT / ".scratch/audit-cache"),

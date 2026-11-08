@@ -1,0 +1,2 @@
+# External recovery manifests bind exact script bytes, including line endings.
+Test-TesterLabWorkerRecovery.ps1 -text

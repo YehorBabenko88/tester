@@ -10,12 +10,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m compileall -q .
       - run: python -m unittest discover -p "test_*.py" -v
+      - run: python scripts/acceptance.py
   postgres-acceptance:
     runs-on: ubuntu-latest
     services:
@@ -41,6 +45,8 @@ jobs:
       PGPASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-disposable
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
