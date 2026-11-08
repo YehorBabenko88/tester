@@ -143,15 +143,17 @@ def test_postgres_publish_auth_lease_restart_result_ack(persistent):
 
 
 def test_g_sources_are_exact_declared_pin():
+    # Package/archive resources only: no .git, checkout CWD or Git executable.
     import hashlib
-    import subprocess
-    from pathlib import Path
+    import json
+    from importlib.resources import files
 
-    pin = "5edb722fc936a56e81a174cfe654839de9a19a9d"
-    for name in ("commands.py", "contracts.py", "types.py", "bridge.py"):
-        path = "src/control/" + name
-        expected = subprocess.check_output(["git", "show", pin + ":" + path])
-        assert hashlib.sha256(Path(path).read_bytes()).digest() == hashlib.sha256(expected).digest()
+    root = files("src.control")
+    manifest = json.loads(root.joinpath("G_SOURCE_PIN.json").read_text(encoding="utf-8"))
+    assert manifest["source_sha"] == "5edb722fc936a56e81a174cfe654839de9a19a9d"
+    assert set(manifest["files"]) == {"commands.py", "contracts.py", "types.py", "bridge.py"}
+    for name, expected in manifest["files"].items():
+        assert hashlib.sha256(root.joinpath(name).read_bytes()).hexdigest() == expected
 
 
 def test_g_research_binding_rejects_foreign_transport():
@@ -255,7 +257,7 @@ def test_actual_postgres_hostaddr_environment_cannot_redirect(persistent, monkey
     monkeypatch.setenv("PGHOSTADDR", "127.0.0.2")
     with persistent.connection() as conn:
         actual = conn.execute(
-            "SELECT inet_server_addr()::text AS host,inet_server_port() AS port,current_database() AS db"
+            "SELECT host(inet_server_addr()) AS host,inet_server_port() AS port,current_database() AS db"
         ).fetchone()
     assert actual == {
         "host": expected["host"],
