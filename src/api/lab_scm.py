@@ -78,7 +78,7 @@ def service_plan(root):
         name=m["services"]["app"],
         dependency=m["services"]["postgres"],
         host=str(root / "dependencies" / "service" / "pythonservice.exe"),
-        python_class="lab_service_bootstrap.LabService",
+        python_class=str(root / "dependencies/service/lab_service_bootstrap") + ".LabService",
         account=ACCOUNT,
         installation_id=m["installation_id"],
         root=str(root),
@@ -394,7 +394,7 @@ def stage_service_runtime(root):
     import shutil
 
     root = plain(root)
-    check(root)
+    marker = check(root)
     base = plain(root / "dependencies/python")
     site = plain(root / "dependencies/venv/Lib/site-packages")
     destination = plain(root / "dependencies/service")
@@ -410,13 +410,32 @@ def stage_service_runtime(root):
     suffix = dlls[0].stem.removeprefix("python")
     host = site / "win32/pythonservice.exe"
     types = site / "pywin32_system32" / ("pywintypes" + suffix + ".dll")
-    if not host.is_file() or not types.is_file():
-        raise LabViolation("Pinned compatible pywin32 host and native types DLL required")
+    manager = site / "win32/servicemanager.pyd"
+    if not host.is_file() or not types.is_file() or not manager.is_file():
+        raise LabViolation(
+            "Pinned compatible pywin32 host, service manager and native types DLL required"
+        )
     shutil.copytree(
         base, destination, ignore=shutil.ignore_patterns("site-packages", "__pycache__")
     )
     shutil.copy2(host, destination / "pythonservice.exe")
     shutil.copy2(types, destination / types.name)
+    # pythonservice imports this before the service-specific PythonPath is available.
+    shutil.copy2(manager, destination / manager.name)
+    # Native pywin32 does not read the service-specific PythonPath registry key.
+    # Plain .pth paths are processed by CPython before loading PythonClass.
+    paths = [
+        destination,
+        root / "releases" / marker["active_sha"],
+        site,
+        site / "win32",
+        site / "win32/lib",
+    ]
+    packages = destination / "Lib/site-packages"
+    packages.mkdir(exist_ok=True)
+    (packages / "tester-lab.pth").write_text(
+        "".join(str(path) + "\n" for path in paths), encoding="utf-8"
+    )
     startup = Path(__file__).with_name("lab_sitecustomize.py")
     shutil.copy2(startup, destination / "Lib/sitecustomize.py")
     shutil.copy2(

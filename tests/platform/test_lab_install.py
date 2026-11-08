@@ -105,7 +105,10 @@ def test_service_plan_is_real_private_pywin32_host(tmp_path):
     assert plan["host"].endswith("pythonservice.exe")
     assert str(root / "dependencies") in plan["host"]
     assert plan["dependency"] == marker["services"]["postgres"]
-    assert plan["python_class"] == "lab_service_bootstrap.LabService"
+    assert (
+        plan["python_class"]
+        == str(root / "dependencies/service/lab_service_bootstrap") + ".LabService"
+    )
 
 
 def test_reparse_root_refused(tmp_path):
@@ -190,6 +193,7 @@ def test_service_runtime_stage_requires_private_python_and_inventory(tmp_path):
     (site / "win32").mkdir(parents=True)
     (site / "pywin32_system32").mkdir()
     (site / "win32/pythonservice.exe").write_bytes(b"host")
+    (site / "win32/servicemanager.pyd").write_bytes(b"manager-fixture")
     (site / "pywin32_system32/pywintypes312.dll").write_bytes(b"types")
     manifest = stage_service_runtime(root)
     m.verify_tree(root / "dependencies/service", manifest["files"])
