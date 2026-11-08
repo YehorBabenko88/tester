@@ -11,14 +11,22 @@ def source_run_status(source,run_id):
     return 'matched' if original==run_id else 'mismatched'
 
 
-def resolve(conn,record_keys):
+def resolve(conn,record_keys,*,include_documents=True):
+    """Resolve original linkage; document omission is not a coverage proof.
+
+    The default retains the legacy full documents. Compact callers keep every
+    observation/run/evidence edge and authenticity decision, but do not transfer
+    repeated raw envelopes or pagination proof bodies from PostgreSQL.
+    """
     keys=list(dict.fromkeys(record_keys))
     if len(keys)>10000: raise ValueError('provenance query limited to 10000 record keys')
     result={key:dict(observations=[],evidence_refs=[],run_ids=[],unlinked_sources=[],authentic=False) for key in keys}
     if not keys: return result
-    rows=conn.execute('''SELECT s.record_key,s.source_id,s.source,s.raw_envelope,
+    raw_document='s.raw_envelope' if include_documents else 'NULL::jsonb AS raw_envelope'
+    evidence_document='p.evidence' if include_documents else 'NULL::jsonb AS evidence'
+    rows=conn.execute(f'''SELECT s.record_key,s.source_id,s.source,{raw_document},
         o.observation_id,o.run_id,o.job_key,o.evidence_id,o.source_kind,o.timestamp_precision,
-        r.run_origin,p.status AS pagination_status,p.verified,p.evidence,p.validator_version
+        r.run_origin,p.status AS pagination_status,p.verified,{evidence_document},p.validator_version
         FROM tester_storage.record_sources s
         LEFT JOIN tester_storage.source_observations o ON o.source_id=s.source_id
         LEFT JOIN tester_storage.ingestion_runs r ON r.run_id=o.run_id

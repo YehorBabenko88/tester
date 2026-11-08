@@ -265,7 +265,8 @@ class Store:
             row=c.execute('SELECT checkpoint FROM tester_storage.ingestion_checkpoints WHERE job_key=%s',(job_key,)).fetchone()
             return row['checkpoint'] if row else None
 
-    def read(self,dataset,venue,category,symbol,start_ms,end_ms,interval='',limit=1000,after=None):
+    def read(self,dataset,venue,category,symbol,start_ms,end_ms,interval='',limit=1000,after=None,*,compact_provenance=False):
+        """Legacy read; opt-in compact linkage omits documents, never proves coverage."""
         if dataset not in DATASETS or type(limit) is not int or not 1<=limit<=10000: raise ValueError('invalid dataset/limit')
         integer(start_ms,'start_ms'); integer(end_ms,'end_ms')
         if end_ms<=start_ms: raise ValueError('empty read range')
@@ -280,7 +281,7 @@ class Store:
         with self.connect() as c:
             rows=c.execute(query,params).fetchall()
             from .provenance import resolve
-            provenance=resolve(c,[row['record_key'] for row in rows])
+            provenance=resolve(c,[row['record_key'] for row in rows],include_documents=not compact_provenance)
         for row in rows:
             row['provenance']=provenance[row['record_key']]
             row['sources']=[o['source'] for o in row['provenance']['observations']]

@@ -1,0 +1,434 @@
+{
+  "application": {
+    "api_endpoint": "http://127.0.0.1:18766",
+    "deploy_manifest_sha256": "b4438d10495d65e684f9e40a7a29d68e114c772efd4df3edf969d1cb65d4823a",
+    "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+    "instance_id": "349a538bb15343ca990e5ca3f8a36373",
+    "postgres_port": 55470,
+    "provenance": "host_reported",
+    "scm_state": "not_independently_verified",
+    "services": {
+      "app": "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60",
+      "postgres": "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60"
+    },
+    "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+    "tree_sha": "90944d6ba0dd0194999f82f50ec96f231ce5eff9"
+  },
+  "blockers": [
+    "E dataset envelope is not an F market_snapshot: F admission additionally requires explicit timeframe_ms, approved initial_equity, truthful quantity_step/instrument metadata, funding evidence/policy and validated strategy assumptions.",
+    "Actual coverage evidence_refs is empty: F metadata rejects coverage evidence required before reaching its later partial history rejected gate. No evidence refs, COMPLETE status or strategy parameters were manufactured.",
+    "Even with genuine future coverage evidence links, UNKNOWN/PARTIAL fails the strict default history gate; an exploratory policy would require separate explicit strategy approval and NON_CERTIFIED labeling.",
+    "No F result adapter, persisted simulation run or chart overlay renderer is integrated."
+  ],
+  "executed_probes": [
+    {
+      "authentic_message": "missing or unknown configuration keys",
+      "exception_type": "ValueError",
+      "native_error_code": null,
+      "probe": "full_validator_unadapted_actual_api_envelope",
+      "status": "REJECTED"
+    },
+    {
+      "authentic_message": "coverage evidence required",
+      "exception_type": "ValueError",
+      "native_error_code": null,
+      "probe": "actual_page_metadata_default_reject",
+      "status": "REJECTED"
+    },
+    {
+      "authentic_message": "coverage evidence required",
+      "exception_type": "ValueError",
+      "native_error_code": null,
+      "probe": "actual_first_record_metadata_default_reject",
+      "status": "REJECTED"
+    }
+  ],
+  "f_source": {
+    "commit": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+    "engine_version": "strategy-bar-1.1.0",
+    "remote_head_line": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31\trefs/heads/workstream/f-strategy",
+    "repository": "YehorBabenko88/tester",
+    "source_files": [
+      {
+        "path": "docs/strategy/CONTRACT.md",
+        "sha256": "90515564eda9a682c3762c9e5294d8275c8907f34982866b408e1d9d162ce652"
+      },
+      {
+        "path": "docs/strategy/FORMULAS.md",
+        "sha256": "693609ba43db98095b8ddce1444aeb4ff2559bd115d3e2f1965c240fb0930ace"
+      },
+      {
+        "path": "docs/strategy/IMPLEMENTATION_PLAN.md",
+        "sha256": "d2989c0400018af9a9ea24d51a74942c93539c059c2b7b58434892add0e333dc"
+      },
+      {
+        "path": "docs/strategy/MIGRATIONS.md",
+        "sha256": "b480e67ade644c716a7d5a771941e5f37770d0cb6dec4aabd0360a8c5289128c"
+      },
+      {
+        "path": "docs/strategy/README.md",
+        "sha256": "c0a0480cf626eac6185313cecb17641d33d658500ac3280ec66db49bc5bd5b59"
+      },
+      {
+        "path": "docs/strategy/TEST_REPORT.md",
+        "sha256": "1e07b2fdcff4485c49447b1e3ba5d550ab77acb1e11f7d6e80e8018a1596c898"
+      },
+      {
+        "path": "docs/strategy/evidence/MASTER_FOLLOWUP_TESTS.log",
+        "sha256": "fcb2043e3e0b88aad439df9e8f3de589101300e4d2603088b694948e1e3216cc"
+      },
+      {
+        "path": "docs/strategy/example.result.json",
+        "sha256": "a960315422670d2a367e808db23f76b28cdd559a0baf113e8e966f04837fe7d3"
+      },
+      {
+        "path": "docs/strategy/example.snapshot.json",
+        "sha256": "819add6fc6d6034268f51f25ee9f6ac241b138df00449eeac5fb236db9b461b1"
+      },
+      {
+        "path": "docs/strategy/example.strategy.json",
+        "sha256": "4840e8b84c30f205dc9b6d731d850268951d6fb10cb140a095afb8b3509d05a9"
+      },
+      {
+        "path": "docs/strategy/strategy.schema.json",
+        "sha256": "acd6dd6202488ca4ecbab17da175e963b252503403d22c6aa1f84fc11c8d1a88"
+      },
+      {
+        "path": "src/backtest/__init__.py",
+        "sha256": "f5d35f3bf872a788259a9f5bc538a6790e09f5cee8dd0f75e12d27730b15f076"
+      },
+      {
+        "path": "src/backtest/artifacts.py",
+        "sha256": "fe0cb237d126e10c4e15cbc0be3e483f2098f467fe6ce20e87ff3a1777287ca3"
+      },
+      {
+        "path": "src/backtest/engine.py",
+        "sha256": "1ab9c2e0cc936f9b215078f585dcbfbb8ea7046b7ee6187d4ea6fa1a17f60fac"
+      },
+      {
+        "path": "src/backtest/metrics.py",
+        "sha256": "77ac47f4a8ccaa2c22be2b666894c03dd36ecd2ff33003977df38cb2c0faebe4"
+      },
+      {
+        "path": "src/backtest/quality.py",
+        "sha256": "cce7c2a155e6d0ccf18d8988764b96427875e6414332441aebbc366bd0289bd1"
+      },
+      {
+        "path": "src/backtest/research.py",
+        "sha256": "042d30559f26184dc5f07315f28a44f80ce45ad311ff3143726fffff1ff48d8c"
+      },
+      {
+        "path": "src/strategy/__init__.py",
+        "sha256": "59c0ae77041a0c21963f6f7cd5f1ee95b80164d952d9dd018fb810993f774b26"
+      },
+      {
+        "path": "src/strategy/dsl.py",
+        "sha256": "a372cda7e873af4cc3b5f98475ad417f1d4f6a83f3bf0189ea0fca6158bf62bf"
+      },
+      {
+        "path": "src/strategy/levels.py",
+        "sha256": "7879141e645fcd8ebe5684214195e2c87a147cab116920850320fb10d58ed54a"
+      },
+      {
+        "path": "src/strategy/text.py",
+        "sha256": "cf4f211737dd043739e4dedf56409255a3c73a7d81585348bd15121d3fe3dd5a"
+      },
+      {
+        "path": "tests/strategy/test_dsl.py",
+        "sha256": "0e3bc5fce99a00a696797afa50aac72bde180177cf01e97ea17d100e738bf640"
+      },
+      {
+        "path": "tests/strategy/test_engine.py",
+        "sha256": "e5aebc1882e9c382edfa78371ddca78d52b3546cf781591ae7951a573b6acffa"
+      },
+      {
+        "path": "tests/strategy/test_levels.py",
+        "sha256": "d5b471077a88adb3870b880ffc3076139b18c7f40bacba95d8d1bd8c41ccdeab"
+      },
+      {
+        "path": "tests/strategy/test_master_review.py",
+        "sha256": "6fb3635a46755abeabfc69ca056e46fdebc6e4705c833ba1da7625225d59f416"
+      },
+      {
+        "path": "tests/strategy/test_regressions.py",
+        "sha256": "5e14f15a7d917e9787d6bc291f96a166927a27d42560a3d8e9ae3e86518b43f2"
+      },
+      {
+        "path": "tests/strategy/test_research.py",
+        "sha256": "c36031453ee6b90f00f6dca5bd1b5044e4ae6f27242d720713a96118ad4577c9"
+      }
+    ],
+    "source_root": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\f-preflight-gitblob-998c5bc",
+    "verified_tracked_files": 27
+  },
+  "initial_read_issue": {
+    "limit": 1000,
+    "resolution": "Reduced bounded page size to 100; fetched all 15 pages without mutation",
+    "status": "RESPONSE_BODY_TIMEOUT",
+    "timeout_seconds": 10
+  },
+  "market": {
+    "all_closed": true,
+    "availability": "PARTIAL",
+    "contiguous_one_minute_grid": true,
+    "coverage": "UNKNOWN",
+    "coverage_evidence_refs_empty": true,
+    "decimal_ohlcv_bounds_checked": true,
+    "distinct_start_ms": 1440,
+    "end_ms": 1794096000000,
+    "identity_unchanged_during_reads": true,
+    "page_limit": 100,
+    "pages": 15,
+    "provenance": "API-returned bybit_rest source hashes/run references; original external bytes not independently retrieved",
+    "range_utc": "2026-11-07T00:00:00Z/2026-11-08T00:00:00Z",
+    "read_seconds": 7.302,
+    "records": 1440,
+    "start_ms": 1794009600000
+  },
+  "next_gate": "Resolve B/E truthful snapshot/evidence and approved strategy contract before simulation; keep Strategy workspace DATA_UNAVAILABLE.",
+  "not_executed": [
+    "Backtest construction or run",
+    "Strategy preview/approval or invented entry/exit rules",
+    "Simulation fills, trade markers or chart rendering",
+    "New download job, SQL, elevation, service/process control or installed-root modification"
+  ],
+  "observed_at": "2026-11-08T12:48:26.652152+00:00",
+  "read_only": true,
+  "schema": "tester-strategy-real-market-preflight/v1",
+  "snapshot": {
+    "bytes": 1769288,
+    "pages": [
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-01.json",
+        "records": 100,
+        "sha256": "638be9dc2c2a1b5e8ec513b566dbd34ff928d51ec55995145178d9f76de50958"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-02.json",
+        "records": 100,
+        "sha256": "37abf8256a0aeddce6f716da28d0b3efdf45af70bfddcf13e40c6087706101f5"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-03.json",
+        "records": 100,
+        "sha256": "a36bea0a586a0c2933c9cbc181114b300e8cfd22d071a3c3276d7d787b5d26e1"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-04.json",
+        "records": 100,
+        "sha256": "1e5ab504e9e55ad75d3005a2bb88c294347de0b5c71074ac716765ca1e83e917"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-05.json",
+        "records": 100,
+        "sha256": "2052f29fcf6e1000524bc9150b979912e81387cec0355513edb43fe5f8595eff"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-06.json",
+        "records": 100,
+        "sha256": "4e0f3cff46b2e64daf46af0afefe3f5cf136457abe3a5c58a53398fedf29fa36"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-07.json",
+        "records": 100,
+        "sha256": "a2dcf54f3b5e7d14dd60069f827bdea3dfb3c8f17c0535a99ed0358be5abf4e9"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-08.json",
+        "records": 100,
+        "sha256": "0ad2412b6bbea4ee027282135f2bc2dc5c22a7fd9729c0798dcc1b0109d7d5b4"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-09.json",
+        "records": 100,
+        "sha256": "63ecb11e1acb91069fbfc2abd78274f855542dab75c3b5b7d7f986f76b05937e"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-10.json",
+        "records": 100,
+        "sha256": "c6a83e48de6e1096f96bad9c4b81a51378f6ef2a5016ef87a9416dec2a424f3b"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-11.json",
+        "records": 100,
+        "sha256": "0cbc1ba2737d146e793e7fcdfcee757908240f6d6070712157e17c0ca0b5137f"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-12.json",
+        "records": 100,
+        "sha256": "a3927dba6fc744fc94f191883ec47cfa166c08f63f33dfdf77d47d29e163f163"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-13.json",
+        "records": 100,
+        "sha256": "a9102e8ea9796800000769193d67f404db712eb3ba49cf24ed83e032917893c0"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-14.json",
+        "records": 100,
+        "sha256": "1e58409b18072599a9164d3aadb0a09c9d6c5af1fcd02ac7732421b39f3317cc"
+      },
+      {
+        "availability": {
+          "reason": "Bounded public observations; no historical completeness certificate",
+          "status": "PARTIAL"
+        },
+        "coverage": {
+          "end_ms": 1794096000000,
+          "evidence_refs": [],
+          "start_ms": 1794009600000,
+          "status": "UNKNOWN"
+        },
+        "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\page-15.json",
+        "records": 40,
+        "sha256": "5fc91329c8abca69f76e3e0af34616b1a57fc41617f99de32e0d040f36d4ce9f"
+      }
+    ],
+    "path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\strategy-real-market-preflight\\market-public-snapshot.json",
+    "sha256": "178e775375c39f360e858c2dc68b24a11af71f3e47888bfac0b8e853ea8826d6"
+  },
+  "source_checkout_note": "The older git-archive extraction applied CRLF checkout conversion. This preflight imported a fresh task-local extraction of raw git show blob bytes, verified byte-for-byte, without editing the older extraction or repository.",
+  "status": "NOT_INTEGRATED",
+  "strict_unknown_history_gate": "Inspected in published source but not reached: authentic empty coverage.evidence_refs is rejected first. COMPLETE or invented evidence was never supplied.",
+  "validator_error_protocol": "Published F uses plain ValueError messages, not typed rejection codes. No native machine-readable error code is claimed."
+}

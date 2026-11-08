@@ -225,6 +225,7 @@ class LabReader:
             query.interval,
             limit=query.limit + 1,
             after=after,
+            compact_provenance=True,
         )
         report = self.store.coverage(
             query.venue,
@@ -277,6 +278,7 @@ def verify_published_batch(store, connection, batch):
         evidence["end_ms"],
         evidence["interval"],
         limit=10000,
+        compact_provenance=True,
     )
     rows = {row["record_key"]: row for row in rows if row["record_key"] in expected}
     projections = dict(

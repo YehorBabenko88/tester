@@ -1,0 +1,20 @@
+{
+  "job_id": "dafcd8f4-0749-47cc-a1ef-9fb7e20bf4a4",
+  "new_progress_value": "100",
+  "legacy_progress_value": null,
+  "download_coverage_lines": [
+    "  - generic: 4/4 downloads complete - dataset coverage is reported separately on each download",
+    "    - generic: Download COMPLETE",
+    "    - generic: Coverage UNKNOWN",
+    "    - paragraph: \"Bytes received: unknown - Records ingested: unknown - Records verified: unknown - Elapsed: unknown s - Speed: unknown B/s - Source: unknown\"",
+    "    - generic: Download COMPLETE",
+    "    - generic: Coverage UNKNOWN",
+    "    - paragraph: \"Bytes received: unknown - Records ingested: unknown - Records verified: unknown - Elapsed: unknown s - Speed: unknown B/s - Source: unknown\"",
+    "    - generic: Download COMPLETE",
+    "    - generic: Coverage UNKNOWN",
+    "    - paragraph: \"Bytes received: unknown - Records ingested: unknown - Records verified: unknown - Elapsed: unknown s - Speed: unknown B/s - Source: unknown\"",
+    "    - generic: Download COMPLETE",
+    "    - generic: Coverage UNKNOWN",
+    "    - paragraph: \"Bytes received: 1716 - Records ingested: 5 - Records verified: 5 - Elapsed: 1.3323746000005485 s - Speed: 1287.926083249631 B/s - Source: bybit\""
+  ]
+}
