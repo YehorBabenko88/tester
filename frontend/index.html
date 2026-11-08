@@ -36,7 +36,7 @@
         <div class="section-title">
           <div>
             <span class="index">01</span>
-            <h2>Instrument screener</h2>
+            <h2>Market Screener & Downloads</h2>
           </div>
           <span id="selection-count" data-testid="selection-count"
             >0 selected</span
@@ -52,22 +52,29 @@
           ><label
             >Market<select id="category">
               <option value="linear">Linear</option>
-              <option value="spot">Spot</option>
+
               <option value="inverse">Inverse</option>
             </select></label
           ><label
-            >Sort metric<select id="sort" aria-label="Sort metric">
-              <option value="symbol">Symbol</option>
-              <option value="volatility">Volatility</option>
-              <option value="change_1h">Change 1h</option>
-              <option value="change_24h">Change 24h</option>
-              <option value="turnover">Turnover</option>
-              <option value="open_interest">Open Interest</option>
+            >Contract<select id="contract-kind">
+              <option value="">All contracts</option>
+              <option value="perpetual">Perpetual</option>
+              <option value="dated">Dated futures</option>
             </select></label
-          ><button id="direction" aria-label="Toggle sort direction">
-            ↓ Desc</button
-          ><button id="refresh">Retry instruments</button
-          ><button id="save">Save watchlist</button
+          >
+          <label
+            >Status<select id="market-status">
+              <option value="Trading">Trading</option>
+              <option value="">All statuses</option>
+              <option>PreLaunch</option>
+              <option>PendingOpen</option>
+              <option>Delivering</option>
+              <option>Closed</option>
+            </select></label
+          >
+          <button id="refresh">Refresh now / Retry instruments</button>
+          <span id="refresh-countdown" role="status"></span>
+          <button id="save">Save watchlist</button
           ><label class="inline"
             ><input type="checkbox" id="watchlist" />Saved only</label
           >
@@ -80,20 +87,7 @@
         <div class="table-scroll" id="table-scroll">
           <table>
             <thead>
-              <tr>
-                <th>Select</th>
-                <th>Instrument</th>
-                <th>Price</th>
-                <th>Volatility</th>
-                <th>Δ 1h</th>
-                <th>Δ 24h</th>
-                <th>Volume</th>
-                <th>Turnover</th>
-                <th>OI</th>
-                <th>OI Δ 1h</th>
-                <th>OI Δ 24h</th>
-                <th>Market cap</th>
-              </tr>
+              <tr id="catalog-head"></tr>
             </thead>
             <tbody id="rows"></tbody>
           </table>
@@ -102,65 +96,65 @@
           <span id="page-info"
             >Metrics require source + observation time. Hover a value for
             evidence.</span
+          ><button id="previous" disabled>Previous page</button
           ><button id="next" disabled>Next page</button
           ><button id="clear">Clear selection</button>
         </div>
-      </section>
-      <section id="downloads">
-        <div class="section-title">
-          <div>
-            <span class="index">02</span>
-            <h2>Download manager</h2>
+        <details id="download-options">
+          <summary>
+            Download options - UTC window, source &amp; 13 timeframes
+          </summary>
+          <div class="toolbar">
+            <label
+              >Range start UTC<input
+                id="start"
+                type="datetime-local"
+                aria-label="Range start UTC" /></label
+            ><label
+              >Range end UTC<input
+                id="end"
+                type="datetime-local"
+                aria-label="Range end UTC" /></label
+            ><label
+              >Timeframe<select id="interval">
+                <option value="1">1m</option>
+                <option value="3">3m</option>
+                <option value="5">5m</option>
+                <option value="15">15m</option>
+                <option value="30">30m</option>
+                <option value="60" selected>1h</option>
+                <option value="120">2h</option>
+                <option value="240">4h</option>
+                <option value="360">6h</option>
+                <option value="720">12h</option>
+                <option value="D">1D</option>
+                <option value="W">1W UTC</option>
+                <option value="M">1M UTC</option>
+              </select></label
+            ><label
+              >Source<select id="source">
+                <option value="">Discovering sources…</option>
+              </select></label
+            ><label
+              >Data kind<select id="kind">
+                <option value="candles">OHLCV</option>
+                <option value="trades">Historical trades</option>
+                <option value="open_interest">Open Interest</option>
+                <option value="funding">Funding</option>
+              </select></label
+            ><button id="refresh-jobs">Refresh jobs</button>
           </div>
-          <button id="download" class="primary">Download History</button>
+        </details>
+        <div class="bulk-actions">
+          <button id="download" class="primary">Download selected</button>
+          <div id="download-status" role="status"></div>
         </div>
-        <div class="toolbar">
-          <label
-            >Range start UTC<input
-              id="start"
-              type="datetime-local"
-              aria-label="Range start UTC" /></label
-          ><label
-            >Range end UTC<input
-              id="end"
-              type="datetime-local"
-              aria-label="Range end UTC" /></label
-          ><label
-            >Timeframe<select id="interval">
-              <option value="1">1m</option>
-              <option value="3">3m</option>
-              <option value="5">5m</option>
-              <option value="15">15m</option>
-              <option value="30">30m</option>
-              <option value="60" selected>1h</option>
-              <option value="120">2h</option>
-              <option value="240">4h</option>
-              <option value="360">6h</option>
-              <option value="720">12h</option>
-              <option value="D">1D</option>
-              <option value="W">1W UTC</option>
-              <option value="M">1M UTC</option>
-            </select></label
-          ><label
-            >Source<select id="source">
-              <option value="">Discovering sources…</option>
-            </select></label
-          ><label
-            >Data kind<select id="kind">
-              <option value="candles">OHLCV</option>
-              <option value="trades">Historical trades</option>
-              <option value="open_interest">Open Interest</option>
-              <option value="funding">Funding</option>
-            </select></label
-          ><button id="refresh-jobs">Refresh jobs</button>
-        </div>
-        <p class="muted">
-          UTC · end exclusive · one persistent job per instrument/source.
-          Unknown totals remain indeterminate.
-        </p>
-        <div id="download-status" role="status"></div>
-        <div id="overall"></div>
-        <div id="jobs"></div>
+        <details id="downloads">
+          <summary>
+            Download history, coverage &amp; errors <span id="overall"></span>
+          </summary>
+          <div id="jobs"></div>
+        </details>
       </section>
       <section id="terminal">
         <div class="section-title">

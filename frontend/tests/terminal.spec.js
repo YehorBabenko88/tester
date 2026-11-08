@@ -57,12 +57,27 @@ async function setup(page, options = {}) {
           provenance: "Bybit",
         },
       ];
-    if (u.pathname === "/api/instruments")
-      data = options.instruments || {
-        instruments: instruments.filter((x) =>
-          x.symbol.includes((u.searchParams.get("search") || "").toUpperCase()),
-        ),
+    if (u.pathname.startsWith("/api/market-catalog/")) {
+      let rows = (options.instruments || instruments).filter((x) =>
+        x.symbol.includes((u.searchParams.get("search") || "").toUpperCase()),
+      );
+      const saved = u.searchParams.getAll("watchlist");
+      if (saved.length)
+        rows = rows.filter((x) => saved.includes(`${x.category}:${x.symbol}`));
+      const offset = Number(u.searchParams.get("offset") || 0),
+        limit = Number(u.searchParams.get("limit") || 50);
+      data = {
+        rows: rows.slice(offset, offset + limit),
+        total: rows.length,
+        revision: "fixture-1",
+        catalog: {
+          loaded: rows.length,
+          completeness: "EXHAUSTED",
+          state: "CURRENT",
+          next_refresh_at: Date.now() / 1000 + 300,
+        },
       };
+    }
     if (u.pathname === "/api/downloads")
       data =
         route.request().method() === "POST"
@@ -114,7 +129,7 @@ async function setup(page, options = {}) {
           provenance: "Archive not verified",
         },
       ];
-    if (options.apiError && u.pathname === "/api/instruments") {
+    if (options.apiError && u.pathname.startsWith("/api/market-catalog/")) {
       await route.fulfill({
         status: 503,
         json: {
@@ -135,6 +150,9 @@ async function setup(page, options = {}) {
       localStorage.setItem("bybit-jobs", '["j1"]'),
     );
   await page.goto("/");
+  await page.locator("#download-options").evaluate((e) => (e.open = true));
+  if (options.jobs)
+    await page.locator("#downloads").evaluate((e) => (e.open = true));
 }
 test("multi-selection survives search and reload, saves exact identities", async ({
   page,
@@ -314,7 +332,7 @@ test("partial candles show provenance, closure and synchronized time ranges", as
   expect(rr.every((u) => u.searchParams.get("limit") === "1000")).toBeTruthy();
   expect(requests.some((u) => u.pathname === "/api/trades")).toBeFalsy();
 });
-test("large screener virtualizes rows", async ({ page }) => {
+test("large screener paginates bounded rows", async ({ page }) => {
   await setup(page, {
     instruments: Array.from({ length: 1000 }, (_, i) => ({
       category: "linear",
@@ -322,18 +340,20 @@ test("large screener virtualizes rows", async ({ page }) => {
       metrics: {},
     })),
   });
-  await expect(page.locator("[data-row]")).toHaveCount(20);
+  await expect(page.locator("[data-row]")).toHaveCount(50);
   const initial = await page
     .locator("[data-row]")
     .first()
     .getAttribute("data-row");
-  await page.locator("#table-scroll").evaluate((e) => (e.scrollTop = 20000));
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
   await expect
     .poll(() => page.locator("[data-row]").first().getAttribute("data-row"))
     .not.toBe(initial);
-  expect(await page.locator("[data-row]").count()).toBeLessThan(25);
+  expect(await page.locator("[data-row]").count()).toBeLessThanOrEqual(50);
 });
-test("saved-only filter resets deep virtual scroll", async ({ page }) => {
+test("saved-only filter queries global favorites after pagination", async ({
+  page,
+}) => {
   await setup(page, {
     instruments: Array.from({ length: 1000 }, (_, i) => ({
       category: "linear",
@@ -345,7 +365,7 @@ test("saved-only filter resets deep virtual scroll", async ({ page }) => {
   const label = await first.getAttribute("data-row");
   await first.locator("input").check();
   await page.getByRole("button", { name: "Save watchlist" }).click();
-  await page.locator("#table-scroll").evaluate((e) => (e.scrollTop = 20000));
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
   await expect
     .poll(() => page.locator("[data-row]").first().getAttribute("data-row"))
     .not.toBe(label);
@@ -417,7 +437,7 @@ test("download creates per-instrument jobs with exclusive UTC range", async ({
     if (r.method() === "POST" && new URL(r.url()).pathname === "/api/downloads")
       bodies.push(r.postDataJSON());
   });
-  await page.getByRole("button", { name: "Download History" }).click();
+  await page.getByRole("button", { name: "Download selected" }).click();
   await expect.poll(() => bodies.length).toBe(2);
   expect(bodies.map((b) => b.symbol).sort()).toEqual(["BTCUSDT", "ETHUSDT"]);
   expect(
@@ -474,10 +494,12 @@ test("sort is requested on server and unavailable panels explain why", async ({
   await setup(page);
   const req = page.waitForRequest(
     (r) =>
-      r.url().includes("/api/instruments") &&
+      r.url().includes("/api/market-catalog/") &&
       r.url().includes("sort=volatility"),
   );
-  await page.getByLabel("Sort metric").selectOption("volatility");
+  await page
+    .getByRole("button", { name: "Sort Volatility", exact: true })
+    .click();
   await req;
   await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
   await expect(page.locator('[data-panel="footprint"]')).toContainText(
@@ -495,7 +517,7 @@ test("API outage is visible and retry works without fake rows", async ({
     "provider_unavailable",
   );
   await expect(
-    page.getByRole("button", { name: "Retry instruments" }),
+    page.getByRole("button", { name: "Refresh now / Retry instruments" }),
   ).toBeVisible();
   await expect(page.locator("[data-row]")).toHaveCount(0);
 });
@@ -783,7 +805,9 @@ test("complete downloads retain UNKNOWN coverage and measured telemetry", async 
   await expect(page.locator("#jobs")).toContainText("Coverage UNKNOWN");
   await expect(page.locator("#jobs")).toContainText("Records verified: 10");
   await expect(page.locator("#jobs")).toContainText("Bytes received: 8192");
-  await expect(page.locator("#jobs")).toContainText("100%");
+  await expect(page.locator("#jobs progress").first()).not.toHaveAttribute(
+    "value",
+  );
   await expect(page.locator("#overall")).toContainText(
     "1/1 downloads complete",
   );
@@ -818,4 +842,170 @@ test("legacy completed checkpoints do not fabricate percentages or coverage", as
     "role",
     "alert",
   );
+});
+
+test("1205 instruments use global server sorting, header cycle, filters and reload persistence", async ({
+  page,
+}) => {
+  const requests = [];
+  const universe = Array.from({ length: 1205 }, (_, i) => ({
+    category: "linear",
+    symbol: `COIN${String(i).padStart(4, "0")}`,
+    status: i % 2 ? "Trading" : "Closed",
+    contract_kind: i % 3 ? "perpetual" : "dated",
+    metrics: { price: m(String(i)) },
+  }));
+  await setup(page, {
+    pagePayload(u) {
+      if (!u.pathname.startsWith("/api/market-catalog/")) return;
+      requests.push(u);
+      let rows = universe.filter(
+        (r) =>
+          r.symbol.includes(u.searchParams.get("search") || "") &&
+          (!u.searchParams.get("status") ||
+            r.status === u.searchParams.get("status")) &&
+          (!u.searchParams.get("contract_kind") ||
+            r.contract_kind === u.searchParams.get("contract_kind")),
+      );
+      const saved = u.searchParams.getAll("watchlist");
+      if (saved.length)
+        rows = rows.filter((r) => saved.includes(`${r.category}:${r.symbol}`));
+      if (
+        u.searchParams.get("sort") === "price" &&
+        u.searchParams.get("direction") !== "none"
+      )
+        rows.sort(
+          (a, b) =>
+            (Number(a.metrics.price.value) - Number(b.metrics.price.value)) *
+            (u.searchParams.get("direction") === "desc" ? -1 : 1),
+        );
+      const offset = Number(u.searchParams.get("offset"));
+      return {
+        schema_version: "1.0",
+        data: {
+          rows: rows.slice(offset, offset + 50),
+          total: rows.length,
+          revision: "large-1",
+          catalog: {
+            loaded: 1205,
+            completeness: "EXHAUSTED",
+            state: "CURRENT",
+            last_success: 1704067200,
+            next_refresh_at: Date.now() / 1000 + 300,
+          },
+        },
+      };
+    },
+  });
+  await expect(page.locator("[data-row]")).toHaveCount(50);
+  await page
+    .getByRole("combobox", { name: "Status", exact: true })
+    .selectOption("");
+  await page.getByRole("button", { name: "Sort Price", exact: true }).click();
+  await expect(page.locator('th[aria-sort="ascending"]')).toContainText(
+    "Price",
+  );
+  await page
+    .getByRole("button", { name: "Sort Price", exact: true })
+    .press("Enter");
+  await expect(page.locator("[data-row]").first()).toHaveAttribute(
+    "data-row",
+    "linear:COIN1204",
+  );
+  await page.getByLabel("Select COIN1204").check();
+  await page.getByRole("button", { name: "Save watchlist" }).click();
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.locator("[data-row]").first()).toHaveAttribute(
+    "data-row",
+    "linear:COIN1154",
+  );
+  await page.getByLabel("Saved only").check();
+  await expect(page.locator("[data-row]")).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator("[data-row]")).toHaveCount(1);
+  await expect(page.getByLabel("Select COIN1204")).toBeChecked();
+  expect(
+    requests.some(
+      (u) =>
+        u.searchParams.get("offset") === "50" &&
+        u.searchParams.get("direction") === "desc",
+    ),
+  ).toBeTruthy();
+  expect(requests.at(-1).searchParams.getAll("watchlist")).toEqual([
+    "linear:COIN1204",
+  ]);
+  await page.getByRole("button", { name: "Sort Price", exact: true }).click();
+  await expect(
+    page.locator('th[aria-sort="ascending"],th[aria-sort="descending"]'),
+  ).toHaveCount(0);
+});
+
+test("inline jobs retain category identity and independent IDs with unknown coverage", async ({
+  page,
+}) => {
+  let post = 0;
+  await setup(page, {
+    pagePayload(u) {
+      if (u.pathname === "/api/downloads")
+        return {
+          schema_version: "1.0",
+          data: { id: `inline${++post}`, state: "completed" },
+        };
+    },
+  });
+  await page
+    .getByRole("button", { name: "Chart BTCUSDT", exact: true })
+    .click();
+  await page.getByLabel("Select ETHUSDT").check();
+  expect(post).toBe(0);
+  await page
+    .getByRole("button", { name: "Download BTCUSDT", exact: true })
+    .click();
+  await expect(
+    page.locator('[data-row="linear:BTCUSDT"] [data-job-id]'),
+  ).toHaveCount(1);
+  await page
+    .getByRole("button", { name: "Download BTCUSDT", exact: true })
+    .click();
+  await expect(
+    page.locator('[data-row="linear:BTCUSDT"] [data-job-id]'),
+  ).toHaveCount(2);
+  await expect(page.locator('[data-row="linear:BTCUSDT"]')).toContainText(
+    "Download COMPLETE",
+  );
+  await expect(page.locator('[data-row="linear:BTCUSDT"]')).toContainText(
+    "Coverage UNKNOWN",
+  );
+  await expect(
+    page.locator('[data-row="linear:BTCUSDT"] progress').first(),
+  ).not.toHaveAttribute("value");
+  await expect(
+    page.locator('[data-row="linear:ETHUSDT"] [data-job-id]'),
+  ).toHaveCount(0);
+  expect(await page.locator("#interval option").count()).toBe(13);
+});
+
+test("every catalog metric and text header requests global server sort", async ({
+  page,
+}) => {
+  await setup(page);
+  for (const header of await page.locator("#catalog-head button").all()) {
+    const wait = page.waitForRequest(
+      (r) =>
+        r.url().includes("/api/market-catalog/") &&
+        r.url().includes("direction=asc"),
+    );
+    await header.click();
+    await wait;
+  }
+  await page
+    .getByRole("combobox", { name: "Market", exact: true })
+    .selectOption("inverse");
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => JSON.parse(localStorage.getItem("bybit-catalog-view")).category,
+      ),
+    )
+    .toBe("inverse");
 });

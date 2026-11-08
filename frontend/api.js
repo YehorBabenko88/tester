@@ -3,9 +3,11 @@ export async function request(path, params = {}, options = {}) {
   const signal = options.signal
     ? AbortSignal.any([options.signal, timeout])
     : timeout;
-  const query = new URLSearchParams(
-    Object.entries(params).filter(([, v]) => v != null),
-  );
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    for (const item of Array.isArray(value) ? value : [value])
+      if (item != null) query.append(key, item);
+  }
   const response = await (options.fetcher || fetch)(
     path + (query.size ? "?" + query : ""),
     {
