@@ -63,8 +63,8 @@ stand in for a later UTC day. Its 45-second running-job opportunity is bounded.
 If the job finishes before verified selection, the correct result is NOT_PROVEN;
 do not slow the application, add jobs, or retry termination to obtain a pass.
 
-There are two preparation gaps to resolve before treating the existing script as
-fully reviewable physical evidence:
+The original 719/TOOL509 source review identified these two gaps. They describe
+the baseline installed-source script, not the corrected source-only candidate:
 
 1. `termination_count=1` is assigned only after `Invoke-RecoveryTermination`
    returns. If native termination succeeds but `CloseHandle` then fails, the
@@ -79,11 +79,47 @@ fully reviewable physical evidence:
    revalidation before considering a new tool pin. This document does not claim
    the existing initial preflight supplies that stronger freshness guarantee.
 
+## Source-only fix candidate, not installed
+
+The follow-up changes only the external recovery harness and mocked fixtures.
+`Invoke-RecoveryTermination` records `termination_attempts=1` and
+`termination_outcome=ATTEMPTED_NOT_CONFIRMED` immediately before the sole native
+call; a successful return records `termination_count=1` and CONFIRMED before
+handle cleanup. A cleanup exception therefore cannot erase a confirmed kill.
+Any prior attempt refuses reentry before another handle is opened, including
+when native success was not confirmed. These fields are monotonic within one
+invocation; a crashed process or missing durable receipt still means NOT_PROVEN
+and never authorizes a rerun.
+
+`Assert-RecoveryPinnedFiles` extracts the existing full preflight file checks.
+Both initial preflight and the held-handle fresh guard now reuse it: owner
+identity and release inventory, exact deployment manifest, full source tree,
+exact external tool manifest/script (when selected), exact native manifest and
+full native tree. The held process image/creation, fresh service/API and fresh
+ancestry checks remain in place. Hashing is a fresh bounded check, not an atomic
+filesystem lock; protected immutable artifacts remain a prerequisite.
+
+TDD first reproduced eight failing cases. The final 12 mocked helper cases pass:
+the four baseline fixtures, native success/failure followed by close failure
+with no retry, unchanged synthetic pinned files, and owner/source/native/
+deployment/runtime drift introduced after a mocked handle is opened. Refusals
+assert the expected ownership/hash reason, zero native attempts and one close.
+No P/Invoke termination, installed path, real CIM, service, HTTP or SQL is used.
+
+The corrected script is **not** the script in the 719 application payload. It
+must be reviewed as a separately pinned external tool; the existing 719 source
+inventory must remain unchanged. The proposal manifest published with this PR
+binds that tool commit to the recorded 719 application/deployment/native pins.
+It is a review artifact, not verified installation state or execution approval.
+The candidate script has an explicit `-text` Git attribute and LF bytes so its
+published SHA-256 remains identical on Windows. Do not substitute the baseline
+CRLF script hash or regenerate a manifest to conceal any byte mismatch.
+
 ## Safe sequence for the coordinator after a separate future authorization
 
 1. Keep this preparation source-only now. Preserve the canceled TOOL509 receipt.
-   Resolve the reporting/freshness gaps through a separately reviewed source pin
-   if the physical evidence contract requires them. No installed change follows
+   Independently review the reporting/freshness fixes and external tool pin.
+   No installed change follows
    from this document or PR.
 2. Freeze the chosen application/tool SHA and raw script/deployment/native
    manifest hashes. Review the exact immutable artifacts and their inventory;
@@ -101,11 +137,13 @@ fully reviewable physical evidence:
 
 ## Source-only verification performed
 
-The four existing PowerShell helper fixtures passed from the assigned J tree:
+The 12 PowerShell helper fixtures passed from the assigned J tree:
 `python -B -m pytest tests/platform/test_lab_worker_recovery.py -q`.
-The script Git blob and test Git blob match 719 exactly. Fixtures dot-source
-`-FunctionsOnly`, mock native process handles and the fresh-candidate function,
-and use synthetic process objects and temporary manifest paths. They do not call
+The baseline script/test Git blobs were first confirmed identical to 719;
+the follow-up is a new external tool candidate. Fixtures dot-source
+`-FunctionsOnly`, mock native process handles and real service/process queries,
+and use synthetic process objects and temporary manifest paths. New freshness
+fixtures run the real file checks and fresh-candidate function. They do not call
 the main recovery flow, CIM, SCM, installed HTTP/SQL or native termination. Thus
 they establish guard behavior only; they do not establish actual topology,
 current manifest identity, same-job recovery or physical acceptance.
