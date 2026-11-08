@@ -38,6 +38,35 @@ def test_ratio_uses_actual_positive_baseline_with_provenance():
     assert qualify_delta(metric("0"), baseline, 3600000)["value"] == "-1"
 
 
+def test_small_genuine_ratio_remains_a_frontend_compatible_fixed_decimal():
+    result = qualify_delta(metric("10000001"), metric("10000000", 86400000), 3600000)
+    assert result["state"] == "OBSERVED"
+    assert result["value"] == "0.0000001"
+    assert (
+        qualify_delta(metric("9999999"), metric("10000000", 86400000), 3600000)["value"]
+        == "-0.0000001"
+    )
+    extreme = qualify_delta(metric("1e100"), metric("1e-100", 86400000), 3600000)
+    assert extreme["value"] is None
+    assert extreme["reason"] == "history_precision_budget"
+
+
+@pytest.mark.parametrize("unit", ["UNKNOWN", "unknown", "Unknown", "UNKNOWN/BTC", "USD/UNKNOWN"])
+def test_unknown_units_never_record_or_qualify_even_when_they_match(unit):
+    current, baseline = metric("120", unit=unit), metric("100", 86400000, unit)
+    result = qualify_delta(current, baseline, 3600000)
+    assert result["state"] == "UNAVAILABLE"
+    assert result["value"] is None
+    assert result["reason"] == "history_unit_unqualified"
+    assert (
+        fresh_points(
+            {"rows": [{"symbol": "BTCUSDT", "metrics": {"open_interest": current}}]}, 90000
+        )
+        == []
+    )
+    assert qualify_delta(metric(), baseline, 3600000)["reason"] == "history_unit_unqualified"
+
+
 @pytest.mark.parametrize(
     "baseline,reason",
     [
@@ -140,14 +169,14 @@ def test_postgres_genuine_history_survives_restart_and_derives_qualified_deltas(
 
     publish(3600000, "10", "100")
     assert a.read("linear")["snapshot"]["rows"][0]["metrics"]["oi_change_24h"]["value"] is None
-    publish(86400000, "100", "200")
-    publish(90000000, "120", "300")
-    publish(90000000, "120", "300")  # Same source observation is idempotent.
+    publish(86400000, "10000000", "200")
+    publish(90000000, "10000001", "300")
+    publish(90000000, "10000001", "300")  # Same source observation is idempotent.
     a.close()
     assert b.claim("linear")
     snapshot = b.read("linear")["snapshot"]
     metrics = snapshot["rows"][0]["metrics"]
-    assert metrics["price_change_1h"]["value"] == "0.2"
+    assert metrics["price_change_1h"]["value"] == "0.0000001"
     assert metrics["oi_change_1h"]["value"] == "0.5"
     assert metrics["oi_change_24h"]["value"] == "2"
     assert metrics["oi_change_24h"]["baseline_source_time_ms"] == 3600000
@@ -199,3 +228,61 @@ def test_postgres_retention_and_missing_history_never_invent_values(stores):
             ("inverse", symbol),
         ).fetchall()
     assert stamps == [(86400000,), (90000000,), (100000000,)]
+
+
+@pytest.mark.integration
+def test_postgres_unknown_units_not_recorded_and_legacy_baselines_never_qualify(stores):
+    from psycopg.types.json import Jsonb
+
+    from src.api.db import connect
+
+    a, _ = stores
+    assert a.claim("linear")
+    symbol = "UNKNOWNUNIT" + uuid4().hex
+    snapshot = {
+        "revision": "raw",
+        "rows": [
+            {
+                "symbol": symbol,
+                "metrics": {
+                    "price": metric("120", unit="UNKNOWN"),
+                    "open_interest": metric("120", unit="UNKNOWN"),
+                },
+            }
+        ],
+    }
+    attempt = {"at": 90000, "last_error": None, "completeness": "EXHAUSTED", "loaded": 1}
+    a.publish("linear", snapshot, attempt, 90300, 90030, 0)
+    with connect(a.dsn) as conn:
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM tester_catalog.ticker_observations "
+                "WHERE category=%s AND symbol=%s",
+                ("linear", symbol),
+            ).fetchone()[0]
+            == 0
+        )
+        # Simulate a durable baseline produced by the old qualification bug.
+        conn.execute(
+            "INSERT INTO tester_catalog.ticker_observations VALUES (%s,%s,%s,%s)",
+            (
+                "linear",
+                symbol,
+                86400000,
+                Jsonb(
+                    {
+                        "price": metric("100", 86400000, "UNKNOWN"),
+                        "open_interest": metric("100", 86400000, "UNKNOWN"),
+                    }
+                ),
+            ),
+        )
+    snapshot["rows"][0]["metrics"] = {
+        "price": metric("120", unit="USDT/BTC"),
+        "open_interest": metric("120", unit="BTC"),
+    }
+    a.publish("linear", snapshot, attempt, 90300, 90030, 0)
+    committed = a.read("linear")["snapshot"]["rows"][0]["metrics"]
+    for name in ("price_change_1h", "oi_change_1h"):
+        assert committed[name]["value"] is None
+        assert committed[name]["reason"] == "history_unit_unqualified"
