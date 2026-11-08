@@ -1,6 +1,4 @@
+# Legacy UI dependencies plus the canonical platform/dev extras.
 -r requirements.txt
-jsonschema>=4.23,<5
-fastapi>=0.115,<1
-httpx>=0.28,<1
-pydantic-settings>=2.7,<3
-
+-c requirements-platform.lock
+-e .[dev]

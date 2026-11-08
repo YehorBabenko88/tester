@@ -1,0 +1,70 @@
+{
+  "schema": "tester-il-integration-result/1",
+  "source_sha": "00baad05ad78cf77524600d37ace39dd42e3159e",
+  "tree_sha": "923b6b06fc60d71fe7f628a8cfc3d3da94f36b3a",
+  "status": "SYNTHETIC_VERTICAL_PASS",
+  "release_go": false,
+  "native_rollout": "NOT_RUN_NOT_AUTHORIZED",
+  "native_installed_unchanged": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "genuine_components": [
+    "pinned F engine",
+    "PostgreSQL immutable bundle/result/jobs/auth/audit/ACK",
+    "pinned G HTTP transport with v2 typed binding",
+    "D shared chart geometry and actual research renderer"
+  ],
+  "database": "new dedicated tester_research_* PostgreSQL55471",
+  "api_port": 18767,
+  "tests": {
+    "python_passed": 589,
+    "python_skipped": 95,
+    "subtests_passed": 65,
+    "actual_postgres_passed": 38,
+    "frontend_unit_passed": 33,
+    "fixture_browser_passed": 45,
+    "unmocked_backend_browser_passed": 1
+  },
+  "actual_dataset": {
+    "synthetic": true,
+    "market_coverage": "NOT_PROVEN",
+    "candles": 3,
+    "fills": 3,
+    "artifact_digest": "b2704ca080a0987622b062fa088372894537372a3b8cd15705f518edcd4b6d44"
+  },
+  "independent_review": "No blocking P1/P2; read-only source review; actual live evidence by coordinator",
+  "temporary_processes": "both disposable PG clusters stopped with owned PID/image/create_time/-D guards; API sessions ended; data retained; no native worker recovery",
+  "remaining_gates": [
+    "actual CI execution (4 candidate runs queued)",
+    "separate physical ComputerUse mouse acceptance",
+    "native-service research opt-in packaging/activation and explicit scope approval if elevation required",
+    "authentic market completeness and real-market Strategy admission",
+    "live H source permissions/verified trader integration",
+    "native worker crash/recovery requires separate explicit authorization"
+  ],
+  "ci": [
+    {
+      "conclusion": "",
+      "databaseId": 42502218548,
+      "status": "queued",
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42502218548"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 42502218555,
+      "status": "queued",
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42502218555"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 42502218569,
+      "status": "queued",
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42502218569"
+    },
+    {
+      "conclusion": "",
+      "databaseId": 42502213368,
+      "status": "queued",
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42502213368"
+    }
+  ],
+  "main_unchanged": "0a6ce227d9463562bb18889dcc0ee747f3be9130"
+}

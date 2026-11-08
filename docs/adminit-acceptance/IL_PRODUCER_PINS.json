@@ -1,0 +1,18 @@
+{
+  "schema": "tester-il-producer-pins/1",
+  "base_pr30": "53a51dab006a2d5862c4285f8383b2a23d204f07",
+  "I": "613e575ba16c49cfc802277f65f4c28d66c9ea7c",
+  "J": "d7b48ef4c27b281bdc26c49e356fe6ea693bbc3e",
+  "K": "6bceca617de2f70ebd6d0ad1699d83be8bf1bc28",
+  "L": "7659674db324109d40907b9c77d82a4e61a5dc75",
+  "F_upstream": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+  "G_upstream": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+  "scope": "EXPLICIT_SYNTHETIC_RESEARCH_ONLY",
+  "canonical_store": "tester PostgreSQL via B/E research ledger",
+  "native_installed_unchanged": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "real_market_completeness": "NOT_PROVEN",
+  "H_live_trader": "NOT_INTEGRATED_PERMISSION_UNKNOWN",
+  "native_worker_recovery": "NOT_AUTHORIZED_NOT_RUN",
+  "main_merge": false,
+  "real_trading": false
+}

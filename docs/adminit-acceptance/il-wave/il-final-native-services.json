@@ -1,0 +1,20 @@
+﻿[
+    {
+        "Name":  "postgresql-x64-18",
+        "State":  "Running",
+        "ProcessId":  11740,
+        "StartName":  "NT AUTHORITY\\NetworkService"
+    },
+    {
+        "Name":  "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60",
+        "State":  "Running",
+        "ProcessId":  5132,
+        "StartName":  "NT AUTHORITY\\LocalService"
+    },
+    {
+        "Name":  "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60",
+        "State":  "Running",
+        "ProcessId":  6860,
+        "StartName":  "NT AUTHORITY\\LocalService"
+    }
+]
