@@ -1,0 +1,112 @@
+{
+  "status": "THIRTEEN_TIMEFRAME_API_OHLCV_PASS",
+  "identity": {
+    "source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+    "tree_sha": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+    "deploy_manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+    "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+    "services": {
+      "app": "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60",
+      "postgres": "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60"
+    },
+    "instance_id": "8d7e04a83b07471d8282cdc02af51c46",
+    "api_endpoint": "http://127.0.0.1:18766",
+    "postgres_port": 55470,
+    "provenance": "host_reported",
+    "scm_state": "not_independently_verified"
+  },
+  "results": [
+    {
+      "interval": "1",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.13059839999914402,
+      "data_sha256": "8a624d390d21811b2b6fb2c0c8b64921ad89224bf706959e964cba2a06b3bd8a"
+    },
+    {
+      "interval": "3",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.10541770000054385,
+      "data_sha256": "b8cbddef58bc289f0ede4c6d85bc55d012f9963deeab4a652ec64f50c0e4abe1"
+    },
+    {
+      "interval": "5",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.10502570000244305,
+      "data_sha256": "46d1106b6e77ec9ad51906cdda72d8b5f17386cec8aa2a1360752e9532d07230"
+    },
+    {
+      "interval": "15",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.1064022999998997,
+      "data_sha256": "42319dd032d4cf5626179be9aba1bd07fa885e0726cf7b312f4981384c7d949d"
+    },
+    {
+      "interval": "30",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.11131860000023153,
+      "data_sha256": "d2245392870f0d4f090250bdb19d2e939e32ba1b3ce896d6d7058e0d52f3899e"
+    },
+    {
+      "interval": "60",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.10956900000019232,
+      "data_sha256": "5e492e5c12797fd6a2f4a634ca40de267ad7d2b203c11f44eb7abe592a5fd520"
+    },
+    {
+      "interval": "120",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.10748189999867463,
+      "data_sha256": "c91447935080da75e4e11c1e147b6824095c7262e10333f388af977d7001b98d"
+    },
+    {
+      "interval": "240",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.13217710000026273,
+      "data_sha256": "801c8efeca5b01439f0c1d7885469d8b62ef7b2cba6cd1e0dbe5bc25ab063643"
+    },
+    {
+      "interval": "360",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.10963129999800003,
+      "data_sha256": "536e313bb4e8a964f510d510ae7b40be556755b5c09cbb0edfdb5836197cab51"
+    },
+    {
+      "interval": "720",
+      "records": 2,
+      "coverage": "UNKNOWN",
+      "seconds": 0.10897810000096797,
+      "data_sha256": "ce1a79ae69affc7c37d53c00473b8689895901059b3d92c588da9ad5a5b58325"
+    },
+    {
+      "interval": "D",
+      "records": 1,
+      "coverage": "UNKNOWN",
+      "seconds": 0.10808170000018436,
+      "data_sha256": "967a8a8c51fdbc752a5432f0f43ea9687dbb5ab64ddab397a3ad02d59e07ce9f"
+    },
+    {
+      "interval": "W",
+      "records": 2,
+      "coverage": "UNKNOWN",
+      "seconds": 0.10805350000009639,
+      "data_sha256": "b8b2525f22aba4bcbfd147a030044d0bb184a3c539abbd5f075f67d6c7b9e848"
+    },
+    {
+      "interval": "M",
+      "records": 3,
+      "coverage": "UNKNOWN",
+      "seconds": 0.11419069999828935,
+      "data_sha256": "185cc78e6200aba7f1b3042ba82c166e39e3cd2d0bc2a549e161d7a23af0bc44"
+    }
+  ],
+  "scope": "Read-only existing historical ranges; API OHLCV validation, not physical browser rendering/mouse; no admissions"
+}

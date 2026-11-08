@@ -4,10 +4,10 @@
     "schema_version": "tester-lab-payload/v1",
     "repository": "YehorBabenko88/tester",
     "branch": "integration/adminit-acceptance",
-    "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
-    "tree_sha": "90944d6ba0dd0194999f82f50ec96f231ce5eff9",
-    "artifact_name": "tester-lab-7b59b415760de83061cd8b91dc75f2f0e5c3878d.zip",
-    "artifact_sha256": "320c738072c20fe27242cac722e893f21b86c724b1fed6c04c1477a2542c749e",
+    "source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+    "tree_sha": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+    "artifact_name": "tester-lab-719b02eea4134730b5d688143022706a9cae8dbe.zip",
+    "artifact_sha256": "b1ef2c7bd1fab3960a63b9a21c134ba599686125d52dbbf7be063f1fa02e7258",
     "dependency_lock_sha256": "731b12259e7e113b6d9c6d47f041d26d85fb3d6111e3f34ddb52505fd9a192df",
     "frontend_lock_sha256": "165b5f0dbe4e012655eae1c5a7bb2975aa636ed63b2d98520c20943ccd553763",
     "installer_sha256": "2a5ec366cb6e826a2437b00225a48016ecfd51559b188da6d7e27184826b4168",
@@ -65,6 +65,7 @@
       "contracts/v1_1/price_candle.py": "d9b60a6e50c347ddd29718b023f7ea0800613c96bf9932c9e78b5405f5a186fd",
       "contracts/v1_1/price_candle.schema.json": "7bd3f25ffa01115d4f57c757954941c224351e04df07700897ff153c6f7d7802",
       "db.py": "94a9721c0c32e05678819cc0f4fcaac2077bc1f2c679ac8e86c4403d6a712363",
+      "docs/adminit-acceptance/COMPACT_READ_CANDIDATE.md": "7f0c0101c03836aff05051d86cf9d71fd4567caa20f31a85cca3b23def209ddf",
       "docs/adminit-acceptance/CONTINUATION_2026_11_08.md": "8ca93ea62869b54bdfedd403db059aabd14500f19474e54cb4c8565dc2addabd",
       "docs/adminit-acceptance/DEPENDENCIES.md": "6e6e858f9c0c120c5962788e941c67a74c18bf50227ebb24a8e0b72f8c862378",
       "docs/adminit-acceptance/F_G_H_PREPARATION_2026_11_08.md": "7dbc4515bbff8d326700d71b13a3fb35f911711ded6618030467bf15855fe5a4",
@@ -74,13 +75,17 @@
       "docs/adminit-acceptance/NATIVE_PHYSICAL_RESULT_2026_11_08.md": "e077b21f1fb4b43891fcb70d5d538ad08ed3555b6bf47469905a9e19e07e9ef5",
       "docs/adminit-acceptance/NATIVE_REPAIR_2026_11_08.md": "b160c989ab917aef31d766d67f057bc980ad71bc2d50133fdd4fe6a0b0a0c8d3",
       "docs/adminit-acceptance/README.md": "5addc0a8178848f1ee5e77d51acabc3412b871a33fc36886199b8b63a457d0f5",
+      "docs/adminit-acceptance/WORKER_REDIRECTOR_FIX.md": "c34b0192250892ac41d1ce12ec91ca829d44756d8843b106e7cfeb73aa2bcc40",
       "docs/adminit-acceptance/acl-recovery-newchildren.log": "4af046c49001f55be53681106e01d088ae9b490ea34710248d3c8fa22424eaff",
       "docs/adminit-acceptance/atomic-stage-final-gate.log": "8b9f928e9c0edc96ef6af291be4ed312588aae9a918162cba414f7bf77f44934",
+      "docs/adminit-acceptance/compact-read-source-gate.log": "63778d7e9ab7f686ce023f8857346d03ab64106b3af64ea047fa2d57cbd898d4",
       "docs/adminit-acceptance/continuation-source-final.log": "8c72073da5864e9b6bc16bbe25fb250ed2dc270a99e6d767ed6ad37caf6035cc",
       "docs/adminit-acceptance/continuation-status.json": "c711513aefaf3e8ecd281b42183a1781b0d122014ef3682e896843fc127afc10",
       "docs/adminit-acceptance/deploy-payload.json": "cb2b22e75aab032cd8aa314c770e3305c6fb3f22998b0c2885ce4ac9b491a6a0",
       "docs/adminit-acceptance/first-uac-failed.json": "6db617fae71293f193101f0399d7818a5bce797c618f2c6ae6d75d6db1d3d23f",
       "docs/adminit-acceptance/followup-deploy-payload.json": "fdf63c17d2020ff791e92ab3e34b44f2bb8ec52f91b61d91353766782282989b",
+      "docs/adminit-acceptance/followup-fixed-deploy-payload.json": "8e4546d1effdf625884afd5523977ae67eea29da53100ce227ac60079d884880",
+      "docs/adminit-acceptance/followup-fixed-native-runtime.json": "333056a90e541a0c166f6ca212ff2b0e10e28d06be6db6a04d228c877308aed5",
       "docs/adminit-acceptance/followup-native-runtime.json": "e4d9dbeb52de969a7e77f0f6532d7c6593edaa0f221d6bd91f7c9d2b6e73d406",
       "docs/adminit-acceptance/followup-nullstring-final-gate.log": "450c0d4afb46d3b9227a2161c50ddab1e2b0ef84a8bbc89024376ec120526900",
       "docs/adminit-acceptance/followup-upgrade-attempt1-failed.json": "036a7ddf1f5bb578b954d89ecd49506bce23a79c680c1bb6a1688494f01f1f77",
@@ -94,7 +99,10 @@
       "docs/adminit-acceptance/lab-smoke-tls.log": "30c811ca0011c65d1afa4eab3e9dd4dd946eeaa11022d8b29dc841eed1030bf4",
       "docs/adminit-acceptance/limited-role.json": "eaae530de668a5606f17556ff35251baa2900c2f2a0c44b3490bebdb4ff4c411",
       "docs/adminit-acceptance/native-backup-restore.json": "52410ce315d16e2a1b97221b87d13ee66f383be78797b080f40917711d2980d2",
+      "docs/adminit-acceptance/native-browser-thirteen-timeframes.json": "25ac2df63bec02d6e4551e5c93864d136743c4ff183bbff5f79188f4bbdaf7ae",
       "docs/adminit-acceptance/native-followup-final-gate.log": "760144bbacf92fd7fa7360d97880c16c0d6a8a47d530b568cfc57921b611d37e",
+      "docs/adminit-acceptance/native-followup-fixed-upgrade.json": "c4b851b84d3a96b342fe1beaf44e626f1f603ef0667592ccfc2cc8e91841fb3e",
+      "docs/adminit-acceptance/native-followup-upgrade-pass.json": "be6284f84ac16eec1b51ece8dec482a4c1a74fbd4dd244fb094facdaf8048835",
       "docs/adminit-acceptance/native-followup-upgrade.json": "a029867317e335dc6a75f5c35a7e4f29fdd4c91499673259a6d380f4a7987d5a",
       "docs/adminit-acceptance/native-host-final-gate.log": "1dbbaa059fb5a480da868a5964c58277b0d0bef4842d0cfbbbb57115f430d48d",
       "docs/adminit-acceptance/native-host-repair-9ecce1ddb2ba428db94c31a26516f869.json": "7fb5591bf04e9e8d31aaa28e05c619e1175ccf8b79cd478b8054f7e154a2fc3d",
@@ -105,13 +113,19 @@
       "docs/adminit-acceptance/native-services.json": "d23d25c5a9e3eca0bcf89b86c28678491a97625037ec8dd78fec0c44035bca01",
       "docs/adminit-acceptance/native-ten-instruments.json": "da816a6739de684f8de312f8fd2dd82bcbcdb44058cea931dca1d688fceda8ac",
       "docs/adminit-acceptance/native-terminal.jpg": "ebda37a6c8343947c34bcec89cff8c1298e7832f42cbc1137813eaf883055077",
+      "docs/adminit-acceptance/native-ui-counters.json": "a45af07deae3472ccba13a7afc5afcee10c002a2647b7fc1d2b2a2d71952754c",
+      "docs/adminit-acceptance/native-worker-attempt1-no-termination.json": "4a51eb8f712a8759dd0658ebe12d5b1af9914830c12e6f2153885f69bdb1741a",
       "docs/adminit-acceptance/npm-current.log": "6a8dbe215aa2afadc73f1ec96d94692027c1e7756c38615cbfe12c7f7a73a7e4",
+      "docs/adminit-acceptance/read-performance-diagnosis.json": "47fd1b6b4165147b497da314795662737cca018ab6eb2956061d2bcc31c61fa0",
       "docs/adminit-acceptance/release-manifest.json": "dfd765ab271b18eba1c95ae5f2116e9820f36f473f4f7344615fe38b8fd8f93d",
       "docs/adminit-acceptance/second-uac-failed.json": "59985c74b785ea8517da25b0f48673b175739b6bf114a3e8f7eff30b82292c0d",
+      "docs/adminit-acceptance/strategy-real-market-preflight.json": "424d0983dafea42f52975e2e8df72b6ce58265ea6a9bb24fb4c0f5869fb46476",
+      "docs/adminit-acceptance/strategy-real-market-preflight.md": "558809ff860edbc8d0deff66d0b4f3973c899aab09096b6f6fbc2372409be7b7",
       "docs/adminit-acceptance/ten-instrument-portable.json": "b46a5561444aa0c616d660920ede1c9e5d6bdbde2e750fcf1e625e799915781a",
       "docs/adminit-acceptance/tester-terminal.jpg": "6584c59591bd7cd955f907a4897fe019b8170ed7f2e84f292e92c17c063f2787",
       "docs/adminit-acceptance/tls-source-gate.log": "62021557430e1f8c3901e591a224ca31c0067f9ba687efdbf3c1bc83c1259f15",
       "docs/adminit-acceptance/unittest-final.log": "6d2227cc236116ed9c6bd90a95a281dad63fa706326df4751628483aabc1f8bf",
+      "docs/adminit-acceptance/worker-recovery-tool-manifest.json": "646e46aed997426247cc1b96bd16c94e3a1f71a5f3730db612a7d8fa3ce14ed4",
       "docs/analytics/INPUT_BINDING.md": "88960fa7d896278a0df913d6e48c3c99ca5df228d26e590ede3e8534a60244eb",
       "docs/analytics/README.md": "ef510024bda10dc77174331a0b7220dfe713ac84acc078f0bd951abf1cdb1e21",
       "docs/analytics/evidence/cutoff-regression-green.log": "d745e92d06543c9d4526c43cdd9b37c0487323413dcc98810322d70f4ed406ca",
@@ -438,7 +452,7 @@
       "scripts/windows/Start-Tester.ps1": "b5e24f531fcc6ef26518064c3d8e0b0d1068c3cfbe1d901065cb9bfaf01553dd",
       "scripts/windows/Stop-Tester.ps1": "9823973348a8768dacbccf2a25b2a12ab290124428a0ae32fbe46a162c2520f9",
       "scripts/windows/Test-Isolated.ps1": "39ba0898ba67b3ba94c197111319d3525d72adc5a33d425585036a88550cdc71",
-      "scripts/windows/Test-TesterLabWorkerRecovery.ps1": "3c2ab086e0929cf747aebbd9af3c13d3aec9a3a89ca96206d140ff8992f92b06",
+      "scripts/windows/Test-TesterLabWorkerRecovery.ps1": "c6b1d1bb7b4245b7657fa5721502e073e6422a02320a0646ed445e814eb6d176",
       "scripts/windows/Update-TesterLabRelease.ps1": "149ac11ca963c27803904f6921387939b9a3a0c13466bcea3148951b8f77dd76",
       "scripts/windows/lab_service.py": "c53cd91940f72350019fc9548e3ab6be5e7b5c5ff48c63b9f9b84ebb1d099408",
       "scripts/windows/physical_service.py": "f6c90765130c44d5c5be8015d6811a81fd66e7a3eb1e0b42678cf429dadf1fed",
@@ -494,7 +508,7 @@
       "src/ingest/transport.py": "80b2c1549ceed924ee8d76ced5680670ef5de048c991d44f506d2e8ecef99f48",
       "src/integration/POLICY_PIN.json": "b1a8fc1f6f3c856be3fccd385fa22cdc20577ff070d1715fa3c584d6d37495a7",
       "src/integration/__init__.py": "c8890cf38409c0ec48269b726cc05eee0966edf457f62c771e08c7251b9d5f18",
-      "src/integration/lab_market.py": "6baf8847830fa767116152a09e53556c9437c3be6779d4979834f323bcbf2583",
+      "src/integration/lab_market.py": "4004e28a876b0432269e444aa77655c1a7c06801b0dfbf414c128d6695dba71e",
       "src/integration/lab_telemetry.py": "eb4ef72108f77b70d1c90502c8fb38bdb9bbb519b2c064c8a52bdb78786a4248",
       "src/integration/physical_journal.py": "82b2f0c046fcb89a68947b617512b09bb14dee93cb74dc206ad6496e89f8f21a",
       "src/integration/standalone_policy.py": "ef48863f9aef6737ebae20794c3a770326d0724abd8c1812b9a923b0dacc0e7a",
@@ -520,10 +534,10 @@
       "src/storage/migrations/006_lifecycle_dry_run.sql": "7a9eb8382a73884408472d83e6bdc930b8c65487aef54be270b8c83aa17b3465",
       "src/storage/migrations/007_visibility_foundation.sql": "5973d536cfc9d0b9c85b1dacc8c87a465605c701084b904b4a4f07ab4f56aa5a",
       "src/storage/models.py": "775fba8947c5b8a5ceb40cb559224da220449cb40917c1bd73addbff883bbba1",
-      "src/storage/provenance.py": "c3695108ace5ee86870172092d2b114bf9cc6a1041416e43b3fc311b40a36316",
+      "src/storage/provenance.py": "caeafa08abdfd8ad48b510572b9c792ec66f2d708924e1950e1865d3ccfb2b6e",
       "src/storage/read_page.py": "de71bf6f9278f938f1d5ad03a9511e9cf23959cc2834e1f1df6c752e8ccb3395",
       "src/storage/requirements.txt": "31fa3032dc8cd7979f0e2a9f5b1b81ea89f8bf2280da10ebcb670d9ae8b21b7b",
-      "src/storage/store.py": "4cc703f4918dd8862183aafc17d7b948c158351874640f26a56251aa9ad857ba",
+      "src/storage/store.py": "f2b62986811ac9271f5db48ac9155a8be7b2c776c04d4050cc224bc7641f3560",
       "src/storage/visibility_foundation.py": "28f9380282fcbdc544a48e8997dab1dbf4a008fcb72bbd3d377eacbaf8abd836",
       "test_approved_contract.py": "0f4292917328e4be4ffb8e753eaa23b206686fb7e01892f146454d89e7861298",
       "test_core.py": "45422fb318e7d99ab5acd8d8e3af2a913342429f49778f814f2951172470fa92",
@@ -568,6 +582,7 @@
       "tests/ingest/test_pipeline.py": "fdfea92ba2dd3a2c587b976f91fef633fa8b133483dbf2bfb932a2fb222fa4f1",
       "tests/ingest/verify_handoff.py": "bb2fdd7f74890c9aefac48ea69a516eda740dbea847d4e959638dd6f4b0e4728",
       "tests/integration/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests/integration/test_compact_provenance.py": "5436972458d70074ad46acfbd8bbaa71b6026549056c4c869d67b7e006248fd6",
       "tests/integration/test_frontend_mount.py": "3c716ec7b7994586057d9782cc31090805fffb4102dbf4363565f903a3d50480",
       "tests/integration/test_lab_market.py": "40feb676e5bccd420a3c5ef84f7db870ddd74a76a4b821ff6722a8515437250a",
       "tests/integration/test_lab_telemetry.py": "d995c13c1196b92792f07041c4334a3c1241b7a43324d1291abb336f94b14fc7",
@@ -598,7 +613,7 @@
       "tests/platform/test_lab_soak.py": "92b7e59901b86124db02eeb1d47e7741e8488631bccc6c8373b6d4336d9a319a",
       "tests/platform/test_lab_timeframes.py": "3dde181cc5bf108f0d7c31ffffcf225085986467b7a3d30ac701afa6b3f4fe04",
       "tests/platform/test_lab_upgrade.py": "f824906dd89a576ef4303e36a9087e5f2d4bf1f327fe5a954432a71e852cb2de",
-      "tests/platform/test_lab_worker_recovery.py": "2475100934dd0641de19a560cdff5b934bc136802f2dfa89f56c75222d69d018",
+      "tests/platform/test_lab_worker_recovery.py": "a4d4e9241d7a5951bd00a14263be6a89b205967505d9c0b101c6ed6a7ed20fc0",
       "tests/platform/test_native_loader.py": "ce1d020d0d5651951b223314685f84e2f1a24db1a01fef751bed4a631f39f3b6",
       "tests/platform/test_openapi_phrase.py": "b96094e4f8ef1536e8bda20d7a86fa19f2bd3822c76f16b7a42ba886e6f473ad",
       "tests/platform/test_operations.py": "488aaafaffed7d6e752160f189045edb2af35440ecc94307655307f39df4502f",
@@ -628,8 +643,8 @@
       "tests/test_quality.py": "b08845bb614731e94df00defe708e45029fb2309b13f9c4fef54c3dbceba7db9"
     }
   },
-  "installed_deploy_manifest_sha256": "b4438d10495d65e684f9e40a7a29d68e114c772efd4df3edf969d1cb65d4823a",
-  "installed_native_manifest_sha256": "0f441d54ba7604a668cd9ce0b65883521f9ba8ee2512cde22379637ef46e569a",
+  "installed_deploy_manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+  "installed_native_manifest_sha256": "004f9ed3b97f760e3936ac425d4d0d62e0cdcea61d8c5823dd95bbbdddefb317",
   "candidate_payload": {
     "schema_version": "tester-lab-payload/v1",
     "repository": "YehorBabenko88/tester",
@@ -1276,7 +1291,7 @@
   "candidate_deploy_manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
   "candidate_native_manifest_sha256": "004f9ed3b97f760e3936ac425d4d0d62e0cdcea61d8c5823dd95bbbdddefb317",
   "candidate_upgrade_manifest_sha256": "cc295c8cde47af6267f0b88e76a2e3108574820929e1127d2687ff527439a970",
-  "candidate_native_installed": false,
+  "candidate_native_installed": true,
   "worker_recovery_tool_manifest_sha256": "69c2ed76a9e50d7176c99a991dd7059be742648c6028aec207054db6b4302df7",
   "worker_recovery_result": "UAC_CANCELED_NOT_RUN",
   "evidence": [
@@ -1369,8 +1384,178 @@
       "name": "native-ui-downloads.jpg",
       "sha256": "2003d184853c140b33f6a30b2763552841dbf48e2cb15b1aa0b6c9805952fc92",
       "bytes": 122078
+    },
+    {
+      "name": "native-719-upgrade-result.json",
+      "sha256": "a0a9e909019a6ff6cdd346586bfe5e9716a6adb082c4cadb8ab364c0af18ac7a",
+      "bytes": 756
+    },
+    {
+      "name": "native-719-data-parity.json",
+      "sha256": "0f52a24e18cfb7419c60aaef27d43b1e02e271a4c96187b035fa531ebd267df6",
+      "bytes": 344
+    },
+    {
+      "name": "native-719-after-http.json",
+      "sha256": "00602c925fba7a20b146b371b7240dc284042b5129f132a98619e6f7e648020d",
+      "bytes": 2861
+    },
+    {
+      "name": "native-719-after-profile.json",
+      "sha256": "a69b007b3a032a1df702a6194ed546e248c72983b4478ace213030d15a271be1",
+      "bytes": 10008
+    },
+    {
+      "name": "ci-queue-diagnosis.json",
+      "sha256": "ee4d80a0d2cea0f783dbab7afe20ce373438b3f2b3b9711038123b6a3da17178",
+      "bytes": 3537727
+    },
+    {
+      "name": "native-719-intensive-88be.json",
+      "sha256": "ca1f04871a2a15b242ed1ce9e83f21e1d09ccd8cc725db8a3fb05c9a5bf20583",
+      "bytes": 870253
+    },
+    {
+      "name": "native-719-intensive-summary.json",
+      "sha256": "ae8b9f7a8a649429f8e360e4ffb7e6a3278ff5d894b224c2dac9e8c56c5a77b9",
+      "bytes": 4030
+    },
+    {
+      "name": "native-719-thirteen-timeframes.json",
+      "sha256": "6eab0cb339e06d8809f33831a23ae98e1686606145ab0a9e0083faca5d9f9711",
+      "bytes": 3726
+    },
+    {
+      "name": "native-719-final-services.json",
+      "sha256": "feb1b86cfc4c6ab4cc70a7de4dc4bca4a59c605a191e5e7a27054c19a397b9ff",
+      "bytes": 558
+    },
+    {
+      "name": "native-719-post-load-integrity.json",
+      "sha256": "e430e0cc97ca03cfbdb7c7f9edeeb5c5e662afd5905da0038613b4195e6234b1",
+      "bytes": 2861
+    },
+    {
+      "name": "ci-queue-count-refresh.json",
+      "sha256": "8849409baa4c2c32117eb515aa4ed9bde6cfb693d9b75ef216b8e96278fc64cd",
+      "bytes": 223
+    },
+    {
+      "name": "agents-i-l-status.json",
+      "sha256": "659ea0a1cd77e75e26009aa9e50f5b0ef748e1abbb1939fdde398f2bb9fd12ee",
+      "bytes": 1653
+    },
+    {
+      "name": "worker-recovery-tool-719-proposal.json",
+      "sha256": "e4305b30f4f252a6ab4b40c9c4119856ea8f3eac572d8a8b6472022186f2cd22",
+      "bytes": 1039
+    },
+    {
+      "name": "ADMINIT_CONTINUATION_I_L.md",
+      "sha256": "3d173e39719e3b39791066ed68ca0ed2829d9c409898ab52adc305ff933f88f5",
+      "bytes": 4997
+    },
+    {
+      "name": "native-719-resource-9c4-1.json",
+      "sha256": "a226c93287d70f6fd8cd44345a59dfd538d316a77ab273fd564b7b829c3c82b7",
+      "bytes": 6138
+    },
+    {
+      "name": "native-719-resource-9c4-10.json",
+      "sha256": "dde8bb28acc1bfd0b49f44476829d83bacf854972e6d6c9584b181b2f38eb50e",
+      "bytes": 960
+    },
+    {
+      "name": "native-719-resource-9c4-2.json",
+      "sha256": "ba65cb0d10f14f8b9021162c831a3c4fe3132ac9b91b82844eb7b1614138969f",
+      "bytes": 6132
+    },
+    {
+      "name": "native-719-resource-9c4-3.json",
+      "sha256": "3065a20905b9a14f943b779630ab01da2a9efc79e586676423566e6cb94ebe10",
+      "bytes": 6133
+    },
+    {
+      "name": "native-719-resource-9c4-4.json",
+      "sha256": "c7a4a3152b3067453f9e2c6a58d7a3fdb84441f2dc6a7e266f894b980b65fe68",
+      "bytes": 6131
+    },
+    {
+      "name": "native-719-resource-9c4-5.json",
+      "sha256": "7573c8a159250325dc2ca941d2a5574abbdbb6434e4c291f72114c1425e42401",
+      "bytes": 6131
+    },
+    {
+      "name": "native-719-resource-9c4-6.json",
+      "sha256": "d07f05280d69690b38fd3dd6380538f45577d3002a56241b7eecd741df4621e6",
+      "bytes": 6133
+    },
+    {
+      "name": "native-719-resource-9c4-7.json",
+      "sha256": "b757fa1ac68dc0436328ee64dc184da796cb5ab22ecd34411ffc908541af7380",
+      "bytes": 6132
+    },
+    {
+      "name": "native-719-resource-9c4-8.json",
+      "sha256": "20ff72f8a03a107b96b0a74888f628e2efe3c9816a4fadc1cbae7f8871712fc1",
+      "bytes": 6131
+    },
+    {
+      "name": "native-719-resource-9c4-9.json",
+      "sha256": "ef8f311ff77450bcbb967e30e1803412dda6a178e093930f94d1fcf5b5545ddb",
+      "bytes": 6130
+    },
+    {
+      "name": "native-719-resource-snapshot-9c4.json",
+      "sha256": "d28c1412a1bd344d6630f357ef47b337eec2b8feba070f4d155c3b90b3e6f59d",
+      "bytes": 6136
     }
   ],
   "release_go": false,
-  "main_unchanged": "0a6ce227d9463562bb18889dcc0ee747f3be9130"
+  "main_unchanged": "0a6ce227d9463562bb18889dcc0ee747f3be9130",
+  "previous_installed_source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+  "upgrade_result": "UPGRADE_PASS",
+  "installed_instance_id": "8d7e04a83b07471d8282cdc02af51c46",
+  "historical_evidence_note": "Older evidence entries retain their original source/instance scope and do not certify current719 installation.",
+  "agent_prs": [
+    {
+      "name": "I",
+      "issue": 31,
+      "branch": "workstream/i-performance",
+      "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-i-performance\\tester-integration",
+      "pr": 35,
+      "sha": "9c4f65c2f1a03641019d25102c8a21e485cf08f8",
+      "status": "DRAFT_PUBLISHED_REVIEW_COMPLETE"
+    },
+    {
+      "name": "J",
+      "issue": 32,
+      "branch": "workstream/j-strategy-integration",
+      "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-j-strategy\\tester-integration",
+      "pr": 37,
+      "sha": "016aecd33f931a3767715cd0e140644b27631c2a",
+      "status": "DRAFT_PUBLISHED_REVIEWED",
+      "tool_source_sha": "4f1476e4a1279f6da7ded75be417c4aa2058259b"
+    },
+    {
+      "name": "K",
+      "issue": 33,
+      "branch": "workstream/k-codex-e2e",
+      "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-k-control\\tester-integration",
+      "pr": 38,
+      "sha": "94ae0bb6e8ab9e288982bfa4079844264c3b5b14",
+      "status": "DRAFT_PUBLISHED"
+    },
+    {
+      "name": "L",
+      "issue": 34,
+      "branch": "workstream/l-ui-trader",
+      "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-l-ui\\tester-integration",
+      "pr": 36,
+      "sha": "e20b0a46efb87b366f14575923eff62e310cb2d7",
+      "status": "DRAFT_PUBLISHED"
+    }
+  ],
+  "intensive_result": "INCOMPLETE_380_COMPLETE_0_NEW_FAILURES_RESOURCE_GATES_NOT_PASSED",
+  "recovery_tool_proposal_sha256": "e4305b30f4f252a6ab4b40c9c4119856ea8f3eac572d8a8b6472022186f2cd22"
 }

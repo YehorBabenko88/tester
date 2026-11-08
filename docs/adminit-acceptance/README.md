@@ -1,3 +1,5 @@
+**Latest native state:** reader719 upgrade and post-upgrade parity PASS; release NO_GO. See [native rollout](NATIVE_719_ROLLOUT.md), `NATIVE_719_UPGRADE_RESULT.json`, current `release-manifest.json` and `continuation-status.json`. Earlier snapshots below retain their historical scope.
+
 # ADMINIT acceptance candidate — 2026-11-08
 
 **Current continuation:** see [repaired candidate and renewed native approval](NATIVE_REPAIR_2026_11_08.md)
