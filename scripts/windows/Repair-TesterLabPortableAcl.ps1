@@ -17,14 +17,14 @@ function Assert-TesterLabPlain([IO.FileSystemInfo]$Item) {
 }
 
 function Set-TesterLabExplicitAcl {
-    param([string]$ItemPath,[string]$CreatorSid,[string]$CreatorRights='',[string]$ServiceRights='',[switch]$NoInheritance,[switch]$PreserveExisting)
+    param([string]$ItemPath,[string]$CreatorSid,[string]$CreatorRights='',[string]$ServiceRights='',[switch]$NoInheritance,[switch]$PreserveExisting,[switch]$MutableChildren)
     $Item=Get-Item -LiteralPath $ItemPath -Force
     Assert-TesterLabPlain $Item
     # Read the existing descriptor so only DACL changes are marked for persistence.
     # A blank FileSecurity passed through Set-Acl can request SACL/owner writes.
     $Acl=Get-Acl -LiteralPath $ItemPath
     $Inheritance=[Security.AccessControl.InheritanceFlags]::None
-    if ($Item.PSIsContainer -and -not $NoInheritance) {
+    if ($Item.PSIsContainer -and (-not $NoInheritance -or $MutableChildren)) {
         $Inheritance=[Security.AccessControl.InheritanceFlags]'ContainerInherit,ObjectInherit'
     }
     if (-not $PreserveExisting) {
@@ -177,9 +177,10 @@ function Invoke-TesterLabAclRecovery {
             $Entries.Add([pscustomobject]$Entry)
             Write-TesterLabAclJournal $Writer ([ordered]@{kind='snapshot';entry=$Entry})
             if ($Entry.skip) {Write-Output ('SKIPPED '+$Entry.skip+' '+$Entry.path);continue}
-            # No inheritable grants: repairing a parent must not alter unseen child ACLs.
+            # Win32 DACL-only directory writes avoid propagating into existing children.
+            # Mutable directories must nevertheless let future children inherit creator Modify.
             if ((Get-TesterLabOwnerSid $Entry.path) -ne $Me) {throw 'Owner changed during recovery.'}
-            Set-TesterLabExplicitAcl -ItemPath $Entry.path -CreatorSid $Me -CreatorRights $Rights -NoInheritance -PreserveExisting:$Item.PSIsContainer
+            Set-TesterLabExplicitAcl -ItemPath $Entry.path -CreatorSid $Me -CreatorRights $Rights -NoInheritance -PreserveExisting:$Item.PSIsContainer -MutableChildren:($Item.PSIsContainer -and $Rights -eq 'Modify')
             Write-TesterLabAclJournal $Writer ([ordered]@{kind='restored';path=$Entry.path})
             if ($Item.PSIsContainer) {
                 # Enumerate only this newly readable owned directory, never an entire locked tree.

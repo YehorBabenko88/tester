@@ -72,9 +72,13 @@ def marker(root):
     return data
 
 
-def write_marker(root, data):
+def write_marker(root, data, *, staging_parent=None):
     target = plain(root / MARKER)
-    temporary = plain(root / ".tester-lab.pending")
+    temporary = (
+        plain(root / ".tester-lab.pending")
+        if staging_parent is None
+        else plain(staging_parent / (".tester-lab-marker-" + uuid.uuid4().hex + ".pending"))
+    )
     with temporary.open("x", encoding="utf-8") as stream:
         json.dump(data, stream, indent=2)
     os.replace(temporary, target)
@@ -165,14 +169,34 @@ def stage_release(root, sha, source, inventory, query):
     _stopped_owned(data, query)
     if not re.fullmatch("[0-9a-f]{40}", sha) or sha in data["releases"]:
         raise LabViolation("New exact unique published SHA required")
+    source = plain(source)
     verify_tree(source, inventory)
     destination = plain(root / "releases" / sha)
     if destination.exists():
         raise LabViolation("Never overwrite retained release bytes")
-    shutil.copytree(source, destination)
-    verify_tree(destination, inventory)
-    data["releases"][sha] = inventory
-    write_marker(root, data)
+    staging_parent = plain(source.parent)
+    if staging_parent == root or root in staging_parent.parents:
+        raise LabViolation("Published source staging parent must be outside the installation root")
+    if staging_parent.stat().st_dev != destination.parent.stat().st_dev:
+        raise LabViolation("Release staging requires a same-volume source parent and destination")
+    temporary = plain(staging_parent / (".tester-lab-stage-" + sha + "-" + uuid.uuid4().hex))
+    if temporary.parent != staging_parent or destination.parent != root / "releases":
+        raise LabViolation("Release staging path bounds mismatch")
+    try:
+        shutil.copytree(source, temporary)
+        verify_tree(temporary, inventory)
+        # Windows rename refuses an existing destination; never copy into inherited-RX trees.
+        plain(destination)
+        if destination.exists():
+            raise LabViolation("Destination appeared during staging; never overwrite")
+        os.rename(temporary, destination)
+        verify_tree(destination, inventory)
+        data["releases"][sha] = inventory
+        write_marker(root, data, staging_parent=staging_parent)
+    except Exception as exc:
+        raise LabViolation(
+            f"Release staging failed; retained temporary={temporary}; destination={destination}; no cleanup performed"
+        ) from exc
     return data
 
 
