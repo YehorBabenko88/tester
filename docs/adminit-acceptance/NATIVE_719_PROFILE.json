@@ -1,0 +1,325 @@
+{
+  "source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "tree_sha": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+  "deploy_manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+  "runtime_manifest_sha256": "004f9ed3b97f760e3936ac425d4d0d62e0cdcea61d8c5823dd95bbbdddefb317",
+  "instance_id": "8d7e04a83b07471d8282cdc02af51c46",
+  "range_ms": [
+    1794009600000,
+    1794096000000
+  ],
+  "traffic_context": "Explicit diagnostic GET/SQL load; may overlap other lab traffic; not a pure soak or saturation workload",
+  "full_installed_source_inventory_verified": true,
+  "full_native_inventory_verified": true,
+  "source_changed": false,
+  "sql_writes": false,
+  "http": [],
+  "sql": {
+    "byte_scope": "Potential legacy full-document join logical JSON text lengths; not actual compact-path transfer or wire counters"
+  },
+  "profiles": [
+    {
+      "source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+      "limit": 1000,
+      "records": 1000,
+      "coverage": "UNKNOWN",
+      "elapsed_seconds": 3.209214200000133,
+      "process_memory_before": {
+        "working_set_bytes": 57286656,
+        "peak_working_set_bytes": 60051456,
+        "private_commit_bytes": 42901504,
+        "peak_private_commit_bytes": 47398912
+      },
+      "process_memory_after": {
+        "working_set_bytes": 72265728,
+        "peak_working_set_bytes": 72265728,
+        "private_commit_bytes": 56893440,
+        "peak_private_commit_bytes": 56893440
+      },
+      "scope": "Published LabReader.read; read-only Store connections with endpoint/read-only metadata checks; no API response validation/serialization",
+      "top_cumulative": [
+        {
+          "file": "src/integration/lab_market.py",
+          "line": 163,
+          "function": "read",
+          "calls": 1,
+          "own_seconds": 0.0425067,
+          "cumulative_seconds": 3.2034361000000002
+        },
+        {
+          "file": "src/integration/lab_market.py",
+          "line": 111,
+          "function": "project_candle",
+          "calls": 1000,
+          "own_seconds": 0.0205795,
+          "cumulative_seconds": 2.5759637
+        },
+        {
+          "file": "contracts/v1/validate.py",
+          "line": 21,
+          "function": "validate_record",
+          "calls": 3000,
+          "own_seconds": 0.057038000000000005,
+          "cumulative_seconds": 2.4511785
+        },
+        {
+          "file": "validators.py",
+          "line": 349,
+          "function": "iter_errors",
+          "calls": 3001,
+          "own_seconds": 0.0039449,
+          "cumulative_seconds": 2.2681052
+        },
+        {
+          "file": "_keywords.py",
+          "line": 274,
+          "function": "ref",
+          "calls": 10567,
+          "own_seconds": 0.0155253,
+          "cumulative_seconds": 2.2640438
+        },
+        {
+          "file": "validators.py",
+          "line": 396,
+          "function": "descend",
+          "calls": 83944,
+          "own_seconds": 0.324361,
+          "cumulative_seconds": 2.1466301000000003
+        },
+        {
+          "file": "validators.py",
+          "line": 448,
+          "function": "validate",
+          "calls": 3000,
+          "own_seconds": 0.0050417000000000005,
+          "cumulative_seconds": 2.1237143
+        },
+        {
+          "file": "_keywords.py",
+          "line": 290,
+          "function": "properties",
+          "calls": 10528,
+          "own_seconds": 0.0890747,
+          "cumulative_seconds": 2.0481863000000002
+        },
+        {
+          "file": "_keywords.py",
+          "line": 59,
+          "function": "items",
+          "calls": 4052,
+          "own_seconds": 0.014692,
+          "cumulative_seconds": 0.5022237
+        },
+        {
+          "file": "validators.py",
+          "line": 339,
+          "function": "evolve",
+          "calls": 83812,
+          "own_seconds": 0.22008860000000002,
+          "cumulative_seconds": 0.5013546
+        },
+        {
+          "file": "src/storage/store.py",
+          "line": 268,
+          "function": "read",
+          "calls": 1,
+          "own_seconds": 0.0082345,
+          "cumulative_seconds": 0.47729780000000005
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method select.select>",
+          "calls": 429,
+          "own_seconds": 0.4602838,
+          "cumulative_seconds": 0.4602838
+        },
+        {
+          "file": "connection.py",
+          "line": 479,
+          "function": "wait",
+          "calls": 12,
+          "own_seconds": 5.8700000000000004e-05,
+          "cumulative_seconds": 0.4051132
+        },
+        {
+          "file": "waiting.py",
+          "line": 329,
+          "function": "wait_select",
+          "calls": 12,
+          "own_seconds": 0.0016089000000000001,
+          "cumulative_seconds": 0.40505450000000004
+        },
+        {
+          "file": "connection.py",
+          "line": 281,
+          "function": "execute",
+          "calls": 9,
+          "own_seconds": 4.71e-05,
+          "cumulative_seconds": 0.40426710000000005
+        },
+        {
+          "file": "cursor.py",
+          "line": 100,
+          "function": "execute",
+          "calls": 9,
+          "own_seconds": 5.75e-05,
+          "cumulative_seconds": 0.40392
+        },
+        {
+          "file": "validators.py",
+          "line": 459,
+          "function": "_validate_reference",
+          "calls": 10748,
+          "own_seconds": 0.011800000000000001,
+          "cumulative_seconds": 0.38800450000000003
+        },
+        {
+          "file": "_core.py",
+          "line": 653,
+          "function": "lookup",
+          "calls": 10748,
+          "own_seconds": 0.030946300000000003,
+          "cumulative_seconds": 0.3762045
+        },
+        {
+          "file": "validators.py",
+          "line": 452,
+          "function": "is_type",
+          "calls": 144631,
+          "own_seconds": 0.0553943,
+          "cumulative_seconds": 0.29139560000000003
+        },
+        {
+          "file": "<attrs generated methods jsonschema.validators.create.<locals>.Validator>",
+          "line": 26,
+          "function": "__init__",
+          "calls": 86813,
+          "own_seconds": 0.0449031,
+          "cumulative_seconds": 0.27539810000000003
+        },
+        {
+          "file": "src/integration/storage_api.py",
+          "line": 18,
+          "function": "provenance_from_storage",
+          "calls": 1000,
+          "own_seconds": 0.0111205,
+          "cumulative_seconds": 0.2613286
+        },
+        {
+          "file": "_keywords.py",
+          "line": 282,
+          "function": "type",
+          "calls": 55845,
+          "own_seconds": 0.0757266,
+          "cumulative_seconds": 0.2511002
+        },
+        {
+          "file": "_types.py",
+          "line": 94,
+          "function": "is_type",
+          "calls": 144631,
+          "own_seconds": 0.14026160000000001,
+          "cumulative_seconds": 0.23600130000000002
+        },
+        {
+          "file": "validators.py",
+          "line": 282,
+          "function": "__attrs_post_init__",
+          "calls": 86813,
+          "own_seconds": 0.1379214,
+          "cumulative_seconds": 0.230495
+        },
+        {
+          "file": "_keywords.py",
+          "line": 36,
+          "function": "additionalProperties",
+          "calls": 9015,
+          "own_seconds": 0.017184500000000002,
+          "cumulative_seconds": 0.2129106
+        },
+        {
+          "file": "_core.py",
+          "line": 254,
+          "function": "pointer",
+          "calls": 9221,
+          "own_seconds": 0.0647233,
+          "cumulative_seconds": 0.1958541
+        },
+        {
+          "file": "_core.py",
+          "line": 165,
+          "function": "create_resource",
+          "calls": 94507,
+          "own_seconds": 0.0878829,
+          "cumulative_seconds": 0.16443480000000002
+        },
+        {
+          "file": "contracts/v1/validate.py",
+          "line": 14,
+          "function": "_schema",
+          "calls": 1,
+          "own_seconds": 3.9500000000000005e-05,
+          "cumulative_seconds": 0.1502765
+        },
+        {
+          "file": "validators.py",
+          "line": 306,
+          "function": "check_schema",
+          "calls": 1,
+          "own_seconds": 1.74e-05,
+          "cumulative_seconds": 0.14959730000000002
+        },
+        {
+          "file": "_keywords.py",
+          "line": 332,
+          "function": "allOf",
+          "calls": 191,
+          "own_seconds": 0.0012402000000000001,
+          "cumulative_seconds": 0.1494213
+        },
+        {
+          "file": "_keywords.py",
+          "line": 278,
+          "function": "dynamicRef",
+          "calls": 190,
+          "own_seconds": 0.0002517,
+          "cumulative_seconds": 0.1478681
+        },
+        {
+          "file": "_core.py",
+          "line": 700,
+          "function": "in_subresource",
+          "calls": 82475,
+          "own_seconds": 0.0312508,
+          "cumulative_seconds": 0.1475209
+        },
+        {
+          "file": "_keywords.py",
+          "line": 285,
+          "function": "<genexpr>",
+          "calls": 56957,
+          "own_seconds": 0.0239165,
+          "cumulative_seconds": 0.1466694
+        },
+        {
+          "file": "_core.py",
+          "line": 227,
+          "function": "id",
+          "calls": 85476,
+          "own_seconds": 0.035314500000000006,
+          "cumulative_seconds": 0.11631300000000001
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.isinstance>",
+          "calls": 471911,
+          "own_seconds": 0.0876436,
+          "cumulative_seconds": 0.1157196
+        }
+      ]
+    }
+  ],
+  "status": "PROFILE_COMPLETE"
+}

@@ -1,0 +1,19 @@
+{
+    "schema":  "tester-lab-upgrade-result/v2",
+    "installation_id":  "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+    "old_source_sha":  "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+    "new_source_sha":  "719b02eea4134730b5d688143022706a9cae8dbe",
+    "expected_app_state":  "Running",
+    "status":  "UPGRADE_PASS",
+    "stage":  "COMPLETE",
+    "failure_stage":  null,
+    "error_type":  null,
+    "rollback_status":  "NOT_REQUIRED",
+    "rollback_error_type":  null,
+    "rollback_failure_stage":  null,
+    "reporting_error_type":  null,
+    "rollback_bundle":  "C:\\TesterLab\\backups\\upgrade-f7ff04769ea6481a829c1509caaff4e0",
+    "committed":  true,
+    "postgres_pid":  5132,
+    "completed_utc":  "2026-11-08T15:52:17.3674490Z"
+}
