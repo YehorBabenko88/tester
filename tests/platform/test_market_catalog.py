@@ -91,6 +91,24 @@ def test_failure_retains_good_snapshot_but_reports_stale_and_attempt_error():
     assert after["attempt"]["completeness"] == "UNKNOWN"
 
 
+def test_ticker_failure_preserves_completed_catalog_acquisition_evidence():
+    source = Source()
+    original = source.call
+
+    def failing_tickers(endpoint, params):
+        if endpoint == "/tickers":
+            raise AcquisitionError("rate_limited")
+        return original(endpoint, params)
+
+    source.call = failing_tickers
+    service = CatalogService(source)
+    assert not service.refresh("linear")
+    attempt = service.query("linear")["attempt"]
+    assert attempt["stage"] == "tickers"
+    assert attempt["pages"] == 6
+    assert attempt["status_coverage"]["Trading"]["completeness"] == "EXHAUSTED"
+
+
 def test_cycle_is_partial_never_published_as_complete():
     source = Source()
     source.cycle = True

@@ -182,7 +182,9 @@ class CatalogService:
                     "loaded": exc.loaded
                     if isinstance(exc, AcquisitionError) and exc.loaded
                     else len(rows),
-                    "pages": exc.pages if isinstance(exc, AcquisitionError) else pages,
+                    "pages": pages
+                    if acquired
+                    else (exc.pages if isinstance(exc, AcquisitionError) else pages),
                     "status_coverage": acquired["status_coverage"]
                     if acquired
                     else (exc.status_coverage if isinstance(exc, AcquisitionError) else {}),
