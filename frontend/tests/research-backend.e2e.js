@@ -62,7 +62,7 @@ test("real authorized durable research result draws and acknowledges exact fills
   await expect(page.locator("#research-fills tr")).toHaveCount(ids.length);
   for (const m of artifact.markers)
     await expect(
-      page.locator("#research-fills tr").filter({ hasText: m.fill_id }),
+      page.locator(`#research-fills tr[data-fill-id=${JSON.stringify(m.fill_id)}]`),
     ).toContainText(m.price);
   const pixels = await canvas.evaluate((c) => {
     const image = c.getContext("2d").getImageData(0, 0, c.width, c.height);
