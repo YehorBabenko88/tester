@@ -3,6 +3,24 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { candle, envelope } from "./fixtures/canonical.js";
 
+test("search and selected identity survive reload before search debounce fires", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+  await page.clock.pauseAt(new Date("2026-01-01T00:00:01Z"));
+  await setup(page);
+  await page.getByLabel("Search symbols").fill("BTCUSDT");
+  await page.getByLabel("Select BTCUSDT", { exact: true }).check();
+  await page
+    .getByRole("button", { name: "Chart BTCUSDT", exact: true })
+    .click();
+  await page.reload();
+  await expect(page.getByLabel("Search symbols")).toHaveValue("BTCUSDT");
+  await expect(
+    page.getByLabel("Select BTCUSDT", { exact: true }),
+  ).toBeChecked();
+});
+
 test("pagination pins snapshot revision and resets once after refresh without losing selection", async ({
   page,
 }) => {
