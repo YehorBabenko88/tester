@@ -46,6 +46,8 @@ Retain exact **before and after** source/native/pointer/config receipts. A SHA-n
 
 Do not leak raw unrelated process commands/environment in receipts. Normal service stop/start and fresh instance identity must be covered independently of worker-recovery tests. The existing ban on native recovery termination remains; this addon does not create a recovery action or schedule one.
 
+Any future forced worker or descendant termination requires a separate reviewed source action and explicit authorization naming that termination scope. Install/start, normal stop/restart, upgrade or rollback approval does not implicitly authorize it. A graceful-stop timeout must report the limitation and cannot silently add a kill or recovery retry.
+
 ## Health, concurrency and renderer parity
 
 Maintain existing main API/download readiness and degraded-provider behavior. Add explicit versioned Research health (disabled, not provisioned, ready, capability expired/revoked, worker failed) without rewriting the existing market health meaning. Never report SCM Running solely because a subprocess exists. Bound admission, workers, memory, result size, retries and shutdown deadlines through typed source-reviewed configuration.
