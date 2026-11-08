@@ -1,3 +1,4 @@
+# Reviewable recovery proposal pins exact manifest bytes on every platform.
 # Preserve raw acceptance evidence and recovery-manifest checksums.
 worker-recovery-tool-719-proposal.json -text
 native-719-*.json -text
