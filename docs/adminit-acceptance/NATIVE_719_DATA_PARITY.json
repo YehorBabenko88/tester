@@ -1,0 +1,8 @@
+{
+  "source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "records": 1000,
+  "data_sha256": "555ef9749bcdaa24f6e91d447affd16c09b60a3b8930b7fe9c9e77a420053e47",
+  "data_coverage_sha256": "074888f75a752ee0342d3cceb85a1a9e28c49c4a3d52577148e6feb41af97a9f",
+  "coverage": "UNKNOWN",
+  "status": "POST_UPGRADE_DATA_AND_COVERAGE_MATCH"
+}

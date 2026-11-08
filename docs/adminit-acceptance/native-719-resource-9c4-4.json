@@ -1,0 +1,210 @@
+{
+  "kind": "RESOURCE_OBSERVATION_ONLY",
+  "status": "INCOMPLETE",
+  "identity": {
+    "source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+    "tree_sha": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+    "deploy_manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+    "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+    "services": {
+      "app": "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60",
+      "postgres": "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60"
+    },
+    "instance_id": "8d7e04a83b07471d8282cdc02af51c46",
+    "api_endpoint": "http://127.0.0.1:18766",
+    "postgres_port": 55470
+  },
+  "processes": {
+    "groups": {
+      "app": {
+        "process_count": 10,
+        "private_bytes": 205996032,
+        "cpu_one_core_percent": 5.0,
+        "io_write_bytes_per_second": 731029.0
+      },
+      "postgres": {
+        "process_count": 11,
+        "private_bytes": 14311424,
+        "cpu_one_core_percent": 5.0,
+        "io_write_bytes_per_second": 0.0
+      }
+    },
+    "private_bytes": 220307456,
+    "worker_process_count": null,
+    "bindings": [
+      {
+        "group": "app",
+        "pid": 6860,
+        "created": "2026-11-08T15:52:07.8871760Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 12984,
+        "created": "2026-11-08T15:52:12.7517050Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 16848,
+        "created": "2026-11-08T15:52:12.7584960Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 22592,
+        "created": "2026-11-08T15:52:12.7743120Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 22648,
+        "created": "2026-11-08T15:52:13.8086750Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 23988,
+        "created": "2026-11-08T15:52:13.8150930Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 25580,
+        "created": "2026-11-08T15:52:13.8181480Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 20728,
+        "created": "2026-11-08T15:52:13.8361600Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 3504,
+        "created": "2026-11-08T15:52:13.8230060Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "app",
+        "pid": 24712,
+        "created": "2026-11-08T15:52:13.8380180Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 5132,
+        "created": "2026-11-08T11:51:37.1077590Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 6912,
+        "created": "2026-11-08T11:51:37.1890040Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 22116,
+        "created": "2026-11-08T11:51:37.1926320Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 6536,
+        "created": "2026-11-08T11:51:37.2871640Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 768,
+        "created": "2026-11-08T11:51:37.2895690Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 22656,
+        "created": "2026-11-08T11:51:37.2916750Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 18160,
+        "created": "2026-11-08T11:51:37.2941990Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 8504,
+        "created": "2026-11-08T11:51:37.2969100Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 7888,
+        "created": "2026-11-08T11:51:37.3264930Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 21904,
+        "created": "2026-11-08T11:51:37.3286820Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      },
+      {
+        "group": "postgres",
+        "pid": 22520,
+        "created": "2026-11-08T11:51:37.3307630Z",
+        "image_available": false,
+        "worker": false,
+        "command_available": false
+      }
+    ],
+    "binding_mode": "CIM configured service image, PID creation and descendant ancestry; image availability reported separately"
+  },
+  "error_type": null,
+  "collection_seconds": 2.393001300002652,
+  "observed_at_ms": 1794153929591,
+  "scope": "One read-only CIM snapshot; no admissions, DB probes, retries, cancellation or kills. Does not repair metrics of an earlier load report."
+}

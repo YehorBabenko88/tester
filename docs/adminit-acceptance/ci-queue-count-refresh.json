@@ -1,0 +1,7 @@
+{
+    "observed_utc":  "2026-11-08T16:06:40.9454465Z",
+    "queued":  171,
+    "in_progress":  0,
+    "scope":  "Read-only GitHub API total_count refresh; no reruns/settings changes",
+    "root_cause":  "UNPROVEN"
+}
