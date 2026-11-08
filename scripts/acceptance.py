@@ -116,8 +116,7 @@ def main():
     if args.security:
         check("-m", "bandit", "-r", "src/api", "scripts", "-ll", "-q")
         check(
-            "-m",
-            "pip_audit",
+            "scripts/audit_transport.py",
             "--skip-editable",
             "--cache-dir",
             str(ROOT / ".scratch/audit-cache"),
