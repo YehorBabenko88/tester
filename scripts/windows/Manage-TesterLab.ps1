@@ -68,16 +68,14 @@ $Python=Join-Path $LabRoot 'dependencies\venv\Scripts\python.exe'
 # Validate every release byte/reparse path before changing permissions or SCM.
 & $Python -I -B -c 'import sys; sys.path.insert(0,sys.argv[1]); from src.api.lab_install import check; check(sys.argv[2])' $Release $LabRoot
 if ($LASTEXITCODE -ne 0) { throw 'Published payload/ownership verification failed.' }
-function Set-LabAcl([string]$Path,[string[]]$Grants,[switch]$Children) {
-    # Reset removes pre-existing explicit ACEs before removing inherited ACEs.
-    $ResetArguments=@($Path,'/reset')
-    if ($Children) { $ResetArguments+=@('/T','/C') }
-    & icacls.exe @ResetArguments | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "ACL reset failed: $Path" }
-    $Arguments=@($Path,'/inheritance:r','/grant:r')+$Grants
-    if ($Children) { $Arguments+=@('/T','/C') }
-    & icacls.exe @Arguments | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "ACL assignment failed: $Path" }
+# This helper is part of the independently verified published payload.
+. (Join-Path $PSScriptRoot 'Repair-TesterLabPortableAcl.ps1') -FunctionsOnly
+function Set-LabAcl([string]$Path,[string]$CreatorRights,[string]$ServiceRights,[switch]$Children) {
+    $Items=@(Get-Item -LiteralPath $Path -Force)
+    if ($Children) { $Items+=@(Get-ChildItem -LiteralPath $Path -Recurse -Force) }
+    foreach ($Item in $Items) {
+        Set-TesterLabExplicitAcl -ItemPath $Item.FullName -CreatorSid $CreatorSid -CreatorRights $CreatorRights -ServiceRights $ServiceRights
+    }
 }
 if ($Action -eq 'install') {
     $CreatorName=(Get-Acl -LiteralPath $LabRoot).Owner
@@ -85,25 +83,23 @@ if ($Action -eq 'install') {
     if ($CreatorSid -in @('S-1-5-32-544','S-1-5-18','S-1-5-19')) {
         throw 'Lab root owner must identify the original individual creator account before ACL installation.'
     }
-    $Creator='*'+$CreatorSid
     # Refuse any reparse descendant before recursive scoped ACL operations.
     $Candidates=@(Get-Item -LiteralPath $LabRoot)+@(Get-ChildItem -LiteralPath $LabRoot -Recurse -Force)
     foreach ($Item in $Candidates) {
         if (($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Reparse root/descendant refused.' }
     }
-    $Admin='*S-1-5-32-544:(OI)(CI)(F)'
-    $System='*S-1-5-18:(OI)(CI)(F)'
-    Set-LabAcl $LabRoot @($Admin,$System,'*S-1-5-19:(RX)',($Creator+':(RX)'))
+    Set-LabAcl $LabRoot 'ReadAndExecute' 'ReadAndExecute'
     foreach ($Name in @('releases','dependencies','state')) {
-        Set-LabAcl (Join-Path $LabRoot $Name) @($Admin,$System,'*S-1-5-19:(OI)(CI)(RX)',($Creator+':(OI)(CI)(RX)')) -Children
+        Set-LabAcl (Join-Path $LabRoot $Name) 'ReadAndExecute' 'ReadAndExecute' -Children
     }
-    Set-LabAcl (Join-Path $LabRoot 'runtime') @($Admin,$System,'*S-1-5-19:(OI)(CI)(M)',($Creator+':(OI)(CI)(RX)')) -Children
-    Set-LabAcl (Join-Path $LabRoot 'postgres-data') @($Admin,$System,'*S-1-5-19:(OI)(CI)(M)') -Children
+    Set-LabAcl (Join-Path $LabRoot 'runtime') 'ReadAndExecute' 'Modify' -Children
+    Set-LabAcl (Join-Path $LabRoot 'postgres-data') '' 'Modify' -Children
     foreach ($Name in @('private','backups')) {
-        Set-LabAcl (Join-Path $LabRoot $Name) @($Admin,$System) -Children
+        Set-LabAcl (Join-Path $LabRoot $Name) '' '' -Children
     }
-    Set-LabAcl (Join-Path $LabRoot 'config.json') @('*S-1-5-32-544:(F)','*S-1-5-18:(F)','*S-1-5-19:(R)',($Creator+':(R)'))
-    Set-LabAcl $MarkerPath @('*S-1-5-32-544:(F)','*S-1-5-18:(F)','*S-1-5-19:(R)',($Creator+':(R)'))
+    Set-LabAcl (Join-Path $LabRoot 'config.json') 'Read' 'Read'
+    Set-LabAcl $MarkerPath 'Read' 'Read'
+
 }
 & $Python -I -B (Join-Path $Release 'scripts\windows\lab_service.py') $Action --root $LabRoot
 if ($LASTEXITCODE -ne 0) { throw 'Fresh lab SCM action failed; preserve state and inspect evidence.' }
