@@ -5,6 +5,7 @@ job's fenced transaction for B raw records and original A projections together.
 """
 
 import copy
+import hashlib
 import json
 import time
 import uuid
@@ -16,6 +17,7 @@ from psycopg.types.json import Jsonb
 
 from contracts.v1.validate import validate_record
 from src.api.config import load_settings
+from src.api.lab_install import plain
 from src.api.providers import ProviderDataUnavailable, ProviderUnavailable
 from src.storage.models import normalize
 from src.storage.store import DataConflict, Store
@@ -84,6 +86,24 @@ def source_wait(stop, deadline, seconds):
         raise ProviderUnavailable("Public source budget exhausted")
     if stop.wait(seconds):
         raise InterruptedError("cancelled")
+
+
+def verified_session(root):
+    import requests
+
+    try:
+        state = plain(root / "state")
+        record = json.loads(plain(state / "tls.json").read_text())
+        if record["bundle"] != "windows-ca.pem":
+            raise ValueError("Unexpected trust bundle")
+        bundle = plain(state / record["bundle"])
+        if hashlib.sha256(bundle.read_bytes()).hexdigest() != record["sha256"]:
+            raise ValueError("Trust bundle changed")
+        session = requests.Session()
+        session.verify = str(bundle)
+        return session
+    except (OSError, KeyError, ValueError) as exc:
+        raise ProviderUnavailable("Verified lab trust bundle unavailable") from exc
 
 
 def project_candle(row, original, start, end):
@@ -258,9 +278,13 @@ class LabHandler:
         journal = Journal(directory / "journal.sqlite")
         try:
             deadline = time.monotonic() + 90
+            session = verified_session(self.settings.data_dir.parent)
             api = API(
                 Transport(
-                    attempts=2, rate=2, sleep=lambda delay: source_wait(stop, deadline, delay)
+                    session=session,
+                    attempts=2,
+                    rate=2,
+                    sleep=lambda delay: source_wait(stop, deadline, delay),
                 )
             )
             metadata = acquire_instruments(
@@ -336,6 +360,8 @@ class LabHandler:
                 )
         finally:
             journal.close()
+            if "session" in locals():
+                session.close()
 
 
 def create_reader():

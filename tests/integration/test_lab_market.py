@@ -6,6 +6,29 @@ import pytest
 from src.api.providers import ProviderUnavailable
 
 
+def test_private_tls_bundle_is_hash_checked_and_never_disables_verification(tmp_path):
+    import hashlib
+    import json
+
+    from src.integration.lab_market import verified_session
+
+    state = tmp_path / "state"
+    state.mkdir()
+    bundle = state / "windows-ca.pem"
+    bundle.write_text("fixture-public-ca")
+    (state / "tls.json").write_text(
+        json.dumps(
+            {"bundle": "windows-ca.pem", "sha256": hashlib.sha256(bundle.read_bytes()).hexdigest()}
+        )
+    )
+    session = verified_session(tmp_path)
+    assert session.verify == str(bundle)
+    session.close()
+    bundle.write_text("replaced")
+    with pytest.raises(ProviderUnavailable):
+        verified_session(tmp_path)
+
+
 def test_public_source_backoff_is_bounded_and_cancelable():
     import threading
     import time

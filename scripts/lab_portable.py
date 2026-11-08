@@ -56,6 +56,60 @@ def values(root):
     return owner, private
 
 
+def configure_tls(root):
+    import ssl
+
+    import certifi
+
+    check(root)
+    body = Path(certifi.where()).read_bytes() + b"\n"
+    for der in ssl.create_default_context().get_ca_certs(binary_form=True):
+        body += ssl.DER_cert_to_PEM_cert(der).encode("ascii")
+    bundle = root / "state/windows-ca.pem"
+    if bundle.exists() or (root / "state/tls.json").exists():
+        raise ValueError("Trust bundle already prepared; explicit retained rotation required")
+    bundle.write_bytes(body)
+    save(
+        root / "state/tls.json",
+        dict(
+            bundle="windows-ca.pem",
+            sha256=hashlib.sha256(body).hexdigest(),
+            trust_basis="existing Windows default server-auth trust plus certifi; no global trust change",
+        ),
+    )
+
+
+def stage(args):
+    from src.api.lab_install import rollback, stage_release
+    from src.api.lab_scm import NativeSCM
+
+    root = plain(args.root)
+    check(root)
+    if (root / "runtime/supervisor.json").exists():
+        raise ValueError("Stop portable supervisor before upgrade")
+    payload = json.loads(args.payload.read_text())
+    if payload["source_sha"] != args.sha:
+        raise ValueError("Exact SHA mismatch")
+    scm = NativeSCM()
+    try:
+        stage_release(root, args.sha, SOURCE, payload["files"], scm.inspect)
+        rollback(root, args.sha, scm.inspect)
+    finally:
+        scm.close()
+    config = root / "config.json"
+    old = config.read_bytes()
+    save(root / "backups" / ("config-" + str(time.time_ns()) + ".json"), json.loads(old))
+    current = json.loads(old)
+    current["frontend_dir"] = str(root / "releases" / args.sha / "frontend")
+    config.write_text(json.dumps(current, indent=2), encoding="utf-8")
+    previous = root / "state/deploy-payload.json"
+    previous.rename(root / "backups" / ("payload-" + str(time.time_ns()) + ".json"))
+    save(previous, payload)
+    if not (root / "state/tls.json").exists():
+        configure_tls(root)
+    print(json.dumps(dict(status="STAGED_PUBLISHED_IMMUTABLE", source_sha=args.sha)))
+
+
 def dsn(secret, db="tester_lab", runtime=False):
     from psycopg.conninfo import make_conninfo
 
@@ -144,6 +198,7 @@ def bootstrap(args):
             s.bind(("127.0.0.1", port))
     owner = prepare(root, "YehorBabenko88/tester", args.sha, SOURCE, payload["files"])
     save(root / "state/deploy-payload.json", payload)
+    configure_tls(root)
     (root / "private").mkdir()
     # Scope ACLs before generating passwords. This modifies only our freshly owned paths.
     account = subprocess.check_output(["whoami"], text=True).strip()
@@ -515,6 +570,7 @@ def main():
         "action",
         choices=[
             "prepare",
+            "stage",
             "start-pg",
             "stop-pg",
             "start-api",
@@ -531,6 +587,8 @@ def main():
     root = plain(args.root)
     if args.action == "prepare":
         bootstrap(args)
+    elif args.action == "stage":
+        stage(args)
     elif args.action == "start-pg":
         start_pg(root)
     elif args.action == "stop-pg":
