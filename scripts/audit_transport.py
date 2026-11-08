@@ -29,7 +29,16 @@ def transport_failure(stdout, stderr):
 
 
 def redacted(output):
-    output = re.sub(r"(https?://)[^\s/@]+@", r"\1[REDACTED]@", output, flags=re.IGNORECASE)
+    if output is None:
+        return ""
+    if isinstance(output, bytes):
+        output = output.decode("utf-8", errors="replace")
+
+    def authority(match):
+        scheme, value = match.groups()
+        return scheme + ("[REDACTED]@" + value.rsplit("@", 1)[1] if "@" in value else value)
+
+    output = re.sub(r"""(https?://)([^\s/?#'"<>]+)""", authority, output, flags=re.IGNORECASE)
     return re.sub(
         r"""([?&](?:token|access_token|api_key|key|password|secret)=)[^&\s'"<>]+""",
         r"\1[REDACTED]",
@@ -51,7 +60,9 @@ def run_audit(args):
                 check=False,
                 timeout=ATTEMPT_TIMEOUT_SECONDS,
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as exc:
+            print(redacted(exc.stdout), end="", file=sys.stdout, flush=True)
+            print(redacted(exc.stderr), end="", file=sys.stderr, flush=True)
             print("pip-audit process deadline exceeded; no retry", file=sys.stderr)
             return 124
         except OSError as exc:

@@ -107,3 +107,33 @@ def test_explicit_requests_terminal_timeout_is_retryable(monkeypatch, kind):
 def test_unknown_or_signal_exit_is_not_transport_retry(monkeypatch, code):
     result, calls, delays = exercise(monkeypatch, [(code, "", TRACE)])
     assert result == code and len(calls) == 1 and delays == []
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://alice:part@SECRET@example.org/path?token=PRIVATE",
+        "https://alice:part%40SECRET@example.org/path?token=PRIVATE",
+    ],
+)
+def test_redaction_removes_entire_authority_userinfo(monkeypatch, capsys, url):
+    exercise(monkeypatch, [(1, "CVE-2026-1234 " + url + "\n", "")])
+    output = capsys.readouterr().out
+    assert "SECRET" not in output and "PRIVATE" not in output and "alice" not in output
+    assert "example.org/path" in output and "CVE-2026-1234" in output
+
+
+@pytest.mark.parametrize("binary", [False, True])
+def test_process_deadline_preserves_redacted_partial_streams(monkeypatch, capsys, binary):
+    output = "CVE-2026-1234 https://alice:SECRET@example.org/path\n"
+    error = "partial diagnostic ?token=PRIVATE\n"
+    if binary:
+        output, error = output.encode(), error.encode()
+    code, calls, delays = exercise(
+        monkeypatch, [subprocess.TimeoutExpired("pip_audit", 180, output=output, stderr=error)]
+    )
+    captured = capsys.readouterr()
+    assert code == 124 and len(calls) == 1 and delays == []
+    assert "CVE-2026-1234" in captured.out and "partial diagnostic" in captured.err
+    assert "SECRET" not in captured.out + captured.err
+    assert "PRIVATE" not in captured.out + captured.err
