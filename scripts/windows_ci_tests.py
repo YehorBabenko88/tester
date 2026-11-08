@@ -185,6 +185,10 @@ def spawn_no_inherit(adv, token, command, block, root):
     """No inherited parent handles, including unrelated privileged handles."""
     startup = STARTUPINFO()
     startup.cb = C.sizeof(startup)
+    # NULL inherits the elevated parent's station/desktop. Empty instead requests
+    # the documented process-connection rules, without modifying any desktop ACL.
+    # https://learn.microsoft.com/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessasuserw
+    startup.lpDesktop = ""
     process = PROCESS_INFORMATION()
     _ok(
         adv.CreateProcessAsUserW(
