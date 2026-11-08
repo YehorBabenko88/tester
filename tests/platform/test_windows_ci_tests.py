@@ -37,3 +37,74 @@ def test_no_native_token_api_outside_ci(monkeypatch, tmp_path):
     monkeypatch.setattr(windows_ci_tests, "_api", forbidden)
     with pytest.raises(ValueError, match="GitHub"):
         windows_ci_tests.run_pytest(("-m", "pytest"), cwd=tmp_path, env={})
+
+
+def test_owned_descendants_reject_escape_and_reparse_before_io(tmp_path, monkeypatch):
+    import stat
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from scripts.windows_ci_tests import owned_ci_descendant
+
+    root = tmp_path / "checkout"
+    root.mkdir()
+    scratch = root / ".scratch"
+    assert (
+        owned_ci_descendant(root, scratch / "fresh" / "probe.txt")
+        == scratch / "fresh" / "probe.txt"
+    )
+    with pytest.raises(ValueError, match="descendant"):
+        owned_ci_descendant(root, tmp_path / "foreign" / "probe.txt")
+    real = Path.lstat
+
+    def redirected(path, *args, **kwargs):
+        if path == scratch:
+            return SimpleNamespace(st_mode=stat.S_IFDIR, st_file_attributes=0x400)
+        return real(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "lstat", redirected)
+    for path in (scratch, scratch / "fresh", scratch / "fresh" / "probe.txt"):
+        with pytest.raises(ValueError, match="Reparse"):
+            owned_ci_descendant(root, path)
+
+
+def test_spawn_never_inherits_parent_handles(tmp_path):
+    from scripts.windows_ci_tests import spawn_no_inherit
+
+    class AdversarialParent:
+        def CreateProcessAsUserW(self, *args):
+            # An unrelated privileged inheritable handle must never cross here.
+            assert args[5] is False
+            return 1
+
+    spawn_no_inherit(AdversarialParent(), None, None, None, tmp_path)
+
+
+def test_reparse_blocks_acl_subprocess_boundary(tmp_path, monkeypatch):
+    import stat
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from scripts import windows_ci_tests
+
+    root = tmp_path / "checkout"
+    root.mkdir()
+    scratch = root / ".scratch"
+    original = Path.lstat
+
+    def redirected(path, *args, **kwargs):
+        if path == scratch:
+            return SimpleNamespace(st_mode=stat.S_IFLNK, st_file_attributes=0)
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "lstat", redirected)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("ACL subprocess reached redirected checkout path")
+
+    monkeypatch.setattr(windows_ci_tests.subprocess, "run", forbidden)
+    with pytest.raises(ValueError, match="Reparse"):
+        windows_ci_tests._powershell("must not execute", root=root, paths=[scratch / "probe.txt"])
+    monkeypatch.setattr(windows_ci_tests.tempfile, "mkdtemp", forbidden)
+    with pytest.raises(ValueError, match="Reparse"):
+        windows_ci_tests._child_proof_and_pytest([], root, scratch)

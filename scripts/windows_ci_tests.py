@@ -8,11 +8,14 @@ launched. See Microsoft CreateRestrictedToken/CreateProcessAsUser documentation.
 import base64
 import ctypes as C
 import os
+import re
+import stat
 import subprocess
 import sys
 import tempfile
 from ctypes import wintypes as W
 from pathlib import Path
+from uuid import uuid4
 
 
 def require_ci_workspace(env, expected_root):
@@ -29,6 +32,29 @@ def require_ci_workspace(env, expected_root):
         if getattr(path.lstat(), "st_file_attributes", 0) & 0x400 or path.is_symlink():
             raise ValueError("Reparse CI workspace refused")
     return root
+
+
+def owned_ci_descendant(root, path):
+    """Lexical checkout containment plus lstat of every existing path component.
+
+    Recheck at each filesystem/ACL boundary. No recursive cleanup is used. This
+    is fail-closed against preexisting redirection; not a concurrent-actor sandbox.
+    """
+    root = Path(os.path.abspath(root))
+    path = Path(os.path.abspath(path))
+    if root not in path.parents:
+        raise ValueError("Owned checkout descendant required")
+    for item in (path, *path.parents):
+        try:
+            info = item.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+                raise ValueError("Reparse owned descendant refused")
+        if item == root:
+            break
+    return path
 
 
 def validate_pytest_args(args):
@@ -90,12 +116,6 @@ def _api():
     function(kernel, "GetCurrentProcess", [], W.HANDLE)
     function(kernel, "CloseHandle", [W.HANDLE])
     function(kernel, "LocalFree", [W.LPVOID], W.LPVOID)
-    function(kernel, "GetStdHandle", [W.DWORD], W.HANDLE)
-    function(
-        kernel,
-        "DuplicateHandle",
-        [W.HANDLE, W.HANDLE, W.HANDLE, C.POINTER(W.HANDLE), W.DWORD, W.BOOL, W.DWORD],
-    )
     function(kernel, "WaitForSingleObject", [W.HANDLE, W.DWORD], W.DWORD)
     function(kernel, "GetExitCodeProcess", [W.HANDLE, C.POINTER(W.DWORD)])
     function(adv, "OpenProcessToken", [W.HANDLE, W.DWORD, C.POINTER(W.HANDLE)])
@@ -161,6 +181,29 @@ def _sid_text(kernel, adv, sid):
         kernel.LocalFree(text)
 
 
+def spawn_no_inherit(adv, token, command, block, root):
+    """No inherited parent handles, including unrelated privileged handles."""
+    startup = STARTUPINFO()
+    startup.cb = C.sizeof(startup)
+    process = PROCESS_INFORMATION()
+    _ok(
+        adv.CreateProcessAsUserW(
+            token,
+            sys.executable,
+            command,
+            None,
+            None,
+            False,
+            0x400 | 0x08000000,
+            block,
+            str(root),
+            C.byref(startup),
+            C.byref(process),
+        )
+    )
+    return process
+
+
 def run_pytest(args, *, cwd, env):
     """Current identity only; disabled admin group/privileges, user default owner."""
     args = validate_pytest_args(args)
@@ -170,8 +213,13 @@ def run_pytest(args, *, cwd, env):
     kernel, adv = _api()
     token, restricted = W.HANDLE(), W.HANDLE()
     admin, medium = W.LPVOID(), W.LPVOID()
-    handles = []
     process = PROCESS_INFORMATION()
+    scratch = owned_ci_descendant(root, root / ".scratch")
+    owned_ci_descendant(root, scratch).mkdir(exist_ok=True)
+    log_name = "standard-user-ci-" + uuid4().hex + ".log"
+    log_path = owned_ci_descendant(root, scratch / log_name)
+    if log_path.exists():
+        raise ValueError("Fresh child log required")
     try:
         # Rights requested only on a duplicate of the current process token.
         _ok(adv.OpenProcessToken(kernel.GetCurrentProcess(), 0xF01FF, C.byref(token)))
@@ -195,6 +243,7 @@ def run_pytest(args, *, cwd, env):
         )
         # Only this explicit CI checkout receives an additional individual-user
         # Modify ACE; existing ACEs/owners are preserved, no recursive /T change.
+        require_ci_workspace(env, root)
         subprocess.run(
             ["icacls.exe", str(root), "/grant", "*" + user_text + ":(OI)(CI)M"],
             check=True,
@@ -209,55 +258,23 @@ def run_pytest(args, *, cwd, env):
             )
             + "\0\0"
         )
-        startup = STARTUPINFO()
-        startup.cb = C.sizeof(startup)
-        startup.dwFlags = 0x100
-        # Duplicate only the standard log/input handles for the trusted CI child.
-        for name, identifier in [("hStdInput", -10), ("hStdOutput", -11), ("hStdError", -12)]:
-            duplicate = W.HANDLE()
-            source = kernel.GetStdHandle(identifier & 0xFFFFFFFF)
-            if source and source != W.HANDLE(-1).value:
-                _ok(
-                    kernel.DuplicateHandle(
-                        kernel.GetCurrentProcess(),
-                        source,
-                        kernel.GetCurrentProcess(),
-                        C.byref(duplicate),
-                        0,
-                        True,
-                        2,
-                    )
-                )
-                handles.append(duplicate)
-            setattr(startup, name, duplicate)
         command = C.create_unicode_buffer(
             subprocess.list2cmdline(
-                [sys.executable, str(Path(__file__).resolve()), "--child", *args[2:]]
+                [sys.executable, str(Path(__file__).resolve()), "--child", log_name, *args[2:]]
             )
         )
-        _ok(
-            adv.CreateProcessAsUserW(
-                restricted,
-                sys.executable,
-                command,
-                None,
-                None,
-                True,
-                0x400 | 0x08000000,
-                block,
-                str(root),
-                C.byref(startup),
-                C.byref(process),
-            )
-        )
+        process = spawn_no_inherit(adv, restricted, command, block, root)
         if kernel.WaitForSingleObject(process.hProcess, 0xFFFFFFFF) != 0:
             raise C.WinError(C.get_last_error())
         code = W.DWORD()
         _ok(kernel.GetExitCodeProcess(process.hProcess, C.byref(code)))
+        if not owned_ci_descendant(root, log_path).is_file():
+            raise RuntimeError("Restricted CI child did not produce its guarded log")
+        print(owned_ci_descendant(root, log_path).read_text(encoding="utf-8"), end="", flush=True)
         if code.value:
             raise subprocess.CalledProcessError(code.value, [sys.executable, *args])
     finally:
-        for handle in [process.hThread, process.hProcess, *handles, restricted, token]:
+        for handle in [process.hThread, process.hProcess, restricted, token]:
             if handle:
                 kernel.CloseHandle(handle)
         for sid in (admin, medium):
@@ -265,52 +282,97 @@ def run_pytest(args, *, cwd, env):
                 kernel.LocalFree(sid)
 
 
-def _powershell(script):
+def _powershell(script, *, root, paths):
+    for path in paths:
+        owned_ci_descendant(root, path)
     encoded = base64.b64encode(script.encode("utf-16-le")).decode("ascii")
-    subprocess.run(
+    result = subprocess.run(
         ["powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
-        check=True,
+        capture_output=True,
+        text=True,
         timeout=15,
     )
+    if result.returncode:
+        raise RuntimeError(result.stderr)
 
 
-def child_main(args):
-    """Refuse tests until actual OS membership, default owner and RX denial pass."""
+def child_main(args, log_name):
+    """Open our own guarded log; no parent handles crossed the token boundary."""
     root = require_ci_workspace(os.environ, Path(__file__).resolve().parents[1])
-    scratch = root / ".scratch"
-    scratch.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="standard-user-proof-", dir=scratch) as directory:
-        probe = Path(directory) / "probe.txt"
-        probe.write_text("unchanged", encoding="utf-8")
-        literal = str(probe).replace("'", "''")
-        folder = str(Path(directory)).replace("'", "''")
-        prefix = (
-            "$ErrorActionPreference='Stop';$Me=[Security.Principal.WindowsIdentity]::GetCurrent();"
-            "$Principal=[Security.Principal.WindowsPrincipal]::new($Me);"
-            "if ($Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {throw 'CI child is still administrator'};"
-            f"$File='{literal}';$Directory='{folder}';"
-            "foreach ($Path in @($File,$Directory)) {"
-            "$Owner=(Get-Acl -LiteralPath $Path).GetOwner([Security.Principal.SecurityIdentifier]).Value;"
-            "if ($Owner -ne $Me.User.Value) {throw 'CI child default owner is not individual user'}};"
-            "$Acl=Get-Acl -LiteralPath $File;$Acl.SetAccessRuleProtection($true,$false);"
-            "foreach ($Rule in @($Acl.Access)) {$null=$Acl.RemoveAccessRuleSpecific($Rule)};"
+    if not re.fullmatch(r"standard-user-ci-[0-9a-f]{32}\.log", log_name):
+        raise ValueError("Fresh bounded child log name required")
+    scratch = owned_ci_descendant(root, root / ".scratch")
+    owned_ci_descendant(root, scratch).mkdir(exist_ok=True)
+    log_path = owned_ci_descendant(root, scratch / log_name)
+    # Populate previously absent standard descriptors with child-owned handles.
+    null_fd = os.open(os.devnull, os.O_RDWR)
+    for descriptor in (0, 1, 2):
+        os.dup2(null_fd, descriptor)
+    if null_fd > 2:
+        os.close(null_fd)
+    with owned_ci_descendant(root, log_path).open("x", encoding="utf-8", buffering=1) as log:
+        os.dup2(log.fileno(), 1)
+        os.dup2(log.fileno(), 2)
+        sys.stdout = log
+        sys.stderr = log
+        exit_code = 1
+        try:
+            exit_code = _child_proof_and_pytest(args, root, scratch)
+        except BaseException:
+            import traceback
+
+            traceback.print_exc(file=log)
+        finally:
+            log.flush()
+            # The detached child originally had no inherited Python streams.
+            # Do not leave closed log objects for interpreter finalization.
+            sys.stdout = None
+            sys.stderr = None
+    return exit_code
+
+
+def _child_proof_and_pytest(args, root, scratch):
+    """Refuse tests until actual OS membership, owner and RX denial pass."""
+    owned_ci_descendant(root, scratch)
+    directory = Path(tempfile.mkdtemp(prefix="standard-user-proof-", dir=scratch))
+    owned_ci_descendant(root, directory)
+    probe = owned_ci_descendant(root, directory / "probe.txt")
+    owned_ci_descendant(root, probe).write_text("unchanged", encoding="utf-8")
+    literal = str(probe).replace("'", "''")
+    folder = str(directory).replace("'", "''")
+    prefix = (
+        "$ErrorActionPreference='Stop';$Me=[Security.Principal.WindowsIdentity]::GetCurrent();"
+        "$Principal=[Security.Principal.WindowsPrincipal]::new($Me);"
+        "if ($Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {throw 'CI child is still administrator'};"
+        f"$File='{literal}';$Directory='{folder}';"
+        "foreach ($Path in @($File,$Directory)) {"
+        "$Owner=(Get-Acl -LiteralPath $Path).GetOwner([Security.Principal.SecurityIdentifier]).Value;"
+        "if ($Owner -ne $Me.User.Value) {throw 'CI child default owner is not individual user'}};"
+        "$Acl=Get-Acl -LiteralPath $File;$Acl.SetAccessRuleProtection($true,$false);"
+        "foreach ($Rule in @($Acl.Access)) {$null=$Acl.RemoveAccessRuleSpecific($Rule)};"
+    )
+    try:
+        _powershell(
+            prefix
+            + "$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($Me.User,'ReadAndExecute','Allow'));Set-Acl -LiteralPath $File -AclObject $Acl",
+            root=root,
+            paths=(directory, probe),
         )
         try:
-            _powershell(
-                prefix
-                + "$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($Me.User,'ReadAndExecute','Allow'));Set-Acl -LiteralPath $File -AclObject $Acl"
-            )
-            try:
-                probe.write_text("must-not-write", encoding="utf-8")
-            except PermissionError:
-                pass
-            else:
-                raise RuntimeError("CI child bypassed actual read-only DACL")
-        finally:
-            _powershell(
-                prefix
-                + "$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($Me.User,'Modify','Allow'));Set-Acl -LiteralPath $File -AclObject $Acl"
-            )
+            owned_ci_descendant(root, probe).write_text("must-not-write", encoding="utf-8")
+        except PermissionError:
+            pass
+        else:
+            raise RuntimeError("CI child bypassed actual read-only DACL")
+    finally:
+        _powershell(
+            prefix
+            + "$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($Me.User,'Modify','Allow'));Set-Acl -LiteralPath $File -AclObject $Acl",
+            root=root,
+            paths=(directory, probe),
+        )
+        owned_ci_descendant(root, probe).unlink()
+        owned_ci_descendant(root, directory).rmdir()
     print(
         "PASS: actual standard-user CI token, individual file/directory owner and RX write denial",
         flush=True,
@@ -318,10 +380,10 @@ def child_main(args):
     sys.path.insert(0, str(root))
     import pytest
 
-    raise SystemExit(pytest.main(args))
+    return int(pytest.main(args))
 
 
 if __name__ == "__main__":
-    if sys.argv[1:2] != ["--child"]:
+    if sys.argv[1:2] != ["--child"] or len(sys.argv) < 3:
         raise SystemExit("Use canonical acceptance CI launcher")
-    child_main(sys.argv[2:])
+    raise SystemExit(child_main(sys.argv[3:], sys.argv[2]))
