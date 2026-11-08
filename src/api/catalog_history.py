@@ -26,6 +26,17 @@ def _decimal(value):
         return None
 
 
+def _known_unit(unit):
+    if not isinstance(unit, str) or not 0 < len(unit) <= 100 or unit != unit.strip():
+        return False
+    # These are source absence markers, not currency denominations. Unknown
+    # components cannot become qualified merely because both snapshots match.
+    absent = {"unknown", "unavailable", "unverified", "none", "null", "n/a"}
+    return unit.casefold() not in absent and all(
+        part and part == part.strip() and part.casefold() not in absent for part in unit.split("/")
+    )
+
+
 def _fresh(metric, now):
     stamp, observed = metric.get("source_time_ms"), metric.get("observed_at")
     value = _decimal(metric.get("value"))
@@ -37,8 +48,7 @@ def _fresh(metric, now):
         and type(observed) in {int, float}
         and math.isfinite(observed)
         and 0 <= now - observed < 300
-        and isinstance(metric.get("unit"), str)
-        and 0 < len(metric["unit"]) <= 100
+        and _known_unit(metric.get("unit"))
         and isinstance(metric.get("source"), str)
         and 0 < len(metric["source"]) <= 2000
         and value is not None
@@ -95,6 +105,9 @@ def qualify_delta(current, baseline, window_ms):
     result["baseline_source_time_ms"], result["actual_window_ms"] = before, stamp - before
     result["baseline_source"] = baseline.get("source")
     result["baseline_unit"] = baseline.get("unit")
+    if not _known_unit(current.get("unit")) or not _known_unit(baseline.get("unit")):
+        result["reason"] = "history_unit_unqualified"
+        return result
     if not current.get("unit") or current["unit"] != baseline.get("unit"):
         result["reason"] = "history_unit_mismatch"
         return result
@@ -112,9 +125,18 @@ def qualify_delta(current, baseline, window_ms):
         with localcontext() as context:
             context.prec = 50
             ratio = (latest - denominator) / denominator
-            value = format(ratio, ".24g")
+            # Preserve the existing 24-significant-digit calculation precision,
+            # then expand notation for the API's plain-decimal string contract.
+            value = format(Decimal(format(ratio, ".24g")), "f")
+            if "." in value:
+                value = value.rstrip("0").rstrip(".")
+            if ratio == 0:
+                value = "0"
     except DecimalException:
         result["reason"] = "history_value_invalid"
+        return result
+    if len(value) > 100:
+        result["reason"] = "history_precision_budget"
         return result
     result.update(
         value=value,

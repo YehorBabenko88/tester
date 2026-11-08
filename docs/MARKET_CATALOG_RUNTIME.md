@@ -35,8 +35,14 @@ timestamps less than 300 seconds old. The baseline must be at or before the requ
 horizon target and at most one 300-second cadence older. Every result includes the
 baseline source time, actual elapsed window, source, original unit/value and current
 value; the result unit is `ratio`. Null, stale, future, missing-unit, changed-source,
-zero-denominator or absent history never becomes an invented delta. Raw observations,
-qualified derived metrics, snapshot revision and attempt/schedule metadata commit in
+zero-denominator or absent history never becomes an invented delta.
+Source absence units such as `UNKNOWN` (including case variants or unknown
+components) are never recorded or qualified, even if two old measurements match.
+Derived values use plain decimal notation, so a genuine ratio of one in ten
+million is `0.0000001`; values exceeding the 100-character API precision budget
+remain unavailable rather than rounding to a fabricated zero.
+
+Raw observations, qualified derived metrics, snapshot revision and attempt/schedule metadata commit in
 one owner-session transaction. A successfully exhausted catalog can publish while
 tickers fail; matching prior metrics retain their original timestamps with STALE
 state, and the failed ticker attempt still invokes backoff.
