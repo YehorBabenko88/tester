@@ -2,6 +2,99 @@ import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { candle, envelope } from "./fixtures/canonical.js";
+
+test("pagination pins snapshot revision and resets once after refresh without losing selection", async ({
+  page,
+}) => {
+  const old = Array.from({ length: 120 }, (_, i) => ({
+    category: "linear",
+    symbol: `COIN${String(i).padStart(3, "0")}`,
+    metrics: {},
+  }));
+  await setup(page, { instruments: old });
+  await page.getByLabel("Select COIN000", { exact: true }).check();
+  const fresh = [{ category: "linear", symbol: "NEW", metrics: {} }, ...old],
+    queries = [];
+  await page.route("**/api/market-catalog/linear?**", async (route) => {
+    const u = new URL(route.request().url());
+    queries.push(u);
+    if (u.searchParams.get("revision") === "fixture-1") {
+      await route.fulfill({
+        status: 409,
+        json: {
+          error: { code: "snapshot_changed", message: "Snapshot changed" },
+        },
+      });
+      return;
+    }
+    const offset = Number(u.searchParams.get("offset"));
+    await route.fulfill({
+      json: {
+        schema_version: "1.0",
+        data: {
+          rows: fresh.slice(offset, offset + 50),
+          total: fresh.length,
+          revision: "fresh-2",
+          catalog: { loaded: fresh.length, completeness: "EXHAUSTED" },
+        },
+      },
+    });
+  });
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.locator("[data-row]").first()).toHaveAttribute(
+    "data-row",
+    "linear:NEW",
+  );
+  await expect(page.getByTestId("screener-status")).toContainText(
+    "Snapshot changed",
+  );
+  await expect(
+    page.getByLabel("Select COIN000", { exact: true }),
+  ).toBeChecked();
+  expect(queries[0].searchParams.get("revision")).toBe("fixture-1");
+  expect(queries[0].searchParams.get("offset")).toBe("50");
+  expect(queries[1].searchParams.get("offset")).toBe("0");
+  expect(queries[1].searchParams.has("revision")).toBe(false);
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.locator("[data-row]").first()).toHaveAttribute(
+    "data-row",
+    "linear:COIN049",
+  );
+  expect(queries.at(-1).searchParams.get("revision")).toBe("fresh-2");
+  await expect(page.getByTestId("selection-count")).toHaveText("1 selected");
+});
+
+test("repeated snapshot conflicts stop after one retry and preserve selection", async ({
+  page,
+}) => {
+  await setup(page, {
+    instruments: Array.from({ length: 60 }, (_, i) => ({
+      category: "linear",
+      symbol: `COIN${i}`,
+      metrics: {},
+    })),
+  });
+  await page.getByLabel("Select COIN0", { exact: true }).check();
+  let calls = 0;
+  await page.route("**/api/market-catalog/linear?**", async (route) => {
+    calls++;
+    await route.fulfill({
+      status: 409,
+      json: {
+        error: { code: "snapshot_changed", message: "Snapshot changed" },
+      },
+    });
+  });
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.getByTestId("screener-status")).toContainText(
+    "changed again",
+  );
+  expect(calls).toBe(2);
+  await expect(
+    page.getByRole("button", { name: "Next page", exact: true }),
+  ).toBeDisabled();
+  await expect(page.getByTestId("selection-count")).toHaveText("1 selected");
+});
 const start = 1704067200000;
 const m = (value) => ({
   value,
