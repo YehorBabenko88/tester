@@ -133,8 +133,14 @@ def owner_fixture(tmp_path, monkeypatch, module="src.integration.market_runtime"
         exe=lambda: owner["image"],
         cwd=lambda: str(source),
         cmdline=lambda: args,
+        environ=lambda: {"TESTER_CONFIG_FILE": str(root / "market-config.json")},
     )
     monkeypatch.setattr("psutil.Process", lambda pid: process)
+    monkeypatch.setattr(
+        runtime.socket,
+        "create_connection",
+        Mock(side_effect=AssertionError("Offline test must refuse before probing")),
+    )
     return root, source, args
 
 
@@ -148,8 +154,31 @@ def test_market_guard_refuses_research_module_or_wrong_arguments(tmp_path, monke
         runtime.assert_api_process(root, "b" * 40, source, "a" * 40)
 
 
-def test_market_guard_requires_os_accepted_tuple_and_rechecks_birth(tmp_path, monkeypatch):
+@pytest.mark.parametrize("prefix", [["-c", "pass"], ["-I"], ["-S"]])
+def test_market_guard_refuses_python_option_spoof(tmp_path, monkeypatch, prefix):
+    root, source, args = owner_fixture(tmp_path, monkeypatch)
+    args[1:1] = prefix
+    with pytest.raises(runtime.ApiOwnershipError, match="arguments_mismatch"):
+        runtime.assert_api_process(root, "b" * 40, source, "a" * 40)
+
+
+def test_market_guard_refuses_unpinned_process_config(tmp_path, monkeypatch):
+    import psutil
+
     root, source, _ = owner_fixture(tmp_path, monkeypatch)
+    process = psutil.Process(123)
+    process.environ = lambda: {"TESTER_CONFIG_FILE": str(tmp_path / "other.json")}
+    with pytest.raises(runtime.ApiOwnershipError, match="arguments_mismatch"):
+        runtime.assert_api_process(root, "b" * 40, source, "a" * 40)
+
+
+@pytest.mark.parametrize("no_bytecode", [False, True])
+def test_market_guard_requires_os_accepted_tuple_and_rechecks_birth(
+    tmp_path, monkeypatch, no_bytecode
+):
+    root, source, args = owner_fixture(tmp_path, monkeypatch)
+    if no_bytecode:
+        args.insert(1, "-B")
     probe = Mock()
     probe.__enter__ = Mock(return_value=probe)
     probe.__exit__ = Mock(return_value=False)

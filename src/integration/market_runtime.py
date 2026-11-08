@@ -21,6 +21,7 @@ from src.integration.research_runtime import (
     _wait_for_owned_connection,
     require_published_origin,
 )
+from src.integration.runtime_identity import require_runtime_argv
 
 MODULE = "src.integration.market_runtime"
 
@@ -284,17 +285,12 @@ def assert_api_process(root, application_sha, source, lab_sha):
         or plain(process.cwd()) != source
     ):
         raise ApiOwnershipError("api_process_identity_changed")
-    args = process.cmdline()
-    expected = {
-        "--root": str(root),
-        "--lab-source-sha": lab_sha,
-        "--application-source-sha": application_sha,
-    }
-    if "-m" not in args or args[args.index("-m") + 1] != MODULE or "serve" not in args:
+    try:
+        require_runtime_argv(process.cmdline(), root, lab_sha, application_sha, module=MODULE)
+    except ValueError:
+        raise ApiOwnershipError("api_process_arguments_mismatch") from None
+    if process.environ().get("TESTER_CONFIG_FILE") != str(root / "market-config.json"):
         raise ApiOwnershipError("api_process_arguments_mismatch")
-    for flag, value in expected.items():
-        if flag not in args or args[args.index(flag) + 1] != value:
-            raise ApiOwnershipError("api_process_arguments_mismatch")
 
     def check_birth():
         _assert_api_birth(owner["pid"], owner["created"])

@@ -286,7 +286,12 @@ function epoch(value) {
   return typeof value === "number" ? iso(Math.round(value * 1000)) : "Unknown";
 }
 let searchTimer;
-async function loadInstruments(offset = 0, cached = false) {
+async function loadInstruments(
+  offset = 0,
+  cached = false,
+  pinned = false,
+  conflictRecovered = false,
+) {
   state.instrumentAbort?.abort();
   const abort = new AbortController();
   state.instrumentAbort = abort;
@@ -306,6 +311,7 @@ async function loadInstruments(offset = 0, cached = false) {
         watchlist: $("#watchlist").checked ? [...state.saved] : null,
         offset,
         limit: 50,
+        revision: pinned || (cached && offset > 0) ? state.revision : null,
       },
       { signal: abort.signal },
     );
@@ -335,7 +341,7 @@ async function loadInstruments(offset = 0, cached = false) {
     const c = state.catalog,
       a = d.attempt || {};
     $("#screener-status").textContent =
-      `Loaded ${c.loaded ?? "unknown"} | expected ${c.expected_total ?? "unknown"} | catalog ${c.completeness || "UNKNOWN"} | attempt ${a.completeness || "UNKNOWN"} | ${c.state || "UNAVAILABLE"} | last success ${epoch(c.last_success)} | last error ${c.last_error || a.last_error || "none"}`;
+      `${conflictRecovered ? "Snapshot changed; restarted at the first page. Filters and selection retained. " : ""}Loaded ${c.loaded ?? "unknown"} | expected ${c.expected_total ?? "unknown"} | catalog ${c.completeness || "UNKNOWN"} | attempt ${a.completeness || "UNKNOWN"} | ${c.state || "UNAVAILABLE"} | last success ${epoch(c.last_success)} | last error ${c.last_error || a.last_error || "none"}`;
     $("#page-info").textContent =
       `${state.total ? offset + 1 : 0}-${Math.min(offset + state.rows.length, state.total)} of ${state.total} matches | global sorting | unavailable last | revision ${d.revision?.slice(0, 8) || "none"}`;
     $("#previous").disabled = offset === 0;
@@ -343,8 +349,18 @@ async function loadInstruments(offset = 0, cached = false) {
     renderRows();
   } catch (e) {
     if (e.name === "AbortError" || abort.signal.aborted) return;
+    if (e.status === 409 && !conflictRecovered) {
+      state.offset = 0;
+      state.revision = null;
+      await loadInstruments(0, false, false, true);
+      return;
+    }
+    if (conflictRecovered) {
+      $("#next").disabled = true;
+      $("#previous").disabled = true;
+    }
     $("#screener-status").textContent =
-      `${e.message}${state.rows.length ? " ? retained rows are STALE; retry to verify" : ""}`;
+      `${e.status === 409 ? "Snapshot changed again; automatic retry stopped. Retry manually. " : ""}${e.message}${state.rows.length ? " | retained rows are STALE; retry to verify" : ""}`;
   }
 }
 $("#search").addEventListener("input", () => {
@@ -372,8 +388,9 @@ $("#refresh").onclick = async () => {
     $("#refresh").disabled = false;
   }
 };
-$("#next").onclick = () => loadInstruments(state.offset + 50);
-$("#previous").onclick = () => loadInstruments(Math.max(0, state.offset - 50));
+$("#next").onclick = () => loadInstruments(state.offset + 50, false, true);
+$("#previous").onclick = () =>
+  loadInstruments(Math.max(0, state.offset - 50), false, true);
 $("#clear").onclick = () => {
   state.selected.clear();
   renderRows();
