@@ -170,15 +170,34 @@ $ErrorActionPreference='Stop'
 $App=Get-CimInstance Win32_Service -Filter "Name='APP'"
 $PG=Get-CimInstance Win32_Service -Filter "Name='PGNAME'"
 if ($App.State -ne 'Running' -or $PG.State -ne 'Running' -or $App.StartName -ine 'NT AUTHORITY\LocalService' -or $PG.StartName -ine 'NT AUTHORITY\LocalService' -or $App.PathName -ine 'APPIMAGE' -or $PG.PathName -ine 'PGIMAGE') {throw 'Owned services mismatch'}
+if ($App.ProcessId -le 0 -or $PG.ProcessId -le 0 -or $App.ProcessId -eq $PG.ProcessId) {throw 'Invalid service PID'}
+# One inventory avoids two CIM round trips per descendant. Never emit raw images/commands.
+$Inventory=@(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,CreationDate,ExecutablePath,CommandLine)
+if ($Inventory.Count -gt 10000) {throw 'Inventory budget'}
+$ById=@{};$Children=@{}
+foreach ($P in $Inventory) {
+ $Key=[int]$P.ProcessId
+ if ($ById.ContainsKey($Key)) {throw 'Duplicate inventory PID'}
+ $ById[$Key]=$P
+ $Parent=[int]$P.ParentProcessId
+ if (-not $Children.ContainsKey($Parent)) {$Children[$Parent]=[Collections.Generic.List[int]]::new()}
+ $Children[$Parent].Add($Key)
+}
 $Rows=@();$Bindings=@()
 foreach ($Group in @(@('app',[int]$App.ProcessId),@('postgres',[int]$PG.ProcessId))) {
  $Queue=[Collections.Generic.Queue[int]]::new();$Queue.Enqueue($Group[1]);$Ids=[Collections.Generic.HashSet[int]]::new()
  while ($Queue.Count -gt 0) {
   $Id=$Queue.Dequeue();if(-not $Ids.Add($Id)){continue};if($Ids.Count -gt 64){throw 'Process budget'}
-  $P=Get-CimInstance Win32_Process -Filter ('ProcessId='+$Id)
+  $P=$ById[$Id]
   if ($null -eq $P -or $null -eq $P.CreationDate) {throw 'PID binding unavailable'}
   $Bindings+=[pscustomobject]@{group=$Group[0];pid=$Id;created=$P.CreationDate.ToUniversalTime().ToString('o');image_available=($null -ne $P.ExecutablePath);worker=($P.CommandLine -match '(?:^|\s)-m\s+src\.api\.worker(?:\s|$)');command_available=($null -ne $P.CommandLine)}
-  foreach ($C in @(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$Id))){$Queue.Enqueue([int]$C.ProcessId)}
+  if ($Children.ContainsKey($Id)) {
+   foreach ($ChildId in $Children[$Id]) {
+    $Child=$ById[$ChildId]
+    if ($null -eq $Child.CreationDate -or $Child.CreationDate -lt $P.CreationDate) {throw 'Child PID creation mismatch'}
+    $Queue.Enqueue($ChildId)
+   }
+  }
  }
  $Filter=(@($Ids|ForEach-Object {'IDProcess='+$_}) -join ' OR ')
  foreach($R in @(Get-CimInstance Win32_PerfFormattedData_PerfProc_Process -Filter $Filter)) {
@@ -235,6 +254,11 @@ if (-not @($Bindings|Where-Object {$_.group -eq 'app' -and $_.pid -eq SEED}).Cou
 
 def arguments(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--resources-only",
+        action="store_true",
+        help="One read-only process snapshot; no load or DB probes",
+    )
     parser.add_argument("--expected-sha", required=True)
     parser.add_argument("--root", type=Path, default=Path("C:/TesterLab"))
     parser.add_argument("--seconds", type=int, default=600)
@@ -579,9 +603,38 @@ def run(args):
     return report
 
 
+def resource_observation(args):
+    root, out = base.plain(args.root), base.plain(args.out)
+    if out == root or root in out.parents or not out.parent.is_dir() or out.exists():
+        raise ValueError("Require absent output outside lab")
+    expected, _dsn, supervisor = base.bind(root, args.expected_sha)
+    started = time.monotonic()
+    processes, error = base.measured(lambda: process_sample(root, expected, supervisor))
+    base.assert_identity(base.http("/api/lab/identity"), expected)
+    report = dict(
+        kind="RESOURCE_OBSERVATION_ONLY",
+        status="RESOURCE_OBSERVED"
+        if processes and processes["worker_process_count"] is not None
+        else "INCOMPLETE",
+        identity=expected,
+        processes=processes,
+        error_type=error,
+        collection_seconds=time.monotonic() - started,
+        observed_at_ms=time.time_ns() // 1000000,
+        scope="One read-only CIM snapshot; no admissions, DB probes, retries, cancellation or kills. Does not repair metrics of an earlier load report.",
+    )
+    base.atomic_report(out, report, initial=True)
+    return report
+
+
 def main():
     try:
-        result = run(arguments())
+        args = arguments()
+        if getattr(args, "resources_only", False):
+            result = resource_observation(args)
+            print(json.dumps(dict(kind=result["kind"], status=result["status"])))
+            return 0 if result["status"] == "RESOURCE_OBSERVED" else 1
+        result = run(args)
     except Exception as exc:
         print(json.dumps(dict(status="PREFLIGHT_FAILED", error_type=type(exc).__name__)))
         return 1

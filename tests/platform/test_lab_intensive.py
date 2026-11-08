@@ -94,7 +94,9 @@ def test_invalid_service_roles_are_rejected_before_cim(monkeypatch):
         )
 
 
-def simulated_run(monkeypatch, tmp_path, *, failed=0, historical=0, replacement=False, failure_call=2):
+def simulated_run(
+    monkeypatch, tmp_path, *, failed=0, historical=0, replacement=False, failure_call=2
+):
     # All network, DB and CIM boundaries are replaced; report persistence stays real.
     import types
     import uuid
@@ -221,10 +223,123 @@ def test_new_external_failure_stops_even_when_total_failed_count_is_unchanged(
     assert report["new_failed_ids"] == ["00000000-0000-0000-0000-000000000064"]
 
 
-
 def test_final_snapshot_detects_late_external_failure(monkeypatch, tmp_path):
     report = simulated_run(monkeypatch, tmp_path, failed=1, failure_call=18)
     assert report["submitted"] == report["completed"] == 30
     assert report["status"] == "STOPPED_BY_LIMIT"
     assert report["stop_reason"] == "FAILED_JOB"
     assert report["new_failed_ids"] == ["00000000-0000-0000-0000-000000000064"]
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["valid", "missing_child_counter", "missing_creation", "wrong_image", "missing_supervisor"],
+)
+def test_batched_cim_template_scopes_and_fails_closed(monkeypatch, scenario):
+    import json
+    import subprocess
+
+    m = module()
+    names = {"app": "TesterLabApp_" + "a" * 32, "postgres": "TesterLabPG_" + "a" * 32}
+    root = Path("C:/synthetic probe")
+    real_run = subprocess.run
+    prefix = r"""
+$global:ProcessQueries=0
+function Get-CimInstance {
+ param([string]$ClassName, [string]$Filter, [string[]]$Property)
+ switch ($ClassName) {
+  'Win32_Service' {
+   if ($Filter -like '*TesterLabApp_*') {
+    $Image='APP_PATH';if ('SCENARIO' -eq 'wrong_image'){$Image='wrong.exe'}
+    [pscustomobject]@{State='Running';StartName='NT AUTHORITY\LocalService';PathName=$Image;ProcessId=10}
+   } else {
+    [pscustomobject]@{State='Running';StartName='NT AUTHORITY\LocalService';PathName='PG_PATH';ProcessId=20}
+   }
+  }
+  'Win32_Process' {
+   $global:ProcessQueries++
+   if ($Filter -or $global:ProcessQueries -gt 1) {throw 'Must use one batch process inventory'}
+   foreach ($Pair in @(@(10,0),@(11,10),@(12,11),@(20,0),@(21,20),@(99,0))) {
+    if ('SCENARIO' -eq 'missing_supervisor' -and $Pair[0] -eq 11){continue}
+    $Created=[datetime]'2026-01-01T00:00:00Z'
+    if ('SCENARIO' -eq 'missing_creation' -and $Pair[0] -eq 12){$Created=$null}
+    $Command='SECRET unrelated';if($Pair[0] -eq 12){$Command='python -m src.api.worker'}
+    [pscustomobject]@{ProcessId=$Pair[0];ParentProcessId=$Pair[1];CreationDate=$Created;ExecutablePath='synthetic.exe';CommandLine=$Command}
+   }
+  }
+  'Win32_PerfFormattedData_PerfProc_Process' {
+   if (-not $Filter -or $Filter -match 'IDProcess=99') {throw 'Unscoped counters'}
+   foreach ($Id in @(10,11,12,20,21)) {
+    if ($Filter -match ('(?:^| OR )IDProcess='+$Id+'(?: OR |$)')) {
+     if ('SCENARIO' -eq 'missing_child_counter' -and $Id -eq 12){continue}
+     [pscustomobject]@{IDProcess=$Id;WorkingSetPrivate=100;PercentProcessorTime=2;IOWriteBytesPersec=3}
+    }
+   }
+  }
+  default {throw 'Unexpected class'}
+ }
+}
+"""
+    image = subprocess.list2cmdline(
+        [
+            r"C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe",
+            "runservice",
+            "-N",
+            names["postgres"],
+            "-D",
+            str(root / "postgres-data"),
+            "-w",
+        ]
+    )
+    prefix = (
+        prefix.replace("APP_PATH", str(root / "dependencies/service/pythonservice.exe"))
+        .replace("PG_PATH", image)
+        .replace("SCENARIO", scenario)
+    )
+
+    def synthetic_subprocess(command, **kwargs):
+        return real_run([*command[:-1], prefix + "\n" + command[-1]], **kwargs)
+
+    monkeypatch.setattr(m.subprocess, "run", synthetic_subprocess)
+    if scenario != "valid":
+        with pytest.raises((ValueError, subprocess.CalledProcessError)):
+            m.process_sample(root, {"services": names}, 11)
+    else:
+        result = m.process_sample(root, {"services": names}, 11)
+        assert result["private_bytes"] == 500
+        assert result["worker_process_count"] == 1
+        assert result["groups"]["app"]["process_count"] == 3
+        assert {x["pid"] for x in result["bindings"]} == {10, 11, 12, 20, 21}
+        assert "SECRET" not in json.dumps(result)
+
+
+def test_resources_only_cli_never_starts_load_or_database_probe(monkeypatch, tmp_path, capsys):
+    import json
+    import types
+
+    m = module()
+    args = types.SimpleNamespace(
+        resources_only=True,
+        root=tmp_path / "lab",
+        out=tmp_path / "resources.json",
+        expected_sha="a" * 40,
+    )
+    monkeypatch.setattr(m, "arguments", lambda: args)
+    monkeypatch.setattr(m.base, "bind", lambda *_: ({"source_sha": "a" * 40}, "SECRET", 10))
+    monkeypatch.setattr(m.base, "assert_identity", lambda *_: None)
+    monkeypatch.setattr(m.base, "http", lambda _: {"data": {}})
+
+    def forbidden(*_):
+        raise AssertionError("load or DB probe forbidden")
+
+    monkeypatch.setattr(m, "run", forbidden)
+    monkeypatch.setattr(m, "database_sample", forbidden)
+    monkeypatch.setattr(m, "request", forbidden)
+    monkeypatch.setattr(
+        m, "process_sample", lambda *_: {"private_bytes": 123, "worker_process_count": 1}
+    )
+    assert m.main() == 0
+    report = json.loads(args.out.read_text())
+    assert report["kind"] == "RESOURCE_OBSERVATION_ONLY"
+    assert report["processes"]["private_bytes"] == 123
+    assert "SECRET" not in json.dumps(report) + capsys.readouterr().out

@@ -19,3 +19,11 @@ Duration is an admission/sampling deadline, not a hard process deadline: in-flig
 Synthetic tests replace only network/DB/CIM boundaries, preserve report persistence, and verify a complete 60-second simulated run of thirty jobs over ten symbols with one observed worker. Real ADMINIT saturation and performance measurements remain unrun.
 
 Historical failed jobs are preserved: an initial read-only repeatable-read snapshot records their IDs/count (maximum 10,000; larger inventories fail preflight). Each metrics, admission-pressure and final snapshot compares failed IDs against that baseline. Any newly observed failed ID stops the probe, including external jobs and an unchanged total count after another failure disappears. Sampled state cannot prove the absence of transient external failures that disappear entirely between observations. The harness never changes historical states.
+
+For a separate, single read-only resource snapshot during a coordinator-owned load run:
+
+```powershell
+python scripts/lab_intensive.py --resources-only --expected-sha <installed-source-SHA40> --out C:\path\outside-lab\resource-snapshot.json
+```
+
+This mode binds the installed source/instance, samples CIM once and writes a new report. It performs no admissions or database probes, and does not convert missing metrics in another report into a PASS. The process sampler now uses five CIM calls independent of descendant count: two exact service queries, one bounded process inventory (10,000 maximum), and two perf-counter queries filtered to the owned trees (64 processes maximum per tree). Raw inventory images/command lines are never emitted. Missing creation evidence, child creation predating its parent, missing supervisor or partial counters fail closed. The ten-second CIM subprocess timeout remains enforced; latency improvement on ADMINIT still requires coordinator observation.
