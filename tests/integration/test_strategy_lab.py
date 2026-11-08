@@ -181,3 +181,16 @@ def test_exploratory_strategy_cannot_turn_a_synthetic_grid_gap_into_complete_cha
     value["snapshot"]["candles"].pop(1)
     with pytest.raises(ValueError, match="gap"):
         run_synthetic_research(value["strategy"], value["snapshot"])
+
+
+@pytest.mark.parametrize("mutation", ["float_time", "integer_synthetic", "float_result_time"])
+def test_bundle_identity_checks_canonical_json_types_not_python_numeric_equality(mutation):
+    value = run_certified_fixture()
+    if mutation == "float_time":
+        value["chart"]["markers"][0]["timestamp_ms"] = 60000.0
+    elif mutation == "integer_synthetic":
+        value["synthetic"] = 1
+    else:
+        value["result"]["fills"][0]["timestamp_ms"] = 60000.0
+    with pytest.raises(ValueError):
+        verify_research_bundle(value)
