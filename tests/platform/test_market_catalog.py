@@ -28,6 +28,7 @@ class Source:
         if endpoint == "/tickers":
             return {
                 "category": params["category"],
+                "_source_time_ms": 1000000,
                 "list": [
                     {"symbol": "S1199", "lastPrice": "999999", "volume24h": "123"},
                     {"symbol": "S0000", "lastPrice": "1"},
@@ -304,3 +305,173 @@ def test_freshness_expiration_changes_etag_and_retains_metric_provenance():
         assert metric["value"] == "999999"
         assert metric["observed_at"] == 1000
         assert metric["source"] == "https://api.bybit.com/v5/market/tickers"
+
+
+@pytest.mark.parametrize(
+    "stamp,state,reason",
+    [
+        (None, "UNKNOWN", "source_time_missing"),
+        ("1000000", "UNKNOWN", "source_time_invalid"),
+        (True, "UNKNOWN", "source_time_invalid"),
+        (0, "UNKNOWN", "source_time_invalid"),
+        (2000000, "UNKNOWN", "source_time_future"),
+        (1, "STALE", "source_time_stale"),
+        (700000, "STALE", "source_time_stale"),
+        (999000, "OBSERVED", None),
+    ],
+)
+def test_exchange_time_qualifies_metric_freshness(stamp, state, reason):
+    source = Source()
+    original = source.call
+
+    def timestamp(endpoint, params):
+        result, url = original(endpoint, params)
+        if endpoint == "/tickers":
+            result["_source_time_ms"] = stamp
+        return result, url
+
+    source.call = timestamp
+    service = CatalogService(source, clock=lambda: 1000)
+    assert service.refresh("linear")
+    result = service.query("linear", sort="price", direction="desc", limit=1)
+    metric = result["rows"][0]["metrics"]["price"]
+    assert metric["value"] == "999999"
+    assert metric["state"] == state
+    assert metric["reason"] == reason
+    if stamp is not None and (type(stamp) is not int or stamp <= 0):
+        assert metric["source_time_ms"] is None
+    assert result["catalog"]["state"] == {"OBSERVED": "CURRENT"}.get(state, state)
+
+
+def test_cancel_during_normalization_is_final_publication_barrier():
+    service = None
+
+    def clock():
+        service._cancel.set()
+        return 1000
+
+    service = CatalogService(Source(), clock=clock)
+    assert not service.refresh("linear")
+    assert service.query("linear")["revision"] is None
+
+
+def test_manual_refresh_waits_for_30_second_budget_instead_of_being_lost(monkeypatch):
+    async def scenario():
+        now = [0.0]
+        service = CatalogService(
+            Source(), clock=lambda: 1000, monotonic=lambda: now[0], jitter=lambda: 0
+        )
+        deadlines = []
+
+        async def wait(event_wait, timeout):
+            event_wait.close()
+            deadlines.append(timeout)
+            if len(deadlines) == 1:
+                now[0] = 5
+                service.request_refresh("linear")
+            elif len(deadlines) == 2:
+                assert "linear" in service._manual
+                assert timeout == 25
+                now[0] = 30
+            else:
+                service._cancel.set()
+
+        monkeypatch.setattr("src.api.market_catalog.asyncio.wait_for", wait)
+        service._wake = asyncio.Event()
+        await service._poll()
+        linear = [
+            call
+            for call in service.source.calls
+            if call[0] == "/tickers" and call[1]["category"] == "linear"
+        ]
+        inverse = [
+            call
+            for call in service.source.calls
+            if call[0] == "/tickers" and call[1]["category"] == "inverse"
+        ]
+        assert len(linear) == 2
+        assert len(inverse) == 1
+        assert "linear" not in service._manual
+
+    asyncio.run(scenario())
+
+
+def test_restart_cannot_clear_cancellation_while_stop_waits_for_refresh():
+    async def scenario():
+        entered, release = threading.Event(), threading.Event()
+        source = Source()
+        original = source.call
+
+        def blocking(endpoint, params):
+            if endpoint == "/tickers" and not entered.is_set():
+                entered.set()
+                assert release.wait(3)
+            return original(endpoint, params)
+
+        source.call = blocking
+        service = CatalogService(source)
+        await service.start()
+        assert await asyncio.to_thread(entered.wait, 3)
+        stopping = asyncio.create_task(service.stop())
+        await asyncio.sleep(0)
+        starting = asyncio.create_task(service.start())
+        await asyncio.sleep(0)
+        try:
+            assert not starting.done()
+            assert service._cancel.is_set()
+        finally:
+            release.set()
+            await stopping
+            await starting
+            await service.stop()
+
+    asyncio.run(scenario())
+
+
+def test_manual_refresh_cannot_bypass_rate_limit_backoff(monkeypatch):
+    async def scenario():
+        now = [0.0]
+        source = Source()
+        original = source.call
+        attempts = []
+
+        def limited(endpoint, params):
+            if (
+                endpoint == "/instruments-info"
+                and params["category"] == "linear"
+                and "cursor" not in params
+            ):
+                attempts.append(now[0])
+                if len(attempts) == 1:
+                    raise AcquisitionError("rate_limited")
+            return original(endpoint, params)
+
+        source.call = limited
+        service = CatalogService(
+            source, clock=lambda: 1000, monotonic=lambda: now[0], jitter=lambda: 0
+        )
+        deadlines = []
+
+        async def wait(event_wait, timeout):
+            event_wait.close()
+            deadlines.append(timeout)
+            if len(deadlines) == 1:
+                now[0] = 5
+                service.request_refresh("linear")
+            elif len(deadlines) == 2:
+                assert timeout == 295  # Inverse normal refresh precedes linear's backoff.
+                assert "linear" in service._manual
+                now[0] = 300
+            elif len(deadlines) == 3:
+                assert attempts == [0]
+                assert timeout == 300
+                now[0] = 600
+            else:
+                service._cancel.set()
+
+        monkeypatch.setattr("src.api.market_catalog.asyncio.wait_for", wait)
+        service._wake = asyncio.Event()
+        await service._poll()
+        assert attempts == [0, 600]
+
+    asyncio.run(scenario())
