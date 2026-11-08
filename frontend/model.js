@@ -77,7 +77,7 @@ export function progress(job) {
       ? Math.floor((done / total) * 100)
       : null;
   return {
-    percent: workComplete ? 100 : ratio,
+    percent: total > 0 && workComplete ? 100 : ratio,
     work_complete: workComplete,
     coverage: ["UNKNOWN", "PARTIAL", "VERIFIED"].includes(telemetry.coverage)
       ? telemetry.coverage

@@ -1,0 +1,26 @@
+{
+  "at": "2026-11-08T21:36:18.997141+00:00",
+  "source": "verified public Bybit V5",
+  "category": {
+    "linear": {
+      "symbol": "BTCUSDT",
+      "source": "https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT",
+      "source_time_ms": 1794173778894,
+      "lastPrice": "75682.50",
+      "prevPrice24h": "75633.80",
+      "price24hPcnt": "0.000643",
+      "computed_ratio": "0.0006438920165322911185210844887",
+      "ratio_rounding_difference": "8.920165322911185210844887E-7"
+    },
+    "inverse": {
+      "symbol": "BTCUSD",
+      "source": "https://api.bybit.com/v5/market/tickers?category=inverse&symbol=BTCUSD",
+      "source_time_ms": 1794173779311,
+      "lastPrice": "75592.10",
+      "prevPrice24h": "75512.20",
+      "price24hPcnt": "0.001058",
+      "computed_ratio": "0.001058107166788942713892589542",
+      "ratio_rounding_difference": "1.07166788942713892589542E-7"
+    }
+  }
+}

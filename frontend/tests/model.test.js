@@ -72,7 +72,7 @@ test("download work completion is distinct from coverage and legacy progress", (
     evidence_refs: ["batch:1"],
   };
   const complete = progress({ state: "completed", checkpoint: { telemetry } });
-  assert.equal(complete.percent, 100);
+  assert.equal(complete.percent, null);
   assert.equal(complete.coverage, "UNKNOWN");
   assert.equal(complete.records_verified, 10);
   for (const coverage of ["UNKNOWN", "PARTIAL", "VERIFIED"]) {
