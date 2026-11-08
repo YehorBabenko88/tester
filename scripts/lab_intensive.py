@@ -115,7 +115,7 @@ def database_sample(dsn):
     with psycopg.connect(
         dsn, connect_timeout=3, options="-c statement_timeout=2000", row_factory=dict_row
     ) as conn:
-        conn.execute("SET TRANSACTION READ ONLY")
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         scope = conn.execute(
             "SELECT current_database() AS db,inet_server_port() AS port"
         ).fetchone()
@@ -126,10 +126,17 @@ def database_sample(dsn):
         ).fetchall()
         size = conn.execute("SELECT pg_database_size(current_database())").fetchone()
         counts = {row["state"]: row["n"] for row in queue}
+        failed_rows = conn.execute(
+            "SELECT id FROM tester_platform.jobs WHERE state='failed' ORDER BY id LIMIT 10001"
+        ).fetchall()
+        failed_ids = [str(uuid.UUID(str(row["id"]))) for row in failed_rows]
+        if len(failed_ids) > 10000 or len(failed_ids) != counts.get("failed", 0):
+            raise ValueError("Failed job inventory budget or consistency")
         return dict(
             queue=sum(counts.get(x, 0) for x in ("queued", "running", "paused")),
             running=counts.get("running", 0),
             failed=counts.get("failed", 0),
+            failed_ids=failed_ids,
             database_bytes=next(iter(size.values())),
             states=counts,
         )
@@ -248,8 +255,9 @@ def run(args):
         raise ValueError("Output must be outside lab")
     expected, dsn, supervisor = base.bind(root, args.expected_sha)
     initial = database_sample(dsn)
-    if initial["queue"] or initial["failed"]:
-        raise ValueError("Require empty queue and no existing failed jobs before load")
+    if initial["queue"]:
+        raise ValueError("Require empty queue before load")
+    baseline_failed = set(initial["failed_ids"])
     report = dict(
         kind="TEN_SYMBOL_INTENSIVE",
         status="RUNNING",
@@ -279,6 +287,8 @@ def run(args):
         submitted=0,
         completed=0,
         failed=0,
+        failure_baseline=dict(count=initial["failed"], ids=sorted(baseline_failed)),
+        new_failed_ids=[],
         fairness={
             s: dict(
                 submitted=0,
@@ -404,9 +414,13 @@ def run(args):
                             report["fairness"][symbol]["read_rows"] += len(rows)
                     read_summary = latency_summary([x["seconds"] for x in reads])
                 queue = db["queue"] if db else None
+                if db:
+                    report["new_failed_ids"] = sorted(
+                        set(report["new_failed_ids"]) | (set(db["failed_ids"]) - baseline_failed)
+                    )
                 reason = policy.observe(
                     queue=queue,
-                    failed=db["failed"] if db else report["failed"],
+                    failed=bool(report["new_failed_ids"]) or report["failed"],
                     memory=processes["private_bytes"] if processes else None,
                     p95=read_summary["p95_seconds"] if read_summary else None,
                 )
@@ -432,7 +446,11 @@ def run(args):
                         queue = admission_db["queue"]
                         if queue > 40:
                             report["stop_reason"] = report["stop_reason"] or "QUEUE_LIMIT"
-                        if admission_db["failed"]:
+                        report["new_failed_ids"] = sorted(
+                            set(report["new_failed_ids"])
+                            | (set(admission_db["failed_ids"]) - baseline_failed)
+                        )
+                        if report["new_failed_ids"] or report["failed"]:
                             report["stop_reason"] = report["stop_reason"] or "FAILED_JOB"
                     admitted = (
                         can_admit(queue, deadline - time.monotonic(), bool(report["stop_reason"]))
@@ -531,6 +549,15 @@ def run(args):
                     break
                 time.sleep(max(0, min(5 - (time.monotonic() - at), deadline - time.monotonic())))
         base.assert_identity(base.http("/api/lab/identity"), expected)
+        final_db, final_error = base.measured(lambda: database_sample(dsn))
+        if final_error:
+            report["metrics_complete"]["postgres"] = False
+        else:
+            report["new_failed_ids"] = sorted(
+                set(report["new_failed_ids"]) | (set(final_db["failed_ids"]) - baseline_failed)
+            )
+            if report["new_failed_ids"] or report["failed"]:
+                report["stop_reason"] = report["stop_reason"] or "FAILED_JOB"
         report["metrics_complete"]["latency"] &= all(
             x["nonempty_reads"] > 0 for x in report["fairness"].values()
         )

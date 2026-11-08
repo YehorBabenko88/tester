@@ -94,7 +94,7 @@ def test_invalid_service_roles_are_rejected_before_cim(monkeypatch):
         )
 
 
-def simulated_run(monkeypatch, tmp_path, *, failed=0):
+def simulated_run(monkeypatch, tmp_path, *, failed=0, historical=0, replacement=False, failure_call=2):
     # All network, DB and CIM boundaries are replaced; report persistence stays real.
     import types
     import uuid
@@ -113,7 +113,12 @@ def simulated_run(monkeypatch, tmp_path, *, failed=0):
 
     def database(_):
         calls[0] += 1
-        return dict(queue=0, running=1, failed=failed if calls[0] > 1 else 0)
+        ids = [str(uuid.UUID(int=i + 1)) for i in range(historical)]
+        if calls[0] >= failure_call:
+            if replacement:
+                ids = []
+            ids += [str(uuid.UUID(int=100 + i)) for i in range(failed)]
+        return dict(queue=0, running=1, failed=len(ids), failed_ids=ids)
 
     monkeypatch.setattr(m, "database_sample", database)
     monkeypatch.setattr(
@@ -195,3 +200,31 @@ def test_missing_cim_rows_cannot_look_like_zero_resource_usage(monkeypatch):
             },
             10,
         )
+
+
+def test_historical_failed_jobs_are_preserved_and_do_not_block_probe(monkeypatch, tmp_path):
+    report = simulated_run(monkeypatch, tmp_path, historical=1)
+    assert report["status"] == "INTENSIVE_OBSERVED_PASS"
+    assert report["failure_baseline"]["count"] == 1
+    assert report["failure_baseline"]["ids"] == ["00000000-0000-0000-0000-000000000001"]
+    assert report["failed"] == 0
+
+
+@pytest.mark.parametrize("replacement", [False, True])
+def test_new_external_failure_stops_even_when_total_failed_count_is_unchanged(
+    monkeypatch, tmp_path, replacement
+):
+    report = simulated_run(monkeypatch, tmp_path, historical=1, failed=1, replacement=replacement)
+    assert report["status"] == "STOPPED_BY_LIMIT"
+    assert report["stop_reason"] == "FAILED_JOB"
+    assert report["submitted"] == 0
+    assert report["new_failed_ids"] == ["00000000-0000-0000-0000-000000000064"]
+
+
+
+def test_final_snapshot_detects_late_external_failure(monkeypatch, tmp_path):
+    report = simulated_run(monkeypatch, tmp_path, failed=1, failure_call=18)
+    assert report["submitted"] == report["completed"] == 30
+    assert report["status"] == "STOPPED_BY_LIMIT"
+    assert report["stop_reason"] == "FAILED_JOB"
+    assert report["new_failed_ids"] == ["00000000-0000-0000-0000-000000000064"]
