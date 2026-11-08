@@ -1,0 +1,40 @@
+{
+  "status": "REAL_G_HTTP_POSTGRES_F_RESULT_PASS",
+  "process_ownership": {
+    "pid": 24436,
+    "created": 1794157003.4325182,
+    "binding": "OS process image/creation/cwd/module arguments/accepted TCP four-tuple"
+  },
+  "identity": {
+    "application_source_sha": "00baad05ad78cf77524600d37ace39dd42e3159e",
+    "lab_source_sha": "00baad05ad78cf77524600d37ace39dd42e3159e",
+    "synthetic": true,
+    "execution_mode": "SIMULATED",
+    "canonical_store": "PostgreSQL",
+    "api_port": 18767,
+    "postgres_port": 55471,
+    "native_service": false,
+    "worker_scope": "one_in_process_polling_task_host_reported",
+    "worker_state": "RUNNING",
+    "worker_errors": 0
+  },
+  "job_id": "cb2036e3-0bd8-4a9e-be88-3f742de797e7",
+  "artifact_digest": "b2704ca080a0987622b062fa088372894537372a3b8cd15705f518edcd4b6d44",
+  "fills": 3,
+  "candles": 3,
+  "fills_without_closed_trade_id": 2,
+  "actor_scoped_audit_events": [
+    "credential_issued",
+    "submitted",
+    "claimed",
+    "completed",
+    "render_ack"
+  ],
+  "invalid_auth_denied": true,
+  "replay_same_job": true,
+  "wrong_digest_ack_denied": true,
+  "exact_fill_ack": true,
+  "synthetic": true,
+  "real_market_coverage": "NOT_PROVEN",
+  "browser_rendering": "NOT_TESTED_HERE"
+}

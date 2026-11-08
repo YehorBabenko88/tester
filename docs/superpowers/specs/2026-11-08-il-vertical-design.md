@@ -1,0 +1,11 @@
+# I-L executable synthetic research vertical
+
+User specification: PR30 comment6723906058 and MASTER integration-wave instruction,8November2026. No installed-service changes until a candidate passes. No recovery/5432/main merge/realorders.
+
+The single sensible architecture follows the normative standalone decision: pinned tester F engine executes an explicitly synthetic certified fixture; B/E PostgreSQL owns immutable input/result/artifact, jobs, authorization and audit; G typed loopback client submits authorized projection requests; D draws real persisted candle/fill data and sends digest-bound render acknowledgment. Existing inert fixture seams are useful contracts but cannot satisfy this path. An in-memory ledger, mocked HTTP responses or a separate authoritative SQLite store are excluded by the user and architecture.
+
+J resolves PR37 conflict in its own branch and owns exact-F adapter/projection. K owns reviewed research PostgreSQL migration, expiring/revocable scoped authentication, fenced durable ledger and G/E binding. L owns actual D renderer and unmocked browser E2E. Root integrates pinned GitHub heads, prepares isolated nonadmin disposable PostgreSQL on loopback55471 and API18767, publishes all runnable code before acceptance, executes and records actual gates. Installed719 on18766/55470 remains untouched.
+
+Synthetic COMPLETE applies only to the pinned synthetic namespace, never the saved authentic UNKNOWN history. Every artifact retains synthetic/SIMULATED labels, exact decimals, source/run/snapshot/code pins, half-open uncertainty windows, known_at and nullable closed_trade_id. Verified/inferred trader facts require real authorized evidence; no live trader identity is inferred here.
+
+Acceptance: real F execution, durable PostgreSQL input/result/job/audit/ACK, real authentication deny/allow/revoke, real G client round-trip, D candles plus fills rendered without network mocks, restart and digest/replay checks, contract/timing/mouse fixture tests. Physical ComputerUse and native rollout are separate future gates. CI queued is not pass. Root records exact final source/tree/artifact hashes, remaining blockers and explicit NO_GO unless every required gate truly passes.

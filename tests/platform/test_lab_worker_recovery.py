@@ -187,7 +187,9 @@ if (-not $Refused) {throw 'Modified published tool accepted'}
 def test_termination_receipt_survives_close_failure_and_never_retries(tmp_path, native_success):
     run_helper(
         tmp_path,
-        "$NativeSuccess=$" + str(native_success).lower() + r"""
+        "$NativeSuccess=$"
+        + str(native_success).lower()
+        + r"""
 $Candidate=[pscustomobject]@{ProcessId=120;ExecutablePath='fixture-python';CreationDate=[DateTime]::FromFileTimeUtc(133000000000000000)}
 $script:Opened=0;$script:Killed=0;$script:Closed=0
 function Open-RecoveryProcess {param($ProcessId) $script:Opened++;return [IntPtr]23}
@@ -212,7 +214,9 @@ if (-not $Refused -or $script:Opened -ne 1 -or $script:Killed -ne 1 -or $script:
 def test_held_handle_fresh_gate_revalidates_pinned_files_before_kill(tmp_path, drift):
     run_helper(
         tmp_path,
-        "$Drift='" + drift + r"""'
+        "$Drift='"
+        + drift
+        + r"""'
 $script:Root=Join-Path $PSScriptRoot 'fixture-installation'
 $script:Id='fixture-installation-id';$script:AppName='fixture-app';$script:PGName='fixture-pg'
 $script:SourceSHA='a'*40;$script:ToolManifest='';$script:ToolManifestSHA256=''
