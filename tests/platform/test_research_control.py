@@ -13,6 +13,7 @@ from src.api.research_control import (
     Control,
     Denied,
     Identity,
+    Marker,
     Unavailable,
     canonical_digest,
     create_control_app,
@@ -360,3 +361,51 @@ def test_market_identity_must_be_explicit(harness, field):
     del body[field]
     with pytest.raises(ValueError):
         Command.model_validate_json(json.dumps(body))
+
+
+@pytest.mark.parametrize(
+    "precision,timestamp,known",
+    [
+        ("modeled_open", 60000, 60000),
+        ("bar", 119999, 120000),
+    ],
+)
+def test_pinned_f_fill_timing_preserved(harness, precision, timestamp, known):
+    # F 998c5bc engine.py: modeled open is known at start; bar fills at end-1.
+    _, _, _, _, artifact, _ = harness
+    marker = deepcopy(artifact["markers"][0])
+    marker.update(
+        window_start_ms=60000,
+        window_end_ms=120000,
+        timestamp_ms=timestamp,
+        known_at_ms=known,
+        time_precision=precision,
+    )
+    validated = Marker.model_validate(marker)
+    assert validated.model_dump() == marker
+
+
+@pytest.mark.parametrize(
+    "precision,timestamp,known,start,end",
+    [
+        ("bar", 60000, 60000, 60000, 60000),  # empty window
+        ("bar", 120000, 120000, 60000, 120000),  # end is excluded
+        ("bar", 119999, 119999, 60000, 120000),  # unknown before bar close
+        ("modeled_open", 60001, 120000, 60000, 120000),  # not modeled start
+        ("modeled_open", 60000, 120000, 60000, 120000),  # invented delay
+    ],
+)
+def test_reject_invalid_precision_specific_fill_timing(
+    harness, precision, timestamp, known, start, end
+):
+    _, _, _, _, artifact, _ = harness
+    marker = deepcopy(artifact["markers"][0])
+    marker.update(
+        window_start_ms=start,
+        window_end_ms=end,
+        timestamp_ms=timestamp,
+        known_at_ms=known,
+        time_precision=precision,
+    )
+    with pytest.raises(ValueError):
+        Marker.model_validate(marker)

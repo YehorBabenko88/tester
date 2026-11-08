@@ -24,7 +24,7 @@ This schema is a bounded chart-artifact acceptance seam, **not an agreed F/G pro
 
 ## Verification and remaining gates
 
-TDD: first test execution failed collection because `src.api.research_control` did not exist. After implementation the focused suite passes 27 tests. It includes a synthetic authenticated API submit > retained test-store job > reconstructed controller > artifact/status > digest ACK path. The same test store survives controller recreation; **this is not a process restart, durable PostgreSQL or crash-consistency test**. Negative fixtures cover auth expiration/revocation callback, object ACL, revocation during resolution, host/origin, arbitrary commands/fields, replay conflict, scope and digest tampering, future knowledge, uncertainty/ID loss, duplicate and excessive fills, and missing provider. Ruff checks/format are run on the two added Python files.
+TDD: first test execution failed collection because `src.api.research_control` did not exist. After implementation the focused suite passes 34 tests. It includes a synthetic authenticated API submit > retained test-store job > reconstructed controller > artifact/status > digest ACK path. The same test store survives controller recreation; **this is not a process restart, durable PostgreSQL or crash-consistency test**. Negative fixtures cover auth expiration/revocation callback, object ACL, revocation during resolution, host/origin, arbitrary commands/fields, replay conflict, scope and digest tampering, future knowledge, uncertainty/ID loss, duplicate and excessive fills, and missing provider. Ruff checks/format are run on the two added Python files.
 
 Run from this checkout with the shared development interpreter (read-only):
 
@@ -35,4 +35,9 @@ python -m ruff format --check src/api/research_control.py tests/platform/test_re
 ```
 
 Remaining before integration: reviewed canonical PostgreSQL ledger and worker fencing; real expiring capability/authentication and owned provider bindings; source provenance resolution and complete immutable F artifact correspondence; F/G/E agreement on the v2 projection; D renderer and real render acknowledgment; process kill/restart/replay tests in a disposable canonical database. No physical ADMINIT acceptance, browser rendering, real-market research, live API/DB/job load, installed `C:\TesterLab`, UAC, service/ACL/registry changes, office PCs, real trades or main merge were performed. Draft PR evidence only.
+
+
+## Precision-specific timing correction after independent review
+
+Pinned F engine output was rechecked: a modeled-open fill has timestamp and known-at at the window start, while its nonempty bar window can extend into the future. Validation now requires start <= timestamp < end for every marker; bar knowledge cannot precede end; modeled-open timestamp and knowledge both equal start. Seven regression cases preserve the F-shaped [60000,120000) modeled-open/bar examples and reject empty windows, end-boundary timestamps, early bar knowledge, shifted modeled opens and invented modeled-open delay. The new tests first produced five failures against the previous rule, then all 34 focused tests passed after correction. No production integration status changed.
 

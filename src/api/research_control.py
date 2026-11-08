@@ -92,8 +92,13 @@ class Marker(Strict):
 
     @model_validator(mode="after")
     def uncertainty(self):
-        if not self.window_start_ms <= self.timestamp_ms <= self.window_end_ms <= self.known_at_ms:
-            raise ValueError("inconsistent uncertainty/knowledge")
+        if not self.window_start_ms <= self.timestamp_ms < self.window_end_ms:
+            raise ValueError("timestamp outside half-open uncertainty window")
+        if self.time_precision == "bar":
+            if self.known_at_ms < self.window_end_ms:
+                raise ValueError("bar fill unknown before window close")
+        elif self.timestamp_ms != self.window_start_ms or self.known_at_ms != self.window_start_ms:
+            raise ValueError("modeled open timestamp and knowledge must equal window start")
         if not any(c in "123456789" for c in self.price):
             raise ValueError("positive Decimal price required")
         return self
