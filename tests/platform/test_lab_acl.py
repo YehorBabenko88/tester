@@ -9,6 +9,52 @@ import pytest
 pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="Windows filesystem ACL tests")
 
 
+@pytest.fixture(autouse=True)
+def restore_owned_scratch_permissions(tmp_path):
+    """Restore deletable scratch ACLs even when a locked-directory test fails."""
+    cleanup = tmp_path / "restore-owned-scratch.ps1"
+    cleanup.write_text(
+        r"""
+param([string]$Scratch)
+$ErrorActionPreference='Stop'
+$Scratch=[IO.Path]::GetFullPath($Scratch).TrimEnd('\')
+$Me=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+Add-Type -TypeDefinition @'
+using System.Runtime.InteropServices;
+public static class TesterScratchDaclCleanup {
+ [DllImport("advapi32.dll", EntryPoint="SetFileSecurityW", CharSet=CharSet.Unicode, SetLastError=true)]
+ [return: MarshalAs(UnmanagedType.Bool)]
+ public static extern bool Set(string path, uint information, byte[] descriptor);
+}
+'@
+$Queue=[Collections.Generic.Queue[object]]::new()
+$Queue.Enqueue((Get-Item -LiteralPath $Scratch -Force))
+while ($Queue.Count -gt 0) {
+ $Item=$Queue.Dequeue()
+ $Path=[IO.Path]::GetFullPath($Item.FullName)
+ if ($Path -ne $Scratch -and -not $Path.StartsWith($Scratch+'\',[StringComparison]::OrdinalIgnoreCase)) {throw 'Scratch cleanup escaped fixture root'}
+ if (($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {continue}
+ $Acl=Get-Acl -LiteralPath $Path
+ if ($Acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -ne $Me) {continue}
+ $Rule=[Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($Me),[Security.AccessControl.FileSystemRights]::FullControl,[Security.AccessControl.AccessControlType]::Allow)
+ $Acl.AddAccessRule($Rule)
+ if (-not [TesterScratchDaclCleanup]::Set($Path,4,$Acl.GetSecurityDescriptorBinaryForm())) {throw [ComponentModel.Win32Exception]::new([Runtime.InteropServices.Marshal]::GetLastWin32Error())}
+ if ($Item.PSIsContainer) {foreach ($Child in @(Get-ChildItem -LiteralPath $Path -Force)) {$Queue.Enqueue($Child)}}
+}
+""",
+        encoding="utf-8",
+    )
+    try:
+        yield
+    finally:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-File", str(cleanup), str(tmp_path)],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+
+
 def test_explicit_acl_grants_apply_to_files_and_directories(tmp_path):
     library = Path("scripts/windows/Repair-TesterLabPortableAcl.ps1").absolute()
     assert library.is_file(), "explicit ACL recovery library missing"
