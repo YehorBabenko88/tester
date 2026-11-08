@@ -18,3 +18,5 @@ Required environment for that suite:
 - `TESTER_RESEARCH_COMMAND_FILE` = approved command JSON file (without a token)
 
 Actual backend E2E execution is pending root composition; no pass is claimed here. No installed ADMINIT endpoint/service, production PostgreSQL, physical input, acquisition, real orders or main merge were used. Earlier fixture-only document remains historical preparation; this follow-up supersedes its statement that a renderer is absent, but does not imply F/G/H production integration.
+
+Additional renderer-only fixture verification: `npx playwright test tests/research-renderer.spec.js` passed (1 automated headless test). It exercises actual candle/entry/exit/span canvas drawing, zoom/pan bounds and clearing stale geometry; its static fixture routing is intentionally separate from the real-backend E2E class. It is not evidence that API authorization, persistence or F execution is integrated.
