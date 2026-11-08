@@ -9,7 +9,9 @@ loopback PostgreSQL database on a non-5432 port, run
 migration, and set `TESTER_MARKET_CATALOG_ENABLED=true` for the candidate API.
 The regular `TESTER_DATABASE_URL` may independently point to that same owned test
 database; there is no fallback between the two settings. Startup only checks the
-catalog tables and fails if migration was omitted. Do not use the installed native
+catalog tables, including migration 002's observation table, and fails if migration
+was omitted. Re-running the explicit migration applies new checksummed versions;
+startup never applies them. Do not use the installed native
 database or service configuration for this opt-in feature.
 
 Each category has a dedicated session advisory lock. Only that session's service
@@ -20,7 +22,24 @@ ownership without resetting persisted retry timing. Shutdown cancels cooperative
 drains public HTTP work and releases ownership. The last successful snapshot is
 retained on failure. Storage retains one bounded snapshot per category (32 MiB
 application publication budget, 64 MiB database serialization ceiling), not an
-unbounded history; missing historical metrics remain unavailable.
+unbounded snapshot history. Genuine fresh price/OI ticker observations are stored
+separately with a unique category/symbol/source-timestamp key. Publication prunes
+only this feature's observations older than 26 hours and caps each category at
+500,000 points, retaining the newest source timestamps first. Missing historical
+metrics remain unavailable; a restart does not manufacture a baseline.
+
+Price change 1h and OI changes 1h/24h use `(current - baseline) / baseline` as a
+Decimal ratio, with a strictly positive baseline and exact source/unit matches.
+The current observation must genuinely be OBSERVED with source and local observation
+timestamps less than 300 seconds old. The baseline must be at or before the requested
+horizon target and at most one 300-second cadence older. Every result includes the
+baseline source time, actual elapsed window, source, original unit/value and current
+value; the result unit is `ratio`. Null, stale, future, missing-unit, changed-source,
+zero-denominator or absent history never becomes an invented delta. Raw observations,
+qualified derived metrics, snapshot revision and attempt/schedule metadata commit in
+one owner-session transaction. A successfully exhausted catalog can publish while
+tickers fail; matching prior metrics retain their original timestamps with STALE
+state, and the failed ticker attempt still invokes backoff.
 
 Normal automatic refresh interval is 300 seconds plus 0–15 seconds jitter. Manual
 requests coalesce and respect a 30-second success budget and persisted exponential

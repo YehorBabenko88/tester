@@ -94,6 +94,28 @@ def test_persistent_budget_backoff_coalescing_and_committed_view():
     assert len(source.calls) == initial_calls + 1
 
 
+def test_changed_exhausted_catalog_commits_even_when_ticker_attempt_failed(monkeypatch):
+    from src.api.persistent_market_catalog import PersistentCatalogService
+
+    store = MemoryStore()
+    service = PersistentCatalogService(None, store, clock=lambda: 1000, jitter=lambda: 0)
+
+    def partial_success(instance, category):
+        instance._snapshots[category] = {"revision": "new-catalog", "rows": []}
+        instance._attempts[category] = {
+            "at": 1000,
+            "last_error": "ticker_failure",
+            "loaded": 0,
+            "completeness": "EXHAUSTED",
+        }
+        return False
+
+    monkeypatch.setattr("src.api.market_catalog.CatalogService.refresh", partial_success)
+    assert not service.refresh("linear")
+    assert store.state["linear"]["snapshot"]["revision"] == "new-catalog"
+    assert store.state["linear"]["failures"] == 1
+
+
 def assert_unpublished(service):
     assert service.query("linear")["revision"] is None
 

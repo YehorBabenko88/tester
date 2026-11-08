@@ -74,7 +74,14 @@ class PersistentCatalogService(CatalogService):
         self.store.take_pending(category)
         ok = super().refresh(category)
         with self._lock:
-            snapshot = deepcopy(self._snapshots.get(category)) if ok else None
+            candidate = self._snapshots.get(category)
+            previous = state["snapshot"]
+            changed = candidate is not None and (
+                previous is None or candidate["revision"] != previous["revision"]
+            )
+            # Exhausted catalog acquisition may publish a new valid catalog while
+            # its ticker stage fails. Persist that composite but keep error backoff.
+            snapshot = deepcopy(candidate) if ok or changed else None
             attempt = deepcopy(self._attempts[category])
         if snapshot is not None and len(json.dumps(snapshot).encode()) > 32 * 1024 * 1024:
             snapshot, ok = None, False
@@ -130,6 +137,7 @@ class PersistentCatalogService(CatalogService):
 
     async def start(self):
         # Read-only schema readiness check: explicit operator migration is mandatory.
+        await asyncio.to_thread(self.store.check_ready)
         for category in CATEGORIES:
             await asyncio.to_thread(self._load, category)
         await super().start()

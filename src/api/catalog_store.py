@@ -11,6 +11,13 @@ import psycopg
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from psycopg.types.json import Jsonb
 
+from .catalog_history import (
+    MAX_POINTS_PER_CATEGORY,
+    RETENTION_MS,
+    TOLERANCE_MS,
+    enrich_snapshot,
+    fresh_points,
+)
 from .db import connect
 
 LOCKS = {"linear": 725281401, "inverse": 725281402}
@@ -40,9 +47,6 @@ def validate_catalog_dsn(dsn):
 
 def migrate_catalog(dsn):
     dsn = validate_catalog_dsn(dsn)
-    path = Path(__file__).with_name("catalog_migrations") / "001_catalog.sql"
-    content = path.read_text(encoding="utf-8")
-    digest = hashlib.sha256(content.encode()).hexdigest()
     with connect(dsn) as conn:
         conn.execute("SELECT pg_advisory_xact_lock(725281400)")
         conn.execute("CREATE SCHEMA IF NOT EXISTS tester_catalog")
@@ -50,15 +54,20 @@ def migrate_catalog(dsn):
             "CREATE TABLE IF NOT EXISTS tester_catalog.migrations "
             "(version text PRIMARY KEY, checksum text NOT NULL)"
         )
-        previous = conn.execute(
-            "SELECT checksum FROM tester_catalog.migrations WHERE version=%s", (path.name,)
-        ).fetchone()
-        if previous:
-            if previous[0] != digest:
-                raise RuntimeError("Catalog migration checksum mismatch")
-            return
-        conn.execute(content)
-        conn.execute("INSERT INTO tester_catalog.migrations VALUES (%s,%s)", (path.name, digest))
+        for path in sorted(Path(__file__).with_name("catalog_migrations").glob("*.sql")):
+            content = path.read_text(encoding="utf-8")
+            digest = hashlib.sha256(content.encode()).hexdigest()
+            previous = conn.execute(
+                "SELECT checksum FROM tester_catalog.migrations WHERE version=%s", (path.name,)
+            ).fetchone()
+            if previous:
+                if previous[0] != digest:
+                    raise RuntimeError("Catalog migration checksum mismatch")
+                continue
+            conn.execute(content)
+            conn.execute(
+                "INSERT INTO tester_catalog.migrations VALUES (%s,%s)", (path.name, digest)
+            )
 
 
 class CatalogStore:
@@ -66,6 +75,13 @@ class CatalogStore:
         self.dsn = validate_catalog_dsn(dsn)
         self._owners = {}
         self._lock = threading.RLock()
+
+    def check_ready(self):
+        with connect(self.dsn) as conn:
+            conn.execute(
+                "SELECT category,symbol,source_time_ms,metrics "
+                "FROM tester_catalog.ticker_observations LIMIT 0"
+            )
 
     def claim(self, category):
         key = LOCKS[category]
@@ -154,6 +170,8 @@ class CatalogStore:
         with self._lock:
             conn = self._owner(category)
             with conn.transaction():
+                if snapshot is not None:
+                    self._observe(conn, category, snapshot, attempt["at"])
                 conn.execute(
                     "UPDATE tester_catalog.snapshots SET snapshot=COALESCE(%s,snapshot), "
                     "attempt=%s,next_refresh_at=%s,eligible_at=%s,failures=%s WHERE category=%s",
@@ -166,6 +184,67 @@ class CatalogStore:
                         category,
                     ),
                 )
+
+    def _observe(self, conn, category, snapshot, now):
+        points = fresh_points(snapshot, now)
+        if points:
+            with conn.cursor() as cursor:
+                cursor.executemany(
+                    "INSERT INTO tester_catalog.ticker_observations(category,symbol,source_time_ms,metrics) "
+                    "VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                    [
+                        (
+                            category,
+                            point["symbol"],
+                            point["source_time_ms"],
+                            Jsonb(point["metrics"]),
+                        )
+                        for point in points
+                    ],
+                )
+        # Only this feature's rows are pruned, inside the same publication transaction.
+        conn.execute(
+            "DELETE FROM tester_catalog.ticker_observations WHERE category=%s "
+            "AND source_time_ms < %s",
+            (category, int(now * 1000) - RETENTION_MS),
+        )
+        conn.execute(
+            "DELETE FROM tester_catalog.ticker_observations WHERE (category,symbol,source_time_ms) IN "
+            "(SELECT category,symbol,source_time_ms FROM tester_catalog.ticker_observations "
+            "WHERE category=%s ORDER BY source_time_ms DESC,symbol OFFSET %s)",
+            (category, MAX_POINTS_PER_CATEGORY),
+        )
+        baselines = {}
+        if points:
+            rows = conn.execute(
+                """
+                SELECT c.symbol,w.window_ms,c.source_time_ms,w.metric,o.metrics->w.metric
+                FROM jsonb_to_recordset(%s::jsonb) AS c(symbol text,source_time_ms bigint)
+                CROSS JOIN (VALUES ('price',3600000::bigint),('open_interest',3600000::bigint),
+                                   ('open_interest',86400000::bigint)) AS w(metric,window_ms)
+                JOIN LATERAL (
+                    SELECT metrics FROM tester_catalog.ticker_observations
+                    WHERE category=%s AND symbol=c.symbol
+                    AND metrics ? w.metric
+                    AND source_time_ms BETWEEN c.source_time_ms-w.window_ms-%s
+                                           AND c.source_time_ms-w.window_ms
+                    ORDER BY source_time_ms DESC LIMIT 1
+                ) AS o ON true
+            """,
+                (
+                    Jsonb(
+                        [
+                            {"symbol": p["symbol"], "source_time_ms": p["source_time_ms"]}
+                            for p in points
+                        ]
+                    ),
+                    category,
+                    TOLERANCE_MS,
+                ),
+            ).fetchall()
+            for symbol, window, stamp, name, metric in rows:
+                baselines.setdefault((symbol, window, stamp), {})[name] = metric
+        enrich_snapshot(snapshot, baselines, now)
 
 
 if __name__ == "__main__":
