@@ -242,6 +242,15 @@ export class ResearchChart {
       g.bounds.bottom - g.bounds.top,
     );
     ctx.clip();
+    for (const m of g.markers) {
+      ctx.fillStyle = "rgba(243,194,115,.16)";
+      ctx.fillRect(
+        m.window[0],
+        g.bounds.top,
+        Math.max(1, m.window[1] - m.window[0]),
+        g.bounds.bottom - g.bounds.top,
+      );
+    }
     for (const b of g.rows) {
       const x = g.x(b.start_ms);
       ctx.strokeStyle =
@@ -259,13 +268,6 @@ export class ResearchChart {
       );
     }
     for (const m of g.markers) {
-      ctx.fillStyle = "rgba(243,194,115,.16)";
-      ctx.fillRect(
-        m.window[0],
-        g.bounds.top,
-        Math.max(1, m.window[1] - m.window[0]),
-        g.bounds.bottom - g.bounds.top,
-      );
       ctx.strokeStyle = "#f3c273";
       ctx.fillStyle = "#f3c273";
       ctx.beginPath();

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+test.use({ deviceScaleFactor: 2 });
 test("synthetic renderer fixture draws persisted markers and clears stale canvas state", async ({
   page,
 }) => {
@@ -74,11 +75,11 @@ test("synthetic renderer fixture draws persisted markers and clears stale canvas
           order_id: "o2",
           position_id: "p1",
           closed_trade_id: "t1",
-          timestamp_ms: 2000,
-          known_at_ms: 2000,
-          window_start_ms: 2000,
+          timestamp_ms: 2499,
+          known_at_ms: 3000,
+          window_start_ms: 1000,
           window_end_ms: 3000,
-          time_precision: "modeled_open",
+          time_precision: "bar",
           role: "exit",
           side: "sell",
           price: "105",
@@ -91,6 +92,25 @@ test("synthetic renderer fixture draws persisted markers and clears stale canvas
   });
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-rendered-fill-ids", '["f1","f2"]');
+  const pixels = await canvas.evaluate((c) => {
+    const ctx = c.getContext("2d"),
+      entry = JSON.parse(c.dataset.renderedGeometry).markers[0],
+      dpr = c.width / c.clientWidth;
+    return {
+      entry: [
+        ...ctx.getImageData(
+          Math.floor(entry.x * dpr),
+          Math.floor(entry.y * dpr),
+          1,
+          1,
+        ).data,
+      ],
+      // Second candle's high wick, above its body and both fill markers.
+      wick: [...ctx.getImageData(330 * dpr, 38 * dpr, 1, 1).data],
+    };
+  });
+  expect(pixels.entry).toEqual([243, 194, 115, 255]);
+  expect(pixels.wick).toEqual([246, 132, 138, 255]);
   expect(
     await canvas.evaluate(
       (c) => c.getContext("2d").getImageData(350, 100, 1, 1).data[3],
