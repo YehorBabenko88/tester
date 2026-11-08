@@ -72,11 +72,33 @@ def _number(value):
         return None
 
 
+def _source_freshness(stamp, now):
+    if stamp is None:
+        return "UNKNOWN", "source_time_missing"
+    if type(stamp) is not int or not 0 < stamp < 2**63:
+        return "UNKNOWN", "source_time_invalid"
+    if stamp > now * 1000:
+        return "UNKNOWN", "source_time_future"
+    if now * 1000 - stamp >= 300000:
+        return "STALE", "source_time_stale"
+    return "OBSERVED", None
+
+
 class CatalogService:
-    def __init__(self, source, *, clock=time.time, max_pages=100, max_rows=100000):
+    def __init__(
+        self,
+        source,
+        *,
+        clock=time.time,
+        monotonic=time.monotonic,
+        jitter=lambda: random.uniform(0, 15),
+        max_pages=100,
+        max_rows=100000,
+    ):
         if not 1 <= max_pages <= 100 or not 1 <= max_rows <= 100000:
             raise ValueError("Invalid acquisition budget")
         self.source, self.clock = source, clock
+        self.monotonic, self.jitter = monotonic, jitter
         self.max_pages, self.max_rows = max_pages, max_rows
         self._lock = threading.Lock()
         self._refresh = {category: threading.Lock() for category in CATEGORIES}
@@ -84,6 +106,7 @@ class CatalogService:
         self._cancel = threading.Event()
         self._wake = None
         self._task = None
+        self._lifecycle = asyncio.Lock()
         self._manual = set()
 
     def refresh(self, category):
@@ -149,6 +172,13 @@ class CatalogService:
                     raise AcquisitionError("duplicate_ticker")
                 indexed[item["symbol"]] = item
             now = self.clock()
+            source_stamp = ticker_result.get("_source_time_ms")
+            source_state, source_reason = _source_freshness(source_stamp, now)
+            source_time_error = source_reason if source_state == "UNKNOWN" else None
+            if source_reason in {"source_time_missing", "source_time_invalid"}:
+                source_stamp = (
+                    None  # Do not multiply arbitrary malformed source payloads per metric.
+                )
             for symbol, row in rows.items():
                 ticker = indexed.get(symbol, {})
                 row["metrics"] = {}
@@ -156,11 +186,11 @@ class CatalogService:
                     value = _number(ticker.get(field))
                     row["metrics"][name] = {
                         "value": value,
-                        "state": "OBSERVED" if value is not None else "UNAVAILABLE",
+                        "state": source_state if value is not None else "UNAVAILABLE",
                         "source": ticker_url,
                         "observed_at": now,
-                        "source_time_ms": ticker_result.get("_source_time_ms"),
-                        "reason": None if value is not None else "not_provided",
+                        "source_time_ms": source_stamp,
+                        "reason": source_reason if value is not None else "not_provided",
                     }
                 for name in UNAVAILABLE:
                     row["metrics"][name] = {
@@ -173,11 +203,20 @@ class CatalogService:
                         if name == "market_cap"
                         else "history_not_observed",
                     }
-            snapshot = {"rows": list(rows.values()), "last_success": now, "pages": pages}
+            snapshot = {
+                "rows": list(rows.values()),
+                "last_success": now,
+                "pages": pages,
+                "source_time_ms": source_stamp,
+                "source_time_error": source_time_error,
+            }
             snapshot["revision"] = hashlib.sha256(
                 json.dumps(snapshot, sort_keys=True).encode()
             ).hexdigest()
             with self._lock:
+                # stop() uses this same lock: publication cannot cross its cancellation barrier.
+                if self._cancel.is_set():
+                    raise AcquisitionError("cancelled")
                 self._snapshots[category] = snapshot
                 self._attempts[category] = {
                     "completeness": "EXHAUSTED",
@@ -234,15 +273,23 @@ class CatalogService:
         current_revision = snapshot["revision"] if snapshot else None
         if revision is not None and revision != current_revision:
             raise SnapshotConflict("Snapshot changed; restart pagination")
-        stale = bool(
-            snapshot and (attempt["last_error"] or self.clock() - snapshot["last_success"] >= 300)
+        now = self.clock()
+        source_state, source_reason = (
+            _source_freshness(snapshot["source_time_ms"], now)
+            if snapshot
+            else ("UNKNOWN", "source_time_missing")
         )
+        if snapshot and snapshot["source_time_error"]:
+            source_state, source_reason = "UNKNOWN", snapshot["source_time_error"]
+        stale = bool(snapshot and (attempt["last_error"] or now - snapshot["last_success"] >= 300))
+        if stale and source_state == "OBSERVED":
+            source_state = "STALE"
+            source_reason = "refresh_failed" if attempt["last_error"] else "refresh_expired"
         rows = snapshot["rows"] if snapshot else []
         for row in rows:
-            if stale:
-                for metric in row["metrics"].values():
-                    if metric["state"] == "OBSERVED":
-                        metric["state"] = "STALE"
+            for metric in row["metrics"].values():
+                if metric["value"] is not None:
+                    metric["state"], metric["reason"] = source_state, source_reason
         rows = [
             row
             for row in rows
@@ -276,7 +323,9 @@ class CatalogService:
                 "loaded": len(snapshot["rows"]) if snapshot else 0,
                 "expected_total": None,
                 "completeness": "EXHAUSTED" if snapshot else "UNKNOWN",
-                "state": "STALE" if stale else "CURRENT" if snapshot else "UNAVAILABLE",
+                "state": ("CURRENT" if source_state == "OBSERVED" else source_state)
+                if snapshot
+                else "UNAVAILABLE",
                 "last_success": snapshot["last_success"] if snapshot else None,
                 "last_error": attempt["last_error"],
                 "scope": "Trading",
@@ -285,19 +334,33 @@ class CatalogService:
         }
 
     async def start(self):
-        if self._task is not None:
-            raise RuntimeError("Catalog poller already started")
-        self._cancel.clear()
-        self._wake = asyncio.Event()
-        self._task = asyncio.create_task(self._poll())
+        async with self._lifecycle:
+            if self._task is not None:
+                raise RuntimeError("Catalog poller already started")
+            with self._lock:
+                self._cancel.clear()
+            self._manual.clear()
+            self._wake = asyncio.Event()
+            self._task = asyncio.create_task(self._poll())
 
     async def stop(self):
-        self._cancel.set()
-        if self._wake:
-            self._wake.set()
-        if self._task:
-            await self._task  # In-flight bounded public request finishes; never kill a worker.
-        self._task = self._wake = None
+        async with self._lifecycle:
+            with self._lock:
+                self._cancel.set()
+            if self._wake:
+                self._wake.set()
+            if self._task:
+                await self._task  # In-flight public request finishes; never kill a worker.
+
+            # Also await explicit refresh() callers before any subsequent start can clear cancel.
+            def drain_refreshes():
+                for lock in self._refresh.values():
+                    with lock:
+                        pass
+
+            await asyncio.to_thread(drain_refreshes)
+            self._manual.clear()
+            self._task = self._wake = None
 
     def request_refresh(self, category):
         _category(category)
@@ -308,25 +371,31 @@ class CatalogService:
 
     async def _poll(self):
         due = dict.fromkeys(CATEGORIES, 0.0)
+        eligible = dict.fromkeys(CATEGORIES, 0.0)
         failures = dict.fromkeys(CATEGORIES, 0)
         while not self._cancel.is_set():
             self._wake.clear()
             for category in CATEGORIES:
                 if self._cancel.is_set():
                     return
-                now = time.monotonic()
+                now = self.monotonic()
                 manual = category in self._manual
-                self._manual.discard(category)
                 # A manual refresh coalesces and respects a 30-second source budget.
-                if now >= due[category] or (manual and now >= due[category] - 270):
+                if now >= due[category] or (manual and now >= eligible[category]):
+                    self._manual.discard(category)
                     ok = await asyncio.to_thread(self.refresh, category)
                     failures[category] = 0 if ok else min(3, failures[category] + 1)
-                    due[category] = (
-                        time.monotonic()
-                        + min(1800, 300 * 2 ** failures[category])
-                        + random.uniform(0, 15)
-                    )
-            timeout = max(0.1, min(due.values()) - time.monotonic())
+                    finished = self.monotonic()
+                    delay = min(1800, 300 * 2 ** failures[category])
+                    due[category] = finished + delay + self.jitter()
+                    eligible[category] = finished + (30 if ok else delay)
+            deadlines = [
+                min(due[category], eligible[category])
+                if category in self._manual
+                else due[category]
+                for category in CATEGORIES
+            ]
+            timeout = max(0.1, min(deadlines) - self.monotonic())
             try:
                 await asyncio.wait_for(self._wake.wait(), timeout)
             except TimeoutError:
