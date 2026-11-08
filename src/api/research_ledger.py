@@ -76,8 +76,10 @@ class PersistentResearchLedger:
         self.dsn = dsn
 
     def connection(self):
+        endpoint = validate_research_dsn(self.dsn)
         return psycopg.connect(
             self.dsn,
+            hostaddr=endpoint["host"],  # Override libpq PGHOSTADDR; never follow ambient redirects.
             connect_timeout=3,
             row_factory=dict_row,
             options="-c statement_timeout=10000 -c lock_timeout=5000",
