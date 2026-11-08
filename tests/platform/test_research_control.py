@@ -68,7 +68,7 @@ class Store:
             self.audit.append(("completed", job_id))
         return deepcopy(row)
 
-    def acknowledge(self, actor, job_id, digest):
+    def acknowledge(self, actor, job_id, digest, rendered_fill_ids):
         row = self.read(actor, job_id)
         event = ("render_ack", job_id, digest)
         if event not in self.audit:
@@ -117,8 +117,11 @@ def harness():
         coverage="partial",
         source_ids=["synthetic:source"],
         synthetic=True,
+        candles=[],
         markers=[
             dict(
+                role="entry",
+                side="buy",
                 fill_id="fill-1",
                 order_id="order-1",
                 position_id="position-1",
@@ -153,8 +156,8 @@ def test_synthetic_submit_restart_result_ack_and_audit(harness):
     assert result["artifact"]["markers"][0]["closed_trade_id"] is None
     assert result["artifact"]["coverage"] == "partial"
     digest = canonical_digest(artifact)
-    restarted.ack(actor, job["job_id"], digest)
-    restarted.ack(actor, job["job_id"], digest)
+    restarted.ack(actor, job["job_id"], digest, ["fill-1"])
+    restarted.ack(actor, job["job_id"], digest, ["fill-1"])
     assert [x[0] for x in store.audit] == ["submitted", "completed", "render_ack"]
 
 
@@ -175,7 +178,7 @@ def test_revocation_checked_before_dispatch_replay_result_and_ack(harness):
         lambda: control.dispatch(actor, job["job_id"]),
         lambda: control.submit(actor, command),
         lambda: control.result(actor, job["job_id"]),
-        lambda: control.ack(actor, job["job_id"], canonical_digest(artifact)),
+        lambda: control.ack(actor, job["job_id"], canonical_digest(artifact), ["fill-1"]),
     ]:
         with pytest.raises(Denied):
             operation()
@@ -224,10 +227,10 @@ def test_digest_corruption_and_ack_mismatch(harness):
     control, store, actor, command, artifact, _ = harness
     job = control.submit(actor, command)
     with pytest.raises(ValueError):
-        control.ack(actor, job["job_id"], canonical_digest(artifact))
+        control.ack(actor, job["job_id"], canonical_digest(artifact), ["fill-1"])
     control.dispatch(actor, job["job_id"])
     with pytest.raises(ValueError):
-        control.ack(actor, job["job_id"], "0" * 64)
+        control.ack(actor, job["job_id"], "0" * 64, ["fill-1"])
     next(iter(store.rows.values()))["artifact"]["symbol"] = "ETHUSDT"
     with pytest.raises(ValueError):
         control.result(actor, job["job_id"])
@@ -270,7 +273,7 @@ def test_api_auth_origin_host_typed_input_and_unavailable(harness):
     assert result.status_code == 200
     ack = client.post(
         f"/api/control/research/{job_id}/ack",
-        json={"artifact_digest": result.json()["artifact_digest"]},
+        json={"artifact_digest": result.json()["artifact_digest"], "rendered_fill_ids": ["fill-1"]},
         headers=headers,
     )
     assert ack.status_code == 200
@@ -320,6 +323,8 @@ def test_reject_lossy_or_unbounded_chart_contract(harness, mode):
                 kind="fill",
                 price="1.23",
                 trade_id="invented-trade",
+                role="entry",
+                side="buy",
                 fill_id="fill-1",
                 reason="entry",
             )

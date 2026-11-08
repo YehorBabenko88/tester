@@ -13,10 +13,10 @@ windows-service = ["pywin32>=310,<400; sys_platform == 'win32'"]
 dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1", "bandit>=1.8,<2", "pip-audit>=2.9,<3", "pytest-timeout>=2.4,<3", "psutil>=7,<8"]
 
 [tool.setuptools.packages.find]
-include = ["src.api*", "src.ingest*", "src.storage*", "src.analytics*", "src.quality*", "src.integration*", "src.backtest*", "src.strategy*", "contracts*"]
+include = ["src.api*", "src.control*", "src.ingest*", "src.storage*", "src.analytics*", "src.quality*", "src.integration*", "src.backtest*", "src.strategy*", "contracts*"]
 
 [tool.setuptools.package-data]
-"src.api" = ["migrations/*.sql"]
+"src.api" = ["migrations/*.sql", "research_migrations/*.sql"]
 "src.storage" = ["migrations/*.sql"]
 "contracts.v1" = ["market.schema.json"]
 "contracts.v1_1" = ["price_candle.schema.json"]
