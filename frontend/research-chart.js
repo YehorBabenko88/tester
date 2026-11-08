@@ -8,6 +8,7 @@ export function validateResearchChart(c) {
     c.schema_version !== "tester.research-chart/2" ||
     c.execution_mode !== "SIMULATED" ||
     c.synthetic !== true ||
+    !["unknown", "partial", "complete"].includes(c.coverage) ||
     ![
       "run_id",
       "snapshot_id",
@@ -17,6 +18,7 @@ export function validateResearchChart(c) {
       "symbol",
       "interval",
     ].every((k) => id(c[k])) ||
+    !c.snapshot_id.startsWith("synthetic:") ||
     !["start_ms", "end_ms", "cutoff_ms"].every((k) => time(c[k])) ||
     c.start_ms >= c.end_ms ||
     !Array.isArray(c.source_ids) ||

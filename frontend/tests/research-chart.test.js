@@ -9,7 +9,7 @@ const chart = () => ({
   source_ids: ["synthetic:fixture"],
   venue: "bybit",
   run_id: "run1",
-  snapshot_id: "snapshot1",
+  snapshot_id: "synthetic:snapshot1",
   revision: "r1",
   symbol: "BTCUSDT",
   category: "linear",
@@ -91,4 +91,15 @@ test("canonical digest follows Python sorted compact ASCII JSON", async () => {
     await researchDigest({ z: "\u00e9\ud83d\ude00", a: 1 }),
     "2b0dde880afe45c12ba46f412bcebde34325df5e2ad735a4aed36dcf77e003bd",
   );
+});
+test("unknown coverage and nonsynthetic snapshot namespace cannot look qualified", () => {
+  for (const mutate of [
+    (c) => delete c.coverage,
+    (c) => (c.coverage = "VERIFIED_REAL"),
+    (c) => (c.snapshot_id = "real:snapshot"),
+  ]) {
+    const c = chart();
+    mutate(c);
+    assert.throws(() => validateResearchChart(c));
+  }
 });
