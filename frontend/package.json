@@ -5,7 +5,8 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "test:ui": "playwright test",
-    "test:research:e2e": "playwright test --config playwright.research.config.js"
+    "test:research:e2e": "playwright test --config playwright.research.config.js",
+    "test:market:e2e": "playwright test --config playwright.market.config.js"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
