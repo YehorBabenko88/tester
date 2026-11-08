@@ -165,3 +165,154 @@ catch {if ($_.Exception.Message -notlike '*Reparse*') {throw}}
         assert not list(target.iterdir())
     finally:
         link.rmdir()
+
+
+def test_owner_walk_recovers_locked_nested_directories_with_journal(tmp_path):
+    import json
+    import uuid
+
+    root = tmp_path / "lab"
+    root.mkdir()
+    ident = uuid.uuid4()
+    (root / ".tester-lab.json").write_text(
+        json.dumps(
+            dict(
+                schema="tester-lab/v1",
+                root=str(root),
+                repository="YehorBabenko88/tester",
+                installation_id=str(ident),
+                services=dict(app="TesterLabApp_" + ident.hex, postgres="TesterLabPG_" + ident.hex),
+            )
+        )
+    )
+    nested = root / "private/locked"
+    nested.mkdir(parents=True)
+    (nested / "db.json").write_text("private-bytes")
+    library = Path("scripts/windows/Repair-TesterLabPortableAcl.ps1").absolute()
+    script = tmp_path / "walk.ps1"
+    script.write_text(
+        r"""
+param($Library,$Root,$Id,$Receipt)
+$ErrorActionPreference='Stop'
+. $Library -FunctionsOnly
+$LeafPath=Join-Path $Root 'private/locked/db.json'
+$LeafAcl=Get-Acl -LiteralPath $LeafPath
+$LeafAcl.SetAccessRuleProtection($true,$true)
+[IO.File]::SetAccessControl($LeafPath,$LeafAcl)
+$OriginalLeaf=(Get-Acl -LiteralPath $LeafPath).Sddl
+foreach ($Name in @('private/locked','private')) {
+ $Path=Join-Path $Root $Name
+ $Acl=Get-Acl -LiteralPath $Path
+ $Acl.SetAccessRuleProtection($true,$false)
+ foreach ($Rule in @($Acl.Access)) {$null=$Acl.RemoveAccessRuleSpecific($Rule)}
+ [IO.Directory]::SetAccessControl($Path,$Acl)
+ if ($Name -eq 'private/locked') {$OriginalLocked=(Get-Acl -LiteralPath $Path).Sddl}
+}
+$Denied=$false
+try {$null=Get-ChildItem -LiteralPath (Join-Path $Root 'private') -ErrorAction Stop} catch [UnauthorizedAccessException] {$Denied=$true}
+if (-not $Denied) {throw 'Locked directory fixture did not deny enumeration'}
+Invoke-TesterLabAclRecovery -Root $Root -InstallationId $Id -ReceiptPath $Receipt -VerifyNoServices {}
+if ((Get-Content -LiteralPath (Join-Path $Root 'private/locked/db.json') -Raw) -ne 'private-bytes') {throw 'Bytes changed'}
+$Records=@(Get-Content -LiteralPath ($Receipt+'.jsonl') | ForEach-Object {$_|ConvertFrom-Json})
+$Snapshots=@($Records | Where-Object {$_.kind -eq 'snapshot'})
+if ($Snapshots.Count -lt 5) {throw 'Snapshots absent'}
+$Locked=@($Snapshots | Where-Object {$_.entry.path -like '*private\locked'})
+if ($Locked.Count -ne 1 -or $Locked[0].entry.original_sddl -ne $OriginalLocked) {throw 'Original locked descriptor was not preserved'}
+$Leaf=@($Snapshots | Where-Object {$_.entry.path -like '*private\locked\db.json'})
+if ($Leaf.Count -ne 1 -or $Leaf[0].entry.original_sddl -ne $OriginalLeaf) {throw 'Unseen child descriptor changed before snapshot'}
+""",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [
+            "powershell",
+            "-NoProfile",
+            "-File",
+            str(script),
+            str(library),
+            str(root),
+            str(ident),
+            str(tmp_path / "receipt.json"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_walk_never_traverses_foreign_directory_or_junction(tmp_path):
+    import json
+    import uuid
+
+    root = tmp_path / "lab"
+    root.mkdir()
+    ident = uuid.uuid4()
+    (root / ".tester-lab.json").write_text(
+        json.dumps(
+            dict(
+                schema="tester-lab/v1",
+                root=str(root),
+                repository="YehorBabenko88/tester",
+                installation_id=str(ident),
+                services=dict(app="TesterLabApp_" + ident.hex, postgres="TesterLabPG_" + ident.hex),
+            )
+        )
+    )
+    foreign = root / "runtime/foreign"
+    foreign.mkdir(parents=True)
+    (foreign / "leaf.txt").write_text("foreign-child")
+    blocked = root / "runtime/blocked"
+    blocked.mkdir()
+    (blocked / "leaf.txt").write_text("blocked-child")
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "untouched.txt").write_text("keep")
+    link = root / "runtime/junction"
+    subprocess.run(
+        ["cmd", "/c", "mklink", "/J", str(link), str(target)], check=True, capture_output=True
+    )
+    library = Path("scripts/windows/Repair-TesterLabPortableAcl.ps1").absolute()
+    script = tmp_path / "skip.ps1"
+    script.write_text(
+        r"""
+param($Library,$Root,$Id,$Receipt)
+$ErrorActionPreference='Stop'
+. $Library -FunctionsOnly
+$ForeignLeaf=Join-Path $Root 'runtime/foreign/leaf.txt'
+$Before=(Get-Acl -LiteralPath $ForeignLeaf).Sddl
+function Get-Acl {
+ param([string]$LiteralPath)
+ if ($LiteralPath.EndsWith('\blocked')) {throw [UnauthorizedAccessException]::new('fixture denied')}
+ $Acl=Microsoft.PowerShell.Security\Get-Acl -LiteralPath $LiteralPath
+ if ($LiteralPath.EndsWith('\foreign')) {$Acl.SetOwner([Security.Principal.SecurityIdentifier]::new('S-1-5-18'))}
+ return $Acl
+}
+Invoke-TesterLabAclRecovery -Root $Root -InstallationId $Id -ReceiptPath $Receipt -VerifyNoServices {}
+if ((Get-Acl -LiteralPath $ForeignLeaf).Sddl -ne $Before) {throw ('Foreign child ACL changed BEFORE='+$Before+' AFTER='+(Get-Acl -LiteralPath $ForeignLeaf).Sddl)}
+$Snapshots=@(Get-Content -LiteralPath ($Receipt+'.jsonl') | ForEach-Object {$_|ConvertFrom-Json} | Where-Object {$_.kind -eq 'snapshot'})
+if (-not @($Snapshots | Where-Object {$_.entry.skip -eq 'foreign-owner'}).Count) {throw 'Foreign directory not skipped'}
+if (-not @($Snapshots | Where-Object {$_.entry.skip -eq 'reparse-path'}).Count) {throw 'Junction not skipped'}
+if (-not @($Snapshots | Where-Object {$_.entry.skip -eq 'acl-unreadable'}).Count) {throw 'Unreadable directory not skipped'}
+if (@($Snapshots | Where-Object {$_.entry.path -eq $ForeignLeaf}).Count) {throw 'Traversed foreign directory'}
+""",
+        encoding="utf-8",
+    )
+    try:
+        result = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-File",
+                str(script),
+                str(library),
+                str(root),
+                str(ident),
+                str(tmp_path / "receipt.json"),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert (target / "untouched.txt").read_text() == "keep"
+    finally:
+        link.rmdir()
