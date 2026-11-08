@@ -1,0 +1,23 @@
+{
+  "installed": {
+    "files": 596,
+    "manifest_sha256": "b4438d10495d65e684f9e40a7a29d68e114c772efd4df3edf969d1cb65d4823a",
+    "status": "PASS"
+  },
+  "candidate": {
+    "files": 611,
+    "manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+    "status": "PASS"
+  },
+  "native_old": {
+    "files": 1892,
+    "manifest_sha256": "0f441d54ba7604a668cd9ce0b65883521f9ba8ee2512cde22379637ef46e569a",
+    "status": "PASS"
+  },
+  "native_new": {
+    "files": 1892,
+    "manifest_sha256": "004f9ed3b97f760e3936ac425d4d0d62e0cdcea61d8c5823dd95bbbdddefb317",
+    "status": "PASS"
+  },
+  "script_hash": "149ac11ca963c27803904f6921387939b9a3a0c13466bcea3148951b8f77dd76"
+}
