@@ -2,13 +2,13 @@
   "schema_version": "tester-lab-payload/v1",
   "repository": "YehorBabenko88/tester",
   "branch": "integration/adminit-acceptance",
-  "source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
-  "tree_sha": "a13c0af20044c5f091e182366cbafed054653a43",
-  "artifact_name": "tester-lab-b96548e8a6f4b04505dd3e9f85fa52adfea8ac10.zip",
-  "artifact_sha256": "935397426f587e70336965058d1a6c97290a30e4a84173e26389de878a9d6923",
+  "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
+  "tree_sha": "f2814cd8a12a7ea6f119bfad37a3e40a4e39bc67",
+  "artifact_name": "tester-lab-a3138eb9813832e9a839a99e54547001343ab3fd.zip",
+  "artifact_sha256": "1a174986d9dc8340c0cf51e6c006bc93c00c595c1d7cbc922ecdef0db48e0c46",
   "dependency_lock_sha256": "731b12259e7e113b6d9c6d47f041d26d85fb3d6111e3f34ddb52505fd9a192df",
   "frontend_lock_sha256": "165b5f0dbe4e012655eae1c5a7bb2975aa636ed63b2d98520c20943ccd553763",
-  "installer_sha256": "4ab90ce9405dab6bb772b34ab07047af81393b8bfdfad313ba377279836929c0",
+  "installer_sha256": "2a5ec366cb6e826a2437b00225a48016ecfd51559b188da6d7e27184826b4168",
   "migration_versions": {
     "src/api/migrations/001_jobs.sql": "35c1275825e4837f5879b574148e803dc06ab6ca98b0e089ffafdced34ebfa0b",
     "src/api/migrations/002_admission.sql": "aa980462ab4f7b4ff732bd2fd3d4eda190f0455ee67a561d8bfbd20fa225661b",
@@ -27,13 +27,13 @@
     "real_trading": false,
     "merge_main": false
   },
-  "build_timestamp_utc": "2026-11-08T10:43:00.457131+00:00",
+  "build_timestamp_utc": "2026-11-08T11:21:56.551035+00:00",
   "status": "PORTABLE_SMOKE_PASS_SCM_AWAITING_APPROVAL_NOT_RELEASE_GO",
   "installed_service_sha": null,
-  "portable_source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+  "portable_source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
   "source_tests": {
     "python314_acceptance": {
-      "passed": 368,
+      "passed": 377,
       "skipped": 84,
       "subtests_passed": 57
     },
@@ -42,13 +42,13 @@
     "bandit_medium_high": "PASS"
   },
   "ci": {
-    "source_commit": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+    "source_commit": "a3138eb9813832e9a839a99e54547001343ab3fd",
     "runs": [
       {
         "conclusion": "",
-        "databaseId": 42472013289,
+        "databaseId": 42474942463,
         "status": "queued",
-        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42472013289"
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42474942463"
       }
     ],
     "success": false
@@ -74,5 +74,5 @@
     "Native pywin32 pythonservice host is Authenticode NotSigned; wheel SHA256 is pinned, not an independent signature",
     "F/G/H and derived financial provider remain NOT_INTEGRATED; historical visibility UNAVAILABLE/null; full-history/physical stress qualification absent"
   ],
-  "deploy_payload_sha256": "09eb5a8816351a1f2d452707dad440a15af5856a81d306e6216a35e65a76bf6f"
+  "deploy_payload_sha256": "21b2854d02ac1d27563cd263e89504a13d4a6eb1724d3681588e63803eea506c"
 }

@@ -1,0 +1,10 @@
+{
+  "status": "LIMITED_RUNTIME_ROLE_DENIAL_PASS",
+  "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
+  "checks": [
+    "storage_ddl",
+    "storage_delete",
+    "visibility_access"
+  ],
+  "rows_deleted": 0
+}
