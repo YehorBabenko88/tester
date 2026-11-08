@@ -91,8 +91,13 @@ async function mount(page, interval = "60") {
       });
     }
     let payload = { schema_version: "1.0", data: [], next_cursor: null };
-    if (url.pathname === "/api/instruments")
-      payload.data = [{ category: "linear", symbol: "BTCUSDT", metrics: {} }];
+    if (url.pathname.startsWith("/api/market-catalog/"))
+      payload.data = {
+        rows: [{ category: "linear", symbol: "BTCUSDT", metrics: {} }],
+        total: 1,
+        revision: "gestures",
+        catalog: {},
+      };
     if (url.pathname === "/api/sources")
       payload.data = [
         { id: "bybit", availability: "partial", kinds: ["candles"] },
@@ -138,6 +143,7 @@ async function mount(page, interval = "60") {
     await route.fulfill({ json: payload });
   });
   await page.goto("/");
+  await page.locator("#download-options").evaluate((e) => (e.open = true));
   await page.getByLabel("Range start UTC").fill(isoInput(START));
   await page.getByLabel("Range end UTC").fill(isoInput(END));
   await page.locator("#interval").selectOption(interval);
