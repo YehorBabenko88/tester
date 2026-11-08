@@ -161,7 +161,7 @@ if sys.argv[3]=='actual':
  assert hashlib.sha256(Path(sys.argv[2]).read_bytes()).hexdigest()=='178e775375c39f360e858c2dc68b24a11af71f3e47888bfac0b8e853ea8826d6'
  for exploratory in (False,True):
   try: metadata(value['records'][0],value['query']['start_ms'],value['query']['end_ms'],exploratory,set())
-  except ValueError: pass
+  except ValueError as error: assert str(error)=='coverage evidence required', str(error)
   else: raise AssertionError('Actual UNKNOWN snapshot improperly admitted')
 else:
  warnings=set();metadata(value,value['start_ms'],value['end_ms'],False,warnings)
