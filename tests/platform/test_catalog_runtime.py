@@ -202,6 +202,74 @@ def test_catalog_database_refuses_native_port():
     validate_catalog_dsn("host=127.0.0.1 port=55471 dbname=tester_catalog_test")
 
 
+def test_catalog_connection_boundary_pins_ambient_redirect_and_rejects_extras(monkeypatch):
+    from psycopg.conninfo import conninfo_to_dict
+
+    from src.api.catalog_store import CatalogStore, migrate_catalog, validate_catalog_dsn
+
+    raw = "host=localhost port=55471 dbname=tester_catalog_test user=catalog"
+    for suffix in [
+        " hostaddr=192.0.2.77",
+        " service=foreign",
+        " options=redirect",
+        " host=127.0.0.1,192.0.2.77",
+        " port=05432",
+    ]:
+        with pytest.raises(ValueError):
+            validate_catalog_dsn(raw + suffix)
+    monkeypatch.setenv("PGHOSTADDR", "192.0.2.77")
+    captured = []
+
+    class StoppedAtBoundary(Exception):
+        pass
+
+    def boundary(dsn):
+        captured.append(conninfo_to_dict(dsn))
+        raise StoppedAtBoundary
+
+    monkeypatch.setattr("src.api.catalog_store.connect", boundary)
+    store = CatalogStore(raw)
+    for operation in [
+        lambda: migrate_catalog(raw),
+        lambda: store.claim("linear"),
+        lambda: store.read("linear"),
+        lambda: store.request("linear"),
+    ]:
+        with pytest.raises(StoppedAtBoundary):
+            operation()
+    assert len(captured) == 4
+    assert all(values["hostaddr"] == values["host"] == "127.0.0.1" for values in captured)
+    assert all(values["port"] == "55471" for values in captured)
+
+
+def test_catalog_request_refuses_missing_migrated_category(monkeypatch):
+    from src.api.catalog_store import CatalogStore
+
+    class EmptyConnection:
+        rowcount = 0
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def execute(self, *args):
+            return self
+
+    monkeypatch.setattr("src.api.catalog_store.connect", lambda dsn: EmptyConnection())
+    store = CatalogStore("host=127.0.0.1 port=55471 dbname=tester_catalog_test")
+    with pytest.raises(RuntimeError, match="migration"):
+        store.request("linear")
+
+
+@pytest.mark.integration
+def test_postgres_ambient_redirect_is_pinned(stores, monkeypatch):
+    a, _ = stores
+    monkeypatch.setenv("PGHOSTADDR", "192.0.2.77")
+    assert a.read("linear")["category"] == "linear"
+
+
 @pytest.fixture
 def stores():
     from src.api.catalog_store import CatalogStore, migrate_catalog

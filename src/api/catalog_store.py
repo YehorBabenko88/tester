@@ -8,7 +8,7 @@ import threading
 from pathlib import Path
 
 import psycopg
-from psycopg.conninfo import conninfo_to_dict
+from psycopg.conninfo import conninfo_to_dict, make_conninfo
 from psycopg.types.json import Jsonb
 
 from .db import connect
@@ -19,8 +19,13 @@ LOCKS = {"linear": 725281401, "inverse": 725281402}
 def validate_catalog_dsn(dsn):
     values = conninfo_to_dict(dsn)
     port = values.get("port", "5432")
+    host = values.get("host")
+    pinned = "127.0.0.1" if host == "localhost" else host
+    allowed = {"host", "hostaddr", "port", "dbname", "user", "password", "sslmode", "sslrootcert"}
     if (
-        values.get("host") not in {"127.0.0.1", "localhost", "::1"}
+        host not in {"127.0.0.1", "localhost", "::1"}
+        or set(values) - allowed
+        or values.get("hostaddr", pinned) != pinned
         or not port.isdecimal()
         or not 1 <= int(port) <= 65535
         or int(port) == 5432
@@ -28,11 +33,13 @@ def validate_catalog_dsn(dsn):
         or values["dbname"] in {"postgres", "template0", "template1", "tester_lab", "tester_native"}
     ):
         raise ValueError("Catalog requires an explicit dedicated loopback non-5432 database")
-    return dsn
+    # Pin numeric address in the actual DSN handed to every connection boundary.
+    # libpq PGHOSTADDR / PGSERVICE cannot redirect an otherwise validated host.
+    return make_conninfo(**{**values, "host": pinned, "hostaddr": pinned, "port": str(int(port))})
 
 
 def migrate_catalog(dsn):
-    validate_catalog_dsn(dsn)
+    dsn = validate_catalog_dsn(dsn)
     path = Path(__file__).with_name("catalog_migrations") / "001_catalog.sql"
     content = path.read_text(encoding="utf-8")
     digest = hashlib.sha256(content.encode()).hexdigest()
@@ -114,9 +121,11 @@ class CatalogStore:
     def request(self, category):
         LOCKS[category]
         with connect(self.dsn) as conn:
-            conn.execute(
+            result = conn.execute(
                 "UPDATE tester_catalog.snapshots SET pending=true WHERE category=%s", (category,)
             )
+            if result.rowcount != 1:
+                raise RuntimeError("Explicit catalog migration is required")
 
     def take_pending(self, category):
         with self._lock:
