@@ -292,7 +292,7 @@ def verify(root, lab_sha, application_sha):
         artifact_digest=result["artifact_digest"],
         fills=len(fills),
         candles=len(result["artifact"]["candles"]),
-        open_entries_without_closed_trade=sum(m["closed_trade_id"] is None for m in markers),
+        fills_without_closed_trade_id=sum(m["closed_trade_id"] is None for m in markers),
         actor_scoped_audit_events=events,
         invalid_auth_denied=True,
         replay_same_job=True,
