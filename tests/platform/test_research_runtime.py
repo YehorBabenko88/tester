@@ -279,12 +279,13 @@ def owned_fixture(tmp_path, monkeypatch, *, late=False, birth_after_close=False)
                 "python",
                 "-m",
                 "src.integration.research_runtime",
-                "--application-source-sha",
-                "a" * 40,
-                "--lab-source-sha",
-                "b" * 40,
+                "serve",
                 "--root",
                 str(root),
+                "--lab-source-sha",
+                "b" * 40,
+                "--application-source-sha",
+                "a" * 40,
             ]
 
         def net_connections(self, **kwargs):
@@ -313,3 +314,18 @@ def test_birth_change_after_probe_close_refuses(tmp_path, monkeypatch):
         runtime.assert_api_process(root, "a" * 40, source)
     assert caught.value.reason_code == "api_process_birth_changed"
     assert caught.value.observer["polls"] == 1
+
+
+def test_research_guard_refuses_python_c_before_apparent_module(tmp_path, monkeypatch):
+    import psutil
+
+    runtime, root, source, state = owned_fixture(tmp_path, monkeypatch)
+    process = psutil.Process(42)
+    original = process.cmdline()
+    monkeypatch.setattr(
+        type(process), "cmdline", lambda self: [original[0], "-c", "pass", *original[1:]]
+    )
+    with pytest.raises(runtime.ApiOwnershipError) as caught:
+        runtime.assert_api_process(root, "a" * 40, source)
+    assert caught.value.reason_code == "api_process_arguments_mismatch"
+    assert state["queries"] == 0
