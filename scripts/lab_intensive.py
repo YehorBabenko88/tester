@@ -142,8 +142,13 @@ def database_sample(dsn):
         )
 
 
+def is_windows():
+    """Module-local platform selector; fixture overrides never mutate shared os.name."""
+    return os.name == "nt"
+
+
 def process_sample(root, expected, supervisor):
-    if os.name != "nt":
+    if not is_windows():
         raise ValueError("Windows counters unavailable")
     if type(supervisor) is not int or supervisor <= 0:
         raise ValueError("Supervisor PID required")
@@ -218,7 +223,7 @@ if (-not @($Bindings|Where-Object {$_.group -eq 'app' -and $_.pid -eq SEED}).Cou
         capture_output=True,
         timeout=10,
         check=True,
-        creationflags=subprocess.CREATE_NO_WINDOW,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
     if len(raw.stdout) > 131072:
         raise ValueError("Counter response limit")

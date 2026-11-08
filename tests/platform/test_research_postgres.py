@@ -170,15 +170,17 @@ def test_g_research_binding_rejects_foreign_transport():
 
 @pytest.mark.integration
 def test_actual_g_http_postgres_roundtrip(persistent):
+    import http.client
+    import json
     import socket
     import threading
     import time
 
     import uvicorn
-    from src.integration.strategy_lab import run_certified_fixture
 
     from src.api.research_g_client import ResearchGatewayClient
     from src.api.research_ledger import create_persistent_control_app
+    from src.integration.strategy_lab import run_certified_fixture
 
     bundle = run_certified_fixture()
     digest = persistent.publish_bundle(bundle)
@@ -218,6 +220,35 @@ def test_actual_g_http_postgres_roundtrip(persistent):
         while not server.started and time.monotonic() < deadline:
             time.sleep(0.01)
         assert server.started
+
+        # Real HTTP authorization failures, not a mocked authenticator or a
+        # generic client exception that could also conceal a server error.
+        def denied(method, path, credential, body, expected_status):
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+            try:
+                connection.request(
+                    method,
+                    path,
+                    body=None if body is None else json.dumps(body),
+                    headers={
+                        "Authorization": "Bearer " + credential,
+                        "Content-Type": "application/json",
+                    },
+                )
+                response = connection.getresponse()
+                response.read()
+                assert response.status == expected_status
+            finally:
+                connection.close()
+
+        denied("POST", "/api/control/research", "invalid" * 8, command.model_dump(mode="json"), 401)
+        wrong_scope = command.model_copy(
+            update={
+                "request_id": str(uuid4()),
+                "expected_artifact_digest": "0" * 64,
+            }
+        )
+        denied("POST", "/api/control/research", token, wrong_scope.model_dump(mode="json"), 403)
         client = ResearchGatewayClient(f"http://127.0.0.1:{port}", token)
         job = client.research_submit(command, actor=actor)
         app.state.research_control.dispatch(Identity(actor), job["job_id"])
@@ -225,6 +256,12 @@ def test_actual_g_http_postgres_roundtrip(persistent):
         assert result["artifact"] == bundle["chart"]
         ids = [m["fill_id"] for m in result["artifact"]["markers"]]
         assert client.research_ack(job["job_id"], digest, ids)["acknowledged"]
+        other_actor = "http:" + uuid4().hex
+        other_token = persistent.issue_credential(other_actor, [digest], ttl_seconds=300)
+        assert persistent.authenticate("Bearer " + other_token).actor == other_actor
+        denied("GET", "/api/control/research/" + job["job_id"], other_token, None, 403)
+        persistent.revoke(other_actor)
+        denied("POST", "/api/control/research", other_token, command.model_dump(mode="json"), 401)
     finally:
         server.should_exit = True
         thread.join(timeout=5)
