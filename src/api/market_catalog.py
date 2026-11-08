@@ -56,6 +56,19 @@ def _source_freshness(stamp, now):
     return "OBSERVED", None
 
 
+def _metric_unit(row, name):
+    base, quote = row.get("base_coin"), row.get("quote_coin")
+    if name in {"price_change_24h", "price_change_1h", "oi_change_1h", "oi_change_24h"}:
+        return "ratio"
+    if name == "price":
+        return f"{quote}/{base}" if quote and base else "UNKNOWN"
+    if name in {"volume_24h", "open_interest"}:
+        return (base if row["category"] == "linear" else quote) or "UNKNOWN"
+    if name == "turnover_24h":
+        return (quote if row["category"] == "linear" else base) or "UNKNOWN"
+    return "UNKNOWN"
+
+
 class CatalogService:
     def __init__(
         self,
@@ -99,57 +112,145 @@ class CatalogService:
             )
             rows = {row["symbol"]: row for row in acquired["rows"]}
             pages = acquired["pages"]
+            catalog_observed_at = self.clock()
             stage = "tickers"
             if self._cancel.is_set():
                 raise AcquisitionError("cancelled")
-            ticker_result, ticker_url = self.source.call("/tickers", {"category": category})
-            if self._cancel.is_set():
-                raise AcquisitionError("cancelled")
-            tickers = ticker_result.get("list")
-            if ticker_result.get("category") != category or not isinstance(tickers, list):
-                raise AcquisitionError("invalid_tickers")
-            indexed = {}
-            for item in tickers:
-                if not isinstance(item, dict) or not isinstance(item.get("symbol"), str):
-                    raise AcquisitionError("invalid_tickers")
-                if item["symbol"] in indexed:
-                    raise AcquisitionError("duplicate_ticker")
-                indexed[item["symbol"]] = item
+            with self._lock:
+                previous = deepcopy(self._snapshots.get(category))
+            ticker_error = None
             now = self.clock()
-            source_stamp = ticker_result.get("_source_time_ms")
-            source_state, source_reason = _source_freshness(source_stamp, now)
-            source_time_error = source_reason if source_state == "UNKNOWN" else None
-            if source_reason in {"source_time_missing", "source_time_invalid"}:
-                source_stamp = (
-                    None  # Do not multiply arbitrary malformed source payloads per metric.
+            try:
+                ticker_result, ticker_url = self.source.call("/tickers", {"category": category})
+                if self._cancel.is_set():
+                    raise AcquisitionError("cancelled")
+                tickers = ticker_result.get("list")
+                if ticker_result.get("category") != category or not isinstance(tickers, list):
+                    raise AcquisitionError("invalid_tickers")
+                indexed = {}
+                for item in tickers:
+                    if not isinstance(item, dict) or not isinstance(item.get("symbol"), str):
+                        raise AcquisitionError("invalid_tickers")
+                    if item["symbol"] in indexed:
+                        raise AcquisitionError("duplicate_ticker")
+                    indexed[item["symbol"]] = item
+                now = self.clock()
+                source_stamp = ticker_result.get("_source_time_ms")
+                source_state, source_reason = _source_freshness(source_stamp, now)
+                source_time_error = source_reason if source_state == "UNKNOWN" else None
+                if source_reason in {"source_time_missing", "source_time_invalid"}:
+                    source_stamp = (
+                        None  # Do not multiply arbitrary malformed source payloads per metric.
+                    )
+                for symbol, row in rows.items():
+                    ticker = indexed.get(symbol, {})
+                    row["metrics"] = {}
+                    for name, field in METRICS.items():
+                        value = _number(ticker.get(field))
+                        row["metrics"][name] = {
+                            "value": value,
+                            "state": source_state if value is not None else "UNAVAILABLE",
+                            "source": ticker_url,
+                            "observed_at": now,
+                            "source_time_ms": source_stamp,
+                            "reason": source_reason if value is not None else "not_provided",
+                        }
+                    for name in UNAVAILABLE:
+                        row["metrics"][name] = {
+                            "value": None,
+                            "state": "UNAVAILABLE",
+                            "source": None,
+                            "observed_at": None,
+                            "source_time_ms": None,
+                            "reason": "independent_source_required"
+                            if name == "market_cap"
+                            else "history_not_observed",
+                        }
+            except Exception as exc:
+                if self._cancel.is_set():
+                    raise AcquisitionError("cancelled") from exc
+                ticker_error = str(exc) if isinstance(exc, AcquisitionError) else "source_failure"
+                now = self.clock()
+                old_rows = {r["symbol"]: r for r in previous["rows"]} if previous else {}
+                source_stamp = previous.get("source_time_ms") if previous else None
+                source_time_error = previous.get("source_time_error") if previous else None
+                for symbol, row in rows.items():
+                    old = old_rows.get(symbol)
+                    if old and any(
+                        old.get(key) != row.get(key)
+                        for key in (
+                            "category",
+                            "contract_type",
+                            "base_coin",
+                            "quote_coin",
+                            "settle_coin",
+                        )
+                    ):
+                        old = None
+                    row["metrics"] = {}
+                    for name in (*METRICS, *UNAVAILABLE):
+                        metric = deepcopy(old["metrics"].get(name)) if old else None
+                        if metric is None:
+                            metric = {
+                                "value": None,
+                                "state": "UNAVAILABLE",
+                                "source": None,
+                                "observed_at": None,
+                                "source_time_ms": None,
+                                "reason": "ticker_not_observed",
+                            }
+                        elif metric["value"] is not None:
+                            metric["state"] = "STALE"
+                            metric["reason"] = "ticker_refresh_failed"
+                        row["metrics"][name] = metric
+            for row in rows.values():
+                for name, metric in row["metrics"].items():
+                    metric["unit"] = _metric_unit(row, name)
+            catalog_stamps = [
+                scope.get("source_time_ms") for scope in acquired["status_coverage"].values()
+            ]
+            catalog_state = "OBSERVED"
+            if not catalog_stamps or any(
+                _source_freshness(t, now)[0] != "OBSERVED" for t in catalog_stamps
+            ):
+                catalog_state = (
+                    "UNKNOWN"
+                    if not catalog_stamps
+                    or any(_source_freshness(t, now)[0] == "UNKNOWN" for t in catalog_stamps)
+                    else "STALE"
                 )
-            for symbol, row in rows.items():
-                ticker = indexed.get(symbol, {})
-                row["metrics"] = {}
-                for name, field in METRICS.items():
-                    value = _number(ticker.get(field))
-                    row["metrics"][name] = {
-                        "value": value,
-                        "state": source_state if value is not None else "UNAVAILABLE",
-                        "source": ticker_url,
-                        "observed_at": now,
-                        "source_time_ms": source_stamp,
-                        "reason": source_reason if value is not None else "not_provided",
-                    }
-                for name in UNAVAILABLE:
-                    row["metrics"][name] = {
-                        "value": None,
-                        "state": "UNAVAILABLE",
-                        "source": None,
-                        "observed_at": None,
-                        "source_time_ms": None,
-                        "reason": "independent_source_required"
-                        if name == "market_cap"
-                        else "history_not_observed",
-                    }
+            old_ticker = previous.get("ticker_source", {}) if previous else {}
+            previous_ticker_success = old_ticker.get(
+                "last_success", previous.get("last_success") if previous else None
+            )
+            ticker_source = {
+                "state": ("STALE" if previous_ticker_success is not None else "UNAVAILABLE")
+                if ticker_error
+                else source_state,
+                "last_success": previous_ticker_success if ticker_error else now,
+                "last_error": ticker_error,
+                "source": old_ticker.get("source") if ticker_error else ticker_url,
+                "source_time_ms": source_stamp,
+                "observed_at": old_ticker.get(
+                    "observed_at", previous.get("last_success") if previous else None
+                )
+                if ticker_error
+                else now,
+            }
             snapshot = {
                 "rows": list(rows.values()),
-                "last_success": now,
+                "last_success": catalog_observed_at,
+                "catalog_source": {
+                    "state": catalog_state,
+                    "observed_at": catalog_observed_at,
+                    "last_success": catalog_observed_at,
+                    "last_error": None,
+                    "source": "https://api.bybit.com/v5/market/instruments-info",
+                    "source_time_ms": min(catalog_stamps)
+                    if catalog_stamps and all(type(t) is int and t > 0 for t in catalog_stamps)
+                    else None,
+                },
+                "ticker_source": ticker_source,
                 "pages": pages,
                 "status_coverage": acquired["status_coverage"],
                 "source_time_ms": source_stamp,
@@ -166,13 +267,13 @@ class CatalogService:
                 self._attempts[category] = {
                     "completeness": "EXHAUSTED",
                     "loaded": len(rows),
-                    "last_error": None,
-                    "stage": "published",
+                    "last_error": ticker_error,
+                    "stage": "tickers" if ticker_error else "published",
                     "pages": pages,
                     "status_coverage": acquired["status_coverage"],
                     "at": now,
                 }
-            return True
+            return ticker_error is None
         except Exception as exc:
             reason = str(exc) if isinstance(exc, AcquisitionError) else "source_failure"
             with self._lock:
@@ -250,22 +351,35 @@ class CatalogService:
         if revision is not None and revision != current_revision:
             raise SnapshotConflict("Snapshot changed; restart pagination")
         now = self.clock()
-        source_state, source_reason = (
-            _source_freshness(snapshot["source_time_ms"], now)
-            if snapshot
-            else ("UNKNOWN", "source_time_missing")
-        )
-        if snapshot and snapshot["source_time_error"]:
-            source_state, source_reason = "UNKNOWN", snapshot["source_time_error"]
-        stale = bool(snapshot and (attempt["last_error"] or now - snapshot["last_success"] >= 300))
-        if stale and source_state == "OBSERVED":
+        catalog_source = snapshot.get("catalog_source", {}) if snapshot else {}
+        source_state = catalog_source.get("state", "UNKNOWN")
+        if source_state == "OBSERVED":
+            source_state = _source_freshness(catalog_source.get("source_time_ms"), now)[0]
+        catalog_failed = bool(attempt["last_error"] and attempt.get("stage") == "catalog")
+        if snapshot and (catalog_failed or now - snapshot["last_success"] >= 300):
             source_state = "STALE"
-            source_reason = "refresh_failed" if attempt["last_error"] else "refresh_expired"
         rows = snapshot["rows"] if snapshot else []
         for row in rows:
             for metric in row["metrics"].values():
                 if metric["value"] is not None:
-                    metric["state"], metric["reason"] = source_state, source_reason
+                    state, reason = _source_freshness(metric.get("source_time_ms"), now)
+                    if (
+                        metric.get("state") == "STALE"
+                        and metric.get("reason") == "ticker_refresh_failed"
+                    ):
+                        state, reason = "STALE", "ticker_refresh_failed"
+                    elif metric.get("state") == "UNKNOWN" and metric.get("reason", "").startswith(
+                        "source_time_"
+                    ):
+                        state, reason = "UNKNOWN", metric["reason"]
+                    elif attempt["last_error"] and state == "OBSERVED":
+                        state, reason = "STALE", "refresh_failed"
+                    metric["state"], metric["reason"] = state, reason
+        ticker_source = deepcopy(snapshot.get("ticker_source", {})) if snapshot else {}
+        if ticker_source.get("state") == "OBSERVED":
+            ticker_source["state"] = _source_freshness(ticker_source.get("source_time_ms"), now)[0]
+            if attempt["last_error"]:
+                ticker_source["state"] = "STALE"
         rows = [
             row
             for row in rows
@@ -297,6 +411,8 @@ class CatalogService:
             "limit": limit,
             "rows": rows[offset : offset + limit],
             "attempt": attempt,
+            "tickers": ticker_source
+            or {"state": "UNAVAILABLE", "last_success": None, "last_error": None},
             "catalog": {
                 "loaded": len(snapshot["rows"]) if snapshot else 0,
                 "expected_total": None,
@@ -305,7 +421,8 @@ class CatalogService:
                 if snapshot
                 else "UNAVAILABLE",
                 "last_success": snapshot["last_success"] if snapshot else None,
-                "last_error": attempt["last_error"],
+                "last_error": attempt["last_error"] if catalog_failed else None,
+                "source": catalog_source,
                 "scope": "current_statuses",
                 "status_coverage": snapshot.get("status_coverage", {}) if snapshot else {},
                 "historical_listing_coverage": "UNKNOWN",
