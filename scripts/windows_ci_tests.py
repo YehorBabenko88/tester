@@ -269,7 +269,7 @@ def run_pytest(args, *, cwd, env):
         code = W.DWORD()
         _ok(kernel.GetExitCodeProcess(process.hProcess, C.byref(code)))
         if not owned_ci_descendant(root, log_path).is_file():
-            raise RuntimeError("Restricted CI child did not produce its guarded log")
+            raise missing_child_log_error(code.value)
         print(owned_ci_descendant(root, log_path).read_text(encoding="utf-8"), end="", flush=True)
         if code.value:
             raise subprocess.CalledProcessError(code.value, [sys.executable, *args])
@@ -296,6 +296,24 @@ def _powershell(script, *, root, paths):
         raise RuntimeError(result.stderr)
 
 
+def missing_child_log_error(exit_code):
+    return RuntimeError(
+        "Restricted CI child did not produce its guarded log; "
+        f"native exit code {exit_code} (0x{exit_code:08X})"
+    )
+
+
+def initialize_child_descriptors(log):
+    """Called only after the guarded log exists, inside logged exception handling."""
+    null_fd = os.open(os.devnull, os.O_RDWR)
+    for descriptor in (0, 1, 2):
+        os.dup2(null_fd, descriptor)
+    if null_fd > 2:
+        os.close(null_fd)
+    os.dup2(log.fileno(), 1)
+    os.dup2(log.fileno(), 2)
+
+
 def child_main(args, log_name):
     """Open our own guarded log; no parent handles crossed the token boundary."""
     root = require_ci_workspace(os.environ, Path(__file__).resolve().parents[1])
@@ -304,19 +322,25 @@ def child_main(args, log_name):
     scratch = owned_ci_descendant(root, root / ".scratch")
     owned_ci_descendant(root, scratch).mkdir(exist_ok=True)
     log_path = owned_ci_descendant(root, scratch / log_name)
-    # Populate previously absent standard descriptors with child-owned handles.
-    null_fd = os.open(os.devnull, os.O_RDWR)
-    for descriptor in (0, 1, 2):
-        os.dup2(null_fd, descriptor)
-    if null_fd > 2:
-        os.close(null_fd)
-    with owned_ci_descendant(root, log_path).open("x", encoding="utf-8", buffering=1) as log:
-        os.dup2(log.fileno(), 1)
-        os.dup2(log.fileno(), 2)
-        sys.stdout = log
-        sys.stderr = log
+    # Open before any descriptor setup so bootstrap failures are observable.
+    with owned_ci_descendant(root, log_path).open("x", encoding="utf-8", buffering=1) as original:
+        original.write("CI child bootstrap: guarded log opened\n")
+        original.flush()
         exit_code = 1
+        log = original
+        reserved = []
         try:
+            # The first file descriptor may itself be 0/1/2 with no inherited
+            # handles. Keep the diagnostic stream above those slots before dup2.
+            descriptor = os.dup(original.fileno())
+            reserved.append(descriptor)
+            while descriptor < 3:
+                descriptor = os.dup(original.fileno())
+                reserved.append(descriptor)
+            log = os.fdopen(reserved.pop(), "w", encoding="utf-8", buffering=1)
+            sys.stdout = log
+            sys.stderr = log
+            initialize_child_descriptors(log)
             exit_code = _child_proof_and_pytest(args, root, scratch)
         except BaseException:
             import traceback
@@ -324,8 +348,11 @@ def child_main(args, log_name):
             traceback.print_exc(file=log)
         finally:
             log.flush()
-            # The detached child originally had no inherited Python streams.
-            # Do not leave closed log objects for interpreter finalization.
+            if log is not original:
+                log.close()
+            for descriptor in reserved:
+                os.close(descriptor)
+            # Initial Python streams may be None in a CREATE_NO_WINDOW child.
             sys.stdout = None
             sys.stderr = None
     return exit_code

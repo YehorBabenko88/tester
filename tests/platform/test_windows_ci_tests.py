@@ -108,3 +108,35 @@ def test_reparse_blocks_acl_subprocess_boundary(tmp_path, monkeypatch):
     monkeypatch.setattr(windows_ci_tests.tempfile, "mkdtemp", forbidden)
     with pytest.raises(ValueError, match="Reparse"):
         windows_ci_tests._child_proof_and_pytest([], root, scratch)
+
+
+def test_bootstrap_descriptor_failure_is_written_to_guarded_log(tmp_path, monkeypatch):
+    import sys
+
+    from scripts import windows_ci_tests
+
+    root = tmp_path / "checkout"
+    root.mkdir()
+    monkeypatch.setattr(windows_ci_tests, "require_ci_workspace", lambda env, expected: root)
+
+    def broken(log):
+        raise OSError("descriptor bootstrap sentinel")
+
+    monkeypatch.setattr(windows_ci_tests, "initialize_child_descriptors", broken)
+    saved = sys.stdout, sys.stderr
+    name = "standard-user-ci-" + "a" * 32 + ".log"
+    try:
+        assert windows_ci_tests.child_main([], name) == 1
+    finally:
+        sys.stdout, sys.stderr = saved
+    text = (root / ".scratch" / name).read_text(encoding="utf-8")
+    assert "guarded log opened" in text
+    assert "descriptor bootstrap sentinel" in text
+
+
+def test_missing_child_log_diagnostic_retains_native_exit_code():
+    from scripts.windows_ci_tests import missing_child_log_error
+
+    message = str(missing_child_log_error(0xC0000142))
+    assert "3221225794" in message
+    assert "0xC0000142" in message
