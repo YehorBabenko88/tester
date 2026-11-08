@@ -1,0 +1,133 @@
+{
+  "kind": "NONADMIN_PUBLIC_REPLAY",
+  "status": "REPEATED_DOWNLOAD_NO_DUPLICATE_PASS",
+  "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+  "instance_id": "349a538bb15343ca990e5ca3f8a36373",
+  "range_ms": [
+    1794141000000,
+    1794141300000
+  ],
+  "before": {
+    "count": 5,
+    "unique_keys": 5,
+    "values_projection_sha256": "57b6e1bc763caeacd27acc3cde9deaa7369178b49f3461a0d5ed83333e47887f"
+  },
+  "jobs": [
+    {
+      "id": "e101d9f7-2e98-4085-b0b8-fe559af9e563",
+      "state": "completed",
+      "attempts": 1,
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "f7daf618ebc7595d9fc0cb1e651ece9e363c5aaedef5e1716895408aca07d323",
+          "cd47c97c52680628347e4850b2569075565426f8f70615a8920ba419c097669b",
+          "e6ad544edbca95d1f500d5f7ed8e533f920185f3560928dc1fca332947e898a9"
+        ],
+        "record_hashes": {
+          "41c1cdd6f93b8acfe87c336d70384c8ca85a68460790c91722e4a076007947a5": "2a9ea93e9226ac8bb4b92e1a18f227d764b29b5cd5862be8a94a082db9e2de57",
+          "496c1753a57e1fd33d1c8e03a822982f90b9df37346881f672b9c9ed0a8bb605": "2f29bb013e942d037e461006db12358fde1511882ea814aceefe35709f53a274",
+          "6f591d43086fb22bcedad015cb91b3c171ce82d2fdb836c6f09edd96c32c58fe": "c0585da9c32da7592fe23e555a59ecfa7bce3957536bf88d6ccd7ba73b11031a",
+          "b1c28924150b645e18765d490e7ae66c73760ad9589ca7610b271cadc6e10bfd": "4c5ac94c4cab3cd045304ce046c5b85f62d1d39c16eae41770f526223e440e2e",
+          "fde9444a6fc89bbd422c2d101e2673f1335fabac29ad18db376d7c8b23f8938b": "ce9982df1722def003b83faf9e19ecf7f912828ce89cd4b78261ceafb3dbeac9"
+        },
+        "work_complete": true,
+        "bytes_received": 1716,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2994942999994237,
+        "bytes_per_second": 1320.5136798220362,
+        "expected_records": null,
+        "records_ingested": 5,
+        "records_verified": 5,
+        "response_receipts": [
+          {
+            "bytes": 1057,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+            "source_hash": "f7daf618ebc7595d9fc0cb1e651ece9e363c5aaedef5e1716895408aca07d323"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "cd47c97c52680628347e4850b2569075565426f8f70615a8920ba419c097669b"
+          },
+          {
+            "bytes": 525,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794141000000&end=1794141299999",
+            "source_hash": "e6ad544edbca95d1f500d5f7ed8e533f920185f3560928dc1fca332947e898a9"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "snapshot": {
+        "count": 5,
+        "unique_keys": 5,
+        "values_projection_sha256": "57b6e1bc763caeacd27acc3cde9deaa7369178b49f3461a0d5ed83333e47887f"
+      }
+    },
+    {
+      "id": "2c365c62-d67b-44ed-8fe5-5df20817589e",
+      "state": "completed",
+      "attempts": 1,
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "44ebdd05065a023815992d2f4b79b1a8befb6691db57d04b2e79e7c5135ff80f",
+          "1f92c17382957e350299c96a637684423243315cb3624217e6a21efa959e2659",
+          "dbc95fdd340f5c70687a66fcc0d7490986cec97ced99047f482ff21bb59d3472"
+        ],
+        "record_hashes": {
+          "41c1cdd6f93b8acfe87c336d70384c8ca85a68460790c91722e4a076007947a5": "2a9ea93e9226ac8bb4b92e1a18f227d764b29b5cd5862be8a94a082db9e2de57",
+          "496c1753a57e1fd33d1c8e03a822982f90b9df37346881f672b9c9ed0a8bb605": "2f29bb013e942d037e461006db12358fde1511882ea814aceefe35709f53a274",
+          "6f591d43086fb22bcedad015cb91b3c171ce82d2fdb836c6f09edd96c32c58fe": "c0585da9c32da7592fe23e555a59ecfa7bce3957536bf88d6ccd7ba73b11031a",
+          "b1c28924150b645e18765d490e7ae66c73760ad9589ca7610b271cadc6e10bfd": "4c5ac94c4cab3cd045304ce046c5b85f62d1d39c16eae41770f526223e440e2e",
+          "fde9444a6fc89bbd422c2d101e2673f1335fabac29ad18db376d7c8b23f8938b": "ce9982df1722def003b83faf9e19ecf7f912828ce89cd4b78261ceafb3dbeac9"
+        },
+        "work_complete": true,
+        "bytes_received": 1716,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2752896000001783,
+        "bytes_per_second": 1345.5767223380165,
+        "expected_records": null,
+        "records_ingested": 5,
+        "records_verified": 5,
+        "response_receipts": [
+          {
+            "bytes": 1057,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+            "source_hash": "44ebdd05065a023815992d2f4b79b1a8befb6691db57d04b2e79e7c5135ff80f"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "1f92c17382957e350299c96a637684423243315cb3624217e6a21efa959e2659"
+          },
+          {
+            "bytes": 525,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794141000000&end=1794141299999",
+            "source_hash": "dbc95fdd340f5c70687a66fcc0d7490986cec97ced99047f482ff21bb59d3472"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "snapshot": {
+        "count": 5,
+        "unique_keys": 5,
+        "values_projection_sha256": "57b6e1bc763caeacd27acc3cde9deaa7369178b49f3461a0d5ed83333e47887f"
+      }
+    }
+  ],
+  "after": {
+    "count": 5,
+    "unique_keys": 5,
+    "values_projection_sha256": "57b6e1bc763caeacd27acc3cde9deaa7369178b49f3461a0d5ed83333e47887f"
+  },
+  "database_check": "READ_ONLY_55470",
+  "crash_test": "NOT_RUN_CANCELED_UAC",
+  "real_trading": false
+}

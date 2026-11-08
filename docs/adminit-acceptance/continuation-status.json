@@ -1,360 +1,130 @@
 {
-  "SOURCE_SHA": "a3138eb9813832e9a839a99e54547001343ab3fd",
-  "TREE_SHA": "f2814cd8a12a7ea6f119bfad37a3e40a4e39bc67",
-  "DEPLOY_PAYLOAD_SHA256": "21b2854d02ac1d27563cd263e89504a13d4a6eb1724d3681588e63803eea506c",
-  "INSTALLER_TEST": "PASS_PUBLISHED_PORTABLE_LIFECYCLE_AND_NATIVE_REMOVE_REINSTALL_RETAIN_DATA",
-  "PORTABLE_SMOKE": {
-    "status": "PORTABLE_SMOKE_PASS_NOT_SCM",
-    "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
-    "job_id": "4d5c1a51-b699-43c8-b1e8-72eec8f661a8",
-    "candles": 30,
-    "start_ms": 1794134760000,
-    "end_ms": 1794136560000,
-    "api": "http://127.0.0.1:18766",
-    "coverage": "UNKNOWN",
-    "keyring": "OWN_RANDOM_PROBE_PASS_REMOVED",
-    "real_trading": false
-  },
-  "SCM_APPROVAL": "THREE_SEPARATELY_APPROVED_SINGLE_UAC_ATTEMPTS; THIRD_REPAIR_PASS; NO_AUTOMATIC_RETRY",
-  "SCM_STATUS": "NATIVE_LOCALSERVICE_APP_AND_PG_RUNNING; REMOVE_REINSTALL_START_STOP_START_PASS",
-  "PG_ISOLATION": {
-    "status": "PASS_OWN_NATIVE_PG_SERVICE_55470",
-    "endpoint": "127.0.0.1:55470",
-    "data_directory": "C:/TesterLab/postgres-data",
-    "existing_5432": "UNTOUCHED_RUNNING",
-    "runtime_role": "tester_lab_app, no storage DDL/DELETE or visibility grants"
-  },
+  "SOURCE_SHA": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+  "TREE_SHA": "90944d6ba0dd0194999f82f50ec96f231ce5eff9",
+  "DEPLOY_PAYLOAD_SHA256": "b4438d10495d65e684f9e40a7a29d68e114c772efd4df3edf969d1cb65d4823a",
+  "PR_HEAD_AT_CHECK": "40009327f8a56e83330d821ba8fb03f15acfe971",
+  "CANDIDATE_SOURCE_SHA": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "CANDIDATE_TREE_SHA": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+  "CANDIDATE_DEPLOY_PAYLOAD_SHA256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+  "INSTALLER_TEST": "NATIVE_7b_UPGRADE_PASS; prior native remove/reinstall and backup/restore PASS; candidate719_NATIVE_NOT_RUN",
+  "PORTABLE_SMOKE": "CANDIDATE_719_READ_ONLY_1000_ROWS_MATCH; candidate_not_installed",
+  "SCM_APPROVAL": "RECOVERY_5098_UAC_CANCELED_BY_WINDOWS; no automatic retry; privileged flow paused",
+  "SCM_STATUS": "APP_AND_OWN_PG_RUNNING_LOCALSERVICE; instance 349a538bb15343ca990e5ca3f8a36373",
+  "PG_ISOLATION": "OWN_55470_RUNNING_PID5132; existing5432_RUNNING_UNCHANGED_PID11740",
   "BROWSER_SMOKE": {
-    "status": "PASS_NATIVE_API_UI_HISTORY_AND_CHART",
-    "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
-    "url": "http://127.0.0.1:18766/#terminal",
-    "ui_job": "bd8174b2-e0c2-4050-8dbd-72bbbbc19d8d",
-    "rows": 30,
-    "panels": "2/12",
-    "timeframes": "1m/3m/1m",
-    "interaction": "keyboard activation used after browser click timeout; broad mouse/DPI qualification NOT_RUN",
-    "verification": "coverage UNKNOWN; UI99percent verification not confirmed",
-    "screenshot_sha256": "ebda37a6c8343947c34bcec89cff8c1298e7832f42cbc1137813eaf883055077"
+    "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+    "download_status": "COMPLETE_SEPARATE_FROM_COVERAGE_UNKNOWN",
+    "new_job": "dafcd8f4-0749-47cc-a1ef-9fb7e20bf4a4",
+    "new_counters": "1716 decoded HTTP body bytes;5 ingested/verified;work100percent",
+    "legacy_progress": "INDETERMINATE_NO_FABRICATED99",
+    "timeframes": "ALL13_REAL_DATA_AND_BROWSER_DOM_PASS",
+    "physical_mouse": "NOT_RUN_COMPUTER_USE_URL_POLICY_STOP",
+    "simulated_trades": "NOT_RUN_F_QUALITY_ADMISSION_REJECTED"
+  },
+  "SOAK": {
+    "status": "LOW_RATE_SOAK_PASS",
+    "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+    "seconds": 1800.013414699999,
+    "completed": 240,
+    "failed": 0,
+    "scope": "LOW_RATE_MIXED_CONTROLLED_WORKLOAD; ten simultaneous admissions,one worker,not saturation"
+  },
+  "REPLAY": "NONADMIN_TWO_IDENTICAL_PUBLIC_JOBS_PASS;5rawrows=5unique;value/projectionhash unchanged",
+  "CRASH_RECOVERY": "NOT_RUN_UAC_CANCELED;0workerterminations",
+  "INTEGRATION": {
+    "F": "NOT_INTEGRATED;actual gate:coverage evidence required",
+    "G": "NOT_INTEGRATED;canonicalPGcontrol and overlaycontract unresolved",
+    "H": "NOT_INTEGRATED;source rights/sample and domain wiring gates absent"
   },
   "CI_EXACT_HEAD": {
-    "source_commit": "a3138eb9813832e9a839a99e54547001343ab3fd",
-    "runs": [
+    "installed_source": [
       {
         "conclusion": "",
-        "databaseId": 42474942463,
+        "databaseId": 42480851848,
         "status": "queued",
-        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42474942463"
-      }
-    ],
-    "success": false,
-    "repair_source_sha": "aded56998dae16cf13e9c2707fc52012f12a1bfb",
-    "repair_runs": [
-      {
-        "conclusion": "",
-        "databaseId": 42477365297,
-        "status": "queued",
-        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477365297"
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480851848"
       },
       {
         "conclusion": "",
-        "databaseId": 42477365293,
+        "databaseId": 42480851788,
         "status": "queued",
-        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477365293"
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480851788"
       },
       {
         "conclusion": "",
-        "databaseId": 42477365354,
+        "databaseId": 42480851831,
         "status": "queued",
-        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477365354"
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480851831"
       },
       {
         "conclusion": "cancelled",
-        "databaseId": 42477365333,
+        "databaseId": 42480851861,
         "status": "completed",
-        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477365333"
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480851861"
       },
       {
         "conclusion": "",
-        "databaseId": 42477361751,
+        "databaseId": 42480847136,
         "status": "queued",
-        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42477361751"
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480847136"
       }
+    ],
+    "candidate_source": [
+      {
+        "conclusion": "",
+        "databaseId": 42482688052,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482688052"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42482688021,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482688021"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42482688038,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482688038"
+      },
+      {
+        "conclusion": "cancelled",
+        "databaseId": 42482688057,
+        "status": "completed",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482688057"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42482683728,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482683728"
+      }
+    ],
+    "success": false
+  },
+  "EVIDENCE_CLASSES": {
+    "HOST_REPORTED": "API build identity source/tree/manifest/instance;no independent binary attestation",
+    "INDEPENDENTLY_REPRODUCED": "Same-host external SCM registration/accounts/PIDs;596source+1892native hashes;30minsoak;SQLreplay;13TF;portable candidate1000-row equality and ownprocess peakRAM",
+    "CI": "QUEUED/superseded-cancelled,not successful",
+    "NOT_RUN": [
+      "native719install",
+      "forcedworkercrash/recovery",
+      "physicalmouse/highDPI",
+      "validatedsimulatedtradechart",
+      "fullhistoricalcompleteness",
+      "saturation/tenparallelworkers",
+      "LocalServicekeyringqualification"
     ]
   },
   "REMAINING_BLOCKERS": [
-    "Exact application/repair source hosted CI queued; no release GO",
-    "Native pythonservice host Authenticode NotSigned; locked wheel SHA256 is integrity evidence, not an independent signature",
-    "Full historical completeness, stress/crash injection and broad mouse/DPI qualification not performed",
-    "F/G/H and derived financial providers NOT_INTEGRATED; unsupported panels and historical visibility remain UNAVAILABLE/null",
-    "LocalService keyring vault behavior not tested; only current-user own-entry roundtrip passed in portable smoke"
+    "Canceled recovery UAC was not retried; no additional elevation requested",
+    "Prepared compact719 source is published and portable-tested,not installed",
+    "Computer Use stopped before physical mouse navigation due URL confidence policy",
+    "F/G/H not integrated; actual F admission rejects absent coverage evidence;no simulated trades",
+    "Exact-sourceCI notsuccessful; native host unsigned; full history/saturation/keyring gates absent"
   ],
-  "ten_instruments": {
-    "status": "PORTABLE_TEN_INSTRUMENT_BOUNDED_PASS_NOT_SCM_OR_STRESS",
-    "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
-    "start_ms": 1794136380000,
-    "end_ms": 1794136680000,
-    "results": [
-      {
-        "symbol": "BTCUSDT",
-        "job_id": "43429464-ab46-455e-afec-e4a7322bf9e5",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "ETHUSDT",
-        "job_id": "ecad6487-f28c-41a4-a518-4299bc432b03",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "SOLUSDT",
-        "job_id": "ebcdaf59-f54a-4fb9-88c4-35878f273c40",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "XRPUSDT",
-        "job_id": "258d97cf-d259-49ba-9ff3-44a107a30ee0",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "DOGEUSDT",
-        "job_id": "2ef0f840-6ef5-4126-a6c2-11c640337c44",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "ADAUSDT",
-        "job_id": "fca9feaf-bd82-47ac-bac5-9784675937fa",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "AVAXUSDT",
-        "job_id": "d57687a9-637f-473b-a0ce-1f67e62b29f7",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "LINKUSDT",
-        "job_id": "25a1b614-d09f-4dca-83fe-0921179da552",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "DOTUSDT",
-        "job_id": "0924b32f-b980-4f91-a416-e5d73dceb3f0",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "LTCUSDT",
-        "job_id": "13884b30-05fa-4428-bc49-4d716d197d1c",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      }
-    ]
-  },
-  "backup_restore": {
-    "status": "OWNED_BACKUP_RESTORE_PASS",
-    "database": "tester_lab_restore_1794136914809586500",
-    "backup_sha256": "04a9604cc79e6bfe3c77adc5ca27bee8247eeb6dc4fa5fb4f79c2df99b0d172a",
-    "tables_compared": 28,
-    "raw_records": 155,
-    "all_retained": true
-  },
-  "native_dependency_checks": {
-    "offline_hash_install": "PASS 35 wheels",
-    "keyring": "PASS own random entry roundtrip, entry removed",
-    "private_native_host_import": "PASS, no SCM call",
-    "post_import_runtime_inventory": "PASS",
-    "python_authenticode": "Valid",
-    "service_host_authenticode": "NotSigned"
-  },
-  "source_tests": {
-    "python314_acceptance": {
-      "passed": 377,
-      "skipped": 84,
-      "subtests_passed": 57
-    },
-    "openapi312_314": "PASS unchanged approved contract",
-    "frontend_previous_unchanged_source": "19 passed",
-    "bandit_medium_high": "PASS"
-  },
-  "service_names": {
-    "app": "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60",
-    "postgres": "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60"
-  },
-  "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
-  "native_runtime_inventory_sha256": "e0c33f1b49d744c44d68c4e70415170c0383ff4fe741fb5461278636bed5d3a3",
-  "postgres_binary_inventory_sha256": "35a84cd6a6dbe6d49ce7faf7b457990a67564c2fa5bc97265bcb7ed619dfa1bc",
-  "uac_script": "C:\\TesterLab\\releases\\a3138eb9813832e9a839a99e54547001343ab3fd\\scripts\\windows\\Invoke-TesterLabAcceptance.ps1",
-  "uac_script_sha256": "b81c06a38818cbaeb86a51e5bbc18d2b96947704f654b355f3697ecffd4e4143",
-  "checked_at_utc": "2026-11-08T11:21:56.551035+00:00",
-  "no_main_merge": true,
-  "no_real_orders": true,
-  "no_existing_database_deletion": true,
-  "scope_note": "Hashes bind bytes only, not independent host/source attestation or historical completeness.",
-  "native_attempts": [
-    {
-      "kind": "SCM_ACCEPTANCE",
-      "status": "FAILED",
-      "stage": "INSTALL",
-      "source_sha": null,
-      "checks": [],
-      "error_type": "System.Management.Automation.ApplicationFailedException",
-      "completed_at": "2026-11-08T10:45:54.4639358Z"
-    }
-  ],
-  "acl_recovery": {
-    "status": "PUBLISHED_OWNER_ONLY_RECOVERY_PASS_NO_UAC",
-    "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
-    "journals_local_only": true,
-    "skipped_objects": 2,
-    "all_old_source_runtime_hashes_unchanged": true,
-    "partial_98_candidate_retained_unregistered": true
-  },
-  "NATIVE_REPAIR": {
-    "schema": "tester-native-host-repair/v1",
-    "application_source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
-    "application_deploy_manifest_sha256": "21b2854d02ac1d27563cd263e89504a13d4a6eb1724d3681588e63803eea506c",
-    "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
-    "packager_source_sha": "aded56998dae16cf13e9c2707fc52012f12a1bfb",
-    "packager_tree_sha": "cbcb1f62b2b5ad4eb78d5ed6efdc5606b39a0642",
-    "repair_script_sha256": "effb90c87fae95dd803afde4f4960d2a3573985c963d1da7e6cabd415f6a8dcb",
-    "old_runtime_manifest_sha256": "e0c33f1b49d744c44d68c4e70415170c0383ff4fe741fb5461278636bed5d3a3",
-    "servicemanager_sha256": "0582ec19772bc11d9e745a2f7094b5f6ad0df76024bc1e8ab6df32314d674e28",
-    "pth_sha256": "fd310b5916940423b70f2d4df8c06798d5f0c168b7c361a9fbe345f224a38877",
-    "python_class": "C:\\TesterLab\\dependencies\\service\\lab_service_bootstrap.LabService",
-    "new_runtime_manifest_sha256": "c27820f6f6d4752dcc1eb3211dd03c39f7093d982e1326058af8a2dcc5d2982b",
-    "repair_archive_sha256": "edd9d7a20cdbde5f2646f49fc0a7593a5907c5ff6070d37e1cd24aa5321d254a",
-    "validation": {
-      "passed": 378,
-      "skipped": 84,
-      "subtests": 57,
-      "native_console_loader": "PASS_NOT_SCM"
-    }
-  },
-  "NATIVE_SMOKE": {
-    "status": "NATIVE_HTTP_BYBIT_HISTORY_PASS",
-    "health": {
-      "schema_version": "1.0",
-      "data": {
-        "provider": "configured",
-        "instance_id": "968c8f56c3944cbe9c1f8e4920400fd3",
-        "status": "ok",
-        "database": "ok",
-        "worker": "ok",
-        "storage": "ok",
-        "free_bytes": 762950270976,
-        "used_bytes": 4527845
-      },
-      "next_cursor": null
-    },
-    "job": {
-      "id": "c7cea7d1-ed1c-4bae-9bf8-c012d6fb6847",
-      "request": {
-        "category": "linear",
-        "symbol": "BTCUSDT",
-        "source": "bybit",
-        "kind": "candles",
-        "interval": "1",
-        "start_ms": 1794136800000,
-        "end_ms": 1794138600000
-      },
-      "state": "completed",
-      "progress": 1.0,
-      "checkpoint": {
-        "source": "bybit",
-        "batches": 1,
-        "coverage": "PARTIAL",
-        "source_records": 30
-      },
-      "attempts": 1,
-      "error": null,
-      "created_at": "2026-11-08T11:51:50.448684Z",
-      "updated_at": "2026-11-08T11:51:52.318843Z"
-    },
-    "candles": 30,
-    "coverage": {
-      "status": "UNKNOWN",
-      "start_ms": 1794136800000,
-      "end_ms": 1794138600000,
-      "evidence_refs": []
-    },
-    "start_ms": 1794136800000,
-    "end_ms": 1794138600000,
-    "real_trading": false
-  },
-  "native_ten_instruments": {
-    "status": "NATIVE_TEN_INSTRUMENT_BOUNDED_PASS",
-    "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
-    "instance_id": "968c8f56c3944cbe9c1f8e4920400fd3",
-    "start_ms": 1794138480000,
-    "end_ms": 1794138780000,
-    "results": [
-      {
-        "symbol": "ADAUSDT",
-        "job_id": "3127ed26-93f7-4762-acfe-19a3fb1a175f",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "AVAXUSDT",
-        "job_id": "be0c673b-8c23-43b7-8708-0b3904e11cdc",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "BTCUSDT",
-        "job_id": "a1f1dcf3-e8ea-43fa-95f7-af075baa6b4f",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "DOGEUSDT",
-        "job_id": "bd55ab47-ed4a-4c45-8952-a828486f38b1",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "DOTUSDT",
-        "job_id": "fca2c63c-3e0b-451a-929e-390fa0eef7f1",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "ETHUSDT",
-        "job_id": "136b3975-eefa-4633-bb18-52a2a5e3fca4",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "LINKUSDT",
-        "job_id": "2ab93f74-cdbd-482b-9680-cd9f74fc3395",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "LTCUSDT",
-        "job_id": "c3578b84-0230-4e6a-a34b-9c5289720bad",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "SOLUSDT",
-        "job_id": "a47bb31e-2ef4-4b37-bfe1-9a2ab8622309",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      },
-      {
-        "symbol": "XRPUSDT",
-        "job_id": "60681f8b-70cc-44a9-83f3-b6494117f0b8",
-        "candles": 5,
-        "coverage": "UNKNOWN"
-      }
-    ],
-    "real_trading": false
-  }
+  "MAIN_UNCHANGED": "0a6ce227d9463562bb18889dcc0ee747f3be9130",
+  "RELEASE_GO": false,
+  "generated_utc": "2026-11-08T13:25:54.049967+00:00"
 }

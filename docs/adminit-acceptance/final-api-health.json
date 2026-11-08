@@ -1,0 +1,14 @@
+﻿{
+    "schema_version":  "1.0",
+    "data":  {
+                 "provider":  "configured",
+                 "instance_id":  "349a538bb15343ca990e5ca3f8a36373",
+                 "status":  "ok",
+                 "database":  "ok",
+                 "worker":  "ok",
+                 "storage":  "ok",
+                 "free_bytes":  761753669632,
+                 "used_bytes":  62937579
+             },
+    "next_cursor":  null
+}

@@ -1,0 +1,9 @@
+{
+  "source_files": 596,
+  "native_files": 1892,
+  "status": "INDEPENDENT_FILE_INVENTORY_PASS",
+  "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+  "tree_sha": "90944d6ba0dd0194999f82f50ec96f231ce5eff9",
+  "deploy_manifest_sha256": "b4438d10495d65e684f9e40a7a29d68e114c772efd4df3edf969d1cb65d4823a",
+  "native_manifest_sha256": "0f441d54ba7604a668cd9ce0b65883521f9ba8ee2512cde22379637ef46e569a"
+}
