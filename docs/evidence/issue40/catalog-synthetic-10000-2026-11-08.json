@@ -1,0 +1,185 @@
+{
+  "schema": "tester-catalog-synthetic-benchmark/1",
+  "observed_at": "2026-11-08T22:00:12.914063+00:00",
+  "synthetic": true,
+  "source_sha": "21492bbdc983e1a4bd202b16a2f612458dfb5f7a",
+  "benchmark_file_sha256": "bfa4040ef5c138bd7849578685aa458010dc5c8dd189e901aab32e82422fd33d",
+  "python": "3.14.0",
+  "platform": "Windows",
+  "rows": 10000,
+  "iterations": 7,
+  "page_limit": 100,
+  "source_calls": 15,
+  "acquisition_ms": 309.43829999887384,
+  "serialized_snapshot_bytes": 20602132,
+  "rss_before_fixture_bytes": 57683968,
+  "rss_after_snapshot_bytes": 99631104,
+  "cases": [
+    {
+      "name": "symbol_first_page",
+      "query": {
+        "limit": 100
+      },
+      "total": 10000,
+      "returned": 100,
+      "min_ms": 322.907200003101,
+      "median_ms": 348.97029999410734,
+      "p95_nearest_rank_ms": 415.8153000025777,
+      "max_ms": 415.8153000025777,
+      "samples_ms": [
+        322.907200003101,
+        348.97029999410734,
+        326.8394000042463,
+        344.5221000001766,
+        350.96389999671374,
+        415.8153000025777,
+        363.34029999852646
+      ],
+      "traced_peak_query_alloc_bytes": 44740696,
+      "sampled_process_rss_bytes": 108195840
+    },
+    {
+      "name": "price_desc_global_first_page",
+      "query": {
+        "sort": "price",
+        "direction": "desc",
+        "limit": 100
+      },
+      "total": 10000,
+      "returned": 100,
+      "min_ms": 454.8380999985966,
+      "median_ms": 483.6144000000786,
+      "p95_nearest_rank_ms": 501.02550000156043,
+      "max_ms": 501.02550000156043,
+      "samples_ms": [
+        500.8702999984962,
+        501.02550000156043,
+        475.5502999978489,
+        498.2686000003014,
+        480.1158999980544,
+        483.6144000000786,
+        454.8380999985966
+      ],
+      "traced_peak_query_alloc_bytes": 44740712,
+      "sampled_process_rss_bytes": 136724480
+    },
+    {
+      "name": "price_desc_global_late_page",
+      "query": {
+        "sort": "price",
+        "direction": "desc",
+        "offset": 9900,
+        "limit": 100
+      },
+      "total": 10000,
+      "returned": 100,
+      "min_ms": 445.2144999959273,
+      "median_ms": 463.3994999967399,
+      "p95_nearest_rank_ms": 490.3543999971589,
+      "max_ms": 490.3543999971589,
+      "samples_ms": [
+        471.35339999658754,
+        490.3543999971589,
+        451.6328999961843,
+        463.3994999967399,
+        470.66080000513466,
+        445.2144999959273,
+        456.9764000043506
+      ],
+      "traced_peak_query_alloc_bytes": 44740720,
+      "sampled_process_rss_bytes": 143155200
+    },
+    {
+      "name": "search_global_then_price",
+      "query": {
+        "search": "009",
+        "sort": "price",
+        "direction": "desc",
+        "limit": 100
+      },
+      "total": 120,
+      "returned": 100,
+      "min_ms": 303.22659999364987,
+      "median_ms": 367.0902000012575,
+      "p95_nearest_rank_ms": 480.0463000065065,
+      "max_ms": 480.0463000065065,
+      "samples_ms": [
+        474.9364000017522,
+        480.0463000065065,
+        360.86470000009285,
+        303.22659999364987,
+        367.0902000012575,
+        386.22919999761507,
+        334.63550000305986
+      ],
+      "traced_peak_query_alloc_bytes": 44740720,
+      "sampled_process_rss_bytes": 120373248
+    },
+    {
+      "name": "watchlist_global_then_price",
+      "query": {
+        "watchlist": [
+          "linear:S00001USDT",
+          "linear:S09999USDT",
+          "linear:S05000USDT"
+        ],
+        "sort": "price",
+        "direction": "desc",
+        "limit": 100
+      },
+      "total": 3,
+      "returned": 3,
+      "min_ms": 325.4665000058594,
+      "median_ms": 352.3630999989109,
+      "p95_nearest_rank_ms": 409.7419000027003,
+      "max_ms": 409.7419000027003,
+      "samples_ms": [
+        352.3630999989109,
+        341.2897999951383,
+        366.54840000119293,
+        327.46030000271276,
+        325.4665000058594,
+        409.7419000027003,
+        357.6364999971702
+      ],
+      "traced_peak_query_alloc_bytes": 44740936,
+      "sampled_process_rss_bytes": 114163712
+    },
+    {
+      "name": "all_null_metric_stable_sort",
+      "query": {
+        "sort": "market_cap",
+        "direction": "desc",
+        "limit": 100
+      },
+      "total": 10000,
+      "returned": 100,
+      "min_ms": 374.72690000140574,
+      "median_ms": 407.50600000319537,
+      "p95_nearest_rank_ms": 468.97119999630377,
+      "max_ms": 468.97119999630377,
+      "samples_ms": [
+        375.2281999986735,
+        399.0007999964291,
+        468.97119999630377,
+        422.15800000121817,
+        438.3702999984962,
+        407.50600000319537,
+        374.72690000140574
+      ],
+      "traced_peak_query_alloc_bytes": 44740712,
+      "sampled_process_rss_bytes": 116981760
+    }
+  ],
+  "boundaries": {
+    "network_calls": 0,
+    "database_connections": 0,
+    "listeners": 0
+  },
+  "limitations": [
+    "Single process sequential in-memory CatalogService.query only; no HTTP/JSON response encoding, PostgreSQL, UI, browser or concurrent load acceptance.",
+    "RSS is own-process sampling after calls, not a true RSS high-water mark or OS-enforced limit.",
+    "tracemalloc peak is Python query allocation from a separate slower tracing pass, not total process RAM.",
+    "Seven samples by default; nearest-rank p95 equals maximum for this small sample; no latency SLA asserted."
+  ]
+}
