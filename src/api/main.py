@@ -1,5 +1,6 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 from copy import deepcopy
 from typing import Annotated, Literal
 from uuid import UUID
@@ -62,9 +63,30 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         if settings.dsn
         else None
     )
+    catalog = None
+    if settings.market_catalog_enabled:
+        from .catalog_store import CatalogStore
+        from .market_catalog import BybitCatalogSource
+        from .persistent_market_catalog import PersistentCatalogService
+
+        catalog = PersistentCatalogService(
+            BybitCatalogSource(), CatalogStore(settings.market_catalog_dsn)
+        )
+
+    @asynccontextmanager
+    async def lifespan(app):
+        if catalog is not None:
+            await catalog.start()
+        try:
+            yield
+        finally:
+            if catalog is not None:
+                await catalog.stop()
+
     app = FastAPI(
         title="Tester local market API",
         version="1.0.0",
+        lifespan=lifespan,
         responses={
             502: {"model": ErrorEnvelope},
             503: {"model": ErrorEnvelope},
@@ -74,6 +96,11 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         },
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]"])
+    if catalog is not None:
+        from .market_catalog import create_market_router
+
+        app.include_router(create_market_router(catalog))
+        app.state.market_catalog = catalog
 
     @app.middleware("http")
     async def local_writes(request: Request, call_next):
