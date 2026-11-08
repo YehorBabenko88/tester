@@ -18,4 +18,3 @@ def test_diagnostic_error_does_not_echo_exception_secrets():
     assert result["error_type"] == "OSError"
     assert "secret-capability" not in str(result)
     assert result["errno"] == 5
-
