@@ -7,6 +7,7 @@ launched. See Microsoft CreateRestrictedToken/CreateProcessAsUser documentation.
 
 import base64
 import ctypes as C
+import json
 import os
 import re
 import stat
@@ -244,6 +245,15 @@ def run_pytest(args, *, cwd, env):
             adv.SetTokenInformation(
                 restricted, 25, C.byref(label), C.sizeof(label) + adv.GetLengthSid(medium)
             )
+        )
+        from scripts.windows_ci_diagnostics import diagnose
+
+        print(
+            "CI native context: "
+            + json.dumps(
+                diagnose(kernel, adv, token, restricted, env=env, root=root), sort_keys=True
+            ),
+            flush=True,
         )
         # Only this explicit CI checkout receives an additional individual-user
         # Modify ACE; existing ACEs/owners are preserved, no recursive /T change.
