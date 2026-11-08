@@ -68,13 +68,17 @@ def test_owned_descendants_reject_escape_and_reparse_before_io(tmp_path, monkeyp
             owned_ci_descendant(root, path)
 
 
-def test_spawn_never_inherits_parent_handles(tmp_path):
-    from scripts.windows_ci_tests import spawn_no_inherit
+def test_spawn_never_inherits_parent_handles_or_desktop(tmp_path):
+    import ctypes
+
+    from scripts.windows_ci_tests import STARTUPINFO, spawn_no_inherit
 
     class AdversarialParent:
         def CreateProcessAsUserW(self, *args):
             # An unrelated privileged inheritable handle must never cross here.
             assert args[5] is False
+            startup = ctypes.cast(args[9], ctypes.POINTER(STARTUPINFO)).contents
+            assert startup.lpDesktop == ""  # NULL would inherit parent desktop.
             return 1
 
     spawn_no_inherit(AdversarialParent(), None, None, None, tmp_path)
