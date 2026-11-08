@@ -297,11 +297,12 @@ def verify_published_batch(store, connection, batch):
 
 
 class LabHandler:
-    def __init__(self, settings):
+    def __init__(self, settings, *, validator=None):
         self.settings = settings
+        self.validator = validator or validate_download
 
     def run(self, request, checkpoint, report, stop, commit):
-        validate_download(request)
+        self.validator(request)
         from src.ingest.journal import Journal
         from src.ingest.metadata import acquire_instruments
         from src.ingest.rest import API, Backfill
@@ -324,10 +325,10 @@ class LabHandler:
                 )
             )
             metadata = acquire_instruments(
-                api, journal, "linear", max_pages=1, limit=1, max_rows=10, symbol=request.symbol
+                api, journal, request.category, max_pages=1, limit=1, max_rows=10, symbol=request.symbol
             )
             result = Backfill(api, journal).run(
-                "linear",
+                request.category,
                 request.symbol,
                 "kline",
                 request.interval,
