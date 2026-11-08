@@ -54,12 +54,51 @@ function Write-UpgradeAtomicBytes([string]$Target,[byte[]]$Bytes,[string]$Worksp
     $Temporary=Join-Path $WorkspaceParent ('.tester-upgrade-metadata-'+[Guid]::NewGuid().ToString('N'))
     $File=[IO.File]::Open($Temporary,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
     try {$File.Write($Bytes,0,$Bytes.Length);$File.Flush($true)} finally {$File.Dispose()}
-    [IO.File]::Replace($Temporary,$Target,$null)
+    # Windows PowerShell 5 coerces ordinary $null to an empty string for this overload.
+    [IO.File]::Replace($Temporary,$Target,[NullString]::Value)
 }
 function Assert-UpgradeBackupDestination([string]$BackupRoot,[string]$Bundle) {
     Assert-UpgradePlain $BackupRoot
     if ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Bundle)) -ine [IO.Path]::GetFullPath($BackupRoot) -or [IO.Path]::GetFileName($Bundle) -notmatch '^upgrade-[0-9a-f]{32}$') {throw 'Backup bundle escaped its fixed parent.'}
     if (Test-Path -LiteralPath $Bundle) {Assert-UpgradePlain $Bundle}
+}
+function Assert-UpgradeExpectedState([string]$Expected,[string]$Actual) {
+    if ($Expected -cnotin @('Running','Stopped') -or $Actual -cne $Expected) {throw 'Actual app state differs from the explicitly approved initial state.'}
+}
+function Save-UpgradePublicReport($Handle,$Report) {
+    $Bytes=[Text.UTF8Encoding]::new($false).GetBytes(($Report|ConvertTo-Json -Depth 8))
+    $Handle.stream.Position=0
+    $Handle.stream.SetLength(0)
+    $Handle.stream.Write($Bytes,0,$Bytes.Length)
+    $Handle.stream.Flush($true)
+}
+function New-UpgradePublicReport([string]$Runtime,[string]$CreatorSid,$Report) {
+    Assert-UpgradePlain $Runtime
+    $Path=Join-Path $Runtime ('upgrade-result-'+[Guid]::NewGuid().ToString('N')+'.json')
+    $Stream=[IO.File]::Open($Path,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+    try {
+        $Acl=Get-Acl -LiteralPath $Path
+        $Acl.SetAccessRuleProtection($true,$false)
+        foreach ($Rule in @($Acl.Access)) {$null=$Acl.RemoveAccessRuleSpecific($Rule)}
+        foreach ($Sid in @('S-1-5-32-544','S-1-5-18')) {$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($Sid),'FullControl','Allow'))}
+        foreach ($Sid in @($CreatorSid,'S-1-5-19')) {$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($Sid),'Read','Allow'))}
+        [IO.File]::SetAccessControl($Path,$Acl)
+        $Handle=[pscustomobject]@{path=$Path;stream=$Stream}
+        Save-UpgradePublicReport $Handle $Report
+        return $Handle
+    } catch {$Stream.Dispose();throw}
+}
+function Set-UpgradeStage([string]$Name) {
+    $script:Outcome.stage=$Name
+    Save-UpgradePublicReport $script:PublicReport $script:Outcome
+}
+function Save-UpgradeFailureReport($Handle,$Report) {
+    try {Save-UpgradePublicReport $Handle $Report}
+    catch {if ($null -eq $Report.reporting_error_type) {$Report.reporting_error_type=$_.Exception.GetType().FullName}}
+}
+function Set-UpgradeRollbackStage([string]$Name) {
+    $script:Outcome.stage=$Name
+    Save-UpgradeFailureReport $script:PublicReport $script:Outcome
 }
 function Get-UpgradeRegistryChanges([string]$Base,[string]$SHA,[string]$Class,[string]$PythonPath) {
     [pscustomobject]@{path=$Base+'\Parameters';name='SourceSHA';value=$SHA}
@@ -150,6 +189,12 @@ if ($NewPayload.tree_sha -notmatch '^[0-9a-f]{40}$' -or $NewPayload.repository -
 if ($OldNative.schema_version -ne 'tester-lab-service-runtime/v1' -or $NewNative.schema_version -ne 'tester-lab-service-runtime/v1') {throw 'Unknown native runtime schema.'}
 Assert-UpgradeTree $OldRelease $OldPayload.files
 Assert-UpgradeTree $NewSource $NewPayload.files
+$Creator=(Get-Acl -LiteralPath $Root).GetOwner([Security.Principal.SecurityIdentifier]).Value
+$Outcome=[ordered]@{schema='tester-lab-upgrade-result/v2';installation_id=$Id;old_source_sha=$Plan.old_source_sha;new_source_sha=$Plan.new_source_sha;expected_app_state=$Plan.expected_app_state;status='PENDING';stage='SOURCE_IDENTITY_PREFLIGHT_PASS';failure_stage=$null;error_type=$null;rollback_status='NOT_REQUIRED';rollback_error_type=$null;rollback_failure_stage=$null;reporting_error_type=$null;rollback_bundle=$null;committed=$false;postgres_pid=$null;completed_utc=$null}
+$PublicReport=New-UpgradePublicReport (Join-Path $Root 'runtime') $Creator $Outcome
+Write-Output ('UPGRADE_REPORT '+$PublicReport.path)
+try {
+Set-UpgradeStage 'NATIVE_AND_SERVICE_PREFLIGHT'
 $Runtime=Join-Path $Root 'dependencies\service'
 Assert-UpgradeTree $Runtime $OldNative.files
 Assert-UpgradeTree $NewRuntime $NewNative.files
@@ -165,7 +210,7 @@ $Site=Join-Path $Root 'dependencies\venv\Lib\site-packages'
 $PthExpected=(@($Runtime,$NewRelease,$Site,(Join-Path $Site 'win32'),(Join-Path $Site 'win32\lib')) -join "`n")+"`n"
 if ([IO.File]::ReadAllText((Join-Path $NewRuntime 'Lib\site-packages\tester-lab.pth')) -cne $PthExpected) {throw 'Native path bootstrap does not pin the new release.'}
 $App=Assert-UpgradeOwnedServices @($Plan.old_source_sha)
-if ($App.State -ne 'Running') {throw 'Upgrade expects the current owned app running.'}
+Assert-UpgradeExpectedState $Plan.expected_app_state $App.State
 $PGPid=[int](Get-CimInstance Win32_Service -Filter "Name='$($Owner.services.postgres)'").ProcessId
 $PGIdentity=Get-Content -LiteralPath (Join-Path $Root 'state\postgres-identity.json') -Raw|ConvertFrom-Json
 if ($PGIdentity.installation_id -ne $Id -or [string]$PGIdentity.system_identifier -cne [string]$Plan.postgres_system_identifier) {throw 'Approved dedicated PG cluster identity differs.'}
@@ -189,6 +234,8 @@ foreach ($Candidate in @($SourceCandidate,$NativeCandidate)) {
     foreach ($Item in @((Get-Item -LiteralPath $Candidate))+@(Get-ChildItem -LiteralPath $Candidate -Recurse -Force)) {Set-TesterLabExplicitAcl -ItemPath $Item.FullName -CreatorSid $Creator -CreatorRights ReadAndExecute -ServiceRights ReadAndExecute}
 }
 $Bundle=Join-Path $Root ('backups\upgrade-'+$Token)
+$Outcome.rollback_bundle=$Bundle
+Set-UpgradeStage 'PREPARE_ROLLBACK_BUNDLE'
 Assert-UpgradeBackupDestination (Join-Path $Root 'backups') $Bundle
 $null=New-Item -ItemType Directory -Path $Bundle
 Assert-UpgradeBackupDestination (Join-Path $Root 'backups') $Bundle
@@ -202,53 +249,97 @@ $Journal=[IO.File]::Open((Join-Path $Bundle 'transaction.json'),[IO.FileMode]::C
 $JournalWriter=[IO.StreamWriter]::new($Journal,[Text.UTF8Encoding]::new($false))
 try {$JournalWriter.Write(($Transaction|ConvertTo-Json -Depth 7));$JournalWriter.Flush();$Journal.Flush($true)} finally {$JournalWriter.Dispose()}
 $StopRequested=$false;$OldMoved=$false;$NewMoved=$false;$Committed=$false
+$Outcome.postgres_pid=$PGPid
 try {
     $null=Assert-UpgradeOwnedServices @($Plan.old_source_sha)
+    Set-UpgradeStage 'STOP_OWNED_APP'
+    Assert-UpgradeExpectedState $Plan.expected_app_state (Assert-UpgradeOwnedServices @($Plan.old_source_sha)).State
     $StopRequested=$true
     Invoke-UpgradeAppAction stop @($Plan.old_source_sha)
+    Set-UpgradeStage 'BACKUP_RESTORE'
     & (Join-Path $Root 'dependencies\venv\Scripts\python.exe') -I -B (Join-Path $OldRelease 'scripts\lab_portable.py') backup-restore
     if ($LASTEXITCODE -ne 0) {throw 'Owned DB backup/restore verification failed.'}
     Assert-UpgradeTree $Runtime $OldNative.files
     Assert-UpgradeTree $SourceCandidate $NewPayload.files
     Assert-UpgradeTree $NativeCandidate $NewNative.files
+    Set-UpgradeStage 'STAGE_NEW_SOURCE'
     [IO.Directory]::Move($SourceCandidate,$NewRelease)
     Assert-UpgradeTree $NewRelease $NewPayload.files
     Assert-UpgradeBackupDestination (Join-Path $Root 'backups') $Bundle
     Assert-UpgradePlain $Runtime
+    Set-UpgradeStage 'SWAP_NATIVE_RUNTIME'
     [IO.Directory]::Move($Runtime,$OldRuntime);$OldMoved=$true
     [IO.Directory]::Move($NativeCandidate,$Runtime);$NewMoved=$true
     $Owner.releases | Add-Member -NotePropertyName $Plan.new_source_sha -NotePropertyValue $NewPayload.files
     $Owner.active_sha=$Plan.new_source_sha
     $Config=Get-Content -LiteralPath $Metadata.config -Raw|ConvertFrom-Json
     $Config.frontend_dir=Join-Path $NewRelease 'frontend'
+    Set-UpgradeStage 'REPLACE_CONFIG'
     Write-UpgradeAtomicBytes $Metadata.config ([Text.UTF8Encoding]::new($false).GetBytes(($Config|ConvertTo-Json -Depth 20))) $Parent
+    Set-UpgradeStage 'REPLACE_PAYLOAD'
     Write-UpgradeAtomicBytes $PayloadPath ([IO.File]::ReadAllBytes($Plan.new_payload_path)) $Parent
+    Set-UpgradeStage 'REPLACE_NATIVE_MANIFEST'
     Write-UpgradeAtomicBytes $RuntimeManifest ([IO.File]::ReadAllBytes($Plan.new_runtime_manifest_path)) $Parent
+    Set-UpgradeStage 'REPLACE_MARKER'
     Write-UpgradeAtomicBytes $MarkerPath ([Text.UTF8Encoding]::new($false).GetBytes(($Owner|ConvertTo-Json -Depth 30))) $Parent
+    Set-UpgradeStage 'UPDATE_APP_REGISTRY'
     Set-UpgradeAppRegistry $Plan.new_source_sha $Class (@($Runtime,$NewRelease,$Site,(Join-Path $Site 'win32'),(Join-Path $Site 'win32\lib')) -join ';')
+    Set-UpgradeStage 'START_NEW_APP'
     Invoke-UpgradeAppAction start @($Plan.new_source_sha)
+    Set-UpgradeStage 'VERIFY_NEW_APP'
     Assert-UpgradeReady $Plan.new_source_sha $Plan.new_payload_sha256 $true
     $null=Assert-UpgradeOwnedServices @($Plan.new_source_sha)
     $Committed=$true
+    $Outcome.committed=$true;$Outcome.status='UPGRADE_PASS'
+    Set-UpgradeStage 'COMPLETE'
     Write-Output ('UPGRADE_PASS source='+$Plan.new_source_sha+' rollback_bundle='+$Bundle)
 } catch {
     $Failure=$_
+    $Committed=$false;$Outcome.committed=$false
+    $Outcome.error_type=$Failure.Exception.GetType().FullName
+    $Outcome.failure_stage=$Outcome.stage
+    $Outcome.status='FAILED'
+    Save-UpgradeFailureReport $PublicReport $Outcome
     if ($StopRequested) {
-        $null=Assert-UpgradeOwnedServices @($Plan.old_source_sha,$Plan.new_source_sha)
-        Invoke-UpgradeAppAction stop @($Plan.old_source_sha,$Plan.new_source_sha)
-        Assert-UpgradeBackupDestination (Join-Path $Root 'backups') $Bundle
-        if ($NewMoved) {Assert-UpgradePlain $Runtime;[IO.Directory]::Move($Runtime,(Join-Path $Bundle 'failed-new-native-runtime'))}
-        if ($OldMoved) {Assert-UpgradePlain $OldRuntime;Assert-UpgradePlain ([IO.Path]::GetDirectoryName($Runtime));[IO.Directory]::Move($OldRuntime,$Runtime)}
-        foreach ($Key in $Metadata.Keys) {Write-UpgradeAtomicBytes $Metadata[$Key] ([IO.File]::ReadAllBytes((Join-Path $Bundle ($Key+'.json')))) $Parent}
-        $Owner=Get-Content -LiteralPath $MarkerPath -Raw|ConvertFrom-Json
-        Set-UpgradeAppRegistry $Plan.old_source_sha $OldClass $OldPythonPath
-        Invoke-UpgradeAppAction start @($Plan.old_source_sha)
-        Assert-UpgradeReady $Plan.old_source_sha $Plan.old_payload_sha256 $false
-        Write-Output ('ROLLBACK_OLD_APP_PASS retained_bundle='+$Bundle)
+        $Outcome.rollback_status='IN_PROGRESS'
+        try {
+            Set-UpgradeRollbackStage 'ROLLBACK_STOP_APP'
+            $null=Assert-UpgradeOwnedServices @($Plan.old_source_sha,$Plan.new_source_sha)
+            Invoke-UpgradeAppAction stop @($Plan.old_source_sha,$Plan.new_source_sha)
+            Set-UpgradeRollbackStage 'ROLLBACK_NATIVE_RUNTIME'
+            Assert-UpgradeBackupDestination (Join-Path $Root 'backups') $Bundle
+            if ($NewMoved) {Assert-UpgradePlain $Runtime;[IO.Directory]::Move($Runtime,(Join-Path $Bundle 'failed-new-native-runtime'))}
+            if ($OldMoved) {Assert-UpgradePlain $OldRuntime;Assert-UpgradePlain ([IO.Path]::GetDirectoryName($Runtime));[IO.Directory]::Move($OldRuntime,$Runtime)}
+            Set-UpgradeRollbackStage 'ROLLBACK_METADATA'
+            foreach ($Key in $Metadata.Keys) {Write-UpgradeAtomicBytes $Metadata[$Key] ([IO.File]::ReadAllBytes((Join-Path $Bundle ($Key+'.json')))) $Parent}
+            $Owner=Get-Content -LiteralPath $MarkerPath -Raw|ConvertFrom-Json
+            Set-UpgradeRollbackStage 'ROLLBACK_REGISTRY'
+            Set-UpgradeAppRegistry $Plan.old_source_sha $OldClass $OldPythonPath
+            # Only start after every old metadata/native/registry restoration completed.
+            Set-UpgradeRollbackStage 'ROLLBACK_START_OLD_APP'
+            Invoke-UpgradeAppAction start @($Plan.old_source_sha)
+            Assert-UpgradeReady $Plan.old_source_sha $Plan.old_payload_sha256 $false
+            $Outcome.rollback_status='OLD_APP_RESTORED'
+            Write-Output ('ROLLBACK_OLD_APP_PASS retained_bundle='+$Bundle)
+        } catch {
+            $Outcome.rollback_status='FAILED'
+            $Outcome.rollback_error_type=$_.Exception.GetType().FullName
+            $Outcome.rollback_failure_stage=$Outcome.stage
+        }
     }
+    Save-UpgradeFailureReport $PublicReport $Outcome
     throw $Failure
+}
+} catch {
+    if ($null -eq $Outcome.error_type) {
+        $Outcome.error_type=$_.Exception.GetType().FullName
+        $Outcome.failure_stage=$Outcome.stage
+        $Outcome.status='FAILED'
+    }
+    throw
 } finally {
-    $Report=[ordered]@{schema='tester-lab-upgrade-result/v1';installation_id=$Id;old_source_sha=$Plan.old_source_sha;new_source_sha=$Plan.new_source_sha;committed=$Committed;postgres_pid_unchanged=$PGPid;rollback_bundle=$Bundle;completed_utc=[DateTime]::UtcNow.ToString('o')}
-    Assert-UpgradeBackupDestination (Join-Path $Root 'backups') $Bundle
-    [IO.File]::WriteAllText((Join-Path $Bundle 'result.json'),($Report|ConvertTo-Json -Depth 5),[Text.UTF8Encoding]::new($false))
+    $Outcome.completed_utc=[DateTime]::UtcNow.ToString('o')
+    Save-UpgradeFailureReport $PublicReport $Outcome
+    try {$PublicReport.stream.Dispose()} catch {if ($null -eq $Outcome.reporting_error_type) {$Outcome.reporting_error_type=$_.Exception.GetType().FullName}}
+    Write-Output ('UPGRADE_REPORT '+$PublicReport.path)
 }

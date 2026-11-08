@@ -79,3 +79,7 @@ No cross-repository service bindings, main merge, live installed-root changes, s
 On 2026-11-08, exact F Git archive `998c5bc...` (src/strategy, src/backtest, tests/strategy and docs/strategy) was extracted into task-local `work/f-preparation-998c5bc`. Running CPython 3.14 `python -m unittest discover -s tests/strategy -v` **from that extracted source root** passed all **39 tests**. This includes zero-capacity protective persistence, future-capacity timing/uncertainty, deterministic replay, artifact integrity and fill/overlay correspondence. An initial invocation from the application checkout failed source imports; rerunning from the extracted root resolved the invocation error without source changes. No network or database was used.
 
 G/H implementation, proposed contracts and their committed reports were inspected at the exact pins above. Their reported test counts are historical producer evidence, not freshly executed acceptance here. No G transport, H PostgreSQL/UI, current remote head, real market snapshot, simulation chart renderer or installed runtime integration was verified by this document. The current A-E Strategy workspace remains intentionally DATA_UNAVAILABLE.
+
+## Remote pin refresh during native follow-up
+
+On2026-11-08, root ran `git ls-remote origin` for these three exact producer branches and confirmed the remote tips equal the F/G/H commits listed above. This refresh changes pin freshness only; integration and real-data simulation gates remain unfulfilled.
