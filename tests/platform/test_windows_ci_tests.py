@@ -144,3 +144,56 @@ def test_missing_child_log_diagnostic_retains_native_exit_code():
     message = str(missing_child_log_error(0xC0000142))
     assert "3221225794" in message
     assert "0xC0000142" in message
+
+
+def test_proof_persists_only_new_access_descriptor(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from scripts import windows_ci_tests
+
+    root = tmp_path / "checkout"
+    root.mkdir()
+    scratch = root / ".scratch"
+    scratch.mkdir()
+    seen = []
+
+    def dacl_only(script, *, root, paths):
+        seen.append(script)
+        assert "$Acl=Get-Acl" not in script
+        assert "[Security.AccessControl.FileSecurity]::new()" in script
+        assert "[IO.File]::SetAccessControl($File,$Acl)" in script
+        assert "Set-Acl -LiteralPath" not in script
+        assert "Administrator))" in script and "individual user" in script
+
+    monkeypatch.setattr(windows_ci_tests, "_powershell", dacl_only)
+    original = Path.write_text
+
+    def denied(path, text, *args, **kwargs):
+        if text == "must-not-write":
+            raise PermissionError("simulated DACL data-write denial")
+        return original(path, text, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", denied)
+    monkeypatch.setattr(pytest, "main", lambda args: 0)
+    assert windows_ci_tests._child_proof_and_pytest([], root, scratch) == 0
+    assert len(seen) == 2
+    assert "'ReadAndExecute'" in seen[0] and "'Modify'" in seen[1]
+
+
+def test_cleanup_failure_preserves_original_proof_error(tmp_path, monkeypatch):
+    from scripts import windows_ci_tests
+
+    root = tmp_path / "checkout"
+    root.mkdir()
+    scratch = root / ".scratch"
+    scratch.mkdir()
+
+    def fail(script, **kwargs):
+        if "'ReadAndExecute'" in script:
+            raise RuntimeError("original proof failure")
+        raise RuntimeError("cleanup sentinel")
+
+    monkeypatch.setattr(windows_ci_tests, "_powershell", fail)
+    with pytest.raises(RuntimeError, match="original proof failure") as raised:
+        windows_ci_tests._child_proof_and_pytest([], root, scratch)
+    assert any("cleanup sentinel" in note for note in raised.value.__notes__)

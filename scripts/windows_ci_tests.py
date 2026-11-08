@@ -429,13 +429,16 @@ def _child_proof_and_pytest(args, root, scratch):
         "foreach ($Path in @($File,$Directory)) {"
         "$Owner=(Get-Acl -LiteralPath $Path).GetOwner([Security.Principal.SecurityIdentifier]).Value;"
         "if ($Owner -ne $Me.User.Value) {throw 'CI child default owner is not individual user'}};"
-        "$Acl=Get-Acl -LiteralPath $File;$Acl.SetAccessRuleProtection($true,$false);"
-        "foreach ($Rule in @($Acl.Access)) {$null=$Acl.RemoveAccessRuleSpecific($Rule)};"
+        # Fresh descriptor: only access rules/protection are modified. Persisting
+        # through .NET avoids Set-Acl provider requests for SACL/owner sections.
+        "$Acl=[Security.AccessControl.FileSecurity]::new();"
+        "$Acl.SetAccessRuleProtection($true,$false);"
     )
+    proof_error = None
     try:
         _powershell(
             prefix
-            + "$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($Me.User,'ReadAndExecute','Allow'));Set-Acl -LiteralPath $File -AclObject $Acl",
+            + "$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($Me.User,'ReadAndExecute','Allow'));[IO.File]::SetAccessControl($File,$Acl)",
             root=root,
             paths=(directory, probe),
         )
@@ -445,15 +448,23 @@ def _child_proof_and_pytest(args, root, scratch):
             pass
         else:
             raise RuntimeError("CI child bypassed actual read-only DACL")
+    except BaseException as exc:
+        proof_error = exc
+        raise
     finally:
-        _powershell(
-            prefix
-            + "$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($Me.User,'Modify','Allow'));Set-Acl -LiteralPath $File -AclObject $Acl",
-            root=root,
-            paths=(directory, probe),
-        )
-        owned_ci_descendant(root, probe).unlink()
-        owned_ci_descendant(root, directory).rmdir()
+        try:
+            _powershell(
+                prefix
+                + "$Acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($Me.User,'Modify','Allow'));[IO.File]::SetAccessControl($File,$Acl)",
+                root=root,
+                paths=(directory, probe),
+            )
+            owned_ci_descendant(root, probe).unlink()
+            owned_ci_descendant(root, directory).rmdir()
+        except Exception as cleanup_error:
+            if proof_error is None:
+                raise
+            proof_error.add_note("CI proof DACL-only cleanup also failed: " + str(cleanup_error))
     print(
         "PASS: actual standard-user CI token, individual file/directory owner and RX write denial",
         flush=True,
