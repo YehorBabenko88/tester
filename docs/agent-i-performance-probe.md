@@ -27,3 +27,18 @@ python scripts/lab_intensive.py --resources-only --expected-sha <installed-sourc
 ```
 
 This mode binds the installed source/instance, samples CIM once and writes a new report. It performs no admissions or database probes, and does not convert missing metrics in another report into a PASS. The process sampler now uses five CIM calls independent of descendant count: two exact service queries, one bounded process inventory (10,000 maximum), and two perf-counter queries filtered to the owned trees (64 processes maximum per tree). Raw inventory images/command lines are never emitted. Missing creation evidence, child creation predating its parent, missing supervisor or partial counters fail closed. The ten-second CIM subprocess timeout remains enforced; latency improvement on ADMINIT still requires coordinator observation.
+
+## Disposable PostgreSQL backpressure acceptance
+
+`tests/platform/test_research_backpressure.py` exercises the actual canonical E FastAPI app through TestClient and the actual PostgreSQL JobQueue. It has no queue/DB doubles, market handler, network listener, exchange calls or service/process controls. Root alone coordinates the explicitly disposable cluster and runs the published source:
+
+```powershell
+# Set TEST_RESEARCH_DATABASE_URL privately to the coordinator-owned disposable DB.
+python -m pytest tests/platform/test_research_backpressure.py -q
+```
+
+No DSN means the database test skips; there is no `TEST_DATABASE_URL` fallback. Before connecting, guards require a numeric loopback host, an explicit non-5432/non-55470 port, and database name `tester_research_*` with a nonempty suffix. Service, hostaddr and options overrides are refused; the selected numeric hostaddr is then pinned to override environment defaults. Connected database, server address and port are independently checked before migration or writes. A nonblocking advisory lock rejects overlapping cooperating runs. The queue must initially be idle. Only this test's acknowledged job IDs are deleted on cleanup; pre-existing rows remain unchanged and control settings are restored. No truncation occurs.
+
+The bounded fixture uses max_pending=2 and max_running=1. Eight concurrent canonical API admissions must produce exactly two 202 responses and six 429 queue_full responses with Retry-After=5. Eight actual queue claims must produce one lease. Further rejected admission must leave every job column unchanged, including checkpoints, lease and timestamps. Completing one lease restores one admission slot. Draining returns 503 with Retry-After=5 and prevents another claim without changing existing jobs. A completed sentinel and any pre-existing idle history remain intact. This is queue/claim concurrency acceptance, not evidence of concurrent market processing or performance saturation.
+
+Agent I performed no database connection while authoring this test. Actual PostgreSQL acceptance remains pending the coordinator's published-source run; passing DSN guard tests and a skipped integration test must not be reported as database acceptance.
