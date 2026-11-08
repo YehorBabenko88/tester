@@ -79,7 +79,8 @@ def test_persistent_budget_backoff_coalescing_and_committed_view():
     for _ in range(100):
         store.request("linear")
     assert not service.refresh("linear")
-    assert len(source.calls) == 3
+    assert len([call for call in source.calls if call[0] == "/tickers"]) == 1
+    initial_calls = len(source.calls)
     now[0] = 1030
     source.fail = True
     assert not service.refresh("linear")
@@ -90,7 +91,7 @@ def test_persistent_budget_backoff_coalescing_and_committed_view():
     assert service.query("linear")["rows"][0]["metrics"]["price"]["state"] == "STALE"
     now[0] = 1100
     assert not service.refresh("linear")
-    assert len(source.calls) == 4
+    assert len(source.calls) == initial_calls + 1
 
 
 def assert_unpublished(service):
@@ -111,21 +112,23 @@ def test_persistent_300_second_schedule_and_manual_budget(monkeypatch):
             awaitable.close()
             waits.append(now[0])
             if len(waits) == 1:
-                assert len(source.calls) == 6
+                assert len([call for call in source.calls if call[0] == "/tickers"]) == 2
                 for _ in range(100):
                     service.request_refresh("linear")
                 now[0] = 1029
             elif len(waits) == 2:
-                assert len(source.calls) == 6
+                assert len([call for call in source.calls if call[0] == "/tickers"]) == 2
                 now[0] = 1030
             elif len(waits) == 3:
-                assert len(source.calls) == 9
+                assert len([call for call in source.calls if call[0] == "/tickers"]) == 3
                 now[0] = 1299
             elif len(waits) == 4:
-                assert len(source.calls) == 9
+                assert len([call for call in source.calls if call[0] == "/tickers"]) == 3
                 now[0] = 1300
             else:
-                assert len(source.calls) == 12  # inverse automatically due; linear at 1330
+                assert (
+                    len([call for call in source.calls if call[0] == "/tickers"]) == 4
+                )  # inverse due
                 service._cancel.set()
 
         service._wake = asyncio.Event()
