@@ -1,0 +1,43 @@
+{
+  "status": "LOW_RATE_SOAK_PASS",
+  "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+  "instance_id": "349a538bb15343ca990e5ca3f8a36373",
+  "duration_seconds": 1800.013414699999,
+  "submitted": 240,
+  "completed": 240,
+  "failed": 0,
+  "pending": 0,
+  "samples": 180,
+  "metric_error_samples": 0,
+  "job_unique_record_acknowledgments": 1200,
+  "decoded_http_body_bytes": 403274,
+  "sampled_private_ram_MiB": {
+    "first": 189.3984375,
+    "last": 228.8515625,
+    "peak": 397.4296875
+  },
+  "sampled_cpu_one_core_percent": {
+    "mean": 11.13888888888889,
+    "peak": 108.0
+  },
+  "hardware": {
+    "NumberOfLogicalProcessors": 16,
+    "TotalPhysicalMemory": 29952696320
+  },
+  "dedicated_pg_WAL": {
+    "delta_bytes": 30847124,
+    "mean_bytes_per_second": 17294.27301045876
+  },
+  "dedicated_database_tuple_insert_delta": 8992,
+  "runtime_file_bytes_growth": 38262862,
+  "source_report_sha256": "283a6bd50644da4a50a2e478a22811c106bf89621eac1737b868fe5099dfb694",
+  "scope": "own supervisor and UUID PG service descendants; configured lab DB; dedicated cluster WAL; shared-volume free space",
+  "limitations": [
+    "LOW_RATE_SOAK, not saturation; ten simultaneous admissions, one worker ingestion consumer",
+    "Other controlled real-data timeframe/UI/read profiling ran concurrently; mixed workload",
+    "10-second sampling can miss memory peaks; isolated1000-read legacy profile peaked1.27GB",
+    "WAL generation and database tuple counters are not filesystem physical write bandwidth",
+    "Native SCM host excluded from tree totals; separate point-in-time metrics retained",
+    "No historical completeness claim; Coverage UNKNOWN"
+  ]
+}

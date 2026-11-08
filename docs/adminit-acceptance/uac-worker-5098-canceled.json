@@ -1,0 +1,13 @@
+{
+  "kind": "UAC_RECOVERY_CANCELED",
+  "tool_source_sha": "5098fa31f7b624cca968e239ac3c8ace8d4ba32a",
+  "tool_manifest_sha256": "69c2ed76a9e50d7176c99a991dd7059be742648c6028aec207054db6b4302df7",
+  "application_source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+  "os_result": "The operation was canceled by the user",
+  "process_started": false,
+  "worker_terminations": 0,
+  "automatic_retry": false,
+  "privileged_actions": "PAUSED_AFTER_CANCELED_UAC",
+  "source_fix_719_native_install": "NOT_RUN",
+  "timestamp_utc": "2026-11-08T13:14:28.073692+00:00"
+}
