@@ -1,0 +1,7 @@
+{
+  "status": "PUBLISHED_FILE_LIFECYCLE_PREPARE_STAGE_ROLLBACK_REMOVE_PASS",
+  "source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+  "services_created": false,
+  "retained_data": true,
+  "scope": "FILE_LIFECYCLE_NOT_NATIVE_UNINSTALL"
+}

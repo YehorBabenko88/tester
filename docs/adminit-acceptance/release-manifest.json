@@ -1,29 +1,15 @@
 {
-  "schema_version": 1,
+  "schema_version": "tester-lab-payload/v1",
   "repository": "YehorBabenko88/tester",
   "branch": "integration/adminit-acceptance",
-  "release_commit_sha": "5ad0d684140423f7d076d54c2fcfe7fa104e76c8",
-  "release_tree_sha": "ebf8788251679637b4953caf6052ba2f4c4f6eee",
-  "build_timestamp_utc": "2026-11-08T09:57:26.073991+00:00",
-  "build_kind": "git archive of exact source commit; not an installed executable distribution",
-  "artifact": {
-    "name": "tester-5ad0d684140423f7d076d54c2fcfe7fa104e76c8.zip",
-    "sha256": "c944da0e92da3a873f01ecb26c7002dbe187e9a272cd40858def721aa5f3fc4f",
-    "bytes": 1331466,
-    "distribution": "local outputs; source commit will be published to GitHub"
-  },
-  "python_dependencies": {
-    "lock": "requirements-platform.lock",
-    "sha256": "70d6226784a60f07dfbd3511e41adda429d8b24e832bd91ae041f64e3e40b855",
-    "tested_python": "3.14.0",
-    "native_service_and_secure_keyring_dependencies": "NOT_FULLY_LOCKED_OR_VALIDATED_FOR_DEPLOYMENT"
-  },
-  "frontend_dependencies": {
-    "lock": "frontend/package-lock.json",
-    "sha256": "165b5f0dbe4e012655eae1c5a7bb2975aa636ed63b2d98520c20943ccd553763",
-    "install": "npm ci --ignore-scripts, NODE_USE_SYSTEM_CA=1; TLS verification retained"
-  },
-  "migration_inventory": {
+  "source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+  "tree_sha": "a13c0af20044c5f091e182366cbafed054653a43",
+  "artifact_name": "tester-lab-b96548e8a6f4b04505dd3e9f85fa52adfea8ac10.zip",
+  "artifact_sha256": "935397426f587e70336965058d1a6c97290a30e4a84173e26389de878a9d6923",
+  "dependency_lock_sha256": "731b12259e7e113b6d9c6d47f041d26d85fb3d6111e3f34ddb52505fd9a192df",
+  "frontend_lock_sha256": "165b5f0dbe4e012655eae1c5a7bb2975aa636ed63b2d98520c20943ccd553763",
+  "installer_sha256": "4ab90ce9405dab6bb772b34ab07047af81393b8bfdfad313ba377279836929c0",
+  "migration_versions": {
     "src/api/migrations/001_jobs.sql": "35c1275825e4837f5879b574148e803dc06ab6ca98b0e089ffafdced34ebfa0b",
     "src/api/migrations/002_admission.sql": "aa980462ab4f7b4ff732bd2fd3d4eda190f0455ee67a561d8bfbd20fa225661b",
     "src/storage/migrations/001_initial.sql": "fa981a82256bb1c94fa9e570f6357fd501523a5482c0072782a5e28293b08e34",
@@ -34,83 +20,59 @@
     "src/storage/migrations/006_lifecycle_dry_run.sql": "7a9eb8382a73884408472d83e6bdc930b8c65487aef54be270b8c83aa17b3465",
     "src/storage/migrations/007_visibility_foundation.sql": "5973d536cfc9d0b9c85b1dacc8c87a465605c701084b904b4a4f07ab4f56aa5a"
   },
-  "migration_application": "NOT_RUN_ON_CURRENT_HOST",
-  "included_source_modules": [
-    "A ingestion/current metadata",
-    "B storage/bounded reader/disabled visibility foundation",
-    "C analytics",
-    "D frontend",
-    "E API/native SCM host"
-  ],
-  "enabled_physical_modules": [],
-  "known_missing_modules": {
-    "financial_provider": "NOT_INTEGRATED",
-    "Strategy Lab": "NOT_INTEGRATED",
-    "Codex Control Plane": "NOT_INTEGRATED",
-    "Trader Intelligence": "NOT_INTEGRATED / SOURCE_UNAVAILABLE"
+  "intended_scope": {
+    "root": "C:\\TesterLab",
+    "api": "127.0.0.1:18766",
+    "postgres": "127.0.0.1:55470",
+    "real_trading": false,
+    "merge_main": false
   },
-  "tests": {
-    "scope": "development/source/synthetic; no physical acceptance",
-    "acceptance_python314": {
-      "passed": 338,
+  "build_timestamp_utc": "2026-11-08T10:43:00.457131+00:00",
+  "status": "PORTABLE_SMOKE_PASS_SCM_AWAITING_APPROVAL_NOT_RELEASE_GO",
+  "installed_service_sha": null,
+  "portable_source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+  "source_tests": {
+    "python314_acceptance": {
+      "passed": 368,
       "skipped": 84,
       "subtests_passed": 57
     },
-    "frontend_node": {
-      "passed": 19,
-      "failed": 0
-    },
-    "unittest": {
-      "total": 317,
-      "skipped": 72,
-      "failed": 0
-    },
-    "bandit_medium_high": "PASS",
-    "powershell_parse": "PASS",
-    "installed_dependency_pip_check": "PASS",
-    "python312_openapi": "FAIL: HTTP422 description depends on Python HTTPStatus phrase",
-    "postgres_scm_browser_crash_restore_resource_acceptance": "NOT_RUN"
+    "openapi312_314": "PASS unchanged approved contract",
+    "frontend_previous_unchanged_source": "19 passed",
+    "bandit_medium_high": "PASS"
   },
   "ci": {
-    "status": "NOT_YET_OBSERVED_FOR_RELEASE_COMMIT",
-    "passed": false
+    "source_commit": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+    "runs": [
+      {
+        "conclusion": "",
+        "databaseId": 42472013289,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42472013289"
+      }
+    ],
+    "success": false
   },
-  "host_observation": {
-    "name": "ADMINIT-JQ1IQSV",
-    "windows_build": "26300",
-    "token_elevated": false,
-    "tester_service_present": false,
-    "previous_programdata_root_present": false,
-    "testerlab_root_present": false,
-    "existing_postgresql_x64_18": "Running, outside scope, untouched",
-    "ports_18765_55469": "no listener observed"
-  },
-  "status": "BLOCKED_NOT_INSTALLABLE",
-  "installed_sha": null,
-  "terminal_url": null,
-  "active_instruments": [],
-  "blockers": [
-    "Exact candidate CI not passed",
-    "Prior host-owned root/release/database/config absent; previous checkpoint is historical",
-    "No elevated token for SCM creation; prior cancelled UAC must not be retried automatically",
-    "Old installer fixed ownership must not be fabricated/adopted for a fresh lab",
-    "Native/keyring dependency deployment lock incomplete",
-    "Financial provider and F/G/H not integrated; historical visibility remains UNAVAILABLE/null",
-    "Python3.12 OpenAPI drift requires a separate regression repair before cross-version qualification"
+  "native_runtime_inventory_sha256": "e0c33f1b49d744c44d68c4e70415170c0383ff4fe741fb5461278636bed5d3a3",
+  "postgres_binary_inventory_sha256": "35a84cd6a6dbe6d49ce7faf7b457990a67564c2fa5bc97265bcb7ed619dfa1bc",
+  "enabled_modules": [
+    "A public bounded linear candles",
+    "B PostgreSQL storage/provenance",
+    "E portable API/worker/queue",
+    "D candle and volume UI"
   ],
-  "authority": {
-    "real_trading": false,
-    "merge_main": false,
-    "physical_acceptance": false,
-    "historical_visibility_enrolled": false
-  },
-  "evidence_sha256": {
-    "integrate-a.log": "98bfeffc716054f4b8868c156f64122beaf739d75974c27a03b235ec8ba12449",
-    "integrate-b.log": "56b880665051d05aaf11e9b772045eb5ec80e6a0eff957e2a0549310746261ee",
-    "integrate-final.log": "23d5a7becec3d1b986ad194174ce5f23663be4ad15f5a719147f633f73ebecb0",
-    "unittest-final.log": "6d2227cc236116ed9c6bd90a95a281dad63fa706326df4751628483aabc1f8bf",
-    "frontend-final.log": "5ac3a7e94341df437e09f503cf544fd77c9f87dc73fce21302475e07b13d4e7b",
-    "npm-current.log": "6a8dbe215aa2afadc73f1ec96d94692027c1e7756c38615cbfe12c7f7a73a7e4"
-  },
-  "manifest_placement": "Published in a later evidence commit; release SHA intentionally names the archived source commit, avoiding self-reference. This manifest is not the legacy physical-manifest.json installer schema."
+  "missing_modules": [
+    "derived C financial provider",
+    "F Strategy Lab",
+    "G Control Plane",
+    "H Trader Intelligence"
+  ],
+  "known_limits": [
+    "One explicit user approval before one scoped UAC invocation",
+    "Actual SCM LocalService registration/start/stop/start, native uninstall/crash recovery NOT_RUN",
+    "Exact-source hosted CI queued; no release GO",
+    "Native pywin32 pythonservice host is Authenticode NotSigned; wheel SHA256 is pinned, not an independent signature",
+    "F/G/H and derived financial provider remain NOT_INTEGRATED; historical visibility UNAVAILABLE/null; full-history/physical stress qualification absent"
+  ],
+  "deploy_payload_sha256": "09eb5a8816351a1f2d452707dad440a15af5856a81d306e6216a35e65a76bf6f"
 }

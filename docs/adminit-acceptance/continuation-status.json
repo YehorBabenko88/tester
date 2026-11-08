@@ -1,0 +1,163 @@
+{
+  "SOURCE_SHA": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+  "TREE_SHA": "a13c0af20044c5f091e182366cbafed054653a43",
+  "DEPLOY_PAYLOAD_SHA256": "09eb5a8816351a1f2d452707dad440a15af5856a81d306e6216a35e65a76bf6f",
+  "INSTALLER_TEST": "PASS: 21 source security tests + actual published file prepare/stage/rollback/remove retaining all bytes; native SCM install/uninstall NOT_RUN",
+  "PORTABLE_SMOKE": {
+    "status": "PORTABLE_SMOKE_PASS_NOT_SCM",
+    "source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+    "job_id": "d6df0240-b741-4546-98ee-bbad908a930b",
+    "candles": 30,
+    "start_ms": 1794132240000,
+    "end_ms": 1794134040000,
+    "api": "http://127.0.0.1:18766",
+    "coverage": "UNKNOWN",
+    "keyring": "OWN_RANDOM_PROBE_PASS_REMOVED",
+    "real_trading": false
+  },
+  "SCM_APPROVAL": "AWAITING_EXPLICIT_USER_CONFIRMATION; NO_UAC_LAUNCHED",
+  "SCM_STATUS": "NOT_INSTALLED; portable supervisor is not a Windows service",
+  "PG_ISOLATION": {
+    "status": "PASS_PORTABLE_OWN_CLUSTER",
+    "endpoint": "127.0.0.1:55470",
+    "data_directory": "C:/TesterLab/postgres-data",
+    "existing_5432": "UNTOUCHED_RUNNING",
+    "runtime_role": "tester_lab_app, no storage DDL/DELETE or visibility grants"
+  },
+  "BROWSER_SMOKE": {
+    "status": "PASS_BOUNDED_BTC_CANDLES_VOLUME_UI_DOWNLOAD",
+    "url": "http://127.0.0.1:18766/#terminal",
+    "rendered_panels": "2/12; remaining resources truthfully unavailable",
+    "rows": 30,
+    "ui_job": "770458e9-5eb9-4487-b171-147222c8ca56",
+    "timeframe_change": "1m/3m/1m interaction; no comprehensive mouse/DPI qualification",
+    "screenshot_sha256": "6584c59591bd7cd955f907a4897fe019b8170ed7f2e84f292e92c17c063f2787"
+  },
+  "CI_EXACT_HEAD": {
+    "source_commit": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+    "runs": [
+      {
+        "conclusion": "",
+        "databaseId": 42472013289,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42472013289"
+      }
+    ],
+    "success": false
+  },
+  "REMAINING_BLOCKERS": [
+    "One explicit user approval before one scoped UAC invocation",
+    "Actual SCM LocalService registration/start/stop/start, native uninstall/crash recovery NOT_RUN",
+    "Exact-source hosted CI queued; no release GO",
+    "Native pywin32 pythonservice host is Authenticode NotSigned; wheel SHA256 is pinned, not an independent signature",
+    "F/G/H and derived financial provider remain NOT_INTEGRATED; historical visibility UNAVAILABLE/null; full-history/physical stress qualification absent"
+  ],
+  "ten_instruments": {
+    "status": "PORTABLE_TEN_INSTRUMENT_BOUNDED_PASS_NOT_SCM_OR_STRESS",
+    "source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10",
+    "start_ms": 1794133920000,
+    "end_ms": 1794134220000,
+    "results": [
+      {
+        "symbol": "BTCUSDT",
+        "job_id": "a303ee2f-252c-4968-b34b-1966f56e600d",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "ETHUSDT",
+        "job_id": "f028d515-2dfe-4992-b72b-ec8be1a9d943",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "SOLUSDT",
+        "job_id": "343121d7-7d1c-4b33-aba3-337387344616",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "XRPUSDT",
+        "job_id": "0dee6898-9494-447a-9ccb-a534f676eea3",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "job_id": "ddcf09d9-bc9c-49f2-b561-2ddf7fdb91d9",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "ADAUSDT",
+        "job_id": "96693d3f-a853-4e57-bf4f-a29e685d45fb",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "AVAXUSDT",
+        "job_id": "a45b7356-b346-4108-992d-220b5f140cf6",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "LINKUSDT",
+        "job_id": "8757c39d-3e8e-4a91-a7f8-dae3c988c819",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "DOTUSDT",
+        "job_id": "cfddd686-f5a3-4534-9cfd-70ac38dbf383",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      },
+      {
+        "symbol": "LTCUSDT",
+        "job_id": "75abe74e-8c2e-424f-bece-9b483218e733",
+        "candles": 5,
+        "coverage": "UNKNOWN"
+      }
+    ]
+  },
+  "backup_restore": {
+    "status": "OWNED_BACKUP_RESTORE_PASS",
+    "database": "tester_lab_restore_1794134465738186600",
+    "backup_sha256": "7c2a939b244da6cdd8f63c1a5495cb437d89dd89440ee656b98c0241285f5949",
+    "tables_compared": 28,
+    "raw_records": 78,
+    "all_retained": true
+  },
+  "native_dependency_checks": {
+    "offline_hash_install": "PASS 35 wheels",
+    "keyring": "PASS own random entry roundtrip, entry removed",
+    "private_native_host_import": "PASS, no SCM call",
+    "post_import_runtime_inventory": "PASS",
+    "python_authenticode": "Valid",
+    "service_host_authenticode": "NotSigned"
+  },
+  "source_tests": {
+    "python314_acceptance": {
+      "passed": 368,
+      "skipped": 84,
+      "subtests_passed": 57
+    },
+    "openapi312_314": "PASS unchanged approved contract",
+    "frontend_previous_unchanged_source": "19 passed",
+    "bandit_medium_high": "PASS"
+  },
+  "service_names": {
+    "app": "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60",
+    "postgres": "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60"
+  },
+  "installation_id": "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+  "native_runtime_inventory_sha256": "e0c33f1b49d744c44d68c4e70415170c0383ff4fe741fb5461278636bed5d3a3",
+  "postgres_binary_inventory_sha256": "35a84cd6a6dbe6d49ce7faf7b457990a67564c2fa5bc97265bcb7ed619dfa1bc",
+  "uac_script": "C:\\TesterLab\\releases\\b96548e8a6f4b04505dd3e9f85fa52adfea8ac10\\scripts\\windows\\Invoke-TesterLabAcceptance.ps1",
+  "uac_script_sha256": "b81c06a38818cbaeb86a51e5bbc18d2b96947704f654b355f3697ecffd4e4143",
+  "checked_at_utc": "2026-11-08T10:43:00.457131+00:00",
+  "no_main_merge": true,
+  "no_real_orders": true,
+  "no_existing_database_deletion": true,
+  "scope_note": "Hashes bind bytes only, not independent host/source attestation or historical completeness."
+}

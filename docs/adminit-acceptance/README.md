@@ -1,5 +1,8 @@
 # ADMINIT acceptance candidate — 2026-11-08
 
+**Current continuation:** see [fresh portable acceptance and proposed UAC](CONTINUATION_2026_11_08.md)
+and `continuation-status.json`. The initial snapshot below is historical.
+
 Status: **BLOCKED_NOT_INSTALLABLE; physical acceptance NOT_RUN.**
 
 This directory supersedes historical physical-host statements elsewhere in this
