@@ -147,6 +147,8 @@ def acquire_instruments(
                         "contract_type": raw.get("contractType"),
                         "contract_kind": CONTRACT_KINDS.get(raw.get("contractType"), "unknown"),
                         "settle_coin": raw.get("settleCoin"),
+                        "base_coin": raw.get("baseCoin"),
+                        "quote_coin": raw.get("quoteCoin"),
                         "source": url,
                         "source_observed_at": observed,
                         "source_time_ms": result.get("_source_time_ms"),
@@ -160,6 +162,9 @@ def acquire_instruments(
                     "pages": status_pages,
                     "loaded": status_loaded,
                     "observed_statuses": dict(observed_statuses),
+                    "source_time_ms": result.get("_source_time_ms"),
+                    "observed_at": observed,
+                    "source": url,
                 }
                 if "nextPageCursor" not in result or not isinstance(result["nextPageCursor"], str):
                     raise AcquisitionError("cursor_missing")

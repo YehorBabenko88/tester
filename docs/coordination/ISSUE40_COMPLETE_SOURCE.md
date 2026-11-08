@@ -29,10 +29,27 @@ while retaining certificate and hostname verification. An explicit verified CA b
 path can be supplied by the isolated runtime; disabling verification is rejected.
 No trust store, service, database, native installation or trading endpoint is modified.
 
-The existing service continues atomic catalog-plus-ticker publication: ticker failure
-retains the prior snapshot and exposes the failed stage and completed catalog scope
-evidence. Independent ticker scheduling and historical metric acquisition remain
+Catalog and ticker acquisition now have independent failure semantics. An exhausted
+catalog publishes even when tickers fail. Matching prior metric values retain their
+original source/observation times and become STALE; new instruments have UNAVAILABLE
+metrics. Removed instruments disappear from the new catalog. A failed ticker attempt
+returns false for scheduler backoff while publishing the new catalog revision.
+Catalog and tickers expose separate freshness, provenance, last-success and error
+metadata; query qualifies each metric using that metric's own source timestamp.
+Cancellation still fences every publication. Independent observation history remains
 integration work; cursor exhaustion does not assert ticker metric coverage.
+
+Units are explicit and derived from instrument base/quote metadata, never symbol
+suffix parsing. Price is quote/base, 24h change is a ratio. Linear volume/OI use base
+coin and turnover uses quote coin; inverse volume/OI use quote coin and turnover uses
+base coin. Unknown currency metadata yields UNKNOWN units. Official references are
+the instrument schema, ticker fields, [Kline units](https://bybit-exchange.github.io/docs/v5/market/kline),
+and [OI units](https://bybit-exchange.github.io/docs/v5/market/open-interest).
+The Kline volume/turnover dimension conventions are applied to the corresponding
+24h ticker aggregates. The ticker's documented price-change field is confirmed as a
+fraction by comparing actual lastPrice/prevPrice24h arithmetic in the additional
+timestamped unit-ratio evidence file. Values remain in source units without implicit
+percentage multiplication or cross-currency aggregation.
 
 References: https://bybit-exchange.github.io/docs/v5/market/instrument and
 https://bybit-exchange.github.io/docs/v5/enum (read 2026-11-08).

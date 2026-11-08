@@ -364,7 +364,8 @@ def test_exchange_time_qualifies_metric_freshness(stamp, state, reason):
     assert metric["reason"] == reason
     if stamp is not None and (type(stamp) is not int or stamp <= 0):
         assert metric["source_time_ms"] is None
-    assert result["catalog"]["state"] == {"OBSERVED": "CURRENT"}.get(state, state)
+    assert result["catalog"]["state"] == "UNKNOWN"  # Instrument timestamps were not supplied.
+    assert result["tickers"]["state"] == state
 
 
 def test_cancel_during_normalization_is_final_publication_barrier():
