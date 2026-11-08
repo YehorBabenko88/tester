@@ -37,9 +37,16 @@ function Get-TesterOperationalReadiness {
             }
         } catch { return $receipt }
         if ($length -eq 0 -or $length -gt 65536 -or $clock.ElapsedMilliseconds -ge 2000) { return $receipt }
-        try { $body = ([Text.UTF8Encoding]::new($false,$true).GetString($buffer,0,$length)) | ConvertFrom-Json -ErrorAction Stop }
+        try {
+            $json = [Text.UTF8Encoding]::new($false,$true).GetString($buffer,0,$length)
+            # ConvertFrom-Json unwraps/enum-maps singleton arrays differently
+            # across PowerShell editions. Require an actual JSON object root.
+            if (-not $json.TrimStart().StartsWith('{',[StringComparison]::Ordinal)) { return $receipt }
+            $body = $json | ConvertFrom-Json -ErrorAction Stop
+        }
         catch { return $receipt }
-        if ($body.schema_version -isnot [string] -or $body.schema_version -cne '1.0' -or
+        if ($body -isnot [pscustomobject] -or
+            $body.schema_version -isnot [string] -or $body.schema_version -cne '1.0' -or
             $body.data -isnot [pscustomobject]) { return $receipt }
         foreach ($name in @('database','worker','storage','status','provider')) {
             if ($body.data.$name -isnot [string]) { return $receipt }

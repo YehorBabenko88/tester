@@ -35,6 +35,7 @@ HELPER = Path(__file__).resolve().parents[2] / "scripts/windows/Tester-Readiness
         (302, {}, False),
         (200, {"_trickle": True}, False),
         (200, {"_stall": True}, False),
+        (200, {"_array": True}, False),
     ],
 )
 def test_actual_http_readiness(engine, status, updates, expected):
@@ -42,7 +43,10 @@ def test_actual_http_readiness(engine, status, updates, expected):
     assert executable, f"Required Windows test shell missing: {engine}"
     data = dict(status="ok", database="ok", worker="ok", storage="ok", provider="configured")
     data.update({key: value for key, value in updates.items() if not key.startswith("_")})
-    payload = updates.get("_body", json.dumps(dict(schema_version="1.0", data=data)).encode())
+    document = dict(schema_version="1.0", data=data)
+    if updates.get("_array"):
+        document = [document]
+    payload = updates.get("_body", json.dumps(document).encode())
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
