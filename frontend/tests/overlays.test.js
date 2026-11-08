@@ -105,3 +105,31 @@ test("bounded pages, no payload and live-like inputs stay unavailable", () => {
   f.events = Array(1001).fill(f.events[0]);
   assert.equal(presentOverlay(f, scope).availability, "DATA_UNAVAILABLE");
 });
+test("bar windows are half-open and cannot be known before close", () => {
+  const f = fixture();
+  f.events[0].known_at_ms = 1600;
+  f.events[0].time_window.end_ms = 2500;
+  const cutoffScope = { ...scope, cutoff_ms: 2000 };
+  f.scope = { ...cutoffScope };
+  assert.equal(presentOverlay(f, cutoffScope).availability, "DATA_UNAVAILABLE");
+  f.scope = { ...scope };
+  f.events[0].known_at_ms = 2500;
+  assert.equal(presentOverlay(f, scope).availability, "AVAILABLE");
+  f.events[0].timestamp_ms = 2500;
+  assert.equal(presentOverlay(f, scope).availability, "DATA_UNAVAILABLE");
+});
+test("modeled-open is at window start and exact precision uses a singleton", () => {
+  const f = fixture();
+  const e = f.events[0];
+  e.time_precision = "modeled_open";
+  e.timestamp_ms = 1000;
+  e.known_at_ms = 1000;
+  assert.equal(presentOverlay(f, scope).availability, "AVAILABLE");
+  e.timestamp_ms = 1500;
+  e.known_at_ms = 1500;
+  assert.equal(presentOverlay(f, scope).availability, "DATA_UNAVAILABLE");
+  e.time_precision = "exact";
+  assert.equal(presentOverlay(f, scope).availability, "DATA_UNAVAILABLE");
+  e.time_window = { start_ms: 1500, end_ms: 1500 };
+  assert.equal(presentOverlay(f, scope).availability, "AVAILABLE");
+});

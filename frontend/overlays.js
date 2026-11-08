@@ -77,7 +77,11 @@ export function presentOverlay(page, expected) {
       !time(w.end_ms) ||
       w.start_ms > e.timestamp_ms ||
       w.end_ms < e.timestamp_ms ||
-      (e.time_precision !== "exact" && w.start_ms === w.end_ms)
+      (e.time_precision === "exact"
+        ? w.start_ms !== e.timestamp_ms || w.end_ms !== e.timestamp_ms
+        : w.start_ms >= w.end_ms || e.timestamp_ms >= w.end_ms) ||
+      (e.time_precision === "bar" && e.known_at_ms < w.end_ms) ||
+      (e.time_precision === "modeled_open" && e.timestamp_ms !== w.start_ms)
     )
       return reject(
         "Invalid, duplicate, future-known or uncertain event metadata.",
