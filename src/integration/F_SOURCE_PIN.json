@@ -1,0 +1,81 @@
+{
+  "repository": "YehorBabenko88/tester",
+  "source_sha": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+  "policy": "Exact producer bytes; financial logic remains F authority",
+  "files": {
+    "src/backtest/__init__.py": {
+      "sha256": "f5d35f3bf872a788259a9f5bc538a6790e09f5cee8dd0f75e12d27730b15f076",
+      "git_blob_sha": "da03442b952110c18bbf6d84053a30abce52e195"
+    },
+    "src/backtest/artifacts.py": {
+      "sha256": "fe0cb237d126e10c4e15cbc0be3e483f2098f467fe6ce20e87ff3a1777287ca3",
+      "git_blob_sha": "e9bcb2ac85ec089e65b49090165537fd1173ec88"
+    },
+    "src/backtest/engine.py": {
+      "sha256": "1ab9c2e0cc936f9b215078f585dcbfbb8ea7046b7ee6187d4ea6fa1a17f60fac",
+      "git_blob_sha": "30b5f60736e1df738793598441142a6aad54e079"
+    },
+    "src/backtest/metrics.py": {
+      "sha256": "77ac47f4a8ccaa2c22be2b666894c03dd36ecd2ff33003977df38cb2c0faebe4",
+      "git_blob_sha": "af944fe5510fe3e96924fb0389be166891c3e2d4"
+    },
+    "src/backtest/quality.py": {
+      "sha256": "cce7c2a155e6d0ccf18d8988764b96427875e6414332441aebbc366bd0289bd1",
+      "git_blob_sha": "47d480a4a72e8d53f3aa1bb1d4362f7701b4a653"
+    },
+    "src/backtest/research.py": {
+      "sha256": "042d30559f26184dc5f07315f28a44f80ce45ad311ff3143726fffff1ff48d8c",
+      "git_blob_sha": "22706026a4016f6207f20afd74df2c30fe05b896"
+    },
+    "src/strategy/__init__.py": {
+      "sha256": "59c0ae77041a0c21963f6f7cd5f1ee95b80164d952d9dd018fb810993f774b26",
+      "git_blob_sha": "89734de23968ebf4f179070acbe7501ed269c7e8"
+    },
+    "src/strategy/dsl.py": {
+      "sha256": "a372cda7e873af4cc3b5f98475ad417f1d4f6a83f3bf0189ea0fca6158bf62bf",
+      "git_blob_sha": "82430839fbdc88ada8c8baa4293259f32d1e6644"
+    },
+    "src/strategy/levels.py": {
+      "sha256": "7879141e645fcd8ebe5684214195e2c87a147cab116920850320fb10d58ed54a",
+      "git_blob_sha": "ebe3ec102be876069feeaf9bb812570a97efd735"
+    },
+    "src/strategy/text.py": {
+      "sha256": "cf4f211737dd043739e4dedf56409255a3c73a7d81585348bd15121d3fe3dd5a",
+      "git_blob_sha": "8e0ec19354e4edf8e79d1802b34e908d2332dd3b"
+    },
+    "tests/strategy/test_dsl.py": {
+      "sha256": "0e3bc5fce99a00a696797afa50aac72bde180177cf01e97ea17d100e738bf640",
+      "git_blob_sha": "e2a1d59222e66ae05b2deb5d0372f85f873e1edc"
+    },
+    "tests/strategy/test_engine.py": {
+      "sha256": "e5aebc1882e9c382edfa78371ddca78d52b3546cf781591ae7951a573b6acffa",
+      "git_blob_sha": "c7d0dfc908935870278ec4a39aed1ac58f640f2d"
+    },
+    "tests/strategy/test_levels.py": {
+      "sha256": "d5b471077a88adb3870b880ffc3076139b18c7f40bacba95d8d1bd8c41ccdeab",
+      "git_blob_sha": "0cae48a335fa670f7d6af2c699aa98cff2d66e05"
+    },
+    "tests/strategy/test_master_review.py": {
+      "sha256": "6fb3635a46755abeabfc69ca056e46fdebc6e4705c833ba1da7625225d59f416",
+      "git_blob_sha": "b2a3d6047e457463b157fe660624eb150710cdcf"
+    },
+    "tests/strategy/test_regressions.py": {
+      "sha256": "5e14f15a7d917e9787d6bc291f96a166927a27d42560a3d8e9ae3e86518b43f2",
+      "git_blob_sha": "9acc437d8d878498044bbf807ccb8dc210d74634"
+    },
+    "tests/strategy/test_research.py": {
+      "sha256": "c36031453ee6b90f00f6dca5bd1b5044e4ae6f27242d720713a96118ad4577c9",
+      "git_blob_sha": "65343781983c78305d8c0e179c15af8ee354273c"
+    },
+    "src/integration/fixtures/f998/example.strategy.json": {
+      "producer_path": "docs/strategy/example.strategy.json",
+      "sha256": "4840e8b84c30f205dc9b6d731d850268951d6fb10cb140a095afb8b3509d05a9",
+      "git_blob_sha": "261528a87469bae92100db54bcf1c9aebb18fd83"
+    },
+    "src/integration/fixtures/f998/example.snapshot.json": {
+      "producer_path": "docs/strategy/example.snapshot.json",
+      "sha256": "819add6fc6d6034268f51f25ee9f6ac241b138df00449eeac5fb236db9b461b1",
+      "git_blob_sha": "eea07d7040662fd596663a1174a785c9ed292e8d"
+    }
+  }
+}
