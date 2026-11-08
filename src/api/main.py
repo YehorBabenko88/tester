@@ -90,6 +90,17 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
                 return error(403, "origin_denied", "Cross-origin writes are disabled")
         return await call_next(request)
 
+    @app.get("/api/lab/identity", include_in_schema=False)
+    def lab_identity():
+        from .lab_identity import LabIdentityUnavailable, read_lab_identity
+
+        try:
+            return read_lab_identity(settings)
+        except LabIdentityUnavailable:
+            return error(
+                503, "lab_identity_unavailable", "Installed lab identity cannot be verified"
+            )
+
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, exc):
         return error(422, "validation_error", "Request does not match the API v1 schema")

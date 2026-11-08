@@ -483,3 +483,12 @@ select:focus-visible {
   padding: 8px;
   background: var(--bg);
 }
+
+.connection-notice {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 8px 0;
+}
+.connection-notice.error {
+  color: var(--red);
+}

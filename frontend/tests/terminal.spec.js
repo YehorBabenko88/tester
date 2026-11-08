@@ -750,3 +750,72 @@ test("funding event and selected OI source cadence stay separate from display ti
   expect(oi.at(-1).searchParams.get("interval")).toBe("D");
   expect(requests.some((u) => u.pathname === "/api/trades")).toBe(false);
 });
+
+test("complete downloads retain UNKNOWN coverage and measured telemetry", async ({
+  page,
+}) => {
+  await setup(page, {
+    jobs: [
+      {
+        id: "j1",
+        symbol: "BTCUSDT",
+        state: "completed",
+        checkpoint: {
+          telemetry: {
+            schema_version: 1,
+            bytes_received: 8192,
+            records_ingested: 10,
+            records_verified: 10,
+            elapsed_seconds: 2,
+            bytes_per_second: 4096,
+            source: "bybit",
+            coverage: "UNKNOWN",
+            work_complete: true,
+            expected_records: null,
+            expected_bytes: null,
+            evidence_refs: ["batch:1"],
+          },
+        },
+      },
+    ],
+  });
+  await expect(page.locator("#jobs")).toContainText("Download COMPLETE");
+  await expect(page.locator("#jobs")).toContainText("Coverage UNKNOWN");
+  await expect(page.locator("#jobs")).toContainText("Records verified: 10");
+  await expect(page.locator("#jobs")).toContainText("Bytes received: 8192");
+  await expect(page.locator("#jobs")).toContainText("100%");
+  await expect(page.locator("#overall")).toContainText(
+    "1/1 downloads complete",
+  );
+  await expect(page.locator("#overall")).not.toContainText("verified complete");
+});
+
+test("legacy completed checkpoints do not fabricate percentages or coverage", async ({
+  page,
+}) => {
+  await setup(page, {
+    jobs: [
+      {
+        id: "j1",
+        symbol: "BTCUSDT",
+        state: "completed",
+        progress: 1,
+        verified: true,
+      },
+    ],
+  });
+  await expect(page.locator("#jobs")).toContainText("Download COMPLETE");
+  await expect(page.locator("#jobs")).toContainText("Coverage UNKNOWN");
+  await expect(page.locator("#jobs")).not.toContainText("99%");
+  await expect(page.locator("#jobs")).not.toContainText("100%");
+  await expect(page.locator("#jobs progress").first()).not.toHaveAttribute(
+    "value",
+  );
+  await expect(page.locator("#overall")).toContainText(
+    "1/1 downloads complete",
+  );
+  await expect(page.locator("#connection-notice")).toHaveAttribute(
+    "role",
+    "alert",
+  );
+});

@@ -54,22 +54,43 @@ export function metric(m) {
   return { ...m, source, as_of, availability: status, reason };
 }
 export function progress(job) {
-  const p = job.progress || {},
-    done = Number(p.completed),
-    total = Number(p.total);
-  const known =
-    p.total != null &&
-    Number.isFinite(total) &&
-    total > 0 &&
-    Number.isFinite(done) &&
-    done >= 0;
+  const raw = job.checkpoint?.telemetry;
+  const telemetry = raw?.schema_version === 1 ? raw : {};
+  const count = (value) =>
+    typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+      ? value
+      : null;
+  const measurement = (value) =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0
+      ? value
+      : null;
+  const received = count(telemetry.bytes_received);
+  const ingested = count(telemetry.records_ingested);
+  const expectedRecords = count(telemetry.expected_records);
+  const expectedBytes = count(telemetry.expected_bytes);
+  const done = expectedRecords > 0 ? ingested : received;
+  const total = expectedRecords > 0 ? expectedRecords : expectedBytes;
+  const workComplete = telemetry.work_complete === true;
+  // A consumed denominator alone cannot acknowledge batches or verify committed records.
+  const ratio =
+    total > 0 && done != null && done < total
+      ? Math.floor((done / total) * 100)
+      : null;
   return {
-    percent: known
-      ? Math.min(
-          job.state === "COMPLETE" && p.verified === true ? 100 : 99,
-          Math.max(0, Math.floor((done / total) * 100)),
-        )
-      : null,
+    percent: workComplete ? 100 : ratio,
+    work_complete: workComplete,
+    coverage: ["UNKNOWN", "PARTIAL", "VERIFIED"].includes(telemetry.coverage)
+      ? telemetry.coverage
+      : "UNKNOWN",
+    bytes_received: received,
+    records_ingested: ingested,
+    records_verified: count(telemetry.records_verified),
+    elapsed_seconds: measurement(telemetry.elapsed_seconds),
+    bytes_per_second: measurement(telemetry.bytes_per_second),
+    source: typeof telemetry.source === "string" ? telemetry.source : "unknown",
+    evidence_refs: Array.isArray(telemetry.evidence_refs)
+      ? telemetry.evidence_refs.filter((ref) => typeof ref === "string")
+      : [],
   };
 }
 export function validateSeries(rows, kind, start, end) {
@@ -132,3 +153,16 @@ export const PANELS = [
   ["mark", "Mark Price", "raw"],
   ["index", "Index Price", "raw"],
 ];
+
+export function connectionNotice(location) {
+  if (location.protocol !== "http:") return null;
+  const local = ["localhost", "127.0.0.1", "[::1]", "::1"].includes(
+    location.hostname,
+  );
+  return {
+    warning: !local,
+    text: local
+      ? "Local HTTP connection on this computer. Traffic is not encrypted; the API is restricted to loopback."
+      : "Warning: this remote HTTP connection is not encrypted. Use HTTPS before sending sensitive information.",
+  };
+}

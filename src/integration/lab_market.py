@@ -22,6 +22,7 @@ from src.api.providers import ProviderDataUnavailable, ProviderUnavailable
 from src.storage.models import normalize
 from src.storage.store import DataConflict, Store
 
+from .lab_telemetry import HttpMeter, acknowledgment, attempt_measurement
 from .storage_api import IntegrationUnavailable, provenance_from_storage
 
 SYMBOLS = (
@@ -70,12 +71,13 @@ def validate_download(request):
         or request.source != "bybit"
         or request.kind != "candles"
         or request.interval
-        not in ("1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D")
+        not in ("1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M")
         or not 0 <= request.start_ms < request.end_ms
-        or request.end_ms - request.start_ms > 86400000
+        or request.end_ms - request.start_ms
+        > (93 if request.interval in ("W", "M") else 1) * 86400000
     ):
         raise ProviderUnavailable(
-            "Lab supports ten public linear symbols, candles, at most one day"
+            "Lab supports ten public linear symbols: one-day minute/day or 93-day week/month jobs"
         )
 
 
@@ -166,7 +168,7 @@ class LabReader:
                         id="bybit",
                         availability="partial",
                         kinds=["candles"],
-                        reason="Public linear closed candles, ten symbols, one-day bounded jobs",
+                        reason="Public linear closed candles; one-day or 93-day calendar bounded jobs",
                     )
                 ]
                 if query.category == "linear"
@@ -262,6 +264,36 @@ class LabReader:
         return envelope(values, query, provenance, cursor)
 
 
+def verify_published_batch(store, connection, batch):
+    """Validate reread B values/linkage and persisted A projection inside job fence."""
+    evidence = batch["evidence"]
+    expected = {r["record_key"]: r for r in map(normalize, batch["records"])}
+    rows = store.read(
+        "candles",
+        evidence["venue"],
+        evidence["category"],
+        evidence["symbol"],
+        evidence["start_ms"],
+        evidence["end_ms"],
+        evidence["interval"],
+        limit=10000,
+    )
+    rows = {row["record_key"]: row for row in rows if row["record_key"] in expected}
+    projections = dict(
+        connection.execute(
+            "SELECT record_key,record FROM tester_lab.projections WHERE record_key=ANY(%s)",
+            (list(expected),),
+        ).fetchall()
+    )
+    if rows.keys() != expected.keys() or projections.keys() != expected.keys():
+        raise ValueError("Published records missing")
+    for key, raw in expected.items():
+        if rows[key]["content_hash"] != raw["content_hash"]:
+            raise ValueError("Published record values differ")
+        project_candle(rows[key], projections[key], evidence["start_ms"], evidence["end_ms"])
+    return {key: raw["content_hash"] for key, raw in expected.items()}
+
+
 class LabHandler:
     def __init__(self, settings):
         self.settings = settings
@@ -278,7 +310,9 @@ class LabHandler:
         journal = Journal(directory / "journal.sqlite")
         try:
             deadline = time.monotonic() + 90
-            session = verified_session(self.settings.data_dir.parent)
+            prior = copy.deepcopy(checkpoint.get("telemetry", {}))
+            prior = prior if prior.get("schema_version") == 1 else {}
+            session = HttpMeter(verified_session(self.settings.data_dir.parent), evidence_dir=directory)
             api = API(
                 Transport(
                     session=session,
@@ -299,6 +333,9 @@ class LabHandler:
                 request.end_ms,
                 limit=1000,
                 cancel=stop.is_set,
+                window_ms=request.end_ms - request.start_ms
+                if request.interval in ("W", "M")
+                else 7 * 86400000,
             )
             if stop.is_set() or result["status"] == "paused":
                 raise InterruptedError("cancelled")
@@ -311,9 +348,18 @@ class LabHandler:
             }
             if not originals:
                 raise ProviderUnavailable("No closed source candles")
+            current = copy.deepcopy(prior)
             for index, batch in enumerate(bundle["storage_batches"]):
                 if stop.is_set():
                     raise InterruptedError("cancelled")
+
+                published = dict(
+                    batches=index + 1,
+                    source_records=len(originals),
+                    coverage="UNKNOWN",
+                    source="bybit",
+                    acquisition_id=directory.name,
+                )
 
                 def write(connection):
                     store = bound_store(connection, self.settings)
@@ -337,6 +383,13 @@ class LabHandler:
                             "INSERT INTO tester_lab.projections(record_key,record) VALUES(%s,%s) ON CONFLICT DO NOTHING",
                             (key, Jsonb(original)),
                         )
+                    verified = verify_published_batch(store, connection, batch)
+                    published["telemetry"] = acknowledgment(
+                        current,
+                        verified,
+                        attempt_measurement(prior, session.snapshot()),
+                        complete=index + 1 == len(bundle["storage_batches"]),
+                    )
 
                 def mark_conflict(connection):
                     bound_store(connection, self.settings).mark_range(
@@ -350,14 +403,10 @@ class LabHandler:
                     commit,
                     write,
                     mark_conflict,
-                    dict(
-                        batches=index + 1,
-                        source_records=len(originals),
-                        coverage="PARTIAL",
-                        source="bybit",
-                    ),
+                    published,
                     (index + 1) / len(bundle["storage_batches"]),
                 )
+                current = copy.deepcopy(published["telemetry"])
         finally:
             journal.close()
             if "session" in locals():

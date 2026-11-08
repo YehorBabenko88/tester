@@ -6,6 +6,7 @@ import {
   metric,
   compareDecimal,
   progress,
+  connectionNotice,
   validateSeries,
   PANELS,
 } from "./model.js";
@@ -17,6 +18,17 @@ const el = (tag, text, className) => {
   if (className) n.className = className;
   return n;
 };
+const connection = connectionNotice(window.location);
+if (connection) {
+  const notice = el(
+    "p",
+    connection.text,
+    connection.warning ? "connection-notice error" : "connection-notice",
+  );
+  notice.id = "connection-notice";
+  if (connection.warning) notice.setAttribute("role", "alert");
+  document.querySelector("main").prepend(notice);
+}
 const readStore = (k, fallback) => {
   try {
     return JSON.parse(localStorage.getItem(k)) ?? fallback;
@@ -309,17 +321,7 @@ const jobState = (j) =>
   j.state ||
   "UNKNOWN";
 function jobProgress(j) {
-  if (typeof j.progress === "number") {
-    return {
-      percent: Number.isFinite(j.progress)
-        ? Math.min(
-            j.verified === true && jobState(j) === "COMPLETE" ? 100 : 99,
-            Math.max(0, Math.floor(j.progress * 100)),
-          )
-        : null,
-    };
-  }
-  return progress({ ...j, state: jobState(j) });
+  return progress(j);
 }
 function renderJobs() {
   const jobs = $("#jobs");
@@ -334,7 +336,8 @@ function renderJobs() {
         "strong",
         `${j.request?.symbol || j.symbol || "Instrument unknown"} · ${j.request?.source || "Sources below"}`,
       ),
-      el("span", jobState(j), "badge"),
+      el("span", "Download " + jobState(j), "badge"),
+      el("span", "Coverage " + jobProgress(j).coverage, "badge"),
     );
     box.append(head);
     const p = jobProgress(j),
@@ -347,36 +350,46 @@ function renderJobs() {
       el(
         "p",
         p.percent == null
-          ? "Unknown total"
-          : `${p.percent}% · ${j.verified === true || j.progress?.verified === true ? "verification supplied" : "verification not confirmed"}`,
+          ? "Unknown total or completion checks pending - work progress indeterminate"
+          : `${p.percent}% - ${p.work_complete ? "all batches acknowledged and record checks passed" : "measured download work"}`,
       ),
     );
-    if (p.percent === 100) complete++;
-    const counters = j.counters || {};
+    if (jobState(j) === "COMPLETE") complete++;
+    const counters = p;
     box.append(
       el(
         "p",
-        `Bytes: ${counters.bytes ?? "unknown"} · Verified records: ${counters.verified_records ?? "unknown"} · Speed: ${counters.bytes_per_second ?? "unknown"} B/s · ETA: ${counters.eta_seconds != null && counters.eta_confident === true ? counters.eta_seconds + " s" : "not enough evidence"}`,
+        `Bytes received: ${counters.bytes_received ?? "unknown"} - Records ingested: ${counters.records_ingested ?? "unknown"} - Records verified: ${counters.records_verified ?? "unknown"} - Elapsed: ${counters.elapsed_seconds ?? "unknown"} s - Speed: ${counters.bytes_per_second ?? "unknown"} B/s - Source: ${counters.source}`,
       ),
     );
+    box.append(
+      el(
+        "small",
+        "Verified records passed committed value/provenance reread checks; this does not establish dataset coverage.",
+      ),
+    );
+    if (p.evidence_refs.length)
+      box.append(el("small", "Evidence: " + p.evidence_refs.join("; ")));
     const sources = j.sources || [
       {
-        source: j.request?.source || "unknown",
+        source:
+          p.source !== "unknown" ? p.source : j.request?.source || "unknown",
+        checkpoint: j.checkpoint,
         state: jobState(j),
         error: j.error,
       },
     ];
     for (const s of sources) {
+      const sp = jobProgress(s);
       const row = el("div", null, "job-source");
       row.append(
         el("strong", `${s.source} · ${s.state || "UNKNOWN"}`),
         el(
           "div",
-          `Bytes ${s.bytes ?? "unknown"} · Verified ${s.verified_records ?? "unknown"} · Speed ${s.bytes_per_second ?? "unknown"} B/s`,
+          `Bytes received ${sp.bytes_received ?? "unknown"} - Records verified ${sp.records_verified ?? "unknown"} - Speed ${sp.bytes_per_second ?? "unknown"} B/s`,
         ),
       );
-      const sp = jobProgress(s),
-        sb = el("progress");
+      const sb = el("progress");
       sb.max = 100;
       if (sp.percent != null) sb.value = sp.percent;
       sb.setAttribute("aria-label", "Source progress " + s.source);
@@ -424,7 +437,7 @@ function renderJobs() {
     jobs.append(box);
   }
   $("#overall").textContent = all.length
-    ? `${complete}/${all.length} jobs verified complete · ${all.length - complete} require completion or verification`
+    ? `${complete}/${all.length} downloads complete - dataset coverage is reported separately on each download`
     : "";
 }
 async function refreshJobs(force = false) {

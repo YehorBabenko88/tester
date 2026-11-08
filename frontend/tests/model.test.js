@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compareDecimal, metric, progress, validateSeries } from "../model.js";
+import {
+  compareDecimal,
+  metric,
+  progress,
+  validateSeries,
+  connectionNotice,
+} from "../model.js";
 import { request } from "../api.js";
 import { plotGeometry, barDomain, isSeriesGap } from "../charts.js";
 test("OI line continuity follows source cadence rather than display timeframe", () => {
@@ -39,27 +45,88 @@ test("metric cannot claim available without source and timestamp", () => {
     "1",
   );
 });
-test("progress never claims 100 before verified completion", () => {
-  assert.equal(
-    progress({ state: "DOWNLOADING", progress: { completed: 10, total: 10 } })
-      .percent,
-    99,
-  );
+test("download work completion is distinct from coverage and legacy progress", () => {
   assert.equal(
     progress({
       state: "COMPLETE",
       progress: { completed: 10, total: 10, verified: true },
     }).percent,
-    100,
-  );
-  assert.equal(
-    progress({ state: "DISCOVERING", progress: { completed: 10 } }).percent,
     null,
   );
   assert.equal(
-    progress({ state: "COMPLETE", progress: { completed: 10, total: 10 } })
-      .percent,
-    99,
+    progress({ state: "completed", progress: 1 }).coverage,
+    "UNKNOWN",
+  );
+  const telemetry = {
+    schema_version: 1,
+    bytes_received: 8192,
+    records_ingested: 10,
+    records_verified: 10,
+    elapsed_seconds: 2,
+    bytes_per_second: 4096,
+    source: "bybit",
+    coverage: "UNKNOWN",
+    work_complete: true,
+    expected_records: null,
+    expected_bytes: null,
+    evidence_refs: ["batch:1"],
+  };
+  const complete = progress({ state: "completed", checkpoint: { telemetry } });
+  assert.equal(complete.percent, 100);
+  assert.equal(complete.coverage, "UNKNOWN");
+  assert.equal(complete.records_verified, 10);
+  for (const coverage of ["UNKNOWN", "PARTIAL", "VERIFIED"]) {
+    assert.equal(
+      progress({
+        state: "completed",
+        checkpoint: { telemetry: { ...telemetry, coverage } },
+      }).coverage,
+      coverage,
+    );
+  }
+  assert.equal(
+    progress({
+      checkpoint: { telemetry: { ...telemetry, work_complete: "true" } },
+    }).percent,
+    null,
+  );
+
+  assert.equal(
+    progress({
+      state: "running",
+      checkpoint: { telemetry: { ...telemetry, work_complete: false } },
+    }).percent,
+    null,
+  );
+  assert.equal(
+    progress({
+      state: "running",
+      checkpoint: {
+        telemetry: { ...telemetry, work_complete: false, expected_records: 20 },
+      },
+    }).percent,
+    50,
+  );
+  assert.equal(
+    progress({
+      state: "running",
+      checkpoint: {
+        telemetry: { ...telemetry, work_complete: false, expected_records: 10 },
+      },
+    }).percent,
+    null,
+  );
+  assert.equal(
+    progress({
+      checkpoint: { telemetry: { ...telemetry, schema_version: 99 } },
+    }).records_verified,
+    null,
+  );
+  assert.equal(
+    progress({
+      checkpoint: { telemetry: { ...telemetry, coverage: "COMPLETE" } },
+    }).coverage,
+    "UNKNOWN",
   );
 });
 test("corrupt candles are rejected, gaps preserved and bounded", () => {
@@ -110,5 +177,23 @@ test("HTTP and schema failures remain explicit errors", async () => {
       { fetcher: async () => new Response("{}") },
     ),
     /schema/i,
+  );
+});
+
+test("HTTP notices distinguish loopback from remote and do not claim TLS", () => {
+  for (const host of ["localhost", "127.0.0.1", "[::1]"]) {
+    assert.equal(
+      connectionNotice({ protocol: "http:", hostname: host }).warning,
+      false,
+    );
+  }
+  assert.equal(
+    connectionNotice({ protocol: "http:", hostname: "localhost.example" })
+      .warning,
+    true,
+  );
+  assert.equal(
+    connectionNotice({ protocol: "https:", hostname: "example.com" }),
+    null,
   );
 });
