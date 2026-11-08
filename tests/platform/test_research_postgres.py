@@ -175,10 +175,10 @@ def test_actual_g_http_postgres_roundtrip(persistent):
     import time
 
     import uvicorn
-    from src.integration.strategy_lab import run_certified_fixture
 
     from src.api.research_g_client import ResearchGatewayClient
     from src.api.research_ledger import create_persistent_control_app
+    from src.integration.strategy_lab import run_certified_fixture
 
     bundle = run_certified_fixture()
     digest = persistent.publish_bundle(bundle)
