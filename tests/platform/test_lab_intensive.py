@@ -80,7 +80,7 @@ def test_preflight_errors_do_not_print_secrets(monkeypatch, capsys):
 
 def test_invalid_service_roles_are_rejected_before_cim(monkeypatch):
     m = module()
-    monkeypatch.setattr(m.os, "name", "nt")
+    monkeypatch.setattr(m, "is_windows", lambda: True)
     with pytest.raises(ValueError, match="service"):
         m.process_sample(
             Path("C:/sandbox"),
@@ -92,6 +92,63 @@ def test_invalid_service_roles_are_rejected_before_cim(monkeypatch):
             },
             10,
         )
+
+
+def test_windows_sampler_fixture_does_not_mutate_shared_os_identity(monkeypatch):
+    import os
+
+    original = os.name
+
+    class IsolatedPatch:
+        def setattr(self, target, name, value):
+            assert not (target is os and name == "name"), "shared os.name must not be patched"
+            monkeypatch.setattr(target, name, value)
+
+    test_invalid_service_roles_are_rejected_before_cim(IsolatedPatch())
+    assert os.name == original
+    assert Path(".").resolve().is_dir()
+
+
+def test_non_windows_sampler_refuses_before_any_subprocess(monkeypatch):
+    m = module()
+    monkeypatch.setattr(m, "is_windows", lambda: False)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("non-Windows sampler must not start a process")
+
+    monkeypatch.setattr(m.subprocess, "run", forbidden)
+    with pytest.raises(ValueError, match="Windows counters unavailable"):
+        m.process_sample(Path("."), {}, 10)
+
+
+def test_mocked_windows_sampler_does_not_require_host_windows_subprocess_constant(monkeypatch):
+    import subprocess
+    from types import SimpleNamespace
+
+    m = module()
+    monkeypatch.setattr(m, "is_windows", lambda: True)
+    calls = []
+
+    def empty_fixture(*args, **kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(stdout=b'{"rows":[],"bindings":[]}')
+
+    # A local module proxy models POSIX subprocess without mutating global OS state.
+    monkeypatch.setattr(
+        m, "subprocess", SimpleNamespace(run=empty_fixture, list2cmdline=subprocess.list2cmdline)
+    )
+    with pytest.raises(ValueError, match="process"):
+        m.process_sample(
+            Path("."),
+            {
+                "services": {
+                    "app": "TesterLabApp_" + "a" * 32,
+                    "postgres": "TesterLabPG_" + "a" * 32,
+                }
+            },
+            10,
+        )
+    assert len(calls) == 1 and calls[0]["creationflags"] == 0
 
 
 def simulated_run(
@@ -186,6 +243,7 @@ def test_missing_cim_rows_cannot_look_like_zero_resource_usage(monkeypatch):
     import types
 
     m = module()
+    monkeypatch.setattr(m, "is_windows", lambda: True)
     monkeypatch.setattr(
         m.subprocess,
         "run",
@@ -237,12 +295,16 @@ def test_final_snapshot_detects_late_external_failure(monkeypatch, tmp_path):
 )
 def test_batched_cim_template_scopes_and_fails_closed(monkeypatch, scenario):
     import json
+    import shutil
     import subprocess
 
     m = module()
+    monkeypatch.setattr(m, "is_windows", lambda: True)
     names = {"app": "TesterLabApp_" + "a" * 32, "postgres": "TesterLabPG_" + "a" * 32}
     root = Path("C:/synthetic probe")
     real_run = subprocess.run
+    shell = shutil.which("powershell") or shutil.which("pwsh")
+    assert shell is not None, "PowerShell is required for the synthetic CIM template fixture"
     prefix = r"""
 $global:ProcessQueries=0
 function Get-CimInstance {
@@ -298,7 +360,7 @@ function Get-CimInstance {
     )
 
     def synthetic_subprocess(command, **kwargs):
-        return real_run([*command[:-1], prefix + "\n" + command[-1]], **kwargs)
+        return real_run([shell, *command[1:-1], prefix + "\n" + command[-1]], **kwargs)
 
     monkeypatch.setattr(m.subprocess, "run", synthetic_subprocess)
     if scenario != "valid":
