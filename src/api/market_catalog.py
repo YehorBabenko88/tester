@@ -9,9 +9,11 @@ import time
 from copy import deepcopy
 from decimal import Decimal, InvalidOperation
 
-import requests
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
+
+from .bybit_catalog import AcquisitionError, acquire_instruments
+from .bybit_catalog import BybitCatalogSource as BybitCatalogSource
 
 CATEGORIES = ("linear", "inverse")
 METRICS = {
@@ -26,36 +28,6 @@ UNAVAILABLE = ("volatility", "price_change_1h", "oi_change_1h", "oi_change_24h",
 
 class SnapshotConflict(ValueError):
     """The caller must restart pagination against the new revision."""
-
-
-class AcquisitionError(ValueError):
-    pass
-
-
-class BybitCatalogSource:
-    """One bounded public HTTP attempt; scheduler owns retries, not browsers."""
-
-    def call(self, endpoint, params):
-        if endpoint not in {"/instruments-info", "/tickers"}:
-            raise ValueError("Unsupported public catalog endpoint")
-        url = "https://api.bybit.com/v5/market" + endpoint
-        with requests.get(url, params=params, timeout=(5, 15), stream=True) as response:
-            if response.status_code == 429:
-                raise AcquisitionError("rate_limited")
-            response.raise_for_status()
-            content = bytearray()
-            for chunk in response.iter_content(chunk_size=65536):
-                if len(content) + len(chunk) > 8_000_000:
-                    raise AcquisitionError("response_budget")
-                content.extend(chunk)
-            body = json.loads(content)
-            if body.get("retCode") == 10006:
-                raise AcquisitionError("rate_limited")
-            if body.get("retCode") != 0 or not isinstance(body.get("result"), dict):
-                raise AcquisitionError("invalid_response")
-            result = dict(body["result"])
-            result["_source_time_ms"] = body.get("time")
-            return result, response.url
 
 
 def _category(category):
@@ -113,49 +85,20 @@ class CatalogService:
         _category(category)
         if not self._refresh[category].acquire(blocking=False):
             return False
-        rows, pages, cursor, seen = {}, 0, None, set()
-        completed = False
+        rows, pages, acquired = {}, 0, None
+        stage = "catalog"
         try:
-            while pages < self.max_pages:
-                if self._cancel.is_set():
-                    raise AcquisitionError("cancelled")
-                params = {"category": category, "status": "Trading", "limit": 1000}
-                if cursor:
-                    params["cursor"] = cursor
-                result, url = self.source.call("/instruments-info", params)
-                batch = result.get("list")
-                if result.get("category") != category or not isinstance(batch, list):
-                    raise AcquisitionError("invalid_response")
-                pages += 1
-                for raw in batch:
-                    if not isinstance(raw, dict) or not isinstance(raw.get("symbol"), str):
-                        raise AcquisitionError("invalid_instrument")
-                    symbol = raw["symbol"]
-                    if not symbol or len(symbol) > 100 or raw.get("status") != "Trading":
-                        raise AcquisitionError("invalid_instrument")
-                    if symbol in rows:
-                        raise AcquisitionError("duplicate_instrument")
-                    rows[symbol] = {
-                        "symbol": symbol,
-                        "category": category,
-                        "status": raw["status"],
-                        "contract_type": raw.get("contractType"),
-                        "settle_coin": raw.get("settleCoin"),
-                        "source": url,
-                    }
-                    if len(rows) > self.max_rows:
-                        raise AcquisitionError("row_budget")
-                if "nextPageCursor" not in result or not isinstance(result["nextPageCursor"], str):
-                    raise AcquisitionError("cursor_missing")
-                cursor = result["nextPageCursor"]
-                if not cursor:
-                    completed = True
-                    break
-                if cursor in seen:
-                    raise AcquisitionError("repeated_cursor")
-                seen.add(cursor)
-            if not completed:
-                raise AcquisitionError("page_budget")
+            acquired = acquire_instruments(
+                self.source,
+                category,
+                max_pages=self.max_pages,
+                max_rows=self.max_rows,
+                cancel=self._cancel,
+                clock=self.clock,
+            )
+            rows = {row["symbol"]: row for row in acquired["rows"]}
+            pages = acquired["pages"]
+            stage = "tickers"
             if self._cancel.is_set():
                 raise AcquisitionError("cancelled")
             ticker_result, ticker_url = self.source.call("/tickers", {"category": category})
@@ -207,6 +150,7 @@ class CatalogService:
                 "rows": list(rows.values()),
                 "last_success": now,
                 "pages": pages,
+                "status_coverage": acquired["status_coverage"],
                 "source_time_ms": source_stamp,
                 "source_time_error": source_time_error,
             }
@@ -222,6 +166,9 @@ class CatalogService:
                     "completeness": "EXHAUSTED",
                     "loaded": len(rows),
                     "last_error": None,
+                    "stage": "published",
+                    "pages": pages,
+                    "status_coverage": acquired["status_coverage"],
                     "at": now,
                 }
             return True
@@ -229,8 +176,17 @@ class CatalogService:
             reason = str(exc) if isinstance(exc, AcquisitionError) else "source_failure"
             with self._lock:
                 self._attempts[category] = {
-                    "completeness": "PARTIAL" if rows else "UNKNOWN",
-                    "loaded": len(rows),
+                    "completeness": "PARTIAL"
+                    if rows or (isinstance(exc, AcquisitionError) and exc.loaded)
+                    else "UNKNOWN",
+                    "loaded": exc.loaded
+                    if isinstance(exc, AcquisitionError) and exc.loaded
+                    else len(rows),
+                    "pages": exc.pages if isinstance(exc, AcquisitionError) else pages,
+                    "status_coverage": acquired["status_coverage"]
+                    if acquired
+                    else (exc.status_coverage if isinstance(exc, AcquisitionError) else {}),
+                    "stage": stage,
                     "last_error": reason,
                     "at": self.clock(),
                 }
@@ -328,7 +284,8 @@ class CatalogService:
                 else "UNAVAILABLE",
                 "last_success": snapshot["last_success"] if snapshot else None,
                 "last_error": attempt["last_error"],
-                "scope": "Trading",
+                "scope": "current_statuses",
+                "status_coverage": snapshot.get("status_coverage", {}) if snapshot else {},
                 "historical_listing_coverage": "UNKNOWN",
             },
         }

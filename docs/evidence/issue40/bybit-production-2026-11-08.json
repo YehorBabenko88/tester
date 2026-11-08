@@ -1,0 +1,143 @@
+{
+  "observed_at": "2026-11-08T21:26:39.911710+00:00",
+  "transport": "Production requests with ssl.create_default_context verified OS trust",
+  "categories": {
+    "linear": {
+      "loaded": 1995,
+      "pages": 6,
+      "scope": {
+        "Trading": {
+          "pages": [
+            {
+              "count": 930,
+              "source_time_ms": 1794173199937,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 930,
+          "identity_sha256": "46c9d80a535fda6dbbe97eba87d8fa14bdf278feda86809ab9c24744998ec0f2",
+          "matches_independent": true
+        },
+        "PreLaunch": {
+          "pages": [
+            {
+              "count": 7,
+              "source_time_ms": 1794173200467,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 7,
+          "identity_sha256": "c621c377d40eabae629e98bb7809cfb6ef96148b35b010b0eff662c6854e2532",
+          "matches_independent": true
+        },
+        "PendingOpen": {
+          "pages": [
+            {
+              "count": 0,
+              "source_time_ms": 1794173200982,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 0,
+          "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "matches_independent": true
+        },
+        "Delivering": {
+          "pages": [
+            {
+              "count": 0,
+              "source_time_ms": 1794173201468,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 0,
+          "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "matches_independent": true
+        },
+        "Closed": {
+          "pages": [
+            {
+              "count": 1000,
+              "source_time_ms": 1794173202035,
+              "cursor_continues": true
+            },
+            {
+              "count": 58,
+              "source_time_ms": 1794173202706,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 1058,
+          "identity_sha256": "3235adb7644cf0244c443623b0b52158417b82ef4be2137f9b6d2004de70dd1f",
+          "matches_independent": true
+        }
+      }
+    },
+    "inverse": {
+      "loaded": 76,
+      "pages": 5,
+      "scope": {
+        "Trading": {
+          "pages": [
+            {
+              "count": 26,
+              "source_time_ms": 1794173203247,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 26,
+          "identity_sha256": "507a195575a671f7650174f57f2ee7d1eb51719529927d0ffd1a17440cb11065",
+          "matches_independent": true
+        },
+        "PreLaunch": {
+          "pages": [
+            {
+              "count": 0,
+              "source_time_ms": 1794173203778,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 0,
+          "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "matches_independent": true
+        },
+        "PendingOpen": {
+          "pages": [
+            {
+              "count": 0,
+              "source_time_ms": 1794173204324,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 0,
+          "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "matches_independent": true
+        },
+        "Delivering": {
+          "pages": [
+            {
+              "count": 0,
+              "source_time_ms": 1794173204823,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 0,
+          "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "matches_independent": true
+        },
+        "Closed": {
+          "pages": [
+            {
+              "count": 50,
+              "source_time_ms": 1794173205357,
+              "cursor_continues": false
+            }
+          ],
+          "loaded": 50,
+          "identity_sha256": "a3f261ff6cdbdb33aa4ecfb824a0fd2969db1374f126421bc2d5c0d5a9341e6f",
+          "matches_independent": true
+        }
+      }
+    }
+  }
+}

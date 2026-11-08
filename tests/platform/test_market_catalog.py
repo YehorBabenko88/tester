@@ -34,6 +34,12 @@ class Source:
                     {"symbol": "S0000", "lastPrice": "1"},
                 ],
             }, "https://api.bybit.com/v5/market/tickers"
+        if params["status"] != "Trading":
+            return {
+                "category": params["category"],
+                "list": [],
+                "nextPageCursor": "",
+            }, "https://api.bybit.com/v5/market/instruments-info"
         start = 1000 if params.get("cursor") else 0
         rows = [
             {
@@ -63,7 +69,7 @@ def test_complete_universe_global_sort_and_unavailable_metrics():
     assert result["rows"][0]["metrics"]["price"]["value"] == "999999"
     assert result["rows"][0]["metrics"]["market_cap"]["state"] == "UNAVAILABLE"
     assert result["rows"][0]["metrics"]["price_change_1h"]["value"] is None
-    assert len(source.calls) == 3
+    assert len(source.calls) == 7
     assert source.calls[1][1]["cursor"] == "next"
 
 
@@ -182,7 +188,7 @@ def test_single_backend_poller_categories_coalescing_and_graceful_stop():
         for _ in range(100):
             service.request_refresh("linear")
         await asyncio.sleep(0.05)
-        assert len(source.calls) == 6  # One category snapshot, not one per request/tab.
+        assert len(source.calls) == 14  # One category snapshot, not one per request/tab.
         await service.stop()
         assert service._task is None
         with pytest.raises(RuntimeError):
@@ -249,7 +255,7 @@ def test_public_source_bounds_response_body_before_json_decode(monkeypatch):
             pytest.fail("Unbounded response decoded")
 
     monkeypatch.setattr(
-        "src.api.market_catalog.requests.get", lambda *args, **kwargs: LargeResponse()
+        "src.api.bybit_catalog._public_get", lambda *args, **kwargs: LargeResponse()
     )
     with pytest.raises(AcquisitionError, match="response_budget"):
         BybitCatalogSource().call("/tickers", {"category": "linear"})
@@ -274,7 +280,7 @@ def test_source_rate_limit_is_safe_and_source_timestamp_preserved(monkeypatch):
             yield json.dumps(self.body).encode()
 
     monkeypatch.setattr(
-        "src.api.market_catalog.requests.get", lambda *args, **kwargs: PublicResponse()
+        "src.api.bybit_catalog._public_get", lambda *args, **kwargs: PublicResponse()
     )
     with pytest.raises(AcquisitionError, match="rate_limited"):
         BybitCatalogSource().call("/tickers", {"category": "linear"})
@@ -439,6 +445,7 @@ def test_manual_refresh_cannot_bypass_rate_limit_backoff(monkeypatch):
             if (
                 endpoint == "/instruments-info"
                 and params["category"] == "linear"
+                and params["status"] == "Trading"
                 and "cursor" not in params
             ):
                 attempts.append(now[0])
