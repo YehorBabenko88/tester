@@ -1,0 +1,244 @@
+{
+  "checked_at": "2026-11-07T16:02:11.875014+00:00",
+  "fixture_kind": "synthetic_immutable_A_to_B_postgresql_roundtrip",
+  "pins": {
+    "producer_sha": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+    "storage_sha": "e236395684d661f9464a62a0f6f67803d9000de6",
+    "contract_sha": "9766c0093e2608280875ac56db074414a3d62c69"
+  },
+  "tests": {
+    "tests_run": 6,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "cases": {
+    "test_equivalent_decimals_two_observations_one_trade": {
+      "economic_executions": 1,
+      "source_observations": 2,
+      "raw_versions": 2,
+      "shared_read_valid": true
+    },
+    "test_genuine_conflict_is_not_published": {
+      "conflicts": 1,
+      "publication_batches": 0,
+      "raw_versions": 2
+    },
+    "test_original_ns_ms_us_preserved_through_shared_read": {
+      "ns_exact": true,
+      "ms_ns_null": true,
+      "us_exact": true,
+      "shared_read_valid": 3
+    },
+    "test_original_run_exact_match_and_atomic_rejection": {
+      "negative_variants": 6,
+      "whole_schema_counts_unchanged": true,
+      "prior_checkpoint_unchanged": true,
+      "original_run_status": "matched"
+    },
+    "test_replay_and_journal_restart": {
+      "journal_restart_lossless": true,
+      "publication_replay_counts_unchanged": true,
+      "economic_executions": 1,
+      "source_observations": 2
+    },
+    "test_terminal_pagination_is_not_complete_coverage": {
+      "response_counts": [
+        2,
+        1
+      ],
+      "terminal_condition": "EXHAUSTED",
+      "coverage_complete": false,
+      "verified_percent": 0
+    }
+  },
+  "restart": {
+    "postgres_restart": true,
+    "new_process_replay": true,
+    "economic_executions": 1,
+    "source_observations": 2,
+    "all_schema_counts_unchanged": true,
+    "source_run_status": "matched"
+  },
+  "postgres_version": "postgres (PostgreSQL) 18.4",
+  "scratch_server_stopped": true,
+  "network_market_acquisition": false,
+  "full_pipeline_acceptance": false,
+  "production_files": {
+    "src/ingest/__main__.py": {
+      "role": "producer",
+      "commit": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "sha256": "b7f786059113b67b388fc03b6755e940161f12f6512afd8b79ac7c1190dab9e0"
+    },
+    "src/ingest/archive.py": {
+      "role": "producer",
+      "commit": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "sha256": "f3a96512e7d6d4d1932c7dbfab64e77ab5831fb0ec18e55e6f35d910572ff486"
+    },
+    "src/ingest/catalog.py": {
+      "role": "producer",
+      "commit": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "sha256": "bf7b97a24f709c4fd67fc02305ee8d2d82d939f1c271f32272d4e61c322ef846"
+    },
+    "src/ingest/handoff.py": {
+      "role": "producer",
+      "commit": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "sha256": "b99c86fc14ed219d31d563bc644189156de3274da06cef5f3711187d666286b1"
+    },
+    "src/ingest/journal.py": {
+      "role": "producer",
+      "commit": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "sha256": "374d00d90b02a56e09b927f51618f09e656b53955c41f19f8eaf4c31a4c52956"
+    },
+    "src/ingest/rest.py": {
+      "role": "producer",
+      "commit": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "sha256": "2611386d374d0bfb80b907050d4ab59be1c2c058e4e30943bd1932d3989d7a71"
+    },
+    "src/ingest/transport.py": {
+      "role": "producer",
+      "commit": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "sha256": "dfab3314fbcab6ca12f2fe3944f069a9b28e408b0f4e9699b7341ef829511107"
+    },
+    "src/quality/.gitignore": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b"
+    },
+    "src/quality/candles.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "7e255b1fc5f79ac0482960c9a12b292546d322944c439dc94b6c4c39503e0744"
+    },
+    "src/storage/.gitignore": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b"
+    },
+    "src/storage/__init__.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "34cd7342f1a7525ffff1f71243ba0fcb7e280bb79e9da930a6077c206b66b08f"
+    },
+    "src/storage/archives.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "ef787e94386e3e83eabd48f4712381c0bd35277e74f819d279c8f1d3b6bc854e"
+    },
+    "src/storage/bootstrap.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "d901bb1a7e8a19cccb14f1e312fb5fda0ee71054643216eab0d82b93e6bfd378"
+    },
+    "src/storage/cli.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "6614f622d8f3ca21dc77ce25b0ba9c18f5bd31aceca2cd2783ea899bdc81f356"
+    },
+    "src/storage/coverage.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "b884e386e431da4ffa045500a5121ad155ebbd7041014874ee6b0142af3be5fc"
+    },
+    "src/storage/lifecycle.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "f8f2ee5dc17fc091fd3ac31d40959014425aeb480e63829951c15033f1a8466b"
+    },
+    "src/storage/migrations.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "e6248af6aa092d2da960d1abd41d0b339427127dea074da5978200f88f7be7c6"
+    },
+    "src/storage/migrations/001_initial.sql": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "72c83a9524f2ec8631463e2325e4ad245145288a313006c6fbb1be7b8c0e9018"
+    },
+    "src/storage/migrations/002_precision_and_validation.sql": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "8b70fae27fce23e8b0a9e2d52f3b14daade123837d93ccd12e76e77c4822901c"
+    },
+    "src/storage/migrations/003_retry_schedule.sql": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "39e7708f323733de0d8a5a43bfe40c0b11b32e6c6c09ace56eee1d86955fe323"
+    },
+    "src/storage/migrations/004_trade_interval.sql": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "45d555b21b109a5783eac555061bcf1fbcf6ea2effd827526c0f9b7eef1bd254"
+    },
+    "src/storage/migrations/005_runs_and_recovery_claims.sql": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "1eec298593de7bffc4563786d3935fdb2429465e864e3f42410727d6cd0943c3"
+    },
+    "src/storage/migrations/006_lifecycle_dry_run.sql": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "8d35b1993052cfb1ae421528b9221d98b7fb779ddfa36d7e9e05b76b18b0de08"
+    },
+    "src/storage/models.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "510719341ad49a34b2c3b54d72232a88c7a50825e7df5756034db550da1053f2"
+    },
+    "src/storage/provenance.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "aaaf28fa5fe7d4ce0556974547af28d916e57cd8022dbdcd44aacfe1b9008821"
+    },
+    "src/storage/requirements.txt": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "ebb1ed7b042ca0a405a16bf49a49958a73feb39307e3115463eed49cfc18ddbf"
+    },
+    "src/storage/store.py": {
+      "role": "storage",
+      "commit": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "sha256": "f0c961010cafe7b703c83afb198f140dbd0dbd41361143fde45ca1bdb070e02d"
+    },
+    "contracts/MIGRATIONS.md": {
+      "role": "shared",
+      "commit": "9766c0093e2608280875ac56db074414a3d62c69",
+      "sha256": "d6148ef48dc4cf8cabd2276289ae218e290606eaae7fd8ecca367a76491a2a4f"
+    },
+    "contracts/__init__.py": {
+      "role": "shared",
+      "commit": "9766c0093e2608280875ac56db074414a3d62c69",
+      "sha256": "098986cafcc97706e63180fc7d134f399e42ef4666a7433ea8752117b888e645"
+    },
+    "contracts/v1/__init__.py": {
+      "role": "shared",
+      "commit": "9766c0093e2608280875ac56db074414a3d62c69",
+      "sha256": "4d97ad4dde399587f3c804468d8f09e5451c2018a92f9784c96e15f72fb16f91"
+    },
+    "contracts/v1/market.schema.json": {
+      "role": "shared",
+      "commit": "9766c0093e2608280875ac56db074414a3d62c69",
+      "sha256": "7d7f7f607a7d9be2adc45e0f47485c86464730ecf43c0703f3b2b9c781a8ef94"
+    },
+    "contracts/v1/validate.py": {
+      "role": "shared",
+      "commit": "9766c0093e2608280875ac56db074414a3d62c69",
+      "sha256": "dc67686ef204ec7fdc9b46353487a90e18918e6baa8ed57ab2d9a94aaacc5469"
+    }
+  },
+  "unit_tests_passed": 44,
+  "new_guard_test_methods": 2,
+  "guard_negative_variants": [
+    "external_data_directory_both_modes",
+    "pins_manifest_integrity_both_modes",
+    "fixed_pin_both_modes",
+    "source_hash_both_modes",
+    "import_origin_both_modes",
+    "restart_database",
+    "restart_handoff",
+    "restart_storage",
+    "restart_metadata_integrity"
+  ],
+  "independent_review": "No blocker found; reviewer ran guard tests, author ran PostgreSQL",
+  "harness_sha256": "8b57274c1ac7aea8f8e4c42a21b5af3ce757beee79112b98c1ddad3c38310ff0"
+}

@@ -1,0 +1,1 @@
+{"status": "PORTABLE_SMOKE_PASS_NOT_SCM", "source_sha": "b96548e8a6f4b04505dd3e9f85fa52adfea8ac10", "job_id": "d6df0240-b741-4546-98ee-bbad908a930b", "candles": 30, "start_ms": 1794132240000, "end_ms": 1794134040000, "api": "http://127.0.0.1:18766", "coverage": "UNKNOWN", "keyring": "OWN_RANDOM_PROBE_PASS_REMOVED", "real_trading": false}

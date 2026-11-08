@@ -1,0 +1,284 @@
+test_bad_source_metadata_cannot_reach_common_contract (test_storage_provenance_adapter.StorageProvenanceTests.test_bad_source_metadata_cannot_reach_common_contract) ... 
+  test_bad_source_metadata_cannot_reach_common_contract (test_storage_provenance_adapter.StorageProvenanceTests.test_bad_source_metadata_cannot_reach_common_contract) (field='url') ... ERROR
+  test_bad_source_metadata_cannot_reach_common_contract (test_storage_provenance_adapter.StorageProvenanceTests.test_bad_source_metadata_cannot_reach_common_contract) (field='sha256') ... ERROR
+  test_bad_source_metadata_cannot_reach_common_contract (test_storage_provenance_adapter.StorageProvenanceTests.test_bad_source_metadata_cannot_reach_common_contract) (field='source_timestamp') ... ERROR
+test_exact_run_hash_timestamp_and_all_observations_survive (test_storage_provenance_adapter.StorageProvenanceTests.test_exact_run_hash_timestamp_and_all_observations_survive) ... ERROR
+test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) ... 
+  test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) (value=None) ... ERROR
+  test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) (value={}) ... ERROR
+  test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) (value={'authentic': True, 'unlinked_sources': [], 'observations': []}) ... ERROR
+test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) ... ERROR
+test_legacy_unlinked_or_noncaller_run_fails_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_legacy_unlinked_or_noncaller_run_fails_closed) ... 
+  test_legacy_unlinked_or_noncaller_run_fails_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_legacy_unlinked_or_noncaller_run_fails_closed) (change='authentic') ... ERROR
+  test_legacy_unlinked_or_noncaller_run_fails_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_legacy_unlinked_or_noncaller_run_fails_closed) (change='unlinked') ... ERROR
+  test_legacy_unlinked_or_noncaller_run_fails_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_legacy_unlinked_or_noncaller_run_fails_closed) (change='run') ... ERROR
+test_missing_original_timestamp_and_hash_remain_null (test_storage_provenance_adapter.StorageProvenanceTests.test_missing_original_timestamp_and_hash_remain_null) ... ERROR
+test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) ... 
+  test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) (field='source_kind', value='import') ... ERROR
+  test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) (field='source_kind', value='unknown') ... ERROR
+  test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) (field='run_id', value='') ... ERROR
+  test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) (field='evidence_id', value='') ... ERROR
+
+======================================================================
+ERROR: test_bad_source_metadata_cannot_reach_common_contract (test_storage_provenance_adapter.StorageProvenanceTests.test_bad_source_metadata_cannot_reach_common_contract) (field='url')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 56, in test_bad_source_metadata_cannot_reach_common_contract
+    with self.subTest(field=field):self.assertRaises(IntegrationUnavailable,self.convert,blob)
+                                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_bad_source_metadata_cannot_reach_common_contract (test_storage_provenance_adapter.StorageProvenanceTests.test_bad_source_metadata_cannot_reach_common_contract) (field='sha256')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 56, in test_bad_source_metadata_cannot_reach_common_contract
+    with self.subTest(field=field):self.assertRaises(IntegrationUnavailable,self.convert,blob)
+                                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_bad_source_metadata_cannot_reach_common_contract (test_storage_provenance_adapter.StorageProvenanceTests.test_bad_source_metadata_cannot_reach_common_contract) (field='source_timestamp')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 56, in test_bad_source_metadata_cannot_reach_common_contract
+    with self.subTest(field=field):self.assertRaises(IntegrationUnavailable,self.convert,blob)
+                                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_exact_run_hash_timestamp_and_all_observations_survive (test_storage_provenance_adapter.StorageProvenanceTests.test_exact_run_hash_timestamp_and_all_observations_survive)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 21, in test_exact_run_hash_timestamp_and_all_observations_survive
+    result=self.convert(value)
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) (value=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 49, in test_invalid_types_and_unbounded_observations_fail_closed
+    with self.subTest(value=value):self.assertRaises(IntegrationUnavailable,self.convert,value)
+                                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) (value={})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 49, in test_invalid_types_and_unbounded_observations_fail_closed
+    with self.subTest(value=value):self.assertRaises(IntegrationUnavailable,self.convert,value)
+                                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed) (value={'authentic': True, 'unlinked_sources': [], 'observations': []})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 49, in test_invalid_types_and_unbounded_observations_fail_closed
+    with self.subTest(value=value):self.assertRaises(IntegrationUnavailable,self.convert,value)
+                                   ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_invalid_types_and_unbounded_observations_fail_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_invalid_types_and_unbounded_observations_fail_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 51, in test_invalid_types_and_unbounded_observations_fail_closed
+    self.assertRaises(IntegrationUnavailable,self.convert,value)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_legacy_unlinked_or_noncaller_run_fails_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_legacy_unlinked_or_noncaller_run_fails_closed) (change='authentic')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 33, in test_legacy_unlinked_or_noncaller_run_fails_closed
+    with self.subTest(change=change):self.assertRaises(IntegrationUnavailable,self.convert,value)
+                                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_legacy_unlinked_or_noncaller_run_fails_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_legacy_unlinked_or_noncaller_run_fails_closed) (change='unlinked')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 33, in test_legacy_unlinked_or_noncaller_run_fails_closed
+    with self.subTest(change=change):self.assertRaises(IntegrationUnavailable,self.convert,value)
+                                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_legacy_unlinked_or_noncaller_run_fails_closed (test_storage_provenance_adapter.StorageProvenanceTests.test_legacy_unlinked_or_noncaller_run_fails_closed) (change='run')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 33, in test_legacy_unlinked_or_noncaller_run_fails_closed
+    with self.subTest(change=change):self.assertRaises(IntegrationUnavailable,self.convert,value)
+                                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_missing_original_timestamp_and_hash_remain_null (test_storage_provenance_adapter.StorageProvenanceTests.test_missing_original_timestamp_and_hash_remain_null)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 43, in test_missing_original_timestamp_and_hash_remain_null
+    result=self.convert(value)[0]
+           ~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) (field='source_kind', value='import')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 38, in test_unknown_import_and_missing_run_are_not_invented
+    with self.subTest(field=field,value=value):self.assertRaises(IntegrationUnavailable,self.convert,blob)
+                                               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) (field='source_kind', value='unknown')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 38, in test_unknown_import_and_missing_run_are_not_invented
+    with self.subTest(field=field,value=value):self.assertRaises(IntegrationUnavailable,self.convert,blob)
+                                               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) (field='run_id', value='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 38, in test_unknown_import_and_missing_run_are_not_invented
+    with self.subTest(field=field,value=value):self.assertRaises(IntegrationUnavailable,self.convert,blob)
+                                               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+======================================================================
+ERROR: test_unknown_import_and_missing_run_are_not_invented (test_storage_provenance_adapter.StorageProvenanceTests.test_unknown_import_and_missing_run_are_not_invented) (field='evidence_id', value='')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 38, in test_unknown_import_and_missing_run_are_not_invented
+    with self.subTest(field=field,value=value):self.assertRaises(IntegrationUnavailable,self.convert,blob)
+                                               ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 813, in assertRaises
+    return context.handle('assertRaises', args, kwargs)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\unittest\case.py", line 247, in handle
+    callable_obj(*args, **kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_provenance_adapter.py", line 15, in convert
+    from src.integration.storage_api import provenance_from_storage
+ImportError: cannot import name 'provenance_from_storage' from 'src.integration.storage_api' (C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\storage_api.py)
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.024s
+
+FAILED (errors=16)

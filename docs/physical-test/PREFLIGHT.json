@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "repository": "YehorBabenko88/tester",
+  "checked_at": "2026-11-07T16:54:28.7572835Z",
+  "host_fingerprint": "658ac47c38eb17a6",
+  "windows": {
+    "version": "10.0.26200",
+    "architecture": "64-Bit",
+    "caption": "Microsoft Windows 11 Pro",
+    "build": "26200"
+  },
+  "cpu": {
+    "name": "AMD Ryzen 7 7800X3D 8-Core Processor           ",
+    "cores": 8,
+    "logical_processors": 16
+  },
+  "ram": {
+    "free_bytes": 17513451520,
+    "visible_bytes": 33463590912
+  },
+  "disk": {
+    "drive": "C",
+    "size_bytes": 999027634176,
+    "type": "NVMe SSD",
+    "free_bytes": 842095443968
+  },
+  "python": "3.14.0",
+  "postgresql": "18.4",
+  "existing_postgres": {
+    "scope": "UNTOUCHED",
+    "databases": "NOT_ENUMERATED_AUTH_REQUIRED",
+    "state": "Running",
+    "service": "postgresql-x64-18",
+    "port": 5432
+  },
+  "tester_service_found": false,
+  "chosen_ports": {
+    "api": 18765,
+    "currently_free": true,
+    "postgres": 55469
+  },
+  "scm_create_service_access": false,
+  "scm_winerror": 5,
+  "token_elevated": false,
+  "planned_root": "C:/ProgramData/TesterPhysicalTest20261107",
+  "planned_services": [
+    "TesterPhysicalTest20261107",
+    "TesterPhysicalPg20261107"
+  ],
+  "physical_mutations_performed": false
+}

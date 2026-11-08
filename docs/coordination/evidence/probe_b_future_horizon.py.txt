@@ -1,0 +1,23 @@
+import sys,unittest,json
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).parent/'b-bounded-check'))
+from tests.storage import test_postgres as support
+
+
+class FutureHorizon(support.PostgresTests):
+    def test_future_range_cannot_be_complete(self):
+        start,end=1700000000000,4102444800000
+        run='future-fixture:'+self.symbol
+        record=self.record();record['source']['ingestion_run']=run
+        evidence=self.ev(start_ms=start,end_ms=end,ingestion_run=run,
+            pages=[dict(params={'start':start,'end':end-1},cursor=None,next_cursor=None,count=1)],
+            available_range=dict(start_ms=start,end_ms=end,method='operator_attestation',
+                source_url='https://example.test/future-manifest',sha256='a'*64))
+        self.store.ingest([record],evidence,self.symbol,run_id=run)
+        page=self.store.read_page('trades','bybit','linear',self.symbol,start,end)
+        print(json.dumps(dict(outcome=page['outcome'],coverage=page['coverage'],snapshot=page['snapshot'])))
+        self.assertFalse(page['coverage']['complete'],'An unelapsed requested range cannot have completed history')
+
+for name in support.PostgresTests.__dict__:
+    if name.startswith('test_'):setattr(FutureHorizon,name,None)
+unittest.main(defaultTest='FutureHorizon')

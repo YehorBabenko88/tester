@@ -1,0 +1,4 @@
+PASS independent strict matched positive proof
+PASS independent observation fanout fails closed
+PASS independent old proof cannot resolve later damage
+PASS all 3 independent actual-PostgreSQL fixture checks

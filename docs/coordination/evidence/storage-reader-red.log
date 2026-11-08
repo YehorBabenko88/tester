@@ -1,0 +1,76 @@
+test_actual_b_attached_provenance_pages_without_n_plus_one_queries (test_storage_trade_reader.TradeReaderTests.test_actual_b_attached_provenance_pages_without_n_plus_one_queries) ... ERROR
+test_corrupt_empty_retains_original_reason (test_storage_trade_reader.TradeReaderTests.test_corrupt_empty_retains_original_reason) ... ERROR
+test_factory_uses_own_tester_providers_only (test_storage_trade_reader.TradeReaderTests.test_factory_uses_own_tester_providers_only) ... ERROR
+test_missing_and_mismatched_provenance_fail_closed (test_storage_trade_reader.TradeReaderTests.test_missing_and_mismatched_provenance_fail_closed) ... 
+  test_missing_and_mismatched_provenance_fail_closed (test_storage_trade_reader.TradeReaderTests.test_missing_and_mismatched_provenance_fail_closed) (changed='missing') ... ERROR
+  test_missing_and_mismatched_provenance_fail_closed (test_storage_trade_reader.TradeReaderTests.test_missing_and_mismatched_provenance_fail_closed) (changed='mismatch') ... ERROR
+test_other_resources_fail_explicitly_without_analytics (test_storage_trade_reader.TradeReaderTests.test_other_resources_fail_explicitly_without_analytics) ... ERROR
+
+======================================================================
+ERROR: test_actual_b_attached_provenance_pages_without_n_plus_one_queries (test_storage_trade_reader.TradeReaderTests.test_actual_b_attached_provenance_pages_without_n_plus_one_queries)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 27, in test_actual_b_attached_provenance_pages_without_n_plus_one_queries
+    rows=self.rows();original=copy.deepcopy(rows);reader=self.reader(rows)
+                                                         ~~~~~~~~~~~^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 13, in reader
+    from src.integration.storage_reader import StorageTradeReader
+ModuleNotFoundError: No module named 'src.integration.storage_reader'
+
+======================================================================
+ERROR: test_corrupt_empty_retains_original_reason (test_storage_trade_reader.TradeReaderTests.test_corrupt_empty_retains_original_reason)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 46, in test_corrupt_empty_retains_original_reason
+    reader=self.reader([])
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 13, in reader
+    from src.integration.storage_reader import StorageTradeReader
+ModuleNotFoundError: No module named 'src.integration.storage_reader'
+
+======================================================================
+ERROR: test_factory_uses_own_tester_providers_only (test_storage_trade_reader.TradeReaderTests.test_factory_uses_own_tester_providers_only)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 55, in test_factory_uses_own_tester_providers_only
+    target=validate_factory_spec('src.integration.storage_reader:create_reader')
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\src\integration\standalone_policy.py", line 30, in validate_factory_spec
+    if len(candidates)!=1:raise StandaloneViolation('Owned provider source is missing or ambiguous')
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src.integration.standalone_policy.StandaloneViolation: Owned provider source is missing or ambiguous
+
+======================================================================
+ERROR: test_missing_and_mismatched_provenance_fail_closed (test_storage_trade_reader.TradeReaderTests.test_missing_and_mismatched_provenance_fail_closed) (changed='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 43, in test_missing_and_mismatched_provenance_fail_closed
+    with self.subTest(changed=changed):self.assertRaises(NotConnected,self.reader(rows).read,'trades',self.query())
+                                                                      ~~~~~~~~~~~^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 13, in reader
+    from src.integration.storage_reader import StorageTradeReader
+ModuleNotFoundError: No module named 'src.integration.storage_reader'
+
+======================================================================
+ERROR: test_missing_and_mismatched_provenance_fail_closed (test_storage_trade_reader.TradeReaderTests.test_missing_and_mismatched_provenance_fail_closed) (changed='mismatch')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 43, in test_missing_and_mismatched_provenance_fail_closed
+    with self.subTest(changed=changed):self.assertRaises(NotConnected,self.reader(rows).read,'trades',self.query())
+                                                                      ~~~~~~~~~~~^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 13, in reader
+    from src.integration.storage_reader import StorageTradeReader
+ModuleNotFoundError: No module named 'src.integration.storage_reader'
+
+======================================================================
+ERROR: test_other_resources_fail_explicitly_without_analytics (test_storage_trade_reader.TradeReaderTests.test_other_resources_fail_explicitly_without_analytics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 34, in test_other_resources_fail_explicitly_without_analytics
+    reader=self.reader(self.rows())
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_storage_trade_reader.py", line 13, in reader
+    from src.integration.storage_reader import StorageTradeReader
+ModuleNotFoundError: No module named 'src.integration.storage_reader'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.007s
+
+FAILED (errors=6)

@@ -1,0 +1,48 @@
+..................................F....s....F                            [100%]
+================================== FAILURES ===================================
+____________ test_provision_never_adopts_existing_database_or_role ____________
+
+queue = <src.api.jobs.JobQueue object at 0x0000017C0A16F7A0>
+
+    @pytest.mark.integration
+    def test_provision_never_adopts_existing_database_or_role(queue):
+        from src.api.bootstrap import provision
+    
+>       with pytest.raises(ValueError, match="already exists"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+tests\platform\test_jobs.py:138: Failed
+_______________ test_ten_symbol_streaming_peak_and_queue_bound ________________
+
+    @pytest.mark.integration
+    def test_ten_symbol_streaming_peak_and_queue_bound():
+        from scripts.benchmark_queue import benchmark
+    
+        dsn = os.environ.get("TEST_DATABASE_URL")
+        if not dsn:
+            pytest.skip("Disposable DB required")
+>       result = benchmark(dsn)
+                 ^^^^^^^^^^^^^^
+
+tests\platform\test_streaming_budget.py:13: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+dsn = 'host=127.0.0.1 port=55449 user=acceptance_admin dbname=tester_acceptance_hb1_ac19b5fc1b'
+
+    def benchmark(dsn):
+        if conninfo_to_dict(dsn).get("dbname") not in {"tester_acceptance", "tester_ci"}:
+>           raise ValueError("Synthetic benchmark requires disposable tester_acceptance/tester_ci")
+E           ValueError: Synthetic benchmark requires disposable tester_acceptance/tester_ci
+
+scripts\benchmark_queue.py:24: ValueError
+============================== warnings summary ===============================
+..\venv\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/platform/test_jobs.py::test_provision_never_adopts_existing_database_or_role
+FAILED tests/platform/test_streaming_budget.py::test_ten_symbol_streaming_peak_and_queue_bound
+2 failed, 42 passed, 1 skipped, 1 warning in 4.02s

@@ -1,0 +1,1 @@
+{"status": "PREPARED_NOT_SCM", "source_sha": "f7cc983eabb5bc8b943fa3b0ca15db0419ea79e7", "root": "C:\\TesterLab", "services": {"app": "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60", "postgres": "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60"}}

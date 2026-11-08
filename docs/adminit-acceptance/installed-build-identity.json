@@ -1,0 +1,18 @@
+﻿{
+    "schema_version":  "1.0",
+    "data":  {
+                 "source_sha":  "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+                 "tree_sha":  "90944d6ba0dd0194999f82f50ec96f231ce5eff9",
+                 "deploy_manifest_sha256":  "b4438d10495d65e684f9e40a7a29d68e114c772efd4df3edf969d1cb65d4823a",
+                 "installation_id":  "89189096-be4c-4cb3-bf2b-07b44f25fd60",
+                 "services":  {
+                                  "app":  "TesterLabApp_89189096be4c4cb3bf2b07b44f25fd60",
+                                  "postgres":  "TesterLabPG_89189096be4c4cb3bf2b07b44f25fd60"
+                              },
+                 "instance_id":  "349a538bb15343ca990e5ca3f8a36373",
+                 "api_endpoint":  "http://127.0.0.1:18766",
+                 "postgres_port":  55470,
+                 "provenance":  "host_reported",
+                 "scm_state":  "not_independently_verified"
+             }
+}

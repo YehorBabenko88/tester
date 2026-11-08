@@ -1,0 +1,24 @@
+test_archive_late_failure_rollback_retry_idempotence_and_clusters (test_postgres_integration.PostgresAcceptance.test_archive_late_failure_rollback_retry_idempotence_and_clusters) ... ERROR
+test_initialize_numeric_exactness_and_ten_synthetic_instruments (test_postgres_integration.PostgresAcceptance.test_initialize_numeric_exactness_and_ten_synthetic_instruments) ... ok
+
+======================================================================
+ERROR: test_archive_late_failure_rollback_retry_idempotence_and_clusters (test_postgres_integration.PostgresAcceptance.test_archive_late_failure_rollback_retry_idempotence_and_clusters)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\test_postgres_integration.py", line 100, in test_archive_late_failure_rollback_retry_idempotence_and_clusters
+    engine.build_clusters('linear', symbol, ['1', 'W', 'M'])
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\repo\engine.py", line 289, in build_clusters
+    c.execute(q,(tf,offset,width,width,offset,cat,sym,offset,width,width,offset))
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\venv\Lib\site-packages\psycopg\connection.py", line 304, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.GroupingError: column "t.ts_ns" must appear in the GROUP BY clause or be used in an aggregate function
+LINE 2:                SELECT category,symbol,$1,(((ts_ns-$2)/$3)*$4...
+                                                    ^
+
+----------------------------------------------------------------------
+Ran 2 tests in 2.105s
+
+FAILED (errors=1)
+

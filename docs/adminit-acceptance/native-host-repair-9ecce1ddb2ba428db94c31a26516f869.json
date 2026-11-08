@@ -1,0 +1,23 @@
+{
+    "kind":  "NATIVE_HOST_REPAIR",
+    "status":  "NATIVE_REPAIR_REMOVE_REINSTALL_START_STOP_START_PASS",
+    "stage":  "COMPLETE",
+    "application_source_sha":  "a3138eb9813832e9a839a99e54547001343ab3fd",
+    "packager_source_sha":  "aded56998dae16cf13e9c2707fc52012f12a1bfb",
+    "checks":  [
+                   {
+                       "source_sha":  "a3138eb9813832e9a839a99e54547001343ab3fd",
+                       "supervisor_pid":  22400,
+                       "health":  "ok",
+                       "instance_id":  "e0db103588074ec9850159eef4a2a05e"
+                   },
+                   {
+                       "source_sha":  "a3138eb9813832e9a839a99e54547001343ab3fd",
+                       "supervisor_pid":  23308,
+                       "health":  "ok",
+                       "instance_id":  "968c8f56c3944cbe9c1f8e4920400fd3"
+                   }
+               ],
+    "error_type":  null,
+    "completed_at":  "2026-11-08T11:51:42.7705138Z"
+}

@@ -1,0 +1,15 @@
+{
+  "repository": "YehorBabenko88/tester",
+  "release_sha": "7df3ee987c2a7cefbff13db82442faf0fb09e689",
+  "tree_sha": "6ab0aadfadad7699181186773670aa8fbb79a565",
+  "manifest_sha256": "002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf",
+  "files": 464,
+  "bytes": 3050866,
+  "release": "C:\\ProgramData\\TesterPhysicalTest20261107\\releases\\7df3ee987c2a7cefbff13db82442faf0fb09e689",
+  "status": "REPAIRED_FROZEN_NOT_INSTALLED_PENDING_EXTERNAL_AND_FOREGROUND_CHECKS",
+  "original0ff_retained_retired": true,
+  "old_config_retained": "private/config-before-7df.json",
+  "scm_actions": false,
+  "installed_sha": null,
+  "approved_launcher_stays_blocked": true
+}

@@ -1,0 +1,50 @@
+import importlib.util,json,sys,shutil,time
+from pathlib import Path
+root=Path('C:/ProgramData/TesterPhysicalTest20261107')
+release=root/'releases/0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d'
+sys.path.insert(0,str(release))
+from src.api.physical_scope import validate_owner,validate_release
+from src.storage.models import normalize
+import psycopg,psutil
+from psycopg.conninfo import make_conninfo
+from psycopg.rows import dict_row
+validate_owner();validate_release(release,'ec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec')
+spec=importlib.util.spec_from_file_location('pg',release/'scripts/windows/prepare_physical_database.py')
+pg=importlib.util.module_from_spec(spec);spec.loader.exec_module(pg)
+owner,state=pg.preflight();secrets=pg.validate_secrets(pg.read_json(pg.SECRETS),owner)
+assert pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'status'],allowed=(0,3)).returncode==3
+source=root/'runtime/source-probe-20261107T171937Z'
+report={'scope':'READ_ONLY_ORIGINAL_AND_RESTORE_PAYLOAD_COMPARISON_NOT_SCM','databases':{},'samples':[]}
+def sample(label):
+    parent=psutil.Process(int((pg.DATA/'postmaster.pid').read_text().splitlines()[0]))
+    processes=[parent,*parent.children(recursive=True)]
+    return {'label':label,'pg_processes':len(processes),
+            'pg_rss_sum_bytes_includes_shared_pages':sum(p.memory_info().rss for p in processes),
+            'pg_cpu_seconds_sum':sum(sum(p.cpu_times()[:2]) for p in processes),
+            'probe_rss_bytes':psutil.Process().memory_info().rss,
+            'disk_free_bytes':shutil.disk_usage(root).free}
+try:
+    pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'-l',root/'runtime/database-data-test.log','-w','start'])
+    report['samples'].append(sample('before_read'))
+    for database in ('tester_physical_20261107','tester_physical_restore_20261107_hb1738'):
+        dsn=make_conninfo(host='127.0.0.1',port=55469,user=pg.ADMIN,password=secrets['admin_password'],
+                          dbname=database,connect_timeout=5,options='-c default_transaction_read_only=on')
+        count=0
+        with psycopg.connect(dsn,row_factory=dict_row) as c:
+            assert pg.same_directory(pg.DATA,c.execute('SHOW data_directory').fetchone()['data_directory'])
+            for path in sorted(source.glob('*.handoff.json')):
+                bundle=json.loads(path.read_text(encoding='utf8'))
+                for r in bundle['records']:
+                    expected=normalize(r['storage_record'])
+                    actual=c.execute('SELECT payload,content_hash,timestamp_ms,timestamp_ns,timestamp_us,timestamp_precision FROM tester_storage.raw_records WHERE record_key=%s',(expected['record_key'],)).fetchone()
+                    assert actual and all(actual[k]==expected.get(k) for k in actual)
+                    count+=1
+        assert count==50
+        report['databases'][database]={'source_payload_and_time_exact':True,'records':count}
+    report['samples'].append(sample('after_read'))
+    report['status']='PASS'
+finally:
+    pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'-m','fast','-w','stop'])
+    report['own_cluster_stopped']=True
+    (root/'runtime/data-restore-20261107T174112Z/payload-recheck.json').write_text(json.dumps(report,indent=2),encoding='utf8')
+print('PASS: exact payload/hash/original time in both retained databases; own cluster stopped; resource samples saved')

@@ -1,0 +1,272 @@
+{
+  "checked_at": "2026-11-07T13:22:59.887711+00:00",
+  "note": "Earliest monthly candle observations are not exact first minute or global retention guarantees. Empty intervals remain unknown.",
+  "rest": [
+    {
+      "category": "spot",
+      "symbol": "BTCUSDT",
+      "kind": "kline",
+      "url": "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&interval=M&start=0&end=1794057776999&limit=1000",
+      "count": 65,
+      "earliest_month_ms": 1625097600000
+    },
+    {
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "kind": "kline",
+      "url": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&interval=M&start=0&end=1794057776999&limit=1000",
+      "count": 81,
+      "earliest_month_ms": 1583020800000
+    },
+    {
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "kind": "mark",
+      "url": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&interval=M&start=0&end=1794057776999&limit=1000",
+      "count": 81,
+      "earliest_month_ms": 1583020800000
+    },
+    {
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "kind": "index",
+      "url": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&interval=M&start=0&end=1794057776999&limit=1000",
+      "count": 81,
+      "earliest_month_ms": 1583020800000
+    },
+    {
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "kind": "premium",
+      "url": "https://api.bybit.com/v5/market/premium-index-price-kline?category=linear&symbol=BTCUSDT&interval=M&start=0&end=1794057776999&limit=1000",
+      "count": 81,
+      "earliest_month_ms": 1583020800000
+    },
+    {
+      "category": "inverse",
+      "symbol": "BTCUSD",
+      "kind": "kline",
+      "url": "https://api.bybit.com/v5/market/kline?category=inverse&symbol=BTCUSD&interval=M&start=0&end=1794057776999&limit=1000",
+      "count": 97,
+      "earliest_month_ms": 1541030400000
+    },
+    {
+      "category": "inverse",
+      "symbol": "BTCUSD",
+      "kind": "mark",
+      "url": "https://api.bybit.com/v5/market/mark-price-kline?category=inverse&symbol=BTCUSD&interval=M&start=0&end=1794057776999&limit=1000",
+      "count": 96,
+      "earliest_month_ms": 1541030400000
+    },
+    {
+      "category": "inverse",
+      "symbol": "BTCUSD",
+      "kind": "index",
+      "url": "https://api.bybit.com/v5/market/index-price-kline?category=inverse&symbol=BTCUSD&interval=M&start=0&end=1794057776999&limit=1000",
+      "count": 93,
+      "earliest_month_ms": 1551398400000
+    }
+  ],
+  "archives": [
+    {
+      "url": "https://public.bybit.com/premium_index/BTCUSD/",
+      "count": 162,
+      "earliest_nominal_date": "2019-10-01",
+      "latest_nominal_end_exclusive": "2020-03-11",
+      "samples": [
+        {
+          "url": "https://public.bybit.com/premium_index/BTCUSD/BTCUSD2019-10-01_premium_index.csv.gz",
+          "name": "BTCUSD2019-10-01_premium_index.csv.gz",
+          "directory": false,
+          "date": "2019-10-01",
+          "start_date": "2019-10-01",
+          "end_date_exclusive": "2019-10-02"
+        },
+        {
+          "url": "https://public.bybit.com/premium_index/BTCUSD/BTCUSD2019-10-02_premium_index.csv.gz",
+          "name": "BTCUSD2019-10-02_premium_index.csv.gz",
+          "directory": false,
+          "date": "2019-10-02",
+          "start_date": "2019-10-02",
+          "end_date_exclusive": "2019-10-03"
+        },
+        {
+          "url": "https://public.bybit.com/premium_index/BTCUSD/BTCUSD2020-03-09_premium_index.csv.gz",
+          "name": "BTCUSD2020-03-09_premium_index.csv.gz",
+          "directory": false,
+          "date": "2020-03-09",
+          "start_date": "2020-03-09",
+          "end_date_exclusive": "2020-03-10"
+        },
+        {
+          "url": "https://public.bybit.com/premium_index/BTCUSD/BTCUSD2020-03-10_premium_index.csv.gz",
+          "name": "BTCUSD2020-03-10_premium_index.csv.gz",
+          "directory": false,
+          "date": "2020-03-10",
+          "start_date": "2020-03-10",
+          "end_date_exclusive": "2020-03-11"
+        }
+      ]
+    },
+    {
+      "url": "https://public.bybit.com/spot_index/BTCUSD/",
+      "count": 169,
+      "earliest_nominal_date": "2019-10-01",
+      "latest_nominal_end_exclusive": "2020-03-18",
+      "samples": [
+        {
+          "url": "https://public.bybit.com/spot_index/BTCUSD/BTCUSD2019-10-01_index_price.csv.gz",
+          "name": "BTCUSD2019-10-01_index_price.csv.gz",
+          "directory": false,
+          "date": "2019-10-01",
+          "start_date": "2019-10-01",
+          "end_date_exclusive": "2019-10-02"
+        },
+        {
+          "url": "https://public.bybit.com/spot_index/BTCUSD/BTCUSD2019-10-02_index_price.csv.gz",
+          "name": "BTCUSD2019-10-02_index_price.csv.gz",
+          "directory": false,
+          "date": "2019-10-02",
+          "start_date": "2019-10-02",
+          "end_date_exclusive": "2019-10-03"
+        },
+        {
+          "url": "https://public.bybit.com/spot_index/BTCUSD/BTCUSD2020-03-16_index_price.csv.gz",
+          "name": "BTCUSD2020-03-16_index_price.csv.gz",
+          "directory": false,
+          "date": "2020-03-16",
+          "start_date": "2020-03-16",
+          "end_date_exclusive": "2020-03-17"
+        },
+        {
+          "url": "https://public.bybit.com/spot_index/BTCUSD/BTCUSD2020-03-17_index_price.csv.gz",
+          "name": "BTCUSD2020-03-17_index_price.csv.gz",
+          "directory": false,
+          "date": "2020-03-17",
+          "start_date": "2020-03-17",
+          "end_date_exclusive": "2020-03-18"
+        }
+      ]
+    },
+    {
+      "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2020/",
+      "count": 45,
+      "earliest_nominal_date": "2020-04-01",
+      "latest_nominal_end_exclusive": "2021-01-01",
+      "samples": [
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2020/BTCUSDT_15_2020-04-01_2020-04-30.csv.gz",
+          "name": "BTCUSDT_15_2020-04-01_2020-04-30.csv.gz",
+          "directory": false,
+          "date": "2020-04-01",
+          "start_date": "2020-04-01",
+          "end_date_exclusive": "2020-05-01"
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2020/BTCUSDT_15_2020-05-01_2020-05-31.csv.gz",
+          "name": "BTCUSDT_15_2020-05-01_2020-05-31.csv.gz",
+          "directory": false,
+          "date": "2020-05-01",
+          "start_date": "2020-05-01",
+          "end_date_exclusive": "2020-06-01"
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2020/BTCUSDT_60_2020-11-01_2020-11-30.csv.gz",
+          "name": "BTCUSDT_60_2020-11-01_2020-11-30.csv.gz",
+          "directory": false,
+          "date": "2020-11-01",
+          "start_date": "2020-11-01",
+          "end_date_exclusive": "2020-12-01"
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2020/BTCUSDT_60_2020-12-01_2020-12-31.csv.gz",
+          "name": "BTCUSDT_60_2020-12-01_2020-12-31.csv.gz",
+          "directory": false,
+          "date": "2020-12-01",
+          "start_date": "2020-12-01",
+          "end_date_exclusive": "2021-01-01"
+        }
+      ]
+    },
+    {
+      "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2024/",
+      "count": 55,
+      "earliest_nominal_date": "2024-01-01",
+      "latest_nominal_end_exclusive": "2024-12-01",
+      "samples": [
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2024/BTCUSDT_15_2024-01-01_2024-01-31.csv.gz",
+          "name": "BTCUSDT_15_2024-01-01_2024-01-31.csv.gz",
+          "directory": false,
+          "date": "2024-01-01",
+          "start_date": "2024-01-01",
+          "end_date_exclusive": "2024-02-01"
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2024/BTCUSDT_15_2024-02-01_2024-02-29.csv.gz",
+          "name": "BTCUSDT_15_2024-02-01_2024-02-29.csv.gz",
+          "directory": false,
+          "date": "2024-02-01",
+          "start_date": "2024-02-01",
+          "end_date_exclusive": "2024-03-01"
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2024/BTCUSDT_60_2024-10-01_2024-10-31.csv.gz",
+          "name": "BTCUSDT_60_2024-10-01_2024-10-31.csv.gz",
+          "directory": false,
+          "date": "2024-10-01",
+          "start_date": "2024-10-01",
+          "end_date_exclusive": "2024-11-01"
+        },
+        {
+          "url": "https://public.bybit.com/kline_for_metatrader4/BTCUSDT/2024/BTCUSDT_60_2024-11-01_2024-11-30.csv.gz",
+          "name": "BTCUSDT_60_2024-11-01_2024-11-30.csv.gz",
+          "directory": false,
+          "date": "2024-11-01",
+          "start_date": "2024-11-01",
+          "end_date_exclusive": "2024-12-01"
+        }
+      ]
+    },
+    {
+      "url": "https://public.bybit.com/spot/BTCUSDT/",
+      "count": 1506,
+      "earliest_nominal_date": "2022-11-01",
+      "latest_nominal_end_exclusive": "2026-11-07",
+      "samples": [
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT-2022-11.csv.gz",
+          "name": "BTCUSDT-2022-11.csv.gz",
+          "directory": false,
+          "date": null,
+          "start_date": "2022-11-01",
+          "end_date_exclusive": "2022-12-01"
+        },
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT-2022-12.csv.gz",
+          "name": "BTCUSDT-2022-12.csv.gz",
+          "directory": false,
+          "date": null,
+          "start_date": "2022-12-01",
+          "end_date_exclusive": "2023-01-01"
+        },
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT_2026-11-05.csv.gz",
+          "name": "BTCUSDT_2026-11-05.csv.gz",
+          "directory": false,
+          "date": "2026-11-05",
+          "start_date": "2026-11-05",
+          "end_date_exclusive": "2026-11-06"
+        },
+        {
+          "url": "https://public.bybit.com/spot/BTCUSDT/BTCUSDT_2026-11-06.csv.gz",
+          "name": "BTCUSDT_2026-11-06.csv.gz",
+          "directory": false,
+          "date": "2026-11-06",
+          "start_date": "2026-11-06",
+          "end_date_exclusive": "2026-11-07"
+        }
+      ]
+    }
+  ]
+}

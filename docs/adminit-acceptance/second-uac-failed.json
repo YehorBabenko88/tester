@@ -1,0 +1,11 @@
+{
+    "kind":  "SCM_ACCEPTANCE",
+    "status":  "FAILED",
+    "stage":  "FIRST_START",
+    "source_sha":  null,
+    "checks":  [
+
+               ],
+    "error_type":  "System.Management.Automation.RemoteException",
+    "completed_at":  "2026-11-08T11:26:08.9535993Z"
+}

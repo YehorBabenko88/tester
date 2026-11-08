@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "mode": "DRY_RUN",
+  "action": "uninstall",
+  "physical_changes": false,
+  "service_name": "TesterMarketLab",
+  "identity": "NT SERVICE\\TesterMarketLab",
+  "host_kind": "native_pywin32_ServiceFramework",
+  "delayed_auto_start": true,
+  "restart_policy": {
+    "max_restarts": 3,
+    "reset_seconds": 86400
+  },
+  "operations": [
+    {
+      "api": "ControlService",
+      "value": "SERVICE_CONTROL_STOP",
+      "drain_deadline_seconds": 30
+    },
+    {
+      "api": "DeleteService",
+      "serviceName": "TesterMarketLab"
+    },
+    {
+      "api": "reviewed_acl_change",
+      "remove_only_service_identity": true,
+      "retain_database_role_and_runtime": true
+    }
+  ],
+  "unverified_gates": [
+    "disposable_VM_SCM_start_stop",
+    "VM_reboot",
+    "native_host_DLL_resolution",
+    "virtual_account_ACL_access"
+  ]
+}

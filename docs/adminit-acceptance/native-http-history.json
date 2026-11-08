@@ -1,0 +1,51 @@
+{
+  "status": "NATIVE_HTTP_BYBIT_HISTORY_PASS",
+  "health": {
+    "schema_version": "1.0",
+    "data": {
+      "provider": "configured",
+      "instance_id": "968c8f56c3944cbe9c1f8e4920400fd3",
+      "status": "ok",
+      "database": "ok",
+      "worker": "ok",
+      "storage": "ok",
+      "free_bytes": 762950270976,
+      "used_bytes": 4527845
+    },
+    "next_cursor": null
+  },
+  "job": {
+    "id": "c7cea7d1-ed1c-4bae-9bf8-c012d6fb6847",
+    "request": {
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794136800000,
+      "end_ms": 1794138600000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "PARTIAL",
+      "source_records": 30
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-08T11:51:50.448684Z",
+    "updated_at": "2026-11-08T11:51:52.318843Z"
+  },
+  "candles": 30,
+  "coverage": {
+    "status": "UNKNOWN",
+    "start_ms": 1794136800000,
+    "end_ms": 1794138600000,
+    "evidence_refs": []
+  },
+  "start_ms": 1794136800000,
+  "end_ms": 1794138600000,
+  "real_trading": false
+}

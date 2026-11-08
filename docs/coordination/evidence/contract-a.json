@@ -1,0 +1,39 @@
+{
+  "gate": "A",
+  "issue": 8,
+  "schema_contract": "v1",
+  "pinned_sha": "43d0126d28c95f8f5f6362e866bd6e6d50a5e7bb",
+  "source_path": "src/ingest/archive.py",
+  "source_sha256": "d4fe8a0e9a74084d22c71aad9f61063e153cba473221da20f6bd731ecd6fb363",
+  "tests_run": 7,
+  "passed": false,
+  "failures": [
+    {
+      "test": "__main__.AContractGate.test_exact_source_timestamp_ms_capability",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\check_a.py\", line 81, in test_exact_source_timestamp_ms_capability\n    self.fail('UNAVAILABLE: original A exports bytes downloader and URL builder only; no record adapter exists to assert mandatory integer timestamp_ms=1700000000123 from source seconds 1700000000.123456789')\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: UNAVAILABLE: original A exports bytes downloader and URL builder only; no record adapter exists to assert mandatory integer timestamp_ms=1700000000123 from source seconds 1700000000.123456789\n"
+    },
+    {
+      "test": "__main__.AContractGate.test_genuine_source_timestamp_ns_capability",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\check_a.py\", line 84, in test_genuine_source_timestamp_ns_capability\n    self.fail('UNAVAILABLE: original A has no record adapter/precision provenance export; cannot assert source-provided timestamp_ns=1700000000123456789 without float round-trip, or ensure a millisecond-only source does not claim nanosecond precision')\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: UNAVAILABLE: original A has no record adapter/precision provenance export; cannot assert source-provided timestamp_ns=1700000000123456789 without float round-trip, or ensure a millisecond-only source does not claim nanosecond precision\n"
+    },
+    {
+      "test": "__main__.AContractGate.test_provenance_context_required",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\check_a.py\", line 61, in test_provenance_context_required\n    self.assertIn('provenance',value,\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n        'Issue #8: download exposes URL/hash but no provenance context (source kind, ingestion run, source timestamp precision)')\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'provenance' not found in {'path': 'C:\\\\Users\\\\maxkr\\\\Documents\\\\Codex\\\\2026-11-07\\\\files-pasted-by-the-user-master\\\\work\\\\repo\\\\tmpgb0z3xf_\\\\BTCUSDT2023-11-14.csv.gz', 'bytes': 92, 'sha256': '5bff311d2bd91ea46977e66404c3d5c65d7842c8efdf8935a4023957e6d9870a', 'source': 'https://public.bybit.com/trading/BTCUSDT/BTCUSDT2023-11-14.csv.gz'} : Issue #8: download exposes URL/hash but no provenance context (source kind, ingestion run, source timestamp precision)\n"
+    },
+    {
+      "test": "__main__.AContractGate.test_rest_pagination_evidence_capability",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\check_a.py\", line 77, in test_rest_pagination_evidence_capability\n    self.fail('UNAVAILABLE: original A exports '+repr(exports)+\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        '; no REST source adapter/pagination evidence export exists to test request boundaries, cursors, response counts, terminal condition or empty-page non-completeness')\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: UNAVAILABLE: original A exports ['archive_url', 'download']; no REST source adapter/pagination evidence export exists to test request boundaries, cursors, response counts, terminal condition or empty-page non-completeness\n"
+    },
+    {
+      "test": "__main__.AContractGate.test_schema_version_required",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\check_a.py\", line 55, in test_schema_version_required\n    self.assertIn('schema_version',value,'Issue #8: exported download metadata has no mandatory schema_version')\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'schema_version' not found in {'path': 'C:\\\\Users\\\\maxkr\\\\Documents\\\\Codex\\\\2026-11-07\\\\files-pasted-by-the-user-master\\\\work\\\\repo\\\\tmpgxavbm9m\\\\BTCUSDT2023-11-14.csv.gz', 'bytes': 92, 'sha256': '5bff311d2bd91ea46977e66404c3d5c65d7842c8efdf8935a4023957e6d9870a', 'source': 'https://public.bybit.com/trading/BTCUSDT/BTCUSDT2023-11-14.csv.gz'} : Issue #8: exported download metadata has no mandatory schema_version\n"
+    },
+    {
+      "test": "__main__.AContractGate.test_successful_html_does_not_replace_archive",
+      "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\repo\\contract_checks\\check_a.py\", line 72, in test_successful_html_does_not_replace_archive\n    self.assertEqual(path.read_bytes(),previous,'HTTP 200 HTML replaced the previous archive instead of failing closed')\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: b'<html>upstream failure</html>' != b'\\x1f\\x8b\\x08\\x00\\x00\\x00\\x00\\x00\\x02\\xff+[60 chars]\\x00' : HTTP 200 HTML replaced the previous archive instead of failing closed\n"
+    }
+  ],
+  "errors": [],
+  "skipped": []
+}
+

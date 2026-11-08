@@ -1,0 +1,27 @@
+✔ pinned canonical AVAILABLE fixture and metadata survive adaptation (65.6638ms)
+✔ pinned canonical PARTIAL fixture and metadata survive adaptation (0.4281ms)
+✔ pinned canonical UNAVAILABLE fixture and metadata survive adaptation (0.2383ms)
+✔ pinned canonical UNVERIFIED fixture and metadata survive adaptation (0.2071ms)
+✔ row unavailability cannot be upgraded by an AVAILABLE envelope (0.1982ms)
+✔ nested metric unavailability retains its specific reason and structured sources (0.1893ms)
+✔ row coverage PARTIAL overrides envelope COMPLETE without losing evidence (0.2298ms)
+✔ row coverage UNKNOWN overrides envelope COMPLETE without losing evidence (0.1595ms)
+✔ row coverage ERROR overrides envelope COMPLETE without losing evidence (0.2216ms)
+✔ OI line continuity follows source cadence rather than display timeframe (0.98ms)
+✔ chart forward and inverse coordinates share the exact plot area (0.8957ms)
+✔ sort exact decimals without rounding and leave unavailable last (0.3972ms)
+✔ metric cannot claim available without source and timestamp (0.2185ms)
+✔ progress never claims 100 before verified completion (0.2022ms)
+✔ corrupt candles are rejected, gaps preserved and bounded (0.6005ms)
+✔ HTTP and schema failures remain explicit errors (24.3537ms)
+✔ UTC months respect leap year and year boundary (1.5024ms)
+✔ UTC weeks start Monday and ignore local DST (0.1831ms)
+✔ month-end clamping never collapses a positive half-open range (0.1577ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 276.1862

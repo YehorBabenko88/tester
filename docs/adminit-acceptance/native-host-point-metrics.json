@@ -1,0 +1,17 @@
+﻿{
+    "kind":  "POINT_IN_TIME_NATIVE_HOST_METRICS",
+    "source_sha":  "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+    "native_host":  {
+                        "IDProcess":  11568,
+                        "WorkingSetPrivate":  28598272,
+                        "PercentProcessorTime":  0,
+                        "IOReadBytesPersec":  0,
+                        "IOWriteBytesPersec":  0
+                    },
+    "hardware":  {
+                     "NumberOfLogicalProcessors":  16,
+                     "TotalPhysicalMemory":  29952696320
+                 },
+    "scope":  "Native SCM host only; separately sampled, not included in soak supervisor/PG tree totals",
+    "timestamp_utc":  "2026-11-08T12:53:31.0303284Z"
+}

@@ -1,0 +1,144 @@
+"""Six exact-B horizon checks, owned retained DB, no inherited DROP teardown."""
+import contextlib,importlib.util,io,json,os,sys,unittest
+from datetime import datetime,timezone
+from pathlib import Path
+root=Path('C:/ProgramData/TesterPhysicalTest20261107')
+release=root/'releases/0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d'
+snapshot=Path(__file__).resolve().parents[1]/'b-knowledge-a8aa-check'
+sys.path.insert(0,str(release))
+from src.api.physical_scope import validate_owner,validate_release
+owner=validate_owner();validate_release(release,'ec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec')
+spec=importlib.util.spec_from_file_location('own_pg',release/'scripts/windows/prepare_physical_database.py')
+pg=importlib.util.module_from_spec(spec);spec.loader.exec_module(pg)
+_,state=pg.preflight();credentials=pg.validate_secrets(pg.read_json(pg.SECRETS),owner)
+sys.path.insert(0,str(snapshot))
+os.environ['TESTER_TEST_ADMIN_DSN']='explicit-retained-harness-overrides-setUpClass'
+import psycopg
+from psycopg import sql
+from psycopg.conninfo import make_conninfo
+from src.storage.store import Store
+import src.storage.store as store_module
+assert Path(store_module.__file__).resolve().is_relative_to(snapshot.resolve())
+from tests.storage.test_read_page import ReadPageTests
+from tests.storage import test_postgres as support
+assert Path(support.__file__).resolve().is_relative_to(snapshot.resolve())
+database='tester_contract_ba8aa_20261107'
+admin=make_conninfo(host='127.0.0.1',port=55469,user=pg.ADMIN,password=credentials['admin_password'],dbname='postgres',connect_timeout=5)
+target=make_conninfo(admin,dbname=database)
+app=make_conninfo(target,user=pg.APP,password=credentials['app_password'])
+report={'sha':'a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec','database':database,
+        'fixture_kind':'SYNTHETIC_CONTRACT_CASES_NOT_BYBIT_HISTORY',
+        'all_data_retained':True,'elevation_or_scm_actions':False,'started_at':datetime.now(timezone.utc).isoformat()}
+stream=io.StringIO();started=False
+
+class RetainedHorizon(ReadPageTests):
+    @classmethod
+    def setUpClass(cls):
+        cls.dsn=target  # database creation belongs ONLY to the guarded outer harness
+    @classmethod
+    def tearDownClass(cls):
+        pass  # explicitly overrides author's DROP DATABASE teardown; preserve everything
+    def setUp(self):
+        super().setUp()
+        self.store=Store(app,storage_root=root/'runtime')
+    def test_master_original_future_reproduction(self):
+        start,end=1700000000000,4102444800000
+        run='master-future:'+self.symbol
+        record=self.record();record['source']['ingestion_run']=run
+        evidence=self.ev(start_ms=start,end_ms=end,ingestion_run=run,
+            pages=[dict(params={'start':start,'end':end-1},cursor=None,next_cursor=None,count=1)],
+            available_range=dict(start_ms=start,end_ms=end,method='operator_attestation',
+                                 source_url='https://example.test/future-manifest',sha256='a'*64))
+        self.store.ingest([record],evidence,self.symbol,run_id=run)
+        page=self.store.read_page('trades','bybit','linear',self.symbol,start,end)
+        self.assertEqual(len(page['rows']),1)
+        self.assertEqual(page['coverage']['end_ms'],end)
+        self.assertFalse(page['coverage']['complete'])
+        self.assertEqual(page['coverage']['proof_refs'],[])
+        self.assertLess(page['snapshot']['clock_ms'],end)
+        report['master_original_repro']={'coverage':page['coverage'],'snapshot':page['snapshot']}
+
+    def test_live_knowledge_and_c_rejection(self):
+        self.ingest('knowledge')
+        page=self.page()
+        self.assertTrue(page['coverage']['complete'])  # current-time positive control
+        knowledge=page['knowledge_time']
+        self.assertEqual(knowledge['status'],'UNAVAILABLE')
+        self.assertIsNone(knowledge['quality_available_at_ms'])
+        self.assertFalse(knowledge['historical_as_of'])
+        self.assertTrue(knowledge['facts'])
+        observation=page['observations'][0]
+        with self.store.connect() as connection:
+            original=connection.execute('SELECT to_jsonb(recorded_at) AS stamp FROM tester_storage.source_observations WHERE observation_id=%s',(observation['observation_id'],)).fetchone()['stamp']
+        self.assertEqual(observation['observation_recorded_at'],original)
+        facts=[f for f in knowledge['facts'] if f['identity'].get('observation_id')==observation['observation_id']]
+        self.assertTrue(facts)
+        self.assertEqual(facts[0]['timestamps']['observation_recorded_at'],original)
+        from src.analytics.binding import BindingUnavailable,bind_storage_trades
+        with self.assertRaises(BindingUnavailable):
+            bind_storage_trades(page['rows'],venue='bybit',category='linear',symbol=self.symbol,
+                start_ms=1700000000000,end_ms=1700000060000,
+                information_cutoff_ms=page['snapshot']['clock_ms'],quality_available_at_ms=None,
+                availability={'status':'AVAILABLE','reason':None},
+                coverage={'status':'UNKNOWN','start_ms':1700000000000,'end_ms':1700000060000,'evidence_refs':[]})
+        self.ingest('late-knowledge')
+        capped=self.page(max_observations=1)
+        self.assertEqual(capped['outcome'],'RESOURCE_EXHAUSTED')
+        self.assertEqual(capped['coverage']['state'],'UNKNOWN')
+        self.assertEqual(capped['coverage']['proof_refs'],[])
+        self.assertEqual(capped['knowledge_time']['facts'],[])
+        report['live_knowledge']={'current_coverage_positive_control':True,'historical_status':'UNAVAILABLE',
+            'quality_available_at_ms':None,'original_database_timestamp_preserved':True,
+            'C_rejects_missing_quality_time':True,'cap_discards_partial_certificate':True}
+
+names=[
+    'test_future_requested_range_is_unknown_and_audit_claim_is_retained',
+    'test_future_candidate_cannot_certify_a_historical_subrange',
+    'test_future_request_cannot_reuse_an_elapsed_candidate',
+    'test_future_availability_claim_cannot_certify_an_elapsed_candidate',
+    'test_elapsed_boundary_uses_one_authoritative_database_clock',
+    'test_master_original_future_reproduction',
+    'test_live_knowledge_and_c_rejection',
+]
+try:
+    import socket
+    with socket.socket() as port:port.bind(('127.0.0.1',55469))
+    assert pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'status'],allowed=(0,3)).returncode==3
+    started=True
+    pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'-l',root/'runtime/database-contract-tests.log','-w','start'])
+    with psycopg.connect(admin,autocommit=True) as c:
+        assert pg.same_directory(pg.DATA,c.execute('SHOW data_directory').fetchone()[0])
+        assert str(c.execute('SELECT system_identifier FROM pg_control_system()').fetchone()[0])==state['system_identifier']
+        assert not c.execute('SELECT 1 FROM pg_database WHERE datname=%s',(database,)).fetchone()
+        c.execute(sql.SQL('CREATE DATABASE {} OWNER {}').format(sql.Identifier(database),sql.Identifier(pg.ADMIN)))
+        c.execute(sql.SQL('COMMENT ON DATABASE {} IS {}').format(sql.Identifier(database),sql.Literal('tester-physical:'+owner['installation_id'])))
+        c.execute(sql.SQL('REVOKE ALL ON DATABASE {} FROM PUBLIC').format(sql.Identifier(database)))
+        c.execute(sql.SQL('GRANT CONNECT ON DATABASE {} TO {}').format(sql.Identifier(database),sql.Identifier(pg.APP)))
+    from src.storage.migrations import migrate
+    with psycopg.connect(target) as c:
+        migrate(c)
+        c.execute('REVOKE CREATE ON SCHEMA public FROM PUBLIC')
+        c.execute(sql.SQL('GRANT USAGE ON SCHEMA tester_storage TO {}').format(sql.Identifier(pg.APP)))
+        c.execute(sql.SQL('GRANT SELECT,INSERT ON ALL TABLES IN SCHEMA tester_storage TO {}').format(sql.Identifier(pg.APP)))
+        c.execute(sql.SQL('REVOKE INSERT ON tester_storage.schema_migrations FROM {}').format(sql.Identifier(pg.APP)))
+        c.execute(sql.SQL('GRANT UPDATE ON tester_storage.download_jobs,tester_storage.ingestion_checkpoints TO {}').format(sql.Identifier(pg.APP)))
+    with contextlib.redirect_stdout(stream),contextlib.redirect_stderr(stream):
+        result=unittest.TextTestRunner(stream=stream,verbosity=2).run(unittest.TestSuite(RetainedHorizon(n) for n in names))
+    report.update(status='PASS' if result.wasSuccessful() else 'FAIL',tests=result.testsRun,
+                  failures=len(result.failures),errors=len(result.errors),skipped=len(result.skipped),cases=names)
+    if not result.wasSuccessful():
+        with (root/'private/ba8aa-contract-failure.log').open('x',encoding='utf8') as out:out.write(stream.getvalue())
+    else:
+        (root/'runtime/ba8aa-contract-pass.log').write_text(stream.getvalue(),encoding='utf8')
+except Exception as error:
+    report.update(status='FAIL',error_type=type(error).__name__,sqlstate=getattr(error,'sqlstate',None))
+finally:
+    if started:
+        try:
+            pg.command([pg.PGBIN/'pg_ctl.exe','-D',pg.DATA,'-m','fast','-w','stop'])
+            report['own_cluster_stopped']=True
+        except Exception as error:report.update(status='FAIL',stop_error_type=type(error).__name__)
+    report['finished_at']=datetime.now(timezone.utc).isoformat()
+    with (root/'state/ba8aa-knowledge-review.json').open('x',encoding='utf8') as out:json.dump(report,out,indent=2)
+print(json.dumps({k:report[k] for k in ('status','tests','failures','errors','skipped') if k in report}))
+raise SystemExit(0 if report['status']=='PASS' else 1)

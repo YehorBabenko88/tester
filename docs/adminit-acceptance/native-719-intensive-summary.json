@@ -1,0 +1,140 @@
+{
+  "status": "INCOMPLETE",
+  "application_source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "load_tool_sha": "88be6f6d4d18edc5dc06f46376602b1a512facfc",
+  "resource_tool_sha": "9c4f65c2f1a03641019d25102c8a21e485cf08f8",
+  "seconds": 604.8568761000024,
+  "submitted": 380,
+  "completed": 380,
+  "failed": 0,
+  "pending": 0,
+  "new_failed_ids": [],
+  "historical_failed": {
+    "count": 1,
+    "ids": [
+      "9d52a952-ff4c-4926-be95-2ce982ddbf7c"
+    ]
+  },
+  "read_latency": {
+    "count": 400,
+    "mean_seconds": 0.2670675214998573,
+    "p50_seconds": 0.2732106000003114,
+    "p95_seconds": 0.3326217000030738,
+    "max_seconds": 0.414689899997029
+  },
+  "post_latency": {
+    "count": 380,
+    "mean_seconds": 1.4442807302632565,
+    "p50_seconds": 1.4707024000017554,
+    "p95_seconds": 2.055723900000885,
+    "max_seconds": 2.171401599996898
+  },
+  "max_sampled_running_jobs": 1,
+  "max_sampled_queue": 21,
+  "metrics_complete": {
+    "postgres": true,
+    "processes": false,
+    "disk": true,
+    "latency": true,
+    "worker_count": false
+  },
+  "fairness": {
+    "BTCUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    },
+    "ETHUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    },
+    "SOLUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    },
+    "XRPUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    },
+    "DOGEUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    },
+    "ADAUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 37
+    },
+    "AVAXUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    },
+    "LINKUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    },
+    "DOTUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    },
+    "LTCUSDT": {
+      "submitted": 38,
+      "completed": 38,
+      "failed": 0,
+      "nonempty_reads": 38
+    }
+  },
+  "total_acknowledged_records": 1900,
+  "wal_bytes_delta": 41112735,
+  "wal_sample_seconds": 593.0794182999998,
+  "database_bytes_growth": 16343040,
+  "runtime_file_bytes_growth": 59560653,
+  "resource_snapshots": 10,
+  "worker_process_count": null,
+  "resource_groups": {
+    "app": {
+      "max_private_working_set_bytes": 233623552,
+      "mean_sampled_cpu_one_core_percent": 74.3,
+      "max_sampled_cpu_one_core_percent": 337.0,
+      "max_sampled_process_write_bytes_per_second": 762011.0
+    },
+    "postgres": {
+      "max_private_working_set_bytes": 14499840,
+      "mean_sampled_cpu_one_core_percent": 1.0,
+      "max_sampled_cpu_one_core_percent": 5.0,
+      "max_sampled_process_write_bytes_per_second": 115134.0
+    }
+  },
+  "limits": [
+    "Original load process sampling timed out; independent partial-window resource observations do not repair its INCOMPLETE status.",
+    "Worker process command lines/images are hidden for nonadmin LocalService; exact worker count UNKNOWN.",
+    "Concurrent admissions are not concurrent processing; sampled running jobs max is a lower-bound observation, not worker count.",
+    "WAL is owned-cluster-wide, process IO is not physical disk bandwidth, acknowledged rows are not distinct inserted candles.",
+    "First-running sampled delay is an upper bound, not exact queue wait; no retry/cancel/saturation/crash certification."
+  ],
+  "wal_mean_bytes_per_second": 69320.79200766292,
+  "resource_snapshot_attempts": 11,
+  "resource_snapshot_failures": [
+    {
+      "file": "native-719-resource-9c4-10.json",
+      "error_type": "CalledProcessError",
+      "cause": "NOT_ESTABLISHED"
+    }
+  ]
+}

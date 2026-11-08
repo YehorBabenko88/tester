@@ -1,0 +1,15 @@
+{
+  "schema": "tester-lab-recovery-tool/v1",
+  "proposal_status": "NOT_AUTHORIZED_NOT_EXECUTED",
+  "application_source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "deploy_manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+  "runtime_manifest_sha256": "004f9ed3b97f760e3936ac425d4d0d62e0cdcea61d8c5823dd95bbbdddefb317",
+  "tool_source_sha": "4f1476e4a1279f6da7ded75be417c4aa2058259b",
+  "tool_tree_sha": "f78b09fbb888a2f285dbaef6fa4b73ce191a5a30",
+  "script_git_blob": "297876f6b2f29ea860a760095e6e8baebc7eb363",
+  "script_sha256": "3f2667d2fa342aac12435e5c91167f2d4f9e238259c12425647db33c52757c11",
+  "published_script_path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\published\\4f1476e4a1279f6da7ded75be417c4aa2058259b\\scripts\\windows\\Test-TesterLabWorkerRecovery.ps1",
+  "termination_limit": 1,
+  "application_pin_evidence": "Committed compact-native-upgrade.json; installed state not reverified",
+  "execution_approval_required": true
+}

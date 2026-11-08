@@ -1,0 +1,825 @@
+{
+  "schema_version": 1,
+  "repository": "YehorBabenko88/tester",
+  "cycle_id": "heartbeat-2026-11-07-1834-repaired-immutable-candidate-foundation-pg",
+  "checked_at": "2026-11-07T18:47:51.939617+00:00",
+  "checked_at_europe_berlin": "2026-11-07T19:47:51.939617+01:00",
+  "readiness": "NOT_READY",
+  "coordination_branch": "coordination/master",
+  "integration_branch": "integration/master",
+  "candidate_parent": "19f306cd8314cd9ce0cf488b143a3338d2393442",
+  "main_untouched": "0a6ce227d9463562bb18889dcc0ee747f3be9130",
+  "automation": {
+    "id": "tester-master-coordination-cycle",
+    "configuration_status": "PAUSED",
+    "interval_minutes": 15,
+    "destination": "existing_MASTER_chat",
+    "verification_status": "VERIFIED_FIRST_INVOCATION",
+    "evidence": "System-origin heartbeat envelope received with matching automation_id; actual continuation executed tools in configured worktree",
+    "worktree": "existing dedicated work/master-supervisor; Git fallback after native operation stalled",
+    "first_invocation_at": "2026-11-07T14:40:23.454Z",
+    "prompt_revision": "Repaired7df and B70a3actual9PG guard updated via officialtool; configreadback PAUSED preserved",
+    "prompt_update_verified": true,
+    "last_invocation_at": "2026-11-07T18:34:52.561Z",
+    "last_invocation_evidence": "Actual matching heartbeat rebuilt immutable7df+externalverification+exactnativehostforegroundAPIworkerPG/Chrome; independent9actualPGfoundationtests; noSCM/UAC",
+    "resumption_performed": false,
+    "pause_reason": "NOT_EXPOSED_OR_INFERRED",
+    "next_run_guaranteed": false,
+    "status_observation_at": "2026-11-07T18:51:23.684438+00:00"
+  },
+  "agents": {
+    "A": {
+      "observed_head": "a62891d3f144e8d0bd87186cb937f50505c5b650",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "IDLE_COMPLETED_OBSERVED",
+      "execution_observed_at": "2026-11-07T18:32:36.531Z",
+      "execution_evidence": "Actual fresh wait_threads snapshot; no duplicate dispatch",
+      "pr": 10,
+      "reviewed_head": "0a6d07c0aa65037a67320ae30533471186f1ed88",
+      "new_head_review": "CATALOG_UNDER_INDEPENDENT_REVIEW_NOT_COMPOSED",
+      "composition": "SOURCE_AND_COMPONENT_TESTS_COMPOSED_NOT_FULL_PIPELINE"
+    },
+    "B": {
+      "observed_head": "70a3ae5f82f707365c17048b2d58379a8e2456c4",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "IDLE_COMPLETED_OBSERVED",
+      "execution_observed_at": "2026-11-07T18:32:36.531Z",
+      "execution_evidence": "Actual fresh wait_threads snapshot; no duplicate dispatch",
+      "pr": 13,
+      "reviewed_head": "70a3ae5f82f707365c17048b2d58379a8e2456c4",
+      "new_head_review": "LIMITED_DISABLED_FOUNDATION_9ACTUALPG_ACCEPTED_NO_ENROLLMENT",
+      "composition": "SOURCE_AND_COMPONENT_TESTS_COMPOSED_NOT_FULL_PIPELINE",
+      "pg_reviewed_head": "70a3ae5f82f707365c17048b2d58379a8e2456c4"
+    },
+    "C": {
+      "observed_head": "3cb073586ccc9213e6cb5c5f304dce43d8e46322",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "IDLE_COMPLETED_OBSERVED",
+      "execution_observed_at": "2026-11-07T18:32:36.531Z",
+      "execution_evidence": "Actual fresh wait_threads snapshot; no duplicate dispatch",
+      "pr": 20,
+      "reviewed_head": "3cb073586ccc9213e6cb5c5f304dce43d8e46322",
+      "composition": "SOURCE_AND_COMPONENT_TESTS_COMPOSED_NOT_FULL_PIPELINE"
+    },
+    "D": {
+      "observed_head": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "IDLE_COMPLETED_OBSERVED",
+      "execution_observed_at": "2026-11-07T18:32:36.531Z",
+      "execution_evidence": "Actual fresh wait_threads snapshot; no duplicate dispatch",
+      "pr": 12,
+      "reviewed_head": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c",
+      "new_head_review": "FOCUSED_CORRECTIONS_VERIFIED",
+      "composition": "SOURCE_AND_COMPONENT_TESTS_COMPOSED_NOT_FULL_PIPELINE"
+    },
+    "E": {
+      "observed_head": "bec563edde3fd2626c516ab417a6fecd999103a9",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "IDLE_COMPLETED_OBSERVED",
+      "execution_observed_at": "2026-11-07T18:32:36.531Z",
+      "execution_evidence": "Actual fresh wait_threads snapshot; no duplicate dispatch",
+      "pr": 9,
+      "reviewed_head": "bec563edde3fd2626c516ab417a6fecd999103a9",
+      "new_head_review": "FINANCIAL_P2_48ROOT_PASS_AND_NARROW_NATIVE_JOB_BACKPORT_ACCEPTED_NOT_COMPOSED",
+      "composition": "SOURCE_AND_COMPONENT_TESTS_COMPOSED_NOT_FULL_PIPELINE",
+      "physical_observed_head": "891ef7f21086c69b133413f8fe95a89d99fa9937",
+      "physical_reviewed_head": "891ef7f21086c69b133413f8fe95a89d99fa9937"
+    },
+    "F": {
+      "observed_head": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+      "review_status": "READY_FOR_REVIEW",
+      "execution_status": "NOT_LOADED_LAST_TURN_COMPLETED",
+      "execution_observed_at": "2026-11-07T18:32:36.531Z",
+      "execution_evidence": "Fresh wait_threads reports notLoaded with last turn completed; no active execution claimed",
+      "pr": 19,
+      "reviewed_head": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31"
+    },
+    "G": {
+      "observed_head": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+      "reviewed_head": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+      "review_status": "CHANGES_REQUESTED",
+      "execution_status": "AWAITING_AGENT_EXECUTION",
+      "execution_evidence": "Actual fresh wait_threads snapshot; no duplicate dispatch",
+      "pr": 24,
+      "execution_observed_at": "2026-11-07T18:32:36.531Z"
+    }
+  },
+  "new_discovery": {
+    "G": {
+      "branch": "workstream/g-control-plane",
+      "head": "226fd4f6f51a7fb1894334ca6fa25e649a86d044",
+      "issue": 18,
+      "status": "NEW",
+      "execution_status": "NOT_DISPATCHED_BY_MASTER",
+      "note": "New cross-cutting issue observed, not integrated or used as a Codex API"
+    }
+  },
+  "tests": {
+    "coordinator": {
+      "discovered": 254,
+      "passed": 252,
+      "skipped_opt_in_pg": 2,
+      "failures": 0,
+      "log": "evidence/c5-publish-postgres.log"
+    },
+    "B_5154efab": {
+      "executed": 40,
+      "passed": 40,
+      "skipped": 0,
+      "postgres": "18.4 disposable cluster",
+      "log": "evidence/b-cycle2-postgres.log"
+    },
+    "storage_adapter": {
+      "passed": 10
+    },
+    "checkpoint_utilities": {
+      "passed": 4
+    },
+    "F_current": {
+      "head": "c72cf50504b23935b256c7bf5d904f963a126c95",
+      "passed": 31,
+      "skipped": 0,
+      "adversarial_defects": [
+        "protective stop drops zero-capacity pending exit",
+        "future whole-bar liquidity sizes modeled-open fill"
+      ],
+      "log": "evidence/f-current-strategy.log",
+      "status": "CHANGES_REQUESTED"
+    },
+    "B_47fd36f": {
+      "passed": 51,
+      "skipped": 0,
+      "postgres": "18.4 disposable loopback-only cluster",
+      "log": "evidence/b-heartbeat1-postgres.log",
+      "adverse_retry": "evidence/b-heartbeat1-retry.log"
+    },
+    "C_152823e": {
+      "passed": 27,
+      "log": "evidence/c-heartbeat1-tests.log"
+    },
+    "D_1fdf818": {
+      "passed": 18,
+      "log": "evidence/d-heartbeat1-fixed-node.log"
+    },
+    "E_6d8": {
+      "passed": 44,
+      "skipped": 1,
+      "postgres": "own exact tester_acceptance fixture",
+      "log": "evidence/e-heartbeat1-postgres.log",
+      "initial_fixture_red": "evidence/e-heartbeat1-fixture-red.log"
+    },
+    "E_0a170": {
+      "passed_direct": 28,
+      "full_http_pg_current_head": "PENDING",
+      "review": "reviews/E_ARCHITECTURE_CHECK.md"
+    },
+    "F_998c5bc": {
+      "passed": 39,
+      "log": "evidence/f-heartbeat1-strategy.log"
+    },
+    "A_39645": {
+      "passed_unit": 40,
+      "passed_B_consumers": 8,
+      "review": "reviews/A_ARCHITECTURE_CHECK.md"
+    },
+    "standalone_policy": {
+      "passed": 6,
+      "adopted_by_E_G": false
+    },
+    "optional_price_candle_v11": {
+      "passed": 8,
+      "live_rows": 6,
+      "coverage": "UNKNOWN",
+      "adopted_by_E": false
+    },
+    "storage_provenance_projection": {
+      "passed": 7,
+      "independent_review": "explicit-run-mismatch RED then GREEN; final reviewer7PASS",
+      "real_postgres_roundtrip_passed": 1,
+      "log": "evidence/storage-provenance-postgres.log",
+      "limitations": "trusted B resolver only; no COMPLETE proof; full E wiring pending"
+    },
+    "E_b15b1ce": {
+      "passed": 89,
+      "skipped_symlink": 1,
+      "postgres": "own disposable loopback PG18.4 tester_acceptance; stopped after suite",
+      "command": "python -m pytest tests/platform -q --timeout=35",
+      "log": "evidence/e-cadence-postgres.log",
+      "independent_direct_passed": 36
+    },
+    "A_3098d55": {
+      "passed_unit": 42,
+      "shared_B_consumer_passed": 10,
+      "adverse_probes_passed": 4,
+      "prior_probe_red_failures": 2,
+      "review": "reviews/A_SEMANTIC_3098.md",
+      "postgres_current_head": "AUTHOR_ONLY_NOT_ROOT_REPLAYED"
+    },
+    "D_6cf9a2a": {
+      "node_passed": 19,
+      "review": "reviews/ED_GRID_PAIR.md",
+      "browser_current_head": "NOT_ROOT_REPLAYED"
+    },
+    "B_e236395": {
+      "passed": 57,
+      "skipped": 0,
+      "postgres": "own loopback disposable PostgreSQL18.4",
+      "log": "evidence/b-e236-postgres.log",
+      "independent_narrow_review": "reviews/B_E236_LINEAGE.md"
+    },
+    "storage_reader": {
+      "passed": 6,
+      "strict_provenance_tests": 8,
+      "independent_review_passed": 14,
+      "composition": "B_E_SAME_CHECKOUT_TESTED_NOT_FULL_A_G",
+      "http_postgres_synthetic_instruments": 10,
+      "http_exact_trade_fixtures": 20,
+      "http_pages": 20,
+      "cross_symbol_cursor_rejections": 10,
+      "unsupported_resource_http": 503,
+      "live_exchange_end_to_end": "NOT_EXECUTED",
+      "log": "evidence/storage-reader-http-e236.log"
+    },
+    "composed_BE": {
+      "unittest_discovered": 147,
+      "unittest_passed": 145,
+      "unittest_skipped_root_optin": 2,
+      "platform_passed": 89,
+      "platform_skipped_symlink": 1,
+      "synthetic_http_instruments": 10,
+      "composition": "SAME_CHECKOUT",
+      "postgres": "own loopback18.4 stopped after test",
+      "unit_log": "evidence/composed-be-postgres-unit.log",
+      "platform_log": "evidence/composed-be-postgres-platform.log",
+      "contract_pin": "9766c009 exact bytes PASS",
+      "wheel_sha256": "14541655fb48d8c07f754acd471e057006726297ae45a4032aaa37b241c95192",
+      "wheel_import": "evidence/composed-be-wheel-import.log",
+      "hosted_ci": "NOT_YET_PASSED"
+    },
+    "C_e9f6": {
+      "unit_passed": 42,
+      "windows_archive_pin_failures": 1,
+      "published_git_blob_pin_matches": 8,
+      "cutoff_adverse_defects": 2,
+      "integration": "BLOCKED_NOT_IMPORTED",
+      "review": "reviews/C_BINDING_E9F6.md",
+      "qualification": "All8Gitblobs match pins; Windows checkout/archive line-ending conversion causes pin failure; prior root claim of wrong Git blobs corrected in PR20 comment6709316506"
+    },
+    "composed_five": {
+      "unittest_discovered": 247,
+      "unittest_passed": 245,
+      "unittest_root_optin_skips": 2,
+      "platform_passed": 113,
+      "platform_skipped": 2,
+      "node_passed": 19,
+      "fixture_browser_passed": 25,
+      "browser": "existing installed Chrome, no installation",
+      "real_static_http_passed": 2,
+      "A_immutable_PG_pair_passed": 6,
+      "A_actual_server_restart": true,
+      "owned_clusters_stopped": true,
+      "wheel_sha256": "01a7bb6c08e5fac9d012405ac5d132ecb8ab74d69d69994ee8c2277068fc54f7",
+      "log": "evidence/composed-publish-postgres.log",
+      "platform_log": "evidence/composed-publish-platform.log",
+      "browser_log": "evidence/frontend-ui-chrome.log",
+      "live_history_full_pipeline": "NOT_EXECUTED",
+      "hosted_ci": "QUEUED_NO_SUCCESS"
+    },
+    "C_3cb073": {
+      "prior_standalone_2816": 51,
+      "final_binding_methods": 25,
+      "old_ns_us_cutoff_repro": "EXCLUDED_AFTER_FIX",
+      "byte_pins": "PASS",
+      "combined_actual_modules": "PASS",
+      "integration_namespace_red_green": "evidence/namespace-shadow-red.log / namespace-shadow-green.log"
+    },
+    "E_5fa20ce": {
+      "root_direct_owned_factory_passed": 24,
+      "root_direct_symlink_skip": 1,
+      "combined_platform_passed": 113,
+      "combined_platform_skipped": 2,
+      "policy_bootstrap": "fresh process foreign parent/cache rejected; actual root factory positivePASS",
+      "shared_and_policy_byte_pins": "PASS"
+    },
+    "A_0a6d07c": {
+      "guard_tests_passed": 2,
+      "immutable_parent_PG_cases_passed": 6,
+      "actual_stop_start_newprocess_replay": true,
+      "log": "evidence/a-pinned-parent-root.log",
+      "fixture_kind": "SYNTHETIC_ONLY"
+    },
+    "storage_safe_errors": {
+      "synthetic_http_passed": 6,
+      "legacy_reader_passed": 6,
+      "real_PG_HTTP_missing_original_and_corrupt": true,
+      "old_regression_red_failures": 2,
+      "log": "evidence/storage-data-errors-green.log",
+      "openapi_semantic_match": true,
+      "ruff_targeted_lint_format": "PASS existing tool, no install",
+      "shared_policy_core_byte_pins": "PASS"
+    },
+    "B_dc545": {
+      "suite_actual_PG_passed": 76,
+      "independent_literal_PG_passed": 3,
+      "additional_future_horizon_probe": "FAIL falseCOMPLETE to2100",
+      "proof_integration": "BLOCKED_NOT_IMPORTED",
+      "log": "evidence/b-bounded-postgres.log",
+      "adverse_log": "evidence/b-future-horizon-red.log",
+      "resource_review": "reviews/B_BOUNDED_DC545.md",
+      "limitations": "serialized count/bytes not RSS; each page new snapshot"
+    }
+  },
+  "ci": {
+    "state": "QUEUED_NO_SUCCESS_VERIFIED",
+    "prior_candidate_runs": [
+      42378846890,
+      42378842458
+    ],
+    "B_runs": [
+      42379925429,
+      42379925363
+    ],
+    "F_runs": [
+      42381985480,
+      42381959325
+    ],
+    "latest_observed_run_ids": [
+      42390566846,
+      42390566787,
+      42390566786,
+      42390566783
+    ],
+    "urls": [
+      "https://github.com/YehorBabenko88/tester/actions/runs/42390566846",
+      "https://github.com/YehorBabenko88/tester/actions/runs/42390566787"
+    ],
+    "runner_evidence": "Storage run4jobs all queued with ubuntu-latest labels and empty runner_name; cause unknown, no billing/admin claim"
+  },
+  "tasks": {
+    "1e8f7dad9ca9410ff8d5d43af7ff174dc4c81217330f922d9cdc5d2383e4e951": {
+      "comment_id": 6708160404,
+      "status": "CHANGES_REQUESTED",
+      "issue": 13,
+      "head": "5154efab05d44b96f4aa83819672396d75679f2e",
+      "defect": "B-5154efab-run-provenance-recovery",
+      "remote_marker": "master-task:B-5154efab-run-provenance-recovery"
+    },
+    "725529e2046ae7fe0b7be12e5961bd1ad42a7e4222d670672d1c0a6eda5a0362": {
+      "comment_id": 6708160604,
+      "status": "CHANGES_REQUESTED",
+      "issue": 14,
+      "head": "5154efab05d44b96f4aa83819672396d75679f2e",
+      "defect": "B-5154efab-retention-safety-gates",
+      "remote_marker": "master-task:B-5154efab-retention-safety-gates"
+    },
+    "ea3e85db93f3f2de4c7e3ded0cf462249fcd374df17817f00ea3081b49239995": {
+      "comment_id": 6708160760,
+      "status": "CHANGES_REQUESTED",
+      "issue": 15,
+      "head": "c2fb7b66f9ebc0b4b04519ea327c3baafc1e5f54",
+      "defect": "E-c2fb7b66-scm-drain-budgets",
+      "remote_marker": "master-task:E-c2fb7b66-scm-drain-budgets"
+    },
+    "d9624c21caabf2ce31fa84c5b6299d793fd4023bc55e377b76789888f70c3a39": {
+      "comment_id": 6708160929,
+      "status": "IN_PROGRESS",
+      "issue": 16,
+      "head": "13ffae2cbedea096c9bc81b03933bf3a6488f438",
+      "defect": "F-13ffae2-initial-gates",
+      "remote_marker": "master-task:F-13ffae2-initial-gates"
+    },
+    "027a6e4e255202f62578c8caa9677417dc1a02562c357262d7494f0f6369f75d": {
+      "comment_id": 6708161108,
+      "status": "CHANGES_REQUESTED",
+      "issue": 17,
+      "head": "1b35ec6565ef0f9471ecd7197a64bf598080f85b",
+      "defect": "D-1b35ec65-calendar-cursors-strategy",
+      "remote_marker": "master-task:D-1b35ec65-calendar-cursors-strategy"
+    },
+    "42b5042bca02e65d61dbd5e90e96be5a9f4db43c5df380679c0841bf4e923517": {
+      "comment_id": 6708269302,
+      "status": "ACCEPTED",
+      "issue": 19,
+      "head": "c72cf50504b23935b256c7bf5d904f963a126c95",
+      "defect": "F-c72cf505-zero-capacity-stop-and-liquidity-cutoff",
+      "remote_marker": "master-task:F-c72cf505-zero-capacity-stop-and-liquidity-cutoff",
+      "reviewed_successor": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+      "resolution": "39 strategy tests and both adverse regressions pass; not overall integration acceptance"
+    },
+    "8ec6246f7448862aea332c6ecfaa2c0e398100da5a831c32342be314b184c6f6": {
+      "comment_id": 6708786351,
+      "status": "ACCEPTED",
+      "issue": 10,
+      "reviewed_successor": "39645a64ed424270401de3b1f35767b1fd7c3d74",
+      "defect": "A-39645a64-equivalent-decimal-conflict",
+      "remote_marker": "master-task:A-39645a64-equivalent-decimal-conflict",
+      "resolution": "Focused exact-successor regression independently verified; full integration remains NOT_READY"
+    },
+    "8f1280b00969a0d99d2349b555e68659d448280056c740d8d18b014fb27ee041": {
+      "comment_id": 6708786552,
+      "status": "ACCEPTED",
+      "issue": 9,
+      "reviewed_successor": "0a17033f6c88b336e988e4007231a2ee9cefe761",
+      "defect": "E-0a17033f-utc-grid-and-observation-interval",
+      "remote_marker": "master-task:E-0a17033f-utc-grid-and-observation-interval",
+      "resolution": "Focused exact-successor regression independently verified; full integration remains NOT_READY"
+    },
+    "b96809ea3c3a5ef8caf11dc8ef430d27ee01987a6e226038798b629d09e7dcc5": {
+      "comment_id": 6708743561,
+      "status": "CHANGES_REQUESTED",
+      "issue": 18,
+      "reviewed_successor": "5edb722fc936a56e81a174cfe654839de9a19a9d",
+      "defect": "G-5edb722-standalone-canonical-control-state",
+      "remote_marker": "master-task:G-5edb722-standalone-canonical-control-state"
+    },
+    "6071350cc9035e25543e3fa8edcb5a8263297eaad1e628ffe7c4406757bd12c6": {
+      "comment_id": 6708414839,
+      "status": "ACCEPTED",
+      "issue": 12,
+      "reviewed_successor": "1fdf8183284a1203be14a6896cec175f6b2aea63",
+      "defect": "D-2615-envelope-coverage-promotion",
+      "remote_marker": "master-task:D-2615-envelope-coverage-promotion"
+    },
+    "0ac7c3de78c523fb659bf4cc3c9c84e5c99b9dac6ced7dfe1c8e9172b0288581": {
+      "comment_id": 6708480531,
+      "status": "ACCEPTED",
+      "issue": 9,
+      "reviewed_successor": "0a17033f6c88b336e988e4007231a2ee9cefe761",
+      "defect": "E-6d8-request-scope-binding",
+      "remote_marker": "master-task:E-6d8-request-scope-binding"
+    },
+    "b640795fa5c56779f65a67d354a60147b4aa6ff51a28059492491c2eed0eabf8": {
+      "issue": 2,
+      "head": "47fd36f32389174377682a13862f5b36c7a886da",
+      "defect": "B-47fd36f-explicit-source-run-mismatch",
+      "remote_marker": "master-task:B-47fd36f-explicit-source-run-mismatch",
+      "comment_id": 6708925158,
+      "status": "ACCEPTED",
+      "reviewed_successor": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "resolution": "57realPG tests and independent narrow review; strict reader requires original matched declaration"
+    },
+    "27d786c659087bd491b602eda63f8475a9d2472f8799949027f7e098d6f8d1fc": {
+      "issue": 1,
+      "head": "3098d55f2bb41c5389f83b955d87a3050ca52f85",
+      "comment_id": 6709081686,
+      "defect": "A-3098-B-e236-pinned-roundtrip",
+      "remote_marker": "master-task:A-3098-B-e236-pinned-roundtrip",
+      "status": "ACCEPTED",
+      "resolution": "Focused corrective task independently verified; does not certify whole pipeline",
+      "reviewed_successor": "0a6d07c0aa65037a67320ae30533471186f1ed88"
+    },
+    "a1121aecbe1084a89e782aef38dc515597ec55797d6791a9cb75c425ebb3aa51": {
+      "issue": 3,
+      "head": "152823e1528f0953f8175717212d795d7fe1ac0c",
+      "comment_id": 6709081990,
+      "defect": "C-152823-B-e236-canonical-input-binding",
+      "remote_marker": "master-task:C-152823-B-e236-canonical-input-binding",
+      "status": "ACCEPTED",
+      "resolution": "Focused corrective task independently verified; does not certify whole pipeline",
+      "reviewed_successor": "3cb073586ccc9213e6cb5c5f304dce43d8e46322"
+    },
+    "9543c6d79478d9674b57346c22077cd18376c12272267c56c620633cb698c204": {
+      "issue": 5,
+      "head": "b15b1ce12633a134b19cb71a57d7e841a7120579",
+      "comment_id": 6709082262,
+      "defect": "E-b15b-owned-factory-import-boundary",
+      "remote_marker": "master-task:E-b15b-owned-factory-import-boundary",
+      "status": "ACCEPTED",
+      "resolution": "Focused corrective task independently verified; does not certify whole pipeline",
+      "reviewed_successor": "5fa20ce18545d6b44ea71ef6bbb8d27e761a577e"
+    },
+    "60e22be38481d7bad1ae9442623268c583ef613e6a9f1ac1ff8c58131ed10bd6": {
+      "issue": 2,
+      "head": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "defect": "B-e236-bounded-consistent-read-proof",
+      "comment_id": 6709223310,
+      "remote_marker": "master-task:B-e236-bounded-consistent-read-proof",
+      "status": "IN_PROGRESS"
+    },
+    "d235465ebb9257d1ac2090cefec044f28440a8abf5b7043df77de5b937a246fe": {
+      "issue": 20,
+      "head": "e9f6f0f605a9bbce135f172adca2e630cc01e3b3",
+      "defect": "C-e9f6-reference-hash-artifact",
+      "comment_id": 6709307218,
+      "remote_marker": "master-task:C-e9f6-reference-hash-artifact",
+      "status": "ACCEPTED",
+      "qualification": "Windows byte-preserving attributes needed, not bad published blobs; correction6709316506",
+      "resolution": "Focused corrective task independently verified; does not certify whole pipeline",
+      "reviewed_successor": "3cb073586ccc9213e6cb5c5f304dce43d8e46322"
+    },
+    "7e2eda3a02c129a7e1194470279a79a1dbba85229503d8fb3874fda597e1fad9": {
+      "issue": 20,
+      "head": "e9f6f0f605a9bbce135f172adca2e630cc01e3b3",
+      "defect": "C-e9f6-original-fetch-nanosecond-cutoff",
+      "comment_id": 6709316683,
+      "remote_marker": "master-task:C-e9f6-original-fetch-nanosecond-cutoff",
+      "status": "ACCEPTED",
+      "resolution": "Focused corrective task independently verified; does not certify whole pipeline",
+      "reviewed_successor": "3cb073586ccc9213e6cb5c5f304dce43d8e46322"
+    },
+    "2299b3559a5923335dabd9495b97d1e489b8655623df7b7d2126483fc3181a06": {
+      "issue": 10,
+      "head": "467774de7ca67fe9927695dac3fd9760cabdcb00",
+      "defect": "A-467-restart-child-isolation-guard",
+      "remote_marker": "master-task:A-467-restart-child-isolation-guard",
+      "comment_id": 6709439233,
+      "status": "ACCEPTED",
+      "reviewed_successor": "0a6d07c0aa65037a67320ae30533471186f1ed88",
+      "resolution": "Both child guards verified,2mocktests and root normalparent6PGcases+actualrestartPASS"
+    },
+    "793d8397c13c730846b27ea5add9e7b496b90ba1bbe7a44b11a83d1feb8d0050": {
+      "issue": 1,
+      "head": "0a6d07c0aa65037a67320ae30533471186f1ed88",
+      "defect": "A-0a6d-canonical-metadata-handoff",
+      "comment_id": 6709792128,
+      "remote_marker": "master-task:A-0a6d-canonical-metadata-handoff",
+      "status": "IN_PROGRESS"
+    },
+    "e9e4020486572a3d0aff4ebc855a2273e424777fb5233a7cb8ec5037d2e050fa": {
+      "issue": 5,
+      "head": "5fa20ce18545d6b44ea71ef6bbb8d27e761a577e",
+      "defect": "E-5fa-derived-query-contract",
+      "comment_id": 6709792406,
+      "remote_marker": "master-task:E-5fa-derived-query-contract",
+      "status": "IN_PROGRESS"
+    },
+    "09a469a969049f5abf835c428dc451d052d338e7eafe501c5cb0eb3afef4f75a": {
+      "issue": 13,
+      "head": "dc545c0a9857f279df46c3a9048871bb3232031f",
+      "defect": "B-dc545-future-proof-horizon",
+      "comment_id": 6709945814,
+      "remote_marker": "master-task:B-dc545-future-proof-horizon",
+      "status": "CHANGES_REQUESTED"
+    }
+  },
+  "existing_task_references": {
+    "A_export": [
+      6707744036,
+      6707832070
+    ],
+    "C_canonical": [
+      6707785623
+    ],
+    "D_metadata": [
+      6707766208,
+      6707816273
+    ],
+    "E_metadata": [
+      6707765851,
+      6707801533
+    ]
+  },
+  "integration_work": [
+    "Lossless B->E adapter with strict keyset/range and authentic provenance resolver",
+    "Preserve unavailable/error reasons; no optimistic COMPLETE; no C math",
+    "Atomic checkpoint/dedup/no-overlap helper tests; remote marker reconciliation required",
+    "Verified B real PG migration/kill/concurrency/backup suite; no user DB touched",
+    "Optional price-only contract1.1 (no fabricated volume); core1.0 unchanged",
+    "Owned tester factory validation helper and origin checks with six tests; E/G adoption pending",
+    "Issue25 standalone architecture, inert five-candidate source registry, rights/completeness/lag audits and A-G staged owner plan",
+    "Actual first scheduled heartbeat verified with real continuation tools",
+    "Authentic B provenance projection with original-run mismatch rejection,7 regressions and realPG2runs1trade exact roundtrip; E fullreader integration pending",
+    "Owned trades-only B e236 -> MASTER strict matched-run reader -> E b15b actual HTTP/PG10synthetic-instrument roundtrip; unconnected resources503,UNKNOWNcoverage preserved",
+    "Composed reviewed B e236 and E b15b into one checkout; retained safe B quality, fixed old E quality tests to approved completeness semantics",
+    "Packaged B/E/integration modules and schema/SQL assets; isolated wheel imports pass; declared keyring dependency; CI explicit samecheckout HTTP admin-DSN gate",
+    "Independent new C review found original-fetch and event-ns cutoff leaks; blocked integration and dispatched concrete corrections",
+    "Composed reviewed A/C/D/E final corrections on existing B/E checkout with producer parents; no main merge",
+    "Preserved core/ref/policy binary pins; restored working policy bytes from reviewed Gitblob after CRLF checkout without repinning",
+    "Fixed combined-test vendored namespace shadowing; actual C/E modules now exercised together",
+    "Real A->B immutable parser/export/run/precision/replay and actual PostgreSQL restart6PASS",
+    "Existing Chrome25fixturebrowser tests +19Node; actual E->D static mount2HTTPtests; new dedicated frontend CI job",
+    "E final anchored policy bootstrap/owned factory imported positively against actual composed Store; both policy/corepinsPASS",
+    "Separate fixed-safe ProviderDataUnavailable503 from disconnected ProviderUnavailable; provenance/canonical/integrity/unavailable/continuation reasons do not echo raw data",
+    "Six HTTP reasons plus six legacy reader tests, actualPG unknownoriginal/integrity tests and root254methods252PASS2skip",
+    "Independent B76+3PG checks pass but new future-range adverse case red; concrete P1 blocked integration and resumed owner after idle",
+    "Assigned source metadata/catalog A and typed cutoff/price-step query E in existing chats, no default activation or schema1.0mutation"
+  ],
+  "blockers": [
+    "G authoritative control-state SQLite versus PostgreSQL ownership decision",
+    "Resource scan bounds/lifecycle/service dry-run and 10-instrument integrated acceptance incomplete",
+    "CI queued/pending; no successful exact-candidate CI",
+    "Trader source licensing/intended-use permission and complete real account sample not established; S1+ disabled",
+    "Bounded active coverage-evidence proof and consistent data/coverage snapshot pending; reader never certifies COMPLETE",
+    "B source-observation fanout unbounded by trade page size; resource acceptance remains open",
+    "A/B/C/E/D sources coexist, but API derived financial/catalog providers are not fully wired; explicit cutoff/price-step/full-range semantics needed",
+    "Frontend distribution is source assets, not complete installed bundle; real E-to-D financial/browser pipeline pending",
+    "B bounded consistent active proof API in progress; UNKNOWN stays UNKNOWN; no full history/performance acceptance",
+    "F artifacts and G canonical state/control binding remain separate; G awaits authorized execution mechanism",
+    "Bdc545 bounded proof falseCOMPLETE for future requested/candidate horizon; root e236 adapter stays UNKNOWN until corrected exact SHA independently replayed"
+  ],
+  "next_actions": [
+    "Review B future-clock corrective exactHEAD and rerun future requested range plus historical query under future candidate; do not trust dc545 COMPLETE",
+    "Finish independent Aa628 catalog/sharedmetadata review; then bounded catalog provider using authentic snapshot provenance",
+    "Review E explicit cutoff/step request/cursor contract proposal and coordinate C/D before enabling financial defaults",
+    "Wire corrected boundedBproof into composite C/E readers then actual financialD browser pipeline; real-source10instrument/history/resource/service/CI remain",
+    "F/G separate; G awaiting execution mechanism; TI inertS0, no physicaldeployment/trading/mainmerge"
+  ],
+  "restrictions": [
+    "tester only",
+    "no main merge",
+    "no real trading",
+    "no physical service/software installation",
+    "no user-data deletion"
+  ],
+  "architecture": {
+    "issue": 25,
+    "decision": "tester standalone only; no cross-repository gateways",
+    "plan_comment_id": 6708743336,
+    "plan": "docs/trader-intelligence/INTEGRATION_PLAN.md",
+    "trader_collection_enabled": false,
+    "stage": "S0 research only; P0 A-G integration blocks S1+",
+    "additional_pr26_head": "8bafc315e5757b3510d1b20154b8df7445f3408c",
+    "additional_pr26_state": "NEW_UNREVIEWED_NOT_INTEGRATED",
+    "owner_assignments": [
+      {
+        "issue": 1,
+        "owner": "A",
+        "comment_id": 6708885863,
+        "remote_marker": "master-owner:issue25-A-standalone-s0"
+      },
+      {
+        "issue": 2,
+        "owner": "B",
+        "comment_id": 6708886079,
+        "remote_marker": "master-owner:issue25-B-standalone-s0"
+      },
+      {
+        "issue": 3,
+        "owner": "C",
+        "comment_id": 6708886319,
+        "remote_marker": "master-owner:issue25-C-standalone-s0"
+      },
+      {
+        "issue": 4,
+        "owner": "D",
+        "comment_id": 6708886578,
+        "remote_marker": "master-owner:issue25-D-standalone-s0"
+      },
+      {
+        "issue": 5,
+        "owner": "E",
+        "comment_id": 6708886835,
+        "remote_marker": "master-owner:issue25-E-standalone-s0"
+      },
+      {
+        "issue": 16,
+        "owner": "F",
+        "comment_id": 6708887145,
+        "remote_marker": "master-owner:issue25-F-standalone-s0"
+      }
+    ],
+    "source_evidence_comment_id": 6708941145,
+    "optional_contract_comment_id": 6708940893
+  },
+  "integration_composition": {
+    "state": "A_B_C_E_D_ONE_CHECKOUT_COMPONENT_TESTS_PASS_NOT_END_TO_END_READY",
+    "pins": {
+      "A": "0a6d07c0aa65037a67320ae30533471186f1ed88",
+      "B": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "C": "3cb073586ccc9213e6cb5c5f304dce43d8e46322",
+      "E": "5fa20ce18545d6b44ea71ef6bbb8d27e761a577e",
+      "D": "6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c"
+    },
+    "default_provider_activated": false,
+    "financial_routes": "trades-only opt-in; C API/catalog/full-range proof still pending",
+    "F_G_H": "NOT_COMPOSED",
+    "frontend_distribution": "source-assets served by E; backend wheel only"
+  },
+  "physical_test": {
+    "issue": 27,
+    "branch": "physical/master-windows-test",
+    "checkpoint": "docs/physical-test/CHECKPOINT.json",
+    "status": "BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED",
+    "service_installed": false,
+    "owned_database_prepared": true,
+    "own_cluster_stopped": true,
+    "acceptance": "NOT_ACCEPTED",
+    "frozen_sha": "7df3ee987c2a7cefbff13db82442faf0fb09e689",
+    "draft_pr": "https://github.com/YehorBabenko88/tester/pull/29",
+    "uac_pending": false,
+    "next_checkpoint": "New7df candidate and read-only proposed payload ready for review; only new explicit human administrator action may register/start own services",
+    "automatic_uac_retry_forbidden": true,
+    "data_restore_probe": "PASS_50_ROWS_TEN_INSTRUMENTS_FULL_HISTORY_NOT_PROVEN",
+    "frozen_candidate_installable": "PROPOSED_NATIVE_INSTALL_PENDING_HUMAN_ADMINISTRATOR_ACTION",
+    "native_job_repair": "EXACT_REBUILT_7DF_FOREGROUND_PASS_NOT_SCM",
+    "foreground_ui": "PASS_EXPECTED_UNAVAILABLE_NOT_SCM",
+    "manifest_sha256": "002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf"
+  },
+  "latest_independent_b_review": {
+    "sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec",
+    "unit_mock_pass": 18,
+    "actual_pg_cases_pass": 7,
+    "pg_skipped": 0,
+    "acceptance": "TRUTHFUL_BOUNDED_FACT_PROJECTION_ONLY",
+    "historical_quality_available": false,
+    "quality_available_at_ms": null,
+    "adopted": false,
+    "root_acceptance_comment": 6711137234,
+    "pg_evidence": "docs/coordination/evidence/b-a8aa-knowledge-pg-pass.json",
+    "harness": "docs/coordination/evidence/b-a8aa-retained-harness.py.txt",
+    "retained_database": "tester_contract_ba8aa_20261107"
+  },
+  "latest_agent_execution_snapshot": {
+    "checked_at": "2026-11-07T18:30:01.497495+00:00",
+    "A": "IDLE",
+    "B": "FOUNDATION70A3_PUBLISHED_AWAITING_ROOT_PG",
+    "C": "IDLE",
+    "D": "IDLE",
+    "E": "PRODUCER891EF7F_NARROW_BACKPORT_REVIEWED_NO_PHYSICAL_ACTIONS",
+    "F": "IDLE",
+    "G": "IDLE_AWAITING_AGENT_EXECUTION_NO_CHAT_DISPATCH_AUTHORIZATION",
+    "H": "IDLE_AWAITING_AGENT_EXECUTION_NO_CHAT_DISPATCH_AUTHORIZATION"
+  },
+  "latest_independent_e_review": {
+    "sha": "bec563edde3fd2626c516ab417a6fecd999103a9",
+    "financial_http_tests_pass": 48,
+    "adopted": false,
+    "task": "PR9 comment6710347416",
+    "root_acceptance_comment": 6710868433,
+    "evidence": "docs/coordination/evidence/e-bec563-financial-root.log"
+  },
+  "knowledge_time_port": {
+    "owner": "B",
+    "status": "FACTS_PROJECTED_HISTORICAL_VISIBILITY_STILL_BLOCKED",
+    "issue": 2,
+    "comment": 6711027252,
+    "baseline_sha": "73766dd531387f660ddfb243b64d28be9389ddd1",
+    "same_head_defect_dedup_marker": "73766-quality-knowledge-time-port",
+    "consumer": "C3cb bind_storage_trades quality_available_at_ms <= information_cutoff_ms",
+    "reason": "DEFAULTnow timestamps are transaction-start, not proved commit/visibility; null historical quality is truthful",
+    "next": "All-writer enforcement/UTC/restore/publication technical gates; no C mapping or positive receipt",
+    "published_sha": "a8aa7e12ce2d32eb0ec4518c6036cf738b2e26ec",
+    "next_task_comment": 6711141791,
+    "next_task_marker": "a8aa-prospective-visibility-design",
+    "proposal_sha": "89221f2ecc20827e9d15e40de6e39ab51c0456d0",
+    "proposal_status": "LIMITED_FOUNDATIONAL_PROTOTYPE_TECHNICALLY_APPROVED_ONLY",
+    "proposal_pure_unit_pass": 20,
+    "deliberately_unsafe_candidate_rejections": 10,
+    "proposal_pg_acceptance": false,
+    "production_success_enabled": false,
+    "technical_review_comment": 6711209526,
+    "next_stage": "B foundation schema/epoch/common-gate scaffolding; production success disabled; no C mapping",
+    "independent_review": "docs/coordination/reviews/VISIBILITY_PROTOCOL_89221.md",
+    "foundation_sha": "70a3ae5f82f707365c17048b2d58379a8e2456c4",
+    "foundation_review": "INDEPENDENT9ACTUALPG_PASS_PLUS_PRIOR11MOCK_STATIC",
+    "foundation_report": "docs/coordination/reviews/FOUNDATION_70A3.md",
+    "foundation_actual_pg_tests": 9,
+    "foundation_acceptance": "LIMITED_DISABLED_PROTOTYPE_ONLY",
+    "foundation_root_acceptance_comment": 6711530726
+  },
+  "visibility_counterexamples": {
+    "actual_pg_cases": 2,
+    "result": "NAIVE_PROTOCOLS_DISPROVED",
+    "cases": [
+      "transaction_start_before_cutoff_commit_after",
+      "RR_snapshot_before_lock_omits_committed_fact"
+    ],
+    "evidence": "docs/coordination/evidence/visibility-counterexamples.json",
+    "harness": "docs/coordination/evidence/visibility-counterexamples.py.txt",
+    "all_data_retained": true,
+    "certificate_issued": false
+  },
+  "latest_native_producer_review": {
+    "sha": "891ef7f21086c69b133413f8fe95a89d99fa9937",
+    "delta_files": 2,
+    "status": "NARROW_JOB_NAME_FIX_ACCEPTED",
+    "adopted_as_installed_artifact": false
+  },
+  "current_chat_states_no_ids": {
+    "checked_at": "2026-11-07T18:32:36.531Z",
+    "states": {
+      "A": {
+        "status": "idle",
+        "latest_turn_status": "completed"
+      },
+      "B": {
+        "status": "idle",
+        "latest_turn_status": "completed"
+      },
+      "C": {
+        "status": "idle",
+        "latest_turn_status": "completed"
+      },
+      "D": {
+        "status": "idle",
+        "latest_turn_status": "completed"
+      },
+      "E": {
+        "status": "idle",
+        "latest_turn_status": "completed"
+      },
+      "F": {
+        "status": "notLoaded",
+        "latest_turn_status": "completed"
+      },
+      "G": {
+        "status": "idle",
+        "latest_turn_status": "completed"
+      },
+      "H": {
+        "status": "idle",
+        "latest_turn_status": "completed"
+      }
+    }
+  }
+}

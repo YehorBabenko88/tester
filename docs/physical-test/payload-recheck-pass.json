@@ -1,0 +1,33 @@
+{
+  "scope": "READ_ONLY_ORIGINAL_AND_RESTORE_PAYLOAD_COMPARISON_NOT_SCM",
+  "databases": {
+    "tester_physical_20261107": {
+      "source_payload_and_time_exact": true,
+      "records": 50
+    },
+    "tester_physical_restore_20261107_hb1738": {
+      "source_payload_and_time_exact": true,
+      "records": 50
+    }
+  },
+  "samples": [
+    {
+      "label": "before_read",
+      "pg_processes": 9,
+      "pg_rss_sum_bytes_includes_shared_pages": 132837376,
+      "pg_cpu_seconds_sum": 0.1875,
+      "probe_rss_bytes": 42668032,
+      "disk_free_bytes": 841902915584
+    },
+    {
+      "label": "after_read",
+      "pg_processes": 9,
+      "pg_rss_sum_bytes_includes_shared_pages": 134475776,
+      "pg_cpu_seconds_sum": 0.203125,
+      "probe_rss_bytes": 45428736,
+      "disk_free_bytes": 841902637056
+    }
+  ],
+  "status": "PASS",
+  "own_cluster_stopped": true
+}

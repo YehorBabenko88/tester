@@ -1,0 +1,53 @@
+{
+  "scope": "REPAIRED_HOST_COMPONENT_WITH_FROZEN_0FF_APP_NOT_SCM",
+  "scm_acceptance": false,
+  "host_source": "physical/master-windows-test/src/api/physical_host.py",
+  "child_app_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+  "stage": "verified",
+  "health": {
+    "provider": "unavailable",
+    "instance_id": null,
+    "status": "degraded",
+    "database": "ok",
+    "worker": "ok",
+    "storage": "ok",
+    "free_bytes": 842196582400,
+    "used_bytes": 1855340
+  },
+  "health_http_status": 503,
+  "browser_exit_code": 0,
+  "browser": {
+    "scope": "ACTUAL_FOREGROUND_API_UI_NOT_WINDOWS_SERVICE",
+    "errors": [],
+    "responses": [
+      {
+        "path": "/api/sources",
+        "status": 503
+      },
+      {
+        "path": "/api/instruments",
+        "status": 503
+      },
+      {
+        "path": "/api/instruments",
+        "status": 503
+      },
+      {
+        "path": "/api/sources",
+        "status": 503
+      },
+      {
+        "path": "/api/instruments",
+        "status": 503
+      }
+    ],
+    "firstReason": "503 provider_unavailable: Requested provider is not connected",
+    "spotReason": "503 provider_unavailable: Requested provider is not connected",
+    "status": "PASS_EXPECTED_UNAVAILABLE",
+    "market_data_rendered": false,
+    "financial_charts_acceptance": false
+  },
+  "status": "PASS_EXPECTED_UNAVAILABLE_NOT_NATIVE_SERVICE",
+  "foreground_exit_code": 0,
+  "owned_cluster_stopped": true
+}

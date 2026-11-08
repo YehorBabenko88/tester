@@ -1,0 +1,7 @@
+# Independent trade reader review
+
+Read-only reviewer executed six reader and eight provenance tests,14/14 PASS. Initial five-reader test review found no material defect for the trades-only protocol; follow-up verified strict declaration matching. Reader always requires source_run_status=matched and equal source_ingestion_run/source.ingestion_run/run_id; undeclared or conflicting acquisition run fails closed. Generic projector's weaker caller-origin compatibility mode is not used by the reader.
+
+Query-local provenance closure avoids cross-request source leakage. B's attached provenance is reused without extra per-trade queries. Existing shared adapter checks strict keyset order/range/identity before slicing. Decimal and timestamp values remain exact. Removing unauthenticated evidence refs prevents COMPLETE promotion. Unavailable empty envelopes retain reasons. PostgreSQL exceptions reach E's redacted503 handler; unsupported resources explicitly fail unavailable.
+
+Limits: data/provenance and coverage use separate snapshots, B provenance fanout is not bounded by page trade count, and no active-evidence completeness resolver is connected. Factory only works when pinned tester B/E modules are composed; snapshots were tested, not a full installable integrated branch. No live exchange, chart/browser, load/performance or full pipeline acceptance is implied. Root separately executed B57real-PG tests and synthetic10-instrument actual HTTP/PG factory probe; reviewer did not independently rerun PG.

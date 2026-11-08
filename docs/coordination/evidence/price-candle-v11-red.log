@@ -1,0 +1,22 @@
+test_mark_index_have_no_invented_volume (test_price_candle_v11.PriceCandleV11Tests.test_mark_index_have_no_invented_volume) ... ok
+test_negative_mark_or_index_is_not_premium (test_price_candle_v11.PriceCandleV11Tests.test_negative_mark_or_index_is_not_premium) ... ok
+test_nonfinite_inconsistent_and_out_of_range_are_rejected (test_price_candle_v11.PriceCandleV11Tests.test_nonfinite_inconsistent_and_out_of_range_are_rejected) ... ok
+test_off_grid_and_wrong_duration_do_not_claim_valid_interval (test_price_candle_v11.PriceCandleV11Tests.test_off_grid_and_wrong_duration_do_not_claim_valid_interval) ... FAIL
+test_positive_trade_v1_remains_strict_and_unmodified (test_price_candle_v11.PriceCandleV11Tests.test_positive_trade_v1_remains_strict_and_unmodified) ... ok
+test_quality_and_unclosed_are_not_promoted (test_price_candle_v11.PriceCandleV11Tests.test_quality_and_unclosed_are_not_promoted) ... ok
+test_signed_premium_is_preserved (test_price_candle_v11.PriceCandleV11Tests.test_signed_premium_is_preserved) ... ok
+test_utc_monday_week_and_leap_calendar_month_are_valid (test_price_candle_v11.PriceCandleV11Tests.test_utc_monday_week_and_leap_calendar_month_are_valid) ... ok
+
+======================================================================
+FAIL: test_off_grid_and_wrong_duration_do_not_claim_valid_interval (test_price_candle_v11.PriceCandleV11Tests.test_off_grid_and_wrong_duration_do_not_claim_valid_interval)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\files-pasted-by-the-user-master\work\master-supervisor\test_price_candle_v11.py", line 56, in test_off_grid_and_wrong_duration_do_not_claim_valid_interval
+    self.assertRaises(ContractError,validate_price_candle,value)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ContractError not raised by validate_price_candle
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.042s
+
+FAILED (failures=1)

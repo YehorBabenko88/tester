@@ -1,0 +1,22 @@
+# B bounded read_page — resource/snapshot review
+
+Exact HEAD **dc545c0a9857f279df46c3a9048871bb3232031f**, root-supplied `work/b-bounded-check`. Read-only tester review of read_page.py, Store wrapper, bounded-read-page.md and current tests. No GitHub, PostgreSQL, DDL or product edits. Proof semantics are assigned to the other reviewer.
+
+**Bounded approval for the stated additive API; no material resource/snapshot defect found in this focused inspection.** Root's real PostgreSQL76 suite and three independent PG fixtures are separate execution evidence, not this reviewer's run.
+
+- One Store.connect context establishes REPEATABLE READ READ ONLY before page/provenance/range queries. All page rows, coverage/resolutions/findings, outside-range proof support, run links, evidence and archive manifests use that same connection. No legacy multi-connection read/provenance/coverage calls are composed into its proof. Late commits are excluded by that per-call snapshot; a later call can see them.
+- Page scope/range/limits/cursor validate before connecting. The page and continuation EXISTS query share one snapshot. Keyset is exact `(timestamp_ms,record_key)`, including equal-ms rows, with range-bound lowercase64hex cursor. LIMIT+1 sentinel plus same-snapshot existence supplies next_cursor without offset paging. This is deterministic keyset ordering, **not** true sub-ms exchange sequence; trade-derived open/close consumers must use original precision/ID policy separately.
+- Every fanout is accounted: observations across the full range plus outside-range proof support share one total cap; evidence IDs, run links, intervals/findings and logical quarantine rows have limits; archive manifest count has its own ceiling. SQL suppresses oversized/overflow document bodies, uses named server cursors/FETCH1, and does not aggregate unbounded JSON. Proof-support exhaustion cannot silently trim history.
+- Count/encoded-document caps and final UTF8 response serialization are checked. Retained intermediate bytes and transient fetched document-body allowance are distinguished. Any RESOURCE_EXHAUSTED/UNAVAILABLE path clears rows, observations, run_links, evidence, cursor and proof_refs; coverage is UNKNOWN/false and page_exhausted=false. No partial certificate is returned.
+- Archive bytes are checked against a cumulative cap before reads and charged per <=64KiB chunk, with cooperative deadline checks and stable size/mtime/inode/hash validation. Symbolic links/UNC are refused. Actual file read may block outside PostgreSQL timeout; documentation explicitly admits that limitation.
+- Resolution chronology checks incident_created <= evidence_created <= resolution_recorded, plus covering scope/active proof. That is conservative against old proofs clearing later incidents. Detailed authenticity/membership validation remains the other reviewer's assignment.
+- Correct caveats are present: work_mem4MiB and serialized caps **do not promise Python/PostgreSQL RSS** or cap per-value de-TOAST allocation. Connection timeout/blocking filesystem calls are not preempted by the cooperative deadline. Each API call gets a fresh snapshot; no exported snapshot token/revision pins pages together. Backfill before an earlier cursor requires revisiting the range. xmin/started_at are diagnostic, not a shared-page or freshness lease. These limitations must remain visible when E integrates this API.
+
+## Actual independent checks
+
+Executed root venv from `work/b-bounded-check`:
+
+1. `tests.storage.test_models`: **12 PASS**, exit0, no database.
+2. Four independent inline unittest methods, using real Budget/read_page parameter gates and mocked connection/cursor boundaries: **4 PASS**, exit0. They verify invalid arguments never connect; fanout overflow raises without decoding/fetching the extra huge body; oversized single document rejects before JSON decode; max_archive_bytes=0 prevents reading a nonempty local fixture. No SQL/database connection was made. The archive fixture is a tiny temporary file under the workspace, removed by its context.
+
+Did not run test_read_page's PostgreSQL classes or the opt-in independent_read_page_check.py (which creates/drops a disposable DB). Root owns that run. No independent RSS, huge JSON/de-TOAST, disk-capacity, blocked-I/O timing or multi-page concurrent-backfill benchmark was performed. No claim that a single-snapshot response remains current after return or that separate pages share one snapshot.

@@ -1,0 +1,40 @@
+const fs = require('fs');
+const {chromium} = require('../d-heartbeat1-fixed/frontend/node_modules/playwright');
+const root = 'C:/ProgramData/TesterPhysicalTest20261107';
+const output = root + '/runtime/foreground-ui-7df';
+(async () => {
+  let context;
+  const report = {scope:'ACTUAL_FOREGROUND_API_UI_NOT_WINDOWS_SERVICE', errors:[], responses:[]};
+  try {
+    context = await chromium.launchPersistentContext(output+'/chrome-profile', {
+      executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe', headless:true,
+      viewport:{width:1440,height:1000},
+      args:['--disable-background-networking','--disable-component-update','--no-first-run']
+    });
+    const page = await context.newPage();
+    page.on('pageerror', e => report.errors.push(e.message));
+    page.on('response', r => {if(r.url().startsWith('http://127.0.0.1:18765/api/'))
+      report.responses.push({path:new URL(r.url()).pathname,status:r.status()});});
+    await page.goto('http://127.0.0.1:18765/',{waitUntil:'networkidle'});
+    await page.waitForFunction(() => document.querySelector('#screener-status').textContent.includes('provider_unavailable'));
+    report.firstReason = await page.locator('#screener-status').innerText();
+    if(!report.firstReason.includes('503 provider_unavailable')) throw Error('Explicit unavailable reason missing');
+    if(!await page.locator('#download').isDisabled()) throw Error('Download admitted without instrument/provider');
+    await page.screenshot({path:output+'/terminal-unavailable.png',fullPage:true});
+    const previous=report.responses.filter(x=>x.path==='/api/instruments').length;
+    await page.locator('#refresh').click();
+    await page.waitForFunction(() => document.querySelector('#screener-status').textContent.includes('provider_unavailable'));
+    await page.waitForTimeout(300);
+    if(report.responses.filter(x=>x.path==='/api/instruments').length<=previous) throw Error('Retry did not reach real API');
+    await page.locator('#category').selectOption('spot');
+    await page.waitForTimeout(300);
+    report.spotReason=await page.locator('#download-status').innerText();
+    await page.screenshot({path:output+'/terminal-after-retry.png',fullPage:true});
+    if(report.errors.length) throw Error('Uncaught browser exception');
+    report.status='PASS_EXPECTED_UNAVAILABLE';
+    report.market_data_rendered=false;
+    report.financial_charts_acceptance=false;
+  } catch(e) {report.status='FAIL';report.error_type=e.name;report.error=e.message;process.exitCode=1;}
+  finally {if(context) await context.close();fs.writeFileSync(output+'/browser-report.json',JSON.stringify(report,null,2));}
+  console.log(JSON.stringify({status:report.status,requests:report.responses.length,errors:report.errors.length}));
+})();

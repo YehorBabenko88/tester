@@ -1,0 +1,11 @@
+{
+    "kind":  "SCM_ACCEPTANCE",
+    "status":  "FAILED",
+    "stage":  "INSTALL",
+    "source_sha":  null,
+    "checks":  [
+
+               ],
+    "error_type":  "System.Management.Automation.ApplicationFailedException",
+    "completed_at":  "2026-11-08T10:45:54.4639358Z"
+}

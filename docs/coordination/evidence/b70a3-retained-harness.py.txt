@@ -1,0 +1,662 @@
+"""CODE-ONLY retained PG foundation probe; ROOT reviews and explicitly runs it.
+
+Fixed owned installation/55469, one NEW fixture database. No DROP/DELETE/cleanup,
+SCM, elevation, ACL or global PostgreSQL settings. All fixture data is synthetic.
+"""
+
+import hashlib
+import importlib.util
+import json
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import threading
+import unittest
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from datetime import UTC, datetime
+from pathlib import Path
+
+SHA = "70a3ae5f82f707365c17048b2d58379a8e2456c4"
+ROOT = Path("C:/ProgramData/TesterPhysicalTest20261107")
+RELEASE = ROOT / "releases/0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d"
+RELEASE_HASH = "ec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec"
+SNAPSHOT = Path(__file__).resolve().parents[1] / "b-foundation70-check"
+DATABASE = "tester_contract_b70a3_20261107"
+REPORT_PATH = ROOT / "state/b70a3-foundation-review.json"
+LOG_PATH = ROOT / "runtime/b70a3-foundation-review.log"
+
+
+def pg_command(pg, arguments, allowed=(0,)):
+    """Resident PG children must never inherit a PIPE handle."""
+    env = {k: v for k, v in os.environ.items() if not k.upper().startswith("PG")}
+    result = subprocess.run(
+        [str(pg.PGBIN / "pg_ctl.exe"), *map(str, arguments)],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=45,
+        env=env,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
+    if result.returncode not in allowed:
+        raise RuntimeError("owned_pg_command_failed")
+    return result.returncode
+
+
+class SafeResult(unittest.TestResult):
+    """Persist only case names/classes/sqlstate; never format driver exceptions/DSNs."""
+
+    def __init__(self):
+        super().__init__()
+        self.cases = []
+
+    def addSuccess(self, test):
+        super().addSuccess(test)
+        self.cases.append(dict(case=test._testMethodName, status="PASS"))
+
+    def addError(self, test, error):
+        super().addError(test, error)
+        self.record(test, error, "ERROR")
+
+    def addFailure(self, test, error):
+        super().addFailure(test, error)
+        self.record(test, error, "FAIL")
+
+    def record(self, test, error, status):
+        self.cases.append(
+            dict(
+                case=test._testMethodName,
+                status=status,
+                error_type=error[0].__name__,
+                sqlstate=getattr(error[1], "sqlstate", None),
+            )
+        )
+
+
+class FoundationProbe(unittest.TestCase):
+    context = None
+
+    def connection(self):
+        return self.context["connect"]()
+
+    def factory(self):
+        return self.context["factory"]()
+
+    def epoch(self, name):
+        value = "fixture:" + name + ":" + uuid.uuid4().hex
+        self.context["foundation"].create_unenrolled_epoch(self.factory, value)
+        return value
+
+    def fixture_count(self, key):
+        with self.connection() as c:
+            return c.execute(
+                "SELECT count(*) FROM tester_foundation_probe.facts WHERE id=%s", (key,)
+            ).fetchone()[0]
+
+    def event_count(self, epoch):
+        with self.connection() as c:
+            return c.execute(
+                "SELECT count(*) FROM tester_visibility.mutation_events WHERE epoch_id=%s",
+                (epoch,),
+            ).fetchone()[0]
+
+    def test_01_upgrade_six_to_seven_twice_preserves_data_and_acl(self):
+        context = self.context
+        with self.connection() as c:
+            self.assertEqual(
+                c.execute(
+                    "SELECT max(version) FROM tester_storage.schema_migrations"
+                ).fetchone()[0],
+                6,
+            )
+            self.assertEqual(
+                c.execute("SELECT count(*) FROM tester_storage.raw_records").fetchone()[
+                    0
+                ],
+                1,
+            )
+            before = c.execute(
+                "SELECT relname,relacl::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='tester_storage' ORDER BY relname"
+            ).fetchall()
+            context["migrate"](c)
+            context["migrate"](c)
+            after = c.execute(
+                "SELECT relname,relacl::text FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='tester_storage' ORDER BY relname"
+            ).fetchall()
+            self.assertEqual(before, after)
+            self.assertEqual(
+                c.execute(
+                    "SELECT max(version) FROM tester_storage.schema_migrations"
+                ).fetchone()[0],
+                7,
+            )
+            self.assertEqual(
+                c.execute("SELECT count(*) FROM tester_storage.raw_records").fetchone()[
+                    0
+                ],
+                1,
+            )
+        context["report"]["migration_6_to_7_repeat_preserves_raw_and_acl"] = True
+
+    def test_02_hard_disabled_checks_and_null_time_bounds(self):
+        import psycopg
+
+        epoch = self.epoch("disabled")
+        with self.connection() as c:
+            row = c.execute(
+                "SELECT status,success_enabled,external_restore_trust FROM tester_visibility.epochs WHERE epoch_id=%s",
+                (epoch,),
+            ).fetchone()
+            self.assertEqual(row, ("UNENROLLED", False, "UNVERIFIED"))
+            invalid = [
+                (
+                    "INSERT INTO tester_visibility.epochs(epoch_id,status,success_enabled) VALUES(%s,'ENROLLED',false)",
+                    (epoch + "bad-status",),
+                ),
+                (
+                    "INSERT INTO tester_visibility.epochs(epoch_id,status,success_enabled) VALUES(%s,'UNENROLLED',true)",
+                    (epoch + "bad-success",),
+                ),
+                (
+                    "INSERT INTO tester_visibility.capture_drafts(capture_id,epoch_id,capture_observed_by_ms) VALUES(%s,%s,1)",
+                    ("fixture:bad-capture", epoch),
+                ),
+                (
+                    "INSERT INTO tester_visibility.capture_drafts(capture_id,epoch_id,receipt_publication_observed_by_ms) VALUES(%s,%s,1)",
+                    ("fixture:bad-publication", epoch),
+                ),
+            ]
+            for query, args in invalid:
+                with self.assertRaises(psycopg.errors.CheckViolation):
+                    with c.transaction():
+                        c.execute(query, args)
+            c.execute(
+                "INSERT INTO tester_visibility.capture_drafts(capture_id,epoch_id) VALUES(%s,%s)",
+                ("fixture:disabled-draft", epoch),
+            )
+            self.assertEqual(
+                c.execute(
+                    "SELECT state,success_enabled,capture_observed_by_ms,receipt_publication_observed_by_ms FROM tester_visibility.capture_drafts WHERE capture_id=%s",
+                    ("fixture:disabled-draft",),
+                ).fetchone(),
+                ("INCOMPLETE", False, None, None),
+            )
+
+    def test_03_old_transaction_and_rr_snapshot_are_rejected(self):
+        f = self.context["foundation"]
+        epoch = self.epoch("stale")
+        for explicit_rr in (False, True):
+            c = self.factory()
+            if explicit_rr:
+                c.execute("BEGIN ISOLATION LEVEL REPEATABLE READ")
+                c.execute("SELECT 1")
+            else:
+                c.autocommit = False
+                c.execute("SELECT 1")
+            with self.assertRaises(ValueError):
+                with f.experimental_mutation(
+                    lambda: c, epoch, ["stale"], ["raw_records"]
+                ):
+                    self.fail("old transaction yielded")
+            self.assertTrue(c.closed)
+        with f.experimental_mutation(self.factory, epoch, ["fresh"], ["raw_records"]):
+            pass
+
+    def test_04_atomic_body_sorted_generations_and_ledger(self):
+        f = self.context["foundation"]
+        epoch = self.epoch("atomic")
+        with f.experimental_mutation(
+            self.factory, epoch, ["b", "a", "b"], ["raw_records"]
+        ) as c:
+            c.execute(
+                "INSERT INTO tester_foundation_probe.facts(id) VALUES(%s)",
+                ("fixture:atomic-body",),
+            )
+        self.assertEqual(self.fixture_count("fixture:atomic-body"), 1)
+        with self.connection() as c:
+            self.assertEqual(
+                c.execute(
+                    "SELECT scope_key,generation FROM tester_visibility.scope_generations WHERE epoch_id=%s ORDER BY scope_key",
+                    (epoch,),
+                ).fetchall(),
+                [("a", 1), ("b", 1)],
+            )
+            self.assertEqual(
+                c.execute(
+                    "SELECT scopes,mutator_tables FROM tester_visibility.mutation_events WHERE epoch_id=%s",
+                    (epoch,),
+                ).fetchone(),
+                (["a", "b"], ["raw_records"]),
+            )
+
+    def test_05_body_failure_rolls_back_rows_counters_and_ledger(self):
+        f = self.context["foundation"]
+        epoch = self.epoch("rollback")
+        with f.experimental_mutation(self.factory, epoch, ["scope"], ["raw_records"]):
+            pass
+        self.assertEqual(self.event_count(epoch), 1)
+        with self.assertRaisesRegex(RuntimeError, "synthetic_abort"):
+            with f.experimental_mutation(
+                self.factory, epoch, ["scope", "new-scope"], ["raw_records"]
+            ) as c:
+                c.execute(
+                    "INSERT INTO tester_foundation_probe.facts(id) VALUES(%s)",
+                    ("fixture:rolled-back-body",),
+                )
+                raise RuntimeError("synthetic_abort")
+        self.assertEqual(self.fixture_count("fixture:rolled-back-body"), 0)
+        self.assertEqual(self.event_count(epoch), 1)
+        with self.connection() as c:
+            self.assertEqual(
+                c.execute(
+                    "SELECT scope_key,generation FROM tester_visibility.scope_generations WHERE epoch_id=%s ORDER BY scope_key",
+                    (epoch,),
+                ).fetchall(),
+                [("scope", 1)],
+            )
+
+    def test_06_common_gate_contends_across_epochs_and_releases(self):
+        f = self.context["foundation"]
+        a = self.epoch("lock-a")
+        b = self.epoch("lock-b")
+        with f.experimental_mutation(self.factory, a, ["scope-a"], ["raw_records"]):
+            with self.assertRaisesRegex(RuntimeError, "gate busy"):
+                with f.experimental_mutation(
+                    self.factory, b, ["unrelated-scope"], ["lifecycle_quarantine"]
+                ):
+                    self.fail("global gate bypassed")
+        with f.experimental_mutation(
+            self.factory, b, ["unrelated-scope"], ["lifecycle_quarantine"]
+        ):
+            pass
+        self.assertEqual(self.event_count(b), 1)
+
+    def test_07_actual_transaction_exit_keeps_gate_until_commit(self):
+        f = self.context["foundation"]
+        epoch = self.epoch("commit")
+        other = self.epoch("commit-other")
+        reached = threading.Event()
+        release = threading.Event()
+        factory = self.factory
+
+        class PausedCommit:
+            def __init__(self):
+                self.raw = factory()
+
+            def __getattr__(self, name):
+                return getattr(self.raw, name)
+
+            @contextmanager
+            def transaction(self):
+                with self.raw.transaction():
+                    yield
+                    reached.set()
+                    if not release.wait(3):
+                        raise RuntimeError("synthetic_commit_barrier_timeout")
+
+        def writer():
+            with f.experimental_mutation(
+                PausedCommit, epoch, ["commit"], ["raw_records"]
+            ) as c:
+                c.execute(
+                    "INSERT INTO tester_foundation_probe.facts(id) VALUES(%s)",
+                    ("fixture:commit-body",),
+                )
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(writer)
+            try:
+                self.assertTrue(reached.wait(3))
+                self.assertEqual(self.fixture_count("fixture:commit-body"), 0)
+                with self.assertRaisesRegex(RuntimeError, "gate busy"):
+                    with f.experimental_mutation(
+                        self.factory, other, ["other"], ["raw_records"]
+                    ):
+                        self.fail("gate released before commit")
+            finally:
+                release.set()
+            future.result(timeout=3)
+        self.assertEqual(self.fixture_count("fixture:commit-body"), 1)
+        with f.experimental_mutation(self.factory, other, ["other"], ["raw_records"]):
+            pass
+
+    def test_08_runtime_grants_unchanged_and_visibility_inaccessible(self):
+        import psycopg
+
+        app = self.context["app_role"]
+        with self.connection() as c:
+            self.assertFalse(
+                c.execute(
+                    "SELECT has_schema_privilege(%s,'tester_visibility','USAGE')",
+                    (app,),
+                ).fetchone()[0]
+            )
+            self.assertFalse(
+                c.execute(
+                    "SELECT EXISTS(SELECT 1 FROM pg_class t JOIN pg_namespace n ON n.oid=t.relnamespace WHERE n.nspname='tester_visibility' AND (has_table_privilege(%s,t.oid,'SELECT') OR has_table_privilege(%s,t.oid,'INSERT') OR has_table_privilege(%s,t.oid,'UPDATE') OR has_table_privilege(%s,t.oid,'DELETE')))",
+                    (app, app, app, app),
+                ).fetchone()[0]
+            )
+        with self.context["connect_app"]() as c:
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                with c.transaction():
+                    c.execute("SELECT * FROM tester_visibility.epochs")
+            self.assertEqual(
+                c.execute("SELECT count(*) FROM tester_storage.raw_records").fetchone()[
+                    0
+                ],
+                1,
+            )
+
+    def test_09_legacy_direct_writer_bypasses_without_enrollment_or_history_claim(self):
+        f = self.context["foundation"]
+        epoch = self.epoch("bypass")
+        with f.experimental_mutation(
+            self.factory, epoch, ["prototype"], ["raw_records"]
+        ):
+            self.context["seed"](
+                "fixture:legacy-bypass"
+            )  # actual unchanged Store.ingest on another connection
+        with self.connection() as c:
+            self.assertEqual(
+                c.execute(
+                    "SELECT status,success_enabled FROM tester_visibility.epochs WHERE epoch_id=%s",
+                    (epoch,),
+                ).fetchone(),
+                ("UNENROLLED", False),
+            )
+            self.assertEqual(
+                c.execute("SELECT count(*) FROM tester_storage.raw_records").fetchone()[
+                    0
+                ],
+                2,
+            )
+            self.assertFalse(
+                c.execute(
+                    "SELECT EXISTS(SELECT 1 FROM tester_visibility.capture_drafts WHERE success_enabled OR capture_observed_by_ms IS NOT NULL OR receipt_publication_observed_by_ms IS NOT NULL)"
+                ).fetchone()[0]
+            )
+        page = self.context["store"].read_page(
+            "trades", "bybit", "linear", "SYNTHB70USDT", 1700000000000, 1700000060000
+        )
+        self.assertEqual(page["knowledge_time"]["status"], "UNAVAILABLE")
+        self.assertIsNone(page["knowledge_time"]["quality_available_at_ms"])
+        self.assertFalse(page["knowledge_time"]["historical_as_of"])
+
+
+def main():
+    report = dict(
+        sha=SHA,
+        database=DATABASE,
+        fixture_kind="SYNTHETIC_FOUNDATION_NOT_BYBIT_HISTORY",
+        all_data_retained=True,
+        historical_certificate_issued=False,
+        started_at=datetime.now(UTC).isoformat(),
+    )
+    pg = None
+    started = False
+    try:
+        sys.path.insert(0, str(RELEASE))
+        from src.api.physical_scope import plain_path, validate_owner, validate_release
+
+        owner = validate_owner()
+        validate_release(RELEASE, RELEASE_HASH)
+        for destination in (REPORT_PATH, LOG_PATH):
+            if plain_path(destination).exists():
+                raise RuntimeError("retained_evidence_already_exists")
+        spec = importlib.util.spec_from_file_location(
+            "owned_b70_pg", RELEASE / "scripts/windows/prepare_physical_database.py"
+        )
+        pg = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pg)
+        _, state = pg.preflight()
+        credentials = pg.validate_secrets(pg.read_json(pg.SECRETS), owner)
+        snapshot = plain_path(SNAPSHOT)
+        if not snapshot.is_dir():
+            raise RuntimeError("exact_workspace_snapshot_required")
+        sys.path.insert(0, str(snapshot))
+        import psycopg
+        from psycopg import sql
+        from psycopg.conninfo import make_conninfo
+        from psycopg.rows import dict_row
+        from src.storage import migrations, store, visibility_foundation
+
+        for module in (migrations, store, visibility_foundation):
+            if not Path(module.__file__).resolve().is_relative_to(snapshot):
+                raise RuntimeError("mixed_source_import_refused")
+        admin = make_conninfo(
+            host="127.0.0.1",
+            port=55469,
+            user=pg.ADMIN,
+            password=credentials["admin_password"],
+            dbname="postgres",
+            connect_timeout=5,
+        )
+        target = make_conninfo(admin, dbname=DATABASE)
+        app = make_conninfo(target, user=pg.APP, password=credentials["app_password"])
+        with socket.socket() as port:
+            port.bind(("127.0.0.1", 55469))
+        if pg_command(pg, ["-D", pg.DATA, "status"], (0, 3)) != 3:
+            raise RuntimeError("own_cluster_already_running")
+        started = True
+        pg_command(
+            pg,
+            [
+                "-D",
+                pg.DATA,
+                "-l",
+                ROOT / "runtime/database-foundation70.log",
+                "-w",
+                "start",
+            ],
+        )
+        with psycopg.connect(admin, autocommit=True) as c:
+            if not pg.same_directory(
+                pg.DATA, c.execute("SHOW data_directory").fetchone()[0]
+            ):
+                raise RuntimeError("foreign_cluster")
+            if (
+                str(
+                    c.execute(
+                        "SELECT system_identifier FROM pg_control_system()"
+                    ).fetchone()[0]
+                )
+                != state["system_identifier"]
+            ):
+                raise RuntimeError("cluster_identity_mismatch")
+            if c.execute(
+                "SELECT 1 FROM pg_database WHERE datname=%s", (DATABASE,)
+            ).fetchone():
+                raise RuntimeError("fixture_database_already_exists")
+            c.execute(
+                sql.SQL("CREATE DATABASE {} OWNER {}").format(
+                    sql.Identifier(DATABASE), sql.Identifier(pg.ADMIN)
+                )
+            )
+            c.execute(
+                sql.SQL("COMMENT ON DATABASE {} IS {}").format(
+                    sql.Identifier(DATABASE),
+                    sql.Literal("tester-physical:" + owner["installation_id"]),
+                )
+            )
+            c.execute(
+                sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(
+                    sql.Identifier(DATABASE)
+                )
+            )
+            c.execute(
+                sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
+                    sql.Identifier(DATABASE), sql.Identifier(pg.APP)
+                )
+            )
+
+        def connect():
+            return psycopg.connect(
+                target,
+                connect_timeout=5,
+                options="-c statement_timeout=5000 -c lock_timeout=3000",
+            )
+
+        def connect_app():
+            return psycopg.connect(
+                app, connect_timeout=5, options="-c statement_timeout=5000"
+            )
+
+        def factory():
+            return psycopg.connect(
+                target,
+                autocommit=True,
+                row_factory=dict_row,
+                connect_timeout=5,
+                options="-c statement_timeout=5000 -c lock_timeout=3000",
+            )
+
+        v6 = plain_path(snapshot / "retained-v6-migrations")
+        v6.mkdir()  # new and retained: no TemporaryDirectory teardown or cleanup
+        for path in sorted(migrations.MIGRATIONS.glob("*.sql")):
+            if int(path.name.split("_")[0]) <= 6:
+                shutil.copyfile(path, plain_path(v6 / path.name))
+        with connect() as c:
+            if not pg.same_directory(
+                pg.DATA, c.execute("SHOW data_directory").fetchone()[0]
+            ):
+                raise RuntimeError("foreign_migration_cluster")
+            migrations.migrate(c, directory=v6)
+            c.execute("CREATE SCHEMA tester_foundation_probe")
+            c.execute("CREATE TABLE tester_foundation_probe.facts(id text PRIMARY KEY)")
+            c.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
+            c.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA tester_storage TO {}").format(
+                    sql.Identifier(pg.APP)
+                )
+            )
+            c.execute(
+                sql.SQL(
+                    "GRANT SELECT,INSERT ON ALL TABLES IN SCHEMA tester_storage TO {}"
+                ).format(sql.Identifier(pg.APP))
+            )
+            c.execute(
+                sql.SQL(
+                    "REVOKE INSERT ON tester_storage.schema_migrations FROM {}"
+                ).format(sql.Identifier(pg.APP))
+            )
+            c.execute(
+                sql.SQL(
+                    "GRANT UPDATE ON tester_storage.download_jobs,tester_storage.ingestion_checkpoints TO {}"
+                ).format(sql.Identifier(pg.APP))
+            )
+        fixture_store = store.Store(app, storage_root=ROOT / "runtime")
+
+        def seed(identity):
+            run = identity + ":run"
+            raw = dict(
+                schema_version="1.0",
+                venue="bybit",
+                category="linear",
+                symbol="SYNTHB70USDT",
+                dataset="trades",
+                interval="",
+                timestamp_ms=1700000000123,
+                payload=dict(
+                    trade_id=identity,
+                    price="123.000000000000000001",
+                    size="0.01",
+                    side="Buy",
+                ),
+                source=dict(
+                    source_kind="archive",
+                    url="https://example.test/synthetic-b70",
+                    fetched_at="2026-11-07T12:00:00Z",
+                    ingestion_run=run,
+                ),
+            )
+            evidence = dict(
+                venue="bybit",
+                category="linear",
+                symbol="SYNTHB70USDT",
+                dataset="trades",
+                interval="",
+                start_ms=1700000000000,
+                end_ms=1700000060000,
+                status="PARTIAL",
+                pages=[dict(params={}, cursor=None, next_cursor=None, count=1)],
+                ingestion_run=run,
+            )
+            fixture_store.ingest([raw], evidence, identity, run_id=run)
+
+        seed("fixture:old-v6")
+        FoundationProbe.context = dict(
+            connect=connect,
+            connect_app=connect_app,
+            factory=factory,
+            foundation=visibility_foundation,
+            migrate=migrations.migrate,
+            store=fixture_store,
+            seed=seed,
+            app_role=pg.APP,
+            report=report,
+        )
+        result = SafeResult()
+        unittest.defaultTestLoader.loadTestsFromTestCase(FoundationProbe).run(result)
+        report.update(
+            status="PASS" if result.wasSuccessful() else "FAIL",
+            tests=result.testsRun,
+            failures=len(result.failures),
+            errors=len(result.errors),
+            cases=result.cases,
+        )
+        with plain_path(LOG_PATH).open("x", encoding="utf-8") as output:
+            for case in result.cases:
+                output.write(json.dumps(case) + "\n")
+        report["source_sha256"] = {
+            str(path.relative_to(snapshot)): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in (
+                snapshot / "src/storage/visibility_foundation.py",
+                snapshot / "src/storage/migrations/007_visibility_foundation.sql",
+            )
+        }
+    except Exception as error:
+        report.update(
+            status="FAIL",
+            error_type=type(error).__name__,
+            sqlstate=getattr(error, "sqlstate", None),
+        )
+    finally:
+        if started:
+            try:
+                pg_command(pg, ["-D", pg.DATA, "-m", "fast", "-w", "stop"])
+                report["own_cluster_stopped"] = True
+            except Exception as error:
+                report.update(status="FAIL", stop_error_type=type(error).__name__)
+        report["finished_at"] = datetime.now(UTC).isoformat()
+        # Fixed owned evidence path, exclusive create. Never overwrite an earlier run.
+        if pg is not None:
+            with pg.plain_path(REPORT_PATH).open("x", encoding="utf-8") as output:
+                json.dump(report, output, indent=2)
+    print(
+        json.dumps(
+            {
+                k: report[k]
+                for k in (
+                    "status",
+                    "tests",
+                    "failures",
+                    "errors",
+                    "error_type",
+                    "own_cluster_stopped",
+                )
+                if k in report
+            }
+        )
+    )
+    return 0 if report.get("status") == "PASS" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,15 @@
+{
+  "root": "C:\\ProgramData\\TesterPhysicalTest20261107",
+  "installation_id": "f23dab63-92c6-4e56-9027-4213c6b4dc60",
+  "host_fingerprint": "658ac47c38eb17a6",
+  "services": [
+    "TesterPhysicalTest20261107",
+    "TesterPhysicalPg20261107"
+  ],
+  "api_port": 18765,
+  "postgres_port": 55469,
+  "physical_changes": true,
+  "deletes_data": false,
+  "changes_services": false,
+  "changes_global_security": false
+}

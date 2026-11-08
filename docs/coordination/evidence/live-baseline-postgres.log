@@ -1,0 +1,108 @@
+{
+  "classification": "LIVE_PUBLIC_DATA_LEGACY_BASELINE_NOT_V1_E2E",
+  "started_at_ms": 1794059149718,
+  "instruments": [
+    {
+      "category": "linear",
+      "symbol": "0GUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "1000000BABYDOGEUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "1000000MOGUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "10000NEXUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "10000SATSUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "1000BONKPERP",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "1000BONKUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "1000BTTUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "1000CATUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    },
+    {
+      "category": "linear",
+      "symbol": "1000FLOKIUSDT",
+      "rows": 10,
+      "rows_after_retry": 10,
+      "coverage": "complete"
+    }
+  ],
+  "archive": {
+    "symbol": "XRPUSDT",
+    "day": "2023-01-01",
+    "coverage": "complete",
+    "manifest_rows": 43210,
+    "sha256": "9270eb6758065a9bd6a5ca1cae825195c3d298e9249b4930e99b8ccc9c0929e9",
+    "stored_rows": 43210,
+    "rows_after_retry": 43210,
+    "cluster_levels": 3496,
+    "cluster_trade_count": 43210
+  },
+  "status": "PASS",
+  "limitations": [
+    "Not A/B/C/D/E integrated contract acceptance",
+    "No process-kill restart test",
+    "No UI/physical Windows deployment"
+  ],
+  "catalog_evidence": {
+    "endpoint": "/v5/market/instruments-info",
+    "request_params": {
+      "category": "linear",
+      "limit": 1000
+    },
+    "response_count": 930,
+    "cursor_in": null,
+    "cursor_out": null,
+    "terminal_condition": "EXHAUSTED",
+    "coverage_status": "UNKNOWN"
+  },
+  "start_ms": 1794058500000,
+  "end_ms": 1794059100000
+}
+

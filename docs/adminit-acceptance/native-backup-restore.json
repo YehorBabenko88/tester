@@ -1,0 +1,121 @@
+{
+  "status": "OWNED_BACKUP_RESTORE_PASS",
+  "source_sha": "a3138eb9813832e9a839a99e54547001343ab3fd",
+  "database": "tester_lab_restore_1794138617433648800",
+  "backup_sha256": "24b0da3c0fa79ae579fec23a15b9d5c55fb316cb3329ac0651e2ea7c2dd79467",
+  "snapshot": {
+    "tester_lab.projections": {
+      "rows": 155,
+      "sha256": "fc4de3e4a1ff44789710adaf256005217bc238f77991925f6c63c7ee73551f2d"
+    },
+    "tester_storage.audit_events": {
+      "rows": 23,
+      "sha256": "e478e8d52c8e8e983f00fad6d2a1ba8e1a3f0583eaf1a0afb7c03659b70a255a"
+    },
+    "tester_storage.backup_evidence": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.backup_verifications": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.coverage_intervals": {
+      "rows": 46,
+      "sha256": "5a5258e93dceb386cbce146dda80eafac0cb484b64034957b671ec7a9367a015"
+    },
+    "tester_storage.coverage_resolutions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.derived_aggregates": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.download_jobs": {
+      "rows": 23,
+      "sha256": "1f7ad4760c1802900b409cd2f77f00636d8a4377d303798b5237f9b9c61eac38"
+    },
+    "tester_storage.finding_resolutions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.ingestion_checkpoints": {
+      "rows": 23,
+      "sha256": "f81c5af975f0d5c0d687ef4b277fd806a9baed8184c795f6e5218259c8e5edd3"
+    },
+    "tester_storage.ingestion_run_evidence": {
+      "rows": 23,
+      "sha256": "8107356ef55c5d49ace5400afd2215b883521ef96717ef34ac5f433a997716d3"
+    },
+    "tester_storage.ingestion_run_jobs": {
+      "rows": 23,
+      "sha256": "c1c98b51925d83764e311bd3de2f5f9a3b2bcce77903127a27f619ee32506a39"
+    },
+    "tester_storage.ingestion_runs": {
+      "rows": 23,
+      "sha256": "da66fc58b9468545fdcdf1d8b31621cf25e26bba6863cd16acab65f900d82b7f"
+    },
+    "tester_storage.instrument_metadata": {
+      "rows": 23,
+      "sha256": "e1ceac9f12e3d2ce6c9214e0452e7a62dd577a5a1deec811bfdbb9d1e7162080"
+    },
+    "tester_storage.instruments": {
+      "rows": 10,
+      "sha256": "ec487953f71bcbd4ef09eba8b4f15f1180c2465ad9818a8c6ab38c9c1087d887"
+    },
+    "tester_storage.lifecycle_object_evidence": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_objects": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_plans": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_quarantine": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_references": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_scans": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.pagination_evidence": {
+      "rows": 23,
+      "sha256": "e85028fb71fb53ec4c2312060523821252b5fd33609340a6b7f3396c19a4c40d"
+    },
+    "tester_storage.quality_findings": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.raw_records": {
+      "rows": 155,
+      "sha256": "89b418fcb77147d7d19132e68a222ef8329f76196c8e3ba54b570618d6556f82"
+    },
+    "tester_storage.record_sources": {
+      "rows": 190,
+      "sha256": "fe13f72cfc91f87da3681a0d309cf77f54e372055ef123b3a5b26f6392e0b472"
+    },
+    "tester_storage.schema_migrations": {
+      "rows": 7,
+      "sha256": "ea46ddef3a195e0f9a620c004d0371fd8513d4bd17c5fd52198d035b653d8d34"
+    },
+    "tester_storage.source_archives": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.source_observations": {
+      "rows": 190,
+      "sha256": "fa09f7d7cc73fedb5aae0402ae25a324836f7db1a6f81727ee530c34f32f6812"
+    }
+  },
+  "retained": true
+}

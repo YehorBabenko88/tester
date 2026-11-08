@@ -1,0 +1,191 @@
+{
+  "scope": "PRIVATE_VENV_ONLY",
+  "result": "RECORD_HASHES_VERIFIED",
+  "distributions": [
+    {
+      "name": "annotated-doc",
+      "version": "0.0.5",
+      "record_hashes_checked": 8
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.8.0",
+      "record_hashes_checked": 7
+    },
+    {
+      "name": "anyio",
+      "version": "4.16.0",
+      "record_hashes_checked": 53
+    },
+    {
+      "name": "attrs",
+      "version": "26.1.0",
+      "record_hashes_checked": 35
+    },
+    {
+      "name": "certifi",
+      "version": "2026.10.23",
+      "record_hashes_checked": 12
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.2",
+      "record_hashes_checked": 22
+    },
+    {
+      "name": "click",
+      "version": "8.5.1",
+      "record_hashes_checked": 22
+    },
+    {
+      "name": "fastapi",
+      "version": "0.162.2",
+      "record_hashes_checked": 69
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0",
+      "record_hashes_checked": 17
+    },
+    {
+      "name": "idna",
+      "version": "3.20",
+      "record_hashes_checked": 17
+    },
+    {
+      "name": "jaraco.classes",
+      "version": "3.4.0",
+      "record_hashes_checked": 10
+    },
+    {
+      "name": "jaraco.context",
+      "version": "6.1.2",
+      "record_hashes_checked": 7
+    },
+    {
+      "name": "jaraco.functools",
+      "version": "4.6.0",
+      "record_hashes_checked": 10
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.26.0",
+      "record_hashes_checked": 45
+    },
+    {
+      "name": "jsonschema-specifications",
+      "version": "2025.9.1",
+      "record_hashes_checked": 28
+    },
+    {
+      "name": "keyring",
+      "version": "25.7.0",
+      "record_hashes_checked": 39
+    },
+    {
+      "name": "more-itertools",
+      "version": "11.2.1",
+      "record_hashes_checked": 11
+    },
+    {
+      "name": "opentelemetry-api",
+      "version": "1.45.2",
+      "record_hashes_checked": 47
+    },
+    {
+      "name": "pip",
+      "version": "25.2",
+      "record_hashes_checked": 457
+    },
+    {
+      "name": "psutil",
+      "version": "7.2.2",
+      "record_hashes_checked": 17
+    },
+    {
+      "name": "psycopg",
+      "version": "3.3.8",
+      "record_hashes_checked": 91
+    },
+    {
+      "name": "psycopg-binary",
+      "version": "3.3.8",
+      "record_hashes_checked": 19
+    },
+    {
+      "name": "pydantic",
+      "version": "2.14.3",
+      "record_hashes_checked": 112
+    },
+    {
+      "name": "pydantic-settings",
+      "version": "2.16.2",
+      "record_hashes_checked": 28
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.50.4",
+      "record_hashes_checked": 11
+    },
+    {
+      "name": "python-dotenv",
+      "version": "1.2.4",
+      "record_hashes_checked": 16
+    },
+    {
+      "name": "pywin32",
+      "version": "312",
+      "record_hashes_checked": 614
+    },
+    {
+      "name": "pywin32-ctypes",
+      "version": "0.2.3",
+      "record_hashes_checked": 39
+    },
+    {
+      "name": "referencing",
+      "version": "0.37.0",
+      "record_hashes_checked": 19
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "record_hashes_checked": 27
+    },
+    {
+      "name": "rpds-py",
+      "version": "2026.9.1",
+      "record_hashes_checked": 9
+    },
+    {
+      "name": "starlette",
+      "version": "1.10.0",
+      "record_hashes_checked": 41
+    },
+    {
+      "name": "typing-inspection",
+      "version": "0.4.5",
+      "record_hashes_checked": 9
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0",
+      "record_hashes_checked": 5
+    },
+    {
+      "name": "tzdata",
+      "version": "2026.6",
+      "record_hashes_checked": 633
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0",
+      "record_hashes_checked": 42
+    },
+    {
+      "name": "uvicorn",
+      "version": "0.54.0",
+      "record_hashes_checked": 53
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "kind": "ACTUALLY_STARTED_AGENTS",
+  "capacity_including_coordinator": 4,
+  "launch_mode": "STAGGERED_OVERLAPPING",
+  "physical_coordinator": "root",
+  "agents": [
+    {
+      "name": "I",
+      "issue": 31,
+      "branch": "workstream/i-performance",
+      "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-i-performance\\tester-integration",
+      "pr": 35,
+      "sha": "9c4f65c2f1a03641019d25102c8a21e485cf08f8",
+      "status": "DRAFT_PUBLISHED_REVIEW_COMPLETE"
+    },
+    {
+      "name": "J",
+      "issue": 32,
+      "branch": "workstream/j-strategy-integration",
+      "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-j-strategy\\tester-integration",
+      "pr": 37,
+      "sha": "016aecd33f931a3767715cd0e140644b27631c2a",
+      "status": "DRAFT_PUBLISHED_REVIEWED",
+      "tool_source_sha": "4f1476e4a1279f6da7ded75be417c4aa2058259b"
+    },
+    {
+      "name": "K",
+      "issue": 33,
+      "branch": "workstream/k-codex-e2e",
+      "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-k-control\\tester-integration",
+      "pr": 38,
+      "sha": "94ae0bb6e8ab9e288982bfa4079844264c3b5b14",
+      "status": "DRAFT_PUBLISHED"
+    },
+    {
+      "name": "L",
+      "issue": 34,
+      "branch": "workstream/l-ui-trader",
+      "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-l-ui\\tester-integration",
+      "pr": 36,
+      "sha": "e20b0a46efb87b366f14575923eff62e310cb2d7",
+      "status": "DRAFT_PUBLISHED"
+    }
+  ],
+  "constraints": {
+    "installed_changes_by_agents": false,
+    "main_merge": false,
+    "real_trading": false
+  }
+}

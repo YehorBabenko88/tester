@@ -1,0 +1,329 @@
+{
+  "SOURCE_SHA": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "TREE_SHA": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+  "DEPLOY_PAYLOAD_SHA256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+  "PR_HEAD_AT_CHECK": "1f39ee2a2e65ce2334196ff0e0d33cf6ce7905dc",
+  "CANDIDATE_SOURCE_SHA": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "CANDIDATE_TREE_SHA": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+  "CANDIDATE_DEPLOY_PAYLOAD_SHA256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+  "INSTALLER_TEST": "NATIVE_719_UPGRADE_PASS;owned28tablebackuprestorePASS;rollbackNOT_REQUIRED",
+  "PORTABLE_SMOKE": "PRE_UPGRADE_719_READ_ONLY_1000_ROWS_MATCH;POST_UPGRADE_NATIVE_DATA_COVERAGE_HASHES_MATCH",
+  "SCM_APPROVAL": "ONE_719_UPGRADE_UAC_USED;CANCELLED_RECOVERY_NOT_RETRIED;noadditionalworkerterminationauthorized",
+  "SCM_STATUS": "APP_AND_OWN_PG_RUNNING_LOCALSERVICE;instance8d7e04a83b07471d8282cdc02af51c46",
+  "PG_ISOLATION": "OWN_55470_RUNNING_PID5132; existing5432_RUNNING_UNCHANGED_PID11740",
+  "BROWSER_SMOKE": {
+    "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+    "download_status": "COMPLETE_SEPARATE_FROM_COVERAGE_UNKNOWN",
+    "new_job": "dafcd8f4-0749-47cc-a1ef-9fb7e20bf4a4",
+    "new_counters": "1716 decoded HTTP body bytes;5 ingested/verified;work100percent",
+    "legacy_progress": "INDETERMINATE_NO_FABRICATED99",
+    "timeframes": "ALL13_REAL_DATA_AND_BROWSER_DOM_PASS",
+    "physical_mouse": "NOT_RUN_COMPUTER_USE_URL_POLICY_STOP",
+    "simulated_trades": "NOT_RUN_F_QUALITY_ADMISSION_REJECTED"
+  },
+  "SOAK": {
+    "status": "LOW_RATE_SOAK_PASS",
+    "source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+    "seconds": 1800.013414699999,
+    "completed": 240,
+    "failed": 0,
+    "scope": "LOW_RATE_MIXED_CONTROLLED_WORKLOAD; ten simultaneous admissions,one worker,not saturation"
+  },
+  "REPLAY": "NONADMIN_TWO_IDENTICAL_PUBLIC_JOBS_PASS;5rawrows=5unique;value/projectionhash unchanged",
+  "CRASH_RECOVERY": "NOT_RUN_UAC_CANCELED;0workerterminations",
+  "INTEGRATION": {
+    "F": "NOT_INTEGRATED;actual gate:coverage evidence required",
+    "G": "NOT_INTEGRATED;canonicalPGcontrol and overlaycontract unresolved",
+    "H": "NOT_INTEGRATED;source rights/sample and domain wiring gates absent"
+  },
+  "CI_EXACT_HEAD": {
+    "installed_source": [
+      {
+        "conclusion": "",
+        "databaseId": 42480851848,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480851848"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42480851788,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480851788"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42480851831,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480851831"
+      },
+      {
+        "conclusion": "cancelled",
+        "databaseId": 42480851861,
+        "status": "completed",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480851861"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42480847136,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42480847136"
+      }
+    ],
+    "candidate_source": [
+      {
+        "conclusion": "",
+        "databaseId": 42482688052,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482688052"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42482688021,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482688021"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42482688038,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482688038"
+      },
+      {
+        "conclusion": "cancelled",
+        "databaseId": 42482688057,
+        "status": "completed",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482688057"
+      },
+      {
+        "conclusion": "",
+        "databaseId": 42482683728,
+        "status": "queued",
+        "url": "https://github.com/YehorBabenko88/tester/actions/runs/42482683728"
+      }
+    ],
+    "success": false
+  },
+  "EVIDENCE_CLASSES": {
+    "HOST_REPORTED": "API build identity source/tree/manifest/instance;no independent binary attestation",
+    "INDEPENDENTLY_REPRODUCED": "Same-host external SCM registration/accounts/PIDs;596source+1892native hashes;30minsoak;SQLreplay;13TF;portable candidate1000-row equality and ownprocess peakRAM",
+    "CI": "QUEUED/superseded-cancelled,not successful",
+    "NOT_RUN": [
+      "native719install",
+      "forcedworkercrash/recovery",
+      "physicalmouse/highDPI",
+      "validatedsimulatedtradechart",
+      "fullhistoricalcompleteness",
+      "saturation/tenparallelworkers",
+      "LocalServicekeyringqualification"
+    ]
+  },
+  "REMAINING_BLOCKERS": [
+    "Canceled recovery UAC was not retried; no additional elevation requested",
+    "Prepared compact719 source is published and portable-tested,not installed",
+    "Computer Use stopped before physical mouse navigation due URL confidence policy",
+    "F/G/H not integrated; actual F admission rejects absent coverage evidence;no simulated trades",
+    "Exact-sourceCI notsuccessful; native host unsigned; full history/saturation/keyring gates absent"
+  ],
+  "MAIN_UNCHANGED": "0a6ce227d9463562bb18889dcc0ee747f3be9130",
+  "RELEASE_GO": false,
+  "generated_utc": "2026-11-08T13:25:54.049967+00:00",
+  "INTENSIVE": {
+    "status": "INCOMPLETE",
+    "application_source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+    "load_tool_sha": "88be6f6d4d18edc5dc06f46376602b1a512facfc",
+    "resource_tool_sha": "9c4f65c2f1a03641019d25102c8a21e485cf08f8",
+    "seconds": 604.8568761000024,
+    "submitted": 380,
+    "completed": 380,
+    "failed": 0,
+    "pending": 0,
+    "new_failed_ids": [],
+    "historical_failed": {
+      "count": 1,
+      "ids": [
+        "9d52a952-ff4c-4926-be95-2ce982ddbf7c"
+      ]
+    },
+    "read_latency": {
+      "count": 400,
+      "mean_seconds": 0.2670675214998573,
+      "p50_seconds": 0.2732106000003114,
+      "p95_seconds": 0.3326217000030738,
+      "max_seconds": 0.414689899997029
+    },
+    "post_latency": {
+      "count": 380,
+      "mean_seconds": 1.4442807302632565,
+      "p50_seconds": 1.4707024000017554,
+      "p95_seconds": 2.055723900000885,
+      "max_seconds": 2.171401599996898
+    },
+    "max_sampled_running_jobs": 1,
+    "max_sampled_queue": 21,
+    "metrics_complete": {
+      "postgres": true,
+      "processes": false,
+      "disk": true,
+      "latency": true,
+      "worker_count": false
+    },
+    "fairness": {
+      "BTCUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      },
+      "ETHUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      },
+      "SOLUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      },
+      "XRPUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      },
+      "DOGEUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      },
+      "ADAUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 37
+      },
+      "AVAXUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      },
+      "LINKUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      },
+      "DOTUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      },
+      "LTCUSDT": {
+        "submitted": 38,
+        "completed": 38,
+        "failed": 0,
+        "nonempty_reads": 38
+      }
+    },
+    "total_acknowledged_records": 1900,
+    "wal_bytes_delta": 41112735,
+    "wal_sample_seconds": 593.0794182999998,
+    "database_bytes_growth": 16343040,
+    "runtime_file_bytes_growth": 59560653,
+    "resource_snapshots": 10,
+    "worker_process_count": null,
+    "resource_groups": {
+      "app": {
+        "max_private_working_set_bytes": 233623552,
+        "mean_sampled_cpu_one_core_percent": 74.3,
+        "max_sampled_cpu_one_core_percent": 337.0,
+        "max_sampled_process_write_bytes_per_second": 762011.0
+      },
+      "postgres": {
+        "max_private_working_set_bytes": 14499840,
+        "mean_sampled_cpu_one_core_percent": 1.0,
+        "max_sampled_cpu_one_core_percent": 5.0,
+        "max_sampled_process_write_bytes_per_second": 115134.0
+      }
+    },
+    "limits": [
+      "Original load process sampling timed out; independent partial-window resource observations do not repair its INCOMPLETE status.",
+      "Worker process command lines/images are hidden for nonadmin LocalService; exact worker count UNKNOWN.",
+      "Concurrent admissions are not concurrent processing; sampled running jobs max is a lower-bound observation, not worker count.",
+      "WAL is owned-cluster-wide, process IO is not physical disk bandwidth, acknowledged rows are not distinct inserted candles.",
+      "First-running sampled delay is an upper bound, not exact queue wait; no retry/cancel/saturation/crash certification."
+    ],
+    "wal_mean_bytes_per_second": 69320.79200766292,
+    "resource_snapshot_attempts": 11,
+    "resource_snapshot_failures": [
+      {
+        "file": "native-719-resource-9c4-10.json",
+        "error_type": "CalledProcessError",
+        "cause": "NOT_ESTABLISHED"
+      }
+    ]
+  },
+  "CI_CONTEXT": "Existing CI_EXACT_HEAD arrays are historical7b/719 records; queue investigation timestamped separately; noCIpassclaim",
+  "AUTOMATED_GESTURES": "0b5339c fixture-headless wheel/drag/selection/crosshair;43browser testsPASS;separatefromphysical",
+  "AGENTS": {
+    "kind": "ACTUALLY_STARTED_AGENTS",
+    "capacity_including_coordinator": 4,
+    "launch_mode": "STAGGERED_OVERLAPPING",
+    "physical_coordinator": "root",
+    "agents": [
+      {
+        "name": "I",
+        "issue": 31,
+        "branch": "workstream/i-performance",
+        "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-i-performance\\tester-integration",
+        "pr": 35,
+        "sha": "9c4f65c2f1a03641019d25102c8a21e485cf08f8",
+        "status": "DRAFT_PUBLISHED_REVIEW_COMPLETE"
+      },
+      {
+        "name": "J",
+        "issue": 32,
+        "branch": "workstream/j-strategy-integration",
+        "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-j-strategy\\tester-integration",
+        "pr": 37,
+        "sha": "016aecd33f931a3767715cd0e140644b27631c2a",
+        "status": "DRAFT_PUBLISHED_REVIEWED",
+        "tool_source_sha": "4f1476e4a1279f6da7ded75be417c4aa2058259b"
+      },
+      {
+        "name": "K",
+        "issue": 33,
+        "branch": "workstream/k-codex-e2e",
+        "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-k-control\\tester-integration",
+        "pr": 38,
+        "sha": "94ae0bb6e8ab9e288982bfa4079844264c3b5b14",
+        "status": "DRAFT_PUBLISHED"
+      },
+      {
+        "name": "L",
+        "issue": 34,
+        "branch": "workstream/l-ui-trader",
+        "worktree": "C:\\Users\\Administrator\\.codex\\worktrees\\agent-l-ui\\tester-integration",
+        "pr": 36,
+        "sha": "e20b0a46efb87b366f14575923eff62e310cb2d7",
+        "status": "DRAFT_PUBLISHED"
+      }
+    ],
+    "constraints": {
+      "installed_changes_by_agents": false,
+      "main_merge": false,
+      "real_trading": false
+    }
+  },
+  "RECOVERY_TOOL_PREPARATION": {
+    "tool_sha": "4f1476e4a1279f6da7ded75be417c4aa2058259b",
+    "proposal_sha256": "e4305b30f4f252a6ab4b40c9c4119856ea8f3eac572d8a8b6472022186f2cd22",
+    "status": "REVIEWED_STAGED_NOT_AUTHORIZED_NOT_EXECUTED",
+    "guard_tests": 12
+  },
+  "POST_UPGRADE_TIMEFRAMES": "13_API_OHLCV_PASS_NOT_BROWSER"
+}

@@ -1,0 +1,269 @@
+{
+  "frozen_sha": "0ff59c69b71b61f32f05eda5d6c6f1bd81490c8d",
+  "scope": "FOREGROUND_DATA_TEST_NOT_SCM_ACCEPTANCE",
+  "started_at": "20261107T174112Z",
+  "stage": "verified",
+  "status": "PASS",
+  "restore_database": "tester_physical_restore_20261107_hb1738",
+  "all_data_retained": true,
+  "instruments": [
+    {
+      "symbol": "BTCUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "ETHUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "SOLUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "XRPUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "ADAUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "LINKUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "DOTUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    },
+    {
+      "symbol": "LTCUSDT",
+      "records_after_replay": 5,
+      "timestamp_precision": [
+        "ms"
+      ],
+      "raw_and_provenance_exact": true,
+      "verified_batch_flags": [
+        false,
+        false
+      ]
+    }
+  ],
+  "application_no_ddl_no_delete": true,
+  "backup": {
+    "file": "C:\\ProgramData\\TesterPhysicalTest20261107\\backups\\data-20261107T174112Z.dump",
+    "bytes": 128897,
+    "sha256": "e1b451f816a43dc98d63c4c3e18123609d5c9eb43845e2dcd5ef83230a46a4a2"
+  },
+  "tables": {
+    "tester_platform.control": {
+      "rows": 1,
+      "sha256": "ac11c56b3c13c21bcc34cac60c990721b75f982a0ece5d52e6e6667417cc5e53"
+    },
+    "tester_platform.jobs": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_platform.migrations": {
+      "rows": 2,
+      "sha256": "68e11441f6ae223b0ce983d2237ac44b1ab76c7b4c5704db6ccebae3d74dab7b"
+    },
+    "tester_platform.workers": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.audit_events": {
+      "rows": 10,
+      "sha256": "250b8d1bd3f2dd294e634b8a6ee364fc7a2d7e5143685730fa05e42183ac96f8"
+    },
+    "tester_storage.backup_evidence": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.backup_verifications": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.coverage_intervals": {
+      "rows": 20,
+      "sha256": "bb079e919f0906bd6cfec9d690a28c7cf22d9bc52f35a5922ae7c0e40dd840da"
+    },
+    "tester_storage.coverage_resolutions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.derived_aggregates": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.download_jobs": {
+      "rows": 10,
+      "sha256": "d1c28921fbd870c251acd1ada9dac92fd9e8ec092d95cd8f06873de442e3a119"
+    },
+    "tester_storage.finding_resolutions": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.ingestion_checkpoints": {
+      "rows": 10,
+      "sha256": "bb425d4a90a21c25a13382205556c0f091d970b418dfb34d6bc600ecbd656eb2"
+    },
+    "tester_storage.ingestion_run_evidence": {
+      "rows": 10,
+      "sha256": "8c86fa9afa61f8e42fcf4a77654c2ab91787f2afbe95441b8d4ce777274b2045"
+    },
+    "tester_storage.ingestion_run_jobs": {
+      "rows": 10,
+      "sha256": "86dec7564ec418f7eff096021992edd11a132ae50eeed3d6957ff89fd623950d"
+    },
+    "tester_storage.ingestion_runs": {
+      "rows": 10,
+      "sha256": "45069bd12bca67f17c946f905e0660447af35348b9272e045f0992674d31431e"
+    },
+    "tester_storage.instrument_metadata": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.instruments": {
+      "rows": 10,
+      "sha256": "1f6af107901665aba476ed87910efc609e7c206a92ff50d2b33f18a45bf7c335"
+    },
+    "tester_storage.lifecycle_object_evidence": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_objects": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_plans": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_quarantine": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_references": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.lifecycle_scans": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.pagination_evidence": {
+      "rows": 10,
+      "sha256": "ec3a4b206dd4f4732da23176ffb3b08adea07a84b60817ee67c3d971e939cc0e"
+    },
+    "tester_storage.quality_findings": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.raw_records": {
+      "rows": 50,
+      "sha256": "6eb643534a049b0105cb95a4bb87745c12adbd2421ce7f76e5e04a60c525f11a"
+    },
+    "tester_storage.record_sources": {
+      "rows": 50,
+      "sha256": "e8e7e3a8e4d4fe5c259cd57d1dc91d551f802ad8a73e236bbaaeaa2a16330392"
+    },
+    "tester_storage.schema_migrations": {
+      "rows": 6,
+      "sha256": "57c906d2e406b9fcb59a3f1301ea3498443b9509fc368f85db2efc9763b3c7a5"
+    },
+    "tester_storage.source_archives": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tester_storage.source_observations": {
+      "rows": 50,
+      "sha256": "bb9ba974d1b799ccac7d804f98df5b7b895b13c49b3f8b1535d8a8fb2941da1f"
+    }
+  },
+  "restored_tables_equal": true,
+  "records": 50,
+  "full_history": "NOT_PROVEN",
+  "scm_acceptance": false,
+  "owned_cluster_stopped": true,
+  "finished_at": "2026-11-07T17:41:14.011769+00:00"
+}

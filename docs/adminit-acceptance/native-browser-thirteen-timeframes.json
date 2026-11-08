@@ -1,0 +1,93 @@
+[
+  {
+    "interval": "1",
+    "start_ms": 1794141300000,
+    "end_ms": 1794141480000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-08T12:35:00.000Z → 2026-11-08T12:38:00.000Z (exclusive) · 1 · max 1000 points/panel"
+  },
+  {
+    "interval": "3",
+    "start_ms": 1794140820000,
+    "end_ms": 1794141360000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-08T12:27:00.000Z → 2026-11-08T12:36:00.000Z (exclusive) · 3 · max 1000 points/panel"
+  },
+  {
+    "interval": "5",
+    "start_ms": 1794140400000,
+    "end_ms": 1794141300000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-08T12:20:00.000Z → 2026-11-08T12:35:00.000Z (exclusive) · 5 · max 1000 points/panel"
+  },
+  {
+    "interval": "15",
+    "start_ms": 1794138300000,
+    "end_ms": 1794141000000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-08T11:45:00.000Z → 2026-11-08T12:30:00.000Z (exclusive) · 15 · max 1000 points/panel"
+  },
+  {
+    "interval": "30",
+    "start_ms": 1794135600000,
+    "end_ms": 1794141000000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-08T11:00:00.000Z → 2026-11-08T12:30:00.000Z (exclusive) · 30 · max 1000 points/panel"
+  },
+  {
+    "interval": "60",
+    "start_ms": 1794128400000,
+    "end_ms": 1794139200000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-08T09:00:00.000Z → 2026-11-08T12:00:00.000Z (exclusive) · 60 · max 1000 points/panel"
+  },
+  {
+    "interval": "120",
+    "start_ms": 1794117600000,
+    "end_ms": 1794139200000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-08T06:00:00.000Z → 2026-11-08T12:00:00.000Z (exclusive) · 120 · max 1000 points/panel"
+  },
+  {
+    "interval": "240",
+    "start_ms": 1794096000000,
+    "end_ms": 1794139200000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-08T00:00:00.000Z → 2026-11-08T12:00:00.000Z (exclusive) · 240 · max 1000 points/panel"
+  },
+  {
+    "interval": "360",
+    "start_ms": 1794074400000,
+    "end_ms": 1794139200000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-07T18:00:00.000Z → 2026-11-08T12:00:00.000Z (exclusive) · 360 · max 1000 points/panel"
+  },
+  {
+    "interval": "720",
+    "start_ms": 1794052800000,
+    "end_ms": 1794139200000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-07T12:00:00.000Z → 2026-11-08T12:00:00.000Z (exclusive) · 720 · max 1000 points/panel"
+  },
+  {
+    "interval": "D",
+    "start_ms": 1794009600000,
+    "end_ms": 1794096000000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-11-07T00:00:00.000Z → 2026-11-08T00:00:00.000Z (exclusive) · D · max 1000 points/panel"
+  },
+  {
+    "interval": "W",
+    "start_ms": 1792368000000,
+    "end_ms": 1793577600000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-10-19T00:00:00.000Z → 2026-11-02T00:00:00.000Z (exclusive) · W · max 1000 points/panel"
+  },
+  {
+    "interval": "M",
+    "start_ms": 1785542400000,
+    "end_ms": 1793491200000,
+    "records_lines": 2,
+    "range": "  - generic: 2026-08-01T00:00:00.000Z → 2026-11-01T00:00:00.000Z (exclusive) · M · max 1000 points/panel"
+  }
+]

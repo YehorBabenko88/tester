@@ -1,0 +1,44 @@
+{
+  "checked_at_ms": 1794063862542,
+  "scope": "S0_TECHNICAL_ACCESS_ONLY_NOT_LICENSE_OR_COMPLETENESS",
+  "probes": [
+    {
+      "source": "anonymous_market_print",
+      "method": "GET",
+      "url": "https://api.bybit.com/v5/market/recent-trade",
+      "auth_supplied": false,
+      "http_status": 200,
+      "ret_code": 0,
+      "rows": 1,
+      "record_fields": [
+        "execId",
+        "isBlockTrade",
+        "isRPITrade",
+        "price",
+        "seq",
+        "side",
+        "size",
+        "symbol",
+        "time"
+      ]
+    },
+    {
+      "source": "own_account_execution_history_without_auth",
+      "method": "GET",
+      "url": "https://api.bybit.com/v5/execution/list",
+      "auth_supplied": false,
+      "http_status": 401,
+      "response": "NON_JSON_OR_NO_DATA"
+    },
+    {
+      "source": "hyperliquid_zero_address_protocol_probe",
+      "method": "POST_INFO_READ_ONLY",
+      "url": "https://api.hyperliquid.xyz/info",
+      "auth_supplied": false,
+      "identity_note": "Zero address technical probe; no real trader identity/history claimed",
+      "http_status": 200,
+      "response_type": "list",
+      "rows": 0
+    }
+  ]
+}

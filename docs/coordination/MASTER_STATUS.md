@@ -1,0 +1,299 @@
+# Automation status observation — PAUSED
+
+Officialupdate/configreadback now reportsPAUSED; this observed configuration was preserved, not automatically resumed. Pause cause is not exposed and not inferred; future scheduled continuation is not guaranteed. Repaired7df candidate/evidence and exactcheckpoint are saved; nativeSCM remainsblocked pendingnewhumanadministratoraction. PriorACTIVE observations below are historical. No newUAC or source/data changes.
+
+---
+
+# Repaired immutable candidate and foundation PG — 2026-11-07T18:47:51.939617+00:00
+
+**NOT_READY / no SCM installation / cancelledUAC not retried.** New immutable candidate7df3ee987c2a7cefbff13db82442faf0fb09e689:464files/3050866bytes, manifest002b6becb6a8b36a6622558ff2d423f3a945b935dc1ae9f434d2a5c387716cbf. Full externalVerify passed; actual EXACTfrozen host+supervisor/API/worker/limited-rolePG→Chrome unavailable/retry path passed, operationalhealth503degraded, providerunavailable, instance_idnull, stop0/PGstopped. No mixedworktreehost this time; still not SCM/LocalService/financialUI acceptance. Original0ff/oldconfig retained/retired. Own active config now points frontend to7df; no provider/data defaults changed. Separately proposed7df installer is read-only bydefault, tested; standard-user registration switch rejects beforeSCM, no automaticelevation. Oldlauncher staysblocked; new humanadministratoraction required.
+
+B70a3 independent9actualPG foundationcases PASS:6→7repeat preservesraw/ACL, harddisabledschema, freshTX guards, atomicbody/generations/ledger, rollback, trylockcontention/release and heldthroughactualcommit, no runtimevisibilityschema rights, unchangedlegacy Storebypass demonstrateswhyUNENROLLED/knowledgeUNAVAILABLE remains. Separate newfixtureDB retained, noDROP/deletion, ownclusterstopped. Narrow prototype accepted only PR13comment6711530726. Current sourceheads/GitHub refreshed, CI7dfstillqueued, no mainmerge/trading/global5432/securitychanges. Next service gate requires human action; keep independent integration/enforcement work conservative.
+
+---
+
+# Native JobObject repair and real foreground browser — 2026-11-07T18:30:01.497495+00:00
+
+**NOT_READY / original physical0ff RETIRED NOT_INSTALLABLE; UAC cancellation unchanged.** Real privatepywin32 312 failed CreateJobObject(None,None) before childspawn. Strict mock reproduced RED; one-line emptystring fix,135platformPASS/14skip/8subtests, lint/format/pins/OpenAPI passed; native2jobs isolation/limit check passed. Repaired worktree host launched unchanged0ff supervisor/API/worker against limited-role ownPG55469. Real Chrome/no mocks displayed truthful503provider_unavailable, retry andmarketselection reachedactualAPI; no browserexceptions, allfinancial/Strategy panels remainedunavailable. HealthDB/worker/storageok/providerunavailable/instance_idnull, foregroundexit0 andPGstopped. This is mixedcomponenttesting, not SCM/LocalService or rebuiltartifact acceptance. Screenshot andcommands in docs/physical-test/NATIVE_JOB_REPAIR.md.
+
+Immutable0ff/manifest preserved but mustnotinstall; oldwrapper retained and current/versionedlauncher failclosed (tested). Need newchecksummed candidate before replacementpayload; noautomaticUAC. E actualidlechecked and producerDraft28backport assignedonce PR28comment6711337184. B70a3 foundation independently11mock +SQL/inventory static review passed, no newactualPG/protocolsuccess. Next root retainedfoundationmigration/constraint/rollback/contentiontests, keepUNENROLLED/productionUNAVAILABLE/noCmapping. Allsourceheads/GitHub refreshed, hostedCI stillqueued, mainunchanged.
+
+---
+
+# Technical review outcome — LIMITED foundation only
+
+Exact89221 proposal reviewed by MASTER and independent reviewer. Issue2comment6711209526 approves only experimental schema/epoch/common-gate foundation and tests, while production quality remainsUNAVAILABLE/null and epochs stayUNENROLLED if direct/legacy writers bypass gates. No historical success/C mapping/provider defaults authorized. Capture visibility and later receiptpublication must remain separate; UTC trust/uncertainty, restoreexternalepoch, atomicallmutatorgeneration and archive/negative-fact limits stay gates. B actualidlechecked then nextstage dispatched once. Evidence in reviews/VISIBILITY_PROTOCOL_89221.md. Native UAC block remains unchanged.
+
+---
+
+# New prospective visibility proposal received
+
+B89221f2 adds design/specification tests only; production source remainsa8aa with UNAVAILABLE historical quality. MASTER independently20pure testsPASS; deliberately unsafe sampled-clock candidate fails10/10 as expected. These are symbolic cases, not PG/MVCC/crash/durability acceptance. Technical review of enforced all-writer fence/clock/restore/C mapping is pending; no successful production certificate/default activation authorized. See Issue2comment6711141791 and exact B proposal.
+
+---
+
+# B knowledge-time result review — 2026-11-07T18:13:30.176225+00:00
+
+**NOT_READY / historical-quality activation BLOCKED.** Root independently verified exactB a8aa7e1:18unit/mock +7actualPG casesPASS/0skip. Original PostgreSQL timestamp strings preserved, present-time COMPLETE positive control maintained, historical qualityUNAVAILABLE/null/as_offalse. Actual C rejects null; observation cap discards facts/proof. Accepted truthful bounded projection only (PR13comment6711137234), not functional historical-availability certification or composition.
+
+Root also confirmed TWO actual PG counterexamples: DEFAULTnow precedes cutoff while row remains uncommitted/invisible; RR snapshot established before lock still omits a committed row after lock. Separate retained own fixture DB/schema/rows; no deletion/SCM/elevation, cluster stopped. New B task Issue2comment6711141791 requires a versioned prospective immutable-snapshot/named-fence proposal and adversarial cases, MASTER technical review before success activation. Actual idle checked then active design turn confirmed; temporary independent reviewer challenges invariants. No legacy backdating/global settings/C weakening/default activation. Physical0ff remains immutable and NOT_INSTALLED after cancelled UAC; no repeated UAC. This result-triggered review is not a new scheduler invocation; last verified heartbeat remains17:53:52Z.
+
+---
+
+# Heartbeat — bounded proof and next knowledge-time gate, 2026-11-07T18:02:59.540807+00:00
+
+**NOT_READY / physical UAC block unchanged.** Independently ran exactB73766 six PostgreSQL horizon cases through limited app role in a new retained own-cluster fixture DB:6PASS/0fail/0skip, including original MASTER2100 repro and a positive elapsed-clock control. Original future bounds retained, completefalse/UNKNOWN/no proof/0percent. Author DROP teardown explicitly overridden; DB/rows retained, own55469 stopped, no SCM/elevation/user-data deletion. Synthetic proof fixtures are not live history. Narrow acceptance PR13comment6711005818; physical0ff and integration19f remain unchanged.
+
+New concrete integration gap: C requires proved quality_available_at_ms before cutoff, while bounded B projection omits recorded/inserted/run clocks. Do not substitute source fetched_at, event time or current read time. B Issue2comment6711027252 assigned once after actual idle check; real active turn confirmed. MASTER recorded single-snapshot bounded provider plan and cutoff/resource/provenance regressions in INTEGRATION_PLAN_V1.md. All source heads unchanged,11DraftPRs/issues refreshed, CI718 remains queued. No new UAC prompt. Next: review B knowledge-time delta, then compose B→shared→C→typedE→D in isolated Draft without activating immutable physical candidate.
+
+---
+
+# Latest cycle result — E P2 independently verified
+
+E finished existing disclosure task at bec563e; MASTER independently48financialHTTP testsPASS after exactGit snapshot/diff review. Unknown/private errorcodes safelymap503, raw diagnostics are not exposed. Narrow P2 accepted in PR9 comment6710868433; E nowidle, bec notcomposed and physicalfrozen0ff unchanged. B73766 has13purechecks/source review only; independentPGproof pending. Real50-row/teninstrument replay/retainedbackup-restore/sourcepayload-time checks passed in ownPG, then stopped. Native installation still blocked by cancelledUAC; no retry and no main merge.
+
+---
+
+# Heartbeat physical data test — 2026-11-07T17:45:06.804450+00:00
+
+**Native installation remains BLOCKED after cancelled UAC; no retry/elevation.** Independent nonprivileged work completed against frozen0ff59c69: ten real Bybit candle handoffs inserted through actual limited app role into owned PG55469, replayed without duplication (50rows), original run provenance/source ms precision retained. Retained post-data custom backup restored into a new owned DB; all B/E base-table row counts/content hashes matched. Separate read-only comparison verified all original payload/hash/time values in both DBs; initial/final owned-process RAM/CPU/disk samples saved (not stress/peak). Both DBs/backups/logs retained; own cluster stopped, existing5432 still running. This is foreground data acceptance only, not SCM/full-history/UI acceptance. Verified batch flags stayedfalse; completeness was not manufactured.
+
+GitHub Issue1–18/25/27 and all11DraftPR/branch heads refreshed; source heads unchanged, CI388e3df pending/queued. Independent B73766 source/13purechecks PASS, no independent PG acceptance/adoption yet. A–H chats actually inspected: E idle then resumed once for existing PR9P2 issue6710347416; active turn and RED8HTTP→GREEN progress confirmed, no duplicate Issue. Others idle; G/H chat dispatch remains unauthorized. Next: E published fix verification, independent B73766 PG tests in disposable fixture cluster; keep frozen physical candidate immutable and never reopen cancelled UAC automatically.
+
+---
+
+# Physical checkpoint — UAC cancelled, 2026-11-07T17:37:57.403442+00:00
+
+**BLOCKED_WINDOWS_ADMINISTRATOR_UAC_CANCELLED / NOT_ACCEPTED.** Windows returned cancellation for the actual RunAs request. No elevated process was created; consent29596/launcher32968 have exited; no owned services or elevated operation log exist. Do not automatically repeat elevation. Earlier pending-UAC checkpoint below is historical. Standard-user SCMcreate denied5 remains; human administrator action is required for a new normal-UAC attempt. Frozen0ff59c69/manifest, prepared stopped own DB, private dependencies and Draft29 retained. No user data deletion, existing5432 modification, main merge or trading. Exact continuation in docs/physical-test/CHECKPOINT.json.
+
+---
+
+# Physical checkpoint — normal UAC pending, 2026-11-07T17:35:55.906439+00:00
+
+**NOT_ACCEPTED / AWAITING_WINDOWS_ADMINISTRATOR_UAC.** Draft29 frozen source0ff59c69, manifestec9ce08fa385588db1d7cd3e95c45dfd518a9ef04b694691f8b5dece700656ec,431files/2656342bytes externally verified. Private venv37distributions/2701RECORDhashes and pipcheckPASS. Actual normalRunAs invoked17:33:05Z, consent.exe29596 observed and launcher32968 still awaiting OS administrator credential; no own SCM services yet. Do not open a duplicate UAC prompt. One bounded reviewed wrapper only registers own PG/app services and requests start; no persistent elevated agent. See physical CHECKPOINT for payload, active launcher/session and exact continuation. CI for frozen0ff remains queued, not passed. Existing5432 untouched; own cluster stopped after B/E migration/privilege tests.
+
+---
+
+# Current direct mission — Issue27 isolated physical Windows test
+
+**NOT_ACCEPTED.** Current-PC authorization supersedes earlier no-install restriction only for dedicated tester resources. Physical branch physical/master-windows-test: root/private venv prepared; actual own PG18 cluster55469 initialized, B/E migrations and app no-DDL/no-DELETE probes passed, retained backup, stopped. Existing PostgreSQL5432 untouched. First pg_ctl inherited PIPE hang diagnosed and repaired with guarded non-destructive resume. Native startup STOP/junction fixes independently24PASS; complete platform135PASS/14skips, root unittest258/48skips. Ten real Bybit candle windows50rows observed with original evidence; coverage PARTIAL, no full-history/trader claim. No native SCM service installed: standard-user create denied5, separate-admin normalUAC required after frozen payload review. See docs/physical-test/CHECKPOINT.json and COMPONENT_MATRIX.md for exact next steps. F/G/TI and financial-provider bindings remain not integrated; no main merge/trading/deletion.
+
+---
+
+# Current heartbeat — safe data errors and blocked future proof, 2026-11-07T17:40:25.947175+01:00
+
+**NOT_READY.** Current composed sources remain A0a6d/B e236/C3cb/E5fa/D6cf; new Aa628 catalog and Bdc545 bounded API are not composed. GitHub Issues1–18/25,9DraftPRs, A–G/H refs, Issue8/25/PR11 comments and CI refreshed. Main unchanged0a6ce227. Existing worktree only.
+
+Root fixed a real HTTP diagnostic defect: connected storage with unverified original run or invalid canonical values previously said provider notconnected. New typed503data_unavailable returns only whitelisted provenance/canonical/integrity/unavailable-range/continuation reasons; unsupported resources retainprovider_unavailable. Integrity is not downgraded to provenance, unavailable does not imply corruption, raw private diagnostics never echoed. Two oldHTTP regressionsRED;6HTTP+6legacyreaderGREEN, actualPGHTTP caller-onlyoriginal thenintegrity PASS. Final root254methods252PASS2root optin skips; separate platform113PASS2skips. Core/policypins, OpenAPIsemantic equality and targetedRuff lint/formatPASS; ownPGstopped. No record schema/Cmath/proof/default changes.
+
+New Bdc545 independently76actualPG+3literalchecksPASS, resource/snapshot narrowreviewPASS; but independent semantic reviewer found and root confirmed P1: one historical exchange-ID trade+matchedrun/operatorattestation[2023,2100) returnsCOMPLETE100% with nonemptyproofrefs at2026snapshot. Root extraPGprobeRED saved. Newproof NOTintegrated; composedoldreader remainsUNKNOWN. ExactP1PR13:6709945814; B idlecheckedthenresumedonce, actualactiveprogressconfirmed. Must gate both requested/candidate future horizons, no clipping into100%.
+
+New nonduplicate tasks: A1:6709792128 canonical instrument metadata/sourceincrements; E5:6709792406 explicit derived-query cutoff/step/cursor contract. Bothidlecheckedbeforefollowups and realactiveexecution confirmed. A publisheda628 docs/source/test metadata module, nowindependentreviewpending; not rootaccepted/composed. E typedcontract stillactive. B source/proof correctionactive. GAWAITING_AGENT_EXECUTION; no G/Hdispatchauthorization assumed. UI alreadyrenders structuredcode/message, no substitute data.
+
+Fifth actualheartbeat16:20:23.859Z recorded. Candidate19f306CI allqueued; storagejobsreadback4queued/ubuntu-latest/no runner assigned, reasonunknown. No successfulCI/billingcause claimed. Next: correctedBfutureproof, Ametadatareview, Etypedcontract, compositefinancialAPI/full-range→actualD browser, thenreal10instrument/history/resources/service/CI; F/G separate. TIinertS0,no mainmerge/physicaldeploy/trading/userdatadeletion.
+
+---
+
+## Historical checkpoints below
+
+# Current heartbeat — tested five-component composition, 2026-11-07T17:15:37.358876+01:00
+
+**NOT_READY.** Existing worktree preparation branch integration/pinned-ac-20261107 composes A0a6d07c / Be236395 / C3cb0735 / E5fa20ce / D6cf9a2a. No main merge; producer heads retained in integration history. Sources coexist, but configured optional API is still trades-only: catalog/derived-provider/full-range proof and actual financial browser path are pending. F/G/H not composed. TI inertS0.
+
+Final actual owned-PG unittest247methods245PASS/2root optin skips; separate API113PASS/2skips. A immutable A3098→Be2366PGtestsPASS plus actual stop/start/newprocess replay, scratchcluster stopped. C original-fetch+1ns/eventns/us cutoff defects resolved and independently replayed; final25binding methodsPASS using actual modules. E final5fa anchors policy bootstrap before parent import, rejects foreigncache/origins/namespaces/junctions; root24loaderPASS/1symlinkskip and fullAPIabove. Both unchanged core/policy hash pinsPASS. Boundedproof API ownerB still actively implementing; do not claim COMPLETE.
+
+Frontend19Node+25fixturebrowserPASS using alreadyinstalledChrome(no installation); initial bundledbrowser absence was environment-only. Actual E→D static HTTP2PASS confirms owned HTML/JSbytes and JSON503/unsupported404, not fake rows. These are not live financial E2E or stress. Backendwheelbuild/isolatedimports/pinsPASS SHA01a7bb6c08e5fac9d012405ac5d132ecb8ab74d69d69994ee8c2277068fc54f7; includesA/B/C/E+SQL/schemas/policy. Frontend assets remain source-distribution; no service/OScredential-backend installcertified. Added dedicated hosted frontend fixtureCI; all actualCI observedqueued, no success.
+
+Integration fixes: union all byteattrs/packageassets; retainedBDecimalquality. C standalone vendoredreference subset shadowedrealE/src.api.main under combineddiscovery: reproducedRED, changed integration testpath toactualownedmoduleswhenpresent with standalonefallback, GREEN. ExistingworkingpolicyCRLF bytes restoredfromcorrectGitblob after new-textattribute; expectedpinunchanged, no policybehaviorrewrite. A hiddenrestartchildguardP2 fixedupstream0a6d and independentlyverified; normalparent6PG replayPASS. FocusedC/A/E tasks closed, fullcomponents remain READY_FOR_REVIEW only.
+
+Fourth actualheartbeat2026-11-07T15:57:23.794Z recorded. A/C/E actualchatsidlecompleted after corrections; B active/toolprogress confirmed; D/F idlecompleted; G AWAITING_AGENT_EXECUTION(no authorized G/Hdispatch assumed). Latestissues/PRs/HEADs/CI refreshed; taskmarkersdeduped. Next: boundedBproof→reader, typedC/catalogproviders/cutoff, actualfinancialUI, real10instrument/fullhistory/resources/service/CI, F/G separately. No physicaldeployment, mainmerge, trading or userdata deletion.
+
+---
+
+## Historical checkpoints below
+
+# Current heartbeat — composed B/E and blocked C, 2026-11-07T16:52:29.372082+01:00
+
+**NOT_READY.** Existing worktree retained; candidate imports reviewed B e236395 and E b15b1ce into one repository checkout. Local preparation branch integration/pinned-candidate-20261107; published coordination/master and integration/master will retain reviewed B/E commit parents. No main merge or default provider activation. A/C/D/F/G are not yet composed.
+
+Own disposable PG18.4 same-checkout unittest147methods/145PASS/2root optin skips; separate API89PASS/1symlinkskip. Includes10synthetic instrument identities20exact trade fixtures20HTTPpages, cross-symbol cursor rejects. Core1.0 hash pin unchanged/PASS. Wheel built and isolated extracted-wheel imports pass, SQL/schema assets included; keyring dependency declared. No OS credential backend installed/certified. Own PG stopped afterward. This is not live history, full pipeline, stress or production readiness.
+
+Integration resolved .gitignore and quality helper conflicts: retained coordinator ignores and B's Decimal/UTC/localvalid-never-COMPLETE semantics. Two obsolete E quality tests failed RED, then corrected to local validity and half-open UNKNOWN gaps. Reviewer found CI HTTP test was skipping without adminDSN and wheel omitted keyring; fixed with explicit storageCI HTTP step/disposable admin and runtime dependency. Hosted CI remains queued, not passing evidence.
+
+C advanced152823→e9f6f0f, reviewed and BLOCKED: actual-shaped B raw_envelope preserves original fetched_at cutoff+1ns but C uses normalized truncated time; canonical event residual ns beyond cutoff also admitted. P1task20:6709316683/addendum6709327333. C not integrated. Windows extraction43methods42PASS/1hashfail; all8publishedGitblobs actually match pins. Root initial bad-blob diagnosis corrected publicly6709316506: need byte-preserving checkout attributes, not repinning correct refs. Reviewer report/evidence retained.
+
+New B bounded consistent-page/provenance/active-proof task2:6709223310 executing; original lineage remains verified. C corrective chat resumed only after idle confirmation; A/E previous tasks continue, no duplicate dispatch. G AWAITING_AGENT_EXECUTION; no authorized G/H chat assumed. S0TI inert.
+
+Third actual heartbeat2026-11-07T15:42:23.754Z recorded. Current exact pins/remote markers/CI links/commands/outstanding gates in CHECKPOINT.json. Next: changed A/C/E review, bounded B proof→reader, then remaining pinned components and real-source10instrument/browser/resources/service/CI. No trading, user-data deletion, physical deployment or merge main.
+
+---
+
+## Historical checkpoints below
+
+# Current heartbeat — B→E trade reader, 2026-11-07T16:36:06.810373+01:00
+
+**NOT_READY.** Read/checkpoint/Issue8/25/PR11 refreshed; Issues1–18/25, all9DraftPRs/reviews, A–G/H refs and Actions observed. Main unchanged0a6ce227. B advanced47fd→e236395; independent57/57 real own disposable-PG tests pass, original-run mismatch/whole-batch rollback/recovery lineage fixed. Other producer pins unchanged. CI remains queued, no successful exact-candidate CI.
+
+Implemented tester-owned StorageTradeReader/create_reader: B attached provenance→strict original matched run→E trades endpoint, no C math or foreign Gateway. Six reader/eight provenance tests independently pass. Root suite86methods84pass2optinPGskip. Actual PG+HTTP pinned B e236/E b15b composition passes10synthetic instrument identities/20exact trades/20pages;10cross-symbol cursor422 rejections and unsupported candles503. This is not live history, full pipeline, load stress or a merged installable A-G branch. No default provider activation/migration/service install.
+
+Reader cannot certify COMPLETE. B data/provenance and coverage use separate snapshots; source observation fanout is not page-bounded. Explicit limits and reproduction are in docs/integration/STORAGE_TRADE_READER.md. Current peer review found no material defect within this narrow scope. Strong reader requires matched plus exact original/source/caller run identity; undeclared caller-origin is not original-source proof.
+
+A/C/E actual idle statuses checked before new single followups; active/inProgress tool execution verified. Tasks: A1:6709081686(newBpair), C3:6709081990(canonicalinputbinding), E5:6709082262(ownedpreimportboundary). No duplicate old-head/defect tasks. B/D/F idle completed; G idle and AWAITING_AGENT_EXECUTION, assignment not dispatch. S0TraderIntelligence remains inert, PR26unreviewed/not integrated.
+
+Second actual system heartbeat2026-11-07T15:27:23.699Z continued in existing worktree; automation remains configured ACTIVE15min. Next checkpoint: changed A/C/E exactHEAD reviews, bounded evidence resolver and single pinned integration composition, real10instrument/resources/service/CI/browser gates; F separate, G canonical storage. No main merge, deployment, user-data deletion or real trading.
+
+---
+
+## Earlier checkpoints (historical)
+
+## Focused correction review outcome
+
+New A3098:42unit +10shared/Bconsumer tests, four adverse probes pass; old equivalence reproducer failed twice as expected. Both raw observations preserved, true price/size changes remain conflicts. New D6cf9:19Node tests pass; E b15b:36 direct scope/grid tests plus root89 real-PG/HTTP tests/1symlinkskip. Exact source cadence and display viewport/cursors agree. Focused A/E defects closed; full pipeline still NOT_READY. Reviews A_SEMANTIC_3098.md and ED_GRID_PAIR.md. Automation updated through official app action with Issue25/P0-first restrictions and correct docs paths; ACTIVE15min config read back. First actual invocation remains proven; future runs are not presumed successful.
+
+## Latest verified increment — provenance projection
+
+Current snapshot 2026-11-07T16:24:23.630849+01:00. MASTER parent b16f46b. Added provenance_from_storage using actual B write-time observations: preserves every run/source/hash/original timestamp, rejects legacy/unlinked/import/unknown sources and explicit original acquisition-run mismatch. Seven tests pass; independent reviewer found the mismatch defect, RED/GREEN regression confirms correction. Actual disposable-PG B47fd roundtrip passes: two runs, one exact trade, both provenance links, coverage UNKNOWN. This does not claim a complete E provider or full pipeline.
+
+Coordinator now79 discovered,77 pass,2 opt-in PG skips. New E b15b1ce passed89 platform tests with real own PG/HTTP and one symlink skip. Own PG stopped after verification. A3098d55 and D6cf9a2a are new observed heads under independent review, not accepted on agent reports alone. B issue2 task6708925158 was published and B resumed only after confirming idle. G remains awaiting execution for the previously assigned storage-ownership decision.
+
+Owner Issue25 assignments: A1:6708885863, B2:6708886079, C3:6708886319, D4:6708886578, E5:6708886835, F16:6708887145; G18:6708743561. Source evidence25:6708941145; optional contract8:6708940893. Remote markers prevent duplicate assignments. Next checkpoint reviews new A/D/E exact pins, B write-time fix, and implements the remaining B evidence→E reader factory, then pinned pipeline/10 instruments/resources/service/CI. NOT_READY; all prior full-pipeline/source-rights gates persist.
+
+# Current MASTER checkpoint — Issue25 architecture correction
+
+**NOT_READY.** Checked 2026-11-07T16:18:05.764875+01:00 (Europe/Berlin). This section and CHECKPOINT.json supersede all historical snapshots below. Only YehorBabenko88/tester is authorized. No external Gateway dependencies; no main merge, physical deployment/service installation or real trading.
+
+## Actual automation invocation
+
+VERIFIED_FIRST_INVOCATION: matching scheduler-origin heartbeat received 2026-11-07T14:40:23.454Z and actual continuation tools executed in the dedicated coordination/master Git worktree. This proves one invocation, not uninterrupted future monitoring. Earlier AWAITING_FIRST_INVOCATION text below is historical.
+
+## Exact reviewed pins and evidence
+
+| Owner | Reviewed HEAD | Independent result | Remaining state |
+|---|---|---|---|
+| A | 39645a64 | 40 unit +8 B-consumer tests | CHANGES_REQUESTED: equal Decimal spellings falsely conflict; active corrective chat |
+| B | 47fd36f3 | 51 real disposable-PG tests + adverse rollback/retry probe | Resolver integration and bounded lifecycle review pending |
+| C | 152823e1 | 27 tests; exact math, unknown-side delta preserved null | READY_FOR_REVIEW, full pipeline pending |
+| D | 1fdf8183 | 18 Node tests; weaker row/envelope coverage preserved | Focused promotion defect resolved; full charts pending |
+| E | 0a17033f | 28 direct scope/canonical tests | CHANGES_REQUESTED: UTC grids/resource interval; active corrective chat |
+| F | 998c5bc8 | 39 strategy tests, both protective/liquidity regressions | Focused P1s resolved; separate integration stage |
+| G | 5edb722f | Reviewer:34 tests +16 security subtests | CHANGES_REQUESTED: canonical control storage; AWAITING_AGENT_EXECUTION |
+
+E previous6d8 pin also passed44 real-PG/HTTP tests with one symlink skip; this is not full current0a170 verification. An initial wrong fixture DB-name run failed twice; red and corrected evidence are retained separately. Only own disposable PG18.4 fixtures used; server stopped afterward. Main remains0a6ce227. MASTER parent0dea7316. New Draft PR26/H8bafc315 is observed, unreviewed and not integrated.
+
+Coordinator:72 discovered,70 passed,2 opt-in PG skips. Optional price-only1.1 has8 tests plus6 bounded live mark/index/premium rows, all UNVERIFIED/UNKNOWN; core1.0 unchanged and no API adoption claimed. Owned factory/origin policy has6 tests; E/G adoption pending. Evidence and focused reviews are in this directory. CI remains QUEUED/PENDING; no successful CI verified.
+
+## Architecture and source gate
+
+Issue25 and PR11 correction are normative. See docs/architecture/STANDALONE.md and docs/trader-intelligence/INTEGRATION_PLAN.md for P0 A-G first, owner assignments and S0-S4 acceptance. No cross-repository runtime bindings found in reviewed snapshots; own G-to-E loopback communication is allowed, not a foreign Gateway.
+
+Source registry has five inert candidates. Bybit recent public executions have no trader identity; own execution history requires authentication. No permitted documented complete arbitrary Master Trader history feed was established. Hyperliquid and Polymarket document public account reads with caps/filters, pseudonymous account identity and unresolved intended-use rights. Public visibility is not redistribution permission. Exact registration/export/retention/publication limitations and official links are in source audits. No identified trader history collected; no anonymous trade attributed; no reconstruction presented as observed fact.
+
+Nonduplicate tasks: A PR10 comment6708786351 (economic decimal identity), E PR9 comment6708786552 (UTC grids/observation interval), G Issue18 comment6708743561 (canonical state and standalone boundary), Issue25 plan6708743336. A/E followups were delivered once and active tool progress confirmed; G comment is not claimed as execution.
+
+Next: verify A/E corrections; wire authentic B run/active-coverage resolver into tested E reader; pin and test A→B→C→E→D, F separately; resolve G control-state ownership; run 10-instrument integrated and resource/service dry-run acceptance. Trader Intelligence S1+ stays gated by P0 and actual source rights/sample evidence. No READY claim.
+
+---
+
+## Historical checkpoints (superseded)
+
+# Master status — 2026-11-07
+
+## Current supervisor cycle — 15:33 Europe/Berlin
+
+**NOT_READY.** This section and CHECKPOINT.json supersede the historical snapshot below. Refreshed Issues #1–#17, all open PRs/reviews, Actions and A–F branches; additionally observed new Issue18/control-plane G (not integrated).
+
+- B advanced from801297fb to5154efab/PR13. Independently executed **40/40 B tests PASS, zero skips**, on disposable PostgreSQL18.4 with real migrations, SCRAM role, process-kill recovery, concurrent writers and pg_dump/restore. No existing user DB used. Remaining current defects: per-run source-observation linkage, recovery fetch-attempt fencing; #14 lifecycle controls are a new, not-yet-implemented scope. See reviews/B_CYCLE_2.md and evidence/b-cycle2-postgres.log.
+- F advanced from design-only13ffae2 to **c72cf50504b23935b256c7bf5d904f963a126c95 / Draft PR19** during this cycle. Root independently ran all31 strategy methods PASS (reviewer's os.link sandbox error resolved under root full access). Two additional explicit synthetic DSL probes nevertheless exposed P1 defects: protective trigger lost at zero capacity, and whole-bar future liquidity affecting fills labeled at bar open. Task comment6708269302 posted, F session resumed with it. See reviews/F_CURRENT_CYCLE_2.md/evidence/f-current-strategy.log. No ambiguous natural-language run or real trade occurred.
+- A addbdda/PR10, C0070b5fc, D1b35ec65/PR12 and Ec2fb7b66/PR9 remain at prior reviewed pins. Their published #8 blockers are not duplicated as new tasks.
+- **All six agent sessions were actually observed active/inProgress.** A–E were resumed using send_message_to_thread only after explicit human authorization; active turn/assistant/tool activity was confirmed at14:28:23UTC. F was already active and was not redundantly re-dispatched. A GitHub comment alone is never used as execution evidence.
+- New nonduplicate tasks/comments: B PR13:6708160404, #14:6708160604, E #15:6708160760, F #16:6708160929, D #17:6708161108. Stable per-head/defect markers and comment IDs are saved in CHECKPOINT.json.
+
+### Implementation completed in this cycle
+
+Coordinator implemented src/integration/storage_api.py: exact B→E trade field/precision mapping; authentic provenance resolver required; no invented read-time run; quality/evidence inheritance; bounded keyset cursor including same-ms records and scope/range binding; invalid storage order/boundaries rejected; empty-corrupt result preserves ERROR and original reason. It performs no C analytics. Ten adapter regressions PASS; independent review defects were reproduced RED then GREEN. E wiring remains pending B's actual run/evidence resolver and canonical API updates.
+
+src/integration/supervisor_checkpoint.py adds atomic validated checkpoint persistence, per-HEAD task dedup and exclusive cycle ownership helpers (4 tests PASS). Remote marker reconciliation is required after interrupted sends; helpers alone are not an exactly-once remote protocol.
+
+Final local coordinator suite: **58 discovered methods,56 pass,2 opt-in PostgreSQL skips,0 failures**. B's separate40-test real-PG run is above; prior2 coordinator PG/live-baseline checks remain separate proven evidence. Compile/diff checks passed. Review/evidence is archived in cycle2 files. No main merge, trading, cleanup deletion or physical service installation.
+
+### Automation state
+
+Official automation_update created and read back heartbeat `tester-master-coordination-cycle`, ACTIVE, every15 minutes, in existing MASTER chat. Dedicated Git worktree work/master-supervisor/coordination/master exists and is referenced explicitly in the saved prompt. Native worktree operation stalled without operationId/artifact; one Git fallback was created after checking for duplicates.
+
+**AWAITING_FIRST_INVOCATION:** no actual scheduler-origin run has been observed yet. This manual setup/execution turn does not count. Do not claim continuous monitoring until a real scheduled turn/run record is captured. Existing-chat heartbeat may need the current active turn to yield; the available automation tool creates/updates/views but offers no documented force-run operation. See AUTONOMOUS_SUPERVISION.md and CHECKPOINT.json.
+
+### Resource / service / Strategy Lab gates
+
+- #14: raw-protected retention classes, non-destructive dry-run planning, low-disk pause, reference-aware cleanup/integrity scans and WAL/table metrics remain required; actual backup/restore is now independently tested.
+- #15: E operations3pass/1symlink skip; current scripts launch foreground supervisor children, not native SCM. No install script was invoked. Atomic bounded admission/drain, no-claim-after-stop, safe event-message redaction, CPU/RSS/network/disk budgets and measured parallel fairness are concrete tasks.
+- #16: new F implementation must pass independent point-in-time/DSL/precision/intrabar/cost/checkpoint/fill-overlay gates; no ambiguous natural-language strategy was run.
+- #17: D canonical reason preservation stays P0; UTCW/M navigation beyond1000, resizing/keyboard/highDPI and strategy workspace remain planned. Missing F/C providers must remain DATA_UNAVAILABLE, never browser substitutes.
+
+Next checkpoint: verify first actual heartbeat; review corrected F19 protective/liquidity behavior and changed A–E heads; do not re-dispatch active agents; wire authentic B provenance/evidence resolver through tested E adapter; retain Draft-only integration. All observed CI runs are still QUEUED, no successful CI claim.
+
+## Historical snapshot before this supervisor cycle
+
+**Overall readiness: NOT_READY.** Approved contract: [#8](https://github.com/YehorBabenko88/tester/issues/8). Master tracking: [#6](https://github.com/YehorBabenko88/tester/issues/6). Candidate: [Draft PR #11](https://github.com/YehorBabenko88/tester/pull/11). No main merge or physical deployment performed.
+
+Baseline: `d996b8669e3e85f559fe4adba768bad6d994c9c5`. Main advanced independently to `0a6ce227d9463562bb18889dcc0ee747f3be9130`; no unreviewed main changes were pulled into the coordinator. Approved contract publication: `430bd6e66d40c444f666f68e6f74ef87a6808c21`. Coordinator fixes/evidence follow as a separate reviewed commit on coordination/master, then integration/master.
+
+## Current workstreams
+
+| Agent | Current independently inspected HEAD | Draft PR | Status | Evidence / required correction |
+|---|---|---|---|---|
+| A #1 | addbdda232bc1a604a7a637bdad479752c4cccfe | #10 | CHANGES_REQUESTED | 27 tests independently pass; exact source ns and pagination work. Export drops pagination linkage; missing run/source-kind/availability/coverage metadata. reviews/A_CURRENT.md |
+| B #2 | 801297fb3f7e20aba5341f2aae3a5c58074b704b | none observed | CHANGES_REQUESTED | Initial validator still accepts empty/nonfinite/precision-invalid data; storage migrations/stable keys/provenance not yet published at this head. reviews/BC_CONTRACT_V1.md |
+| C #3 | 0070b5fcb9180a79b213698c99ea289df4442383 | none observed | CHANGES_REQUESTED | Duplicate IDs and order-dependent decimals; missing Unknown-side/null-delta model and approved metadata. No verified Bid/Ask inference permitted. reviews/BC_CONTRACT_V1.md |
+| D #4 | 1b35ec6565ef0f9471ecd7197a64bf598080f85b | #12 | CHANGES_REQUESTED | Substantial UI replaces placeholder; 6 Node tests pass. Canonical uppercase availability object is downgraded to generic PARTIAL, source reason lost and rows retained. reviews/DE_CURRENT.md |
+| E #5 | c2fb7b66f9ebc0b4b04519ea327c3baafc1e5f54 | #9 | CHANGES_REQUESTED | API/jobs exist, but older independent models omit/strip approved precision, row version, availability/coverage and typed provenance; invalid numeric strings pass. Shared schema adoption remains blocked. reviews/DE_CURRENT.md |
+
+The historical initial A/D/E gates deliberately remain red for their old immutable SHAs and MUST NOT be described as results for the newer PRs. Current reviews separately verify improvements and remaining incompatibilities. No A–E branch is modified by MASTER.
+
+## Coordination and contracts delivered
+
+- AGENT_PROTOCOL.md defines all required report fields, statuses, evidence and ownership.
+- Issue #8 is encoded in contracts/v1/market.schema.json and shared validate_record/validate_response. Canonical timestamp_ms/schema_version, genuine source precision, exact decimal strings, stable identity markers, provenance, separate availability/coverage, pagination evidence, taker-only footprint, comparison context and progress invariants are checked.
+- Every agent received concrete correction tasks and immutable schema links in its own Issue. Current A PR #10 received a separate updated review instead of recycling obsolete findings.
+- INTEGRATION_PLAN_V1.md sequences A→B→C→E→D and full ten-instrument acceptance. E owns validation/API only; C owns calculations.
+- Independent historical producer gates execute actual pinned exports/controlled DOM: A 7 methods/6 failures; B+C 8 methods/12 assertion-subtest failures; D+E 6 methods/4 failures. These are explicit nonzero conformance results, separate from green shared fixtures. See contract_checks/README.md and evidence/contract-*. They do not run as falsely green skipped tests in the regression suite.
+
+## Coordinator fixes and executed verification
+
+Sparse OI/ratio responses are retryable gaps, not automatically complete; funding is unknown without schedule proof. Archive import now stages until gzip EOF/CRC, uses a per-day advisory lock, rejects changed ID payload, and publishes trades/manifest/coverage transactionally. Error coverage stays under that lock/savepoint. Cached files require matching SHA256. Aggregation excludes unverified imports. A real PostgreSQL GROUP BY defect was found and fixed using positional grouping. Screener computes exactly 60 closed minutes and rejects incomplete/nonfinite OHLC inputs.
+
+Shared schema review found and fixed coarse-second precision invention, missing derived parents/method, contradictory delta and unvalidated nested API data; adverse tests were observed red before green. Comparison context also has a rejecting fixture. These validators establish consistency, not authenticity of referenced evidence or C's analytic correctness.
+
+Local Windows/Python3.14 regression results and syntax/diff checks are recorded in evidence/unit-suite.log. Two PostgreSQL tests are opt-in during ordinary discovery and were separately executed successfully on PostgreSQL18.4, not merely skipped:
+
+- Fresh dedicated initialization twice; exact NUMERIC storage and repeat insertion for ten synthetic symbols.
+- Invalid final row after 1500 staged rows rolls back; valid retry publishes 1501 unique trades; repeat download is idempotent; actual SQL clusters for minute/week/month have expected exact buy/sell totals.
+
+First loopback attempt was sandbox-blocked; renewed network permission allowed a separate disposable cluster on 127.0.0.1:55449. The first real run exposed the SQL error; the final rerun passed both tests. Logs retain RED and GREEN. Dedicated scratch cluster was stopped after execution; existing user databases/services were not used or changed. These are legacy coordinator schema checks, not acceptance of B's unpublished tester_storage migrations.
+
+## Live public Bybit evidence
+
+Initial DNS failures are recorded in the first contract commit. After renewed network access:
+
+- Live catalog: HTTP200, 930 linear instruments returned, terminal cursor absent; sorted first ten selected. Cursor exhaustion is recorded as EXHAUSTED with semantic coverage UNKNOWN.
+- Real archive XRPUSDT 2023-01-01: 1,727,986 bytes; gzip EOF/CRC; 43,210 rows; SHA256 `9270eb6758065a9bd6a5ca1cae825195c3d298e9249b4930e99b8ccc9c0929e9`.
+- Ten live linear identities: ten closed 1m candles each persisted in the disposable PostgreSQL database, exact requested boundary coverage checked, repeated ingestion retains ten rows per identity.
+- Real XRP archive persisted: 43,210 unique trades, same count after retry; 3,496 minute/price cluster levels account for all 43,210 executions. See evidence/live-baseline-postgres.json, explicitly classified **LIVE_PUBLIC_DATA_LEGACY_BASELINE_NOT_V1_E2E**.
+
+This live smoke is not full A–E v1 end-to-end acceptance, not all-market historical completeness, not process-kill recovery and not physical Windows deployment.
+
+## Remaining acceptance gates
+
+| Gate | State |
+|---|---|
+| All A–E contract conformance at integrated heads | NOT_READY: current metadata/provider gaps and unpublished B/C implementation |
+| B versioned PostgreSQL upgrade migrations | NOT EXECUTED: current head lacks implementation |
+| Source precision/pagination transfer A→B | A acquisition verified; exported evidence linkage unresolved |
+| Complete provenance generations/source conflicts | Partial protection; append-only generations remain required |
+| Crash/process-kill recovery and concurrent import | Transactional rollback/retry verified; hard-kill and contention not executed |
+| Full C analytics, official comparisons, all UI panels | NOT_READY; unknown-side and comparison context cannot be fabricated |
+| CI for exact final candidate SHA | No success verified; runs queued at last check |
+| Physical Windows acceptance/deployment | NOT EXECUTED |
+
+Next: corrected A/D/E heads and metadata fixtures; B/C implementation and Draft PRs; exact producer/consumer conformance; E provider wiring without duplicated C math; D canonical unavailable reasons; then full pipeline/live/UI/CI acceptance. Active-session monitoring only: no recurring automation or continuous-monitoring claim.
+
+

@@ -1,0 +1,90 @@
+{
+  "source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "tree_sha": "4e5d8c426ce76aa00f61032125eb6284d7b089ea",
+  "deploy_manifest_sha256": "a1572b25fffd82ea5a4650ba57e76b5c66026a24f85d7f7149467c7f719552d2",
+  "runtime_manifest_sha256": "004f9ed3b97f760e3936ac425d4d0d62e0cdcea61d8c5823dd95bbbdddefb317",
+  "instance_id": "8d7e04a83b07471d8282cdc02af51c46",
+  "range_ms": [
+    1794009600000,
+    1794096000000
+  ],
+  "traffic_context": "Explicit diagnostic GET/SQL load; may overlap other lab traffic; not a pure soak or saturation workload",
+  "full_installed_source_inventory_verified": true,
+  "full_native_inventory_verified": true,
+  "source_changed": false,
+  "sql_writes": false,
+  "http": [
+    {
+      "limit": 10,
+      "status": 200,
+      "elapsed_seconds": 0.1750194999985979,
+      "body_bytes": 13262,
+      "records": 10,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "limit": 100,
+      "status": 200,
+      "elapsed_seconds": 0.37106000000130734,
+      "body_bytes": 127384,
+      "records": 100,
+      "coverage": "UNKNOWN"
+    },
+    {
+      "limit": 1000,
+      "status": 200,
+      "elapsed_seconds": 1.822065599997586,
+      "body_bytes": 1268542,
+      "records": 1000,
+      "coverage": "UNKNOWN"
+    }
+  ],
+  "sql": {
+    "byte_scope": "Potential legacy full-document join logical JSON text lengths; not actual compact-path transfer or wire counters",
+    "endpoint": {
+      "database": "tester_lab",
+      "port": 55470,
+      "read_only": "on"
+    },
+    "page_payloads": [
+      {
+        "page_records": 10,
+        "joined_observations": 10,
+        "distinct_evidence": 1,
+        "repeated_evidence_text_bytes": 2838050,
+        "unique_evidence_text_bytes": 283805,
+        "raw_envelope_text_bytes": 19076,
+        "evidence_min_bytes": 283805,
+        "evidence_max_bytes": 283805,
+        "limit": 10,
+        "elapsed_seconds": 0.013598699999420205
+      },
+      {
+        "page_records": 100,
+        "joined_observations": 100,
+        "distinct_evidence": 1,
+        "repeated_evidence_text_bytes": 28380500,
+        "unique_evidence_text_bytes": 283805,
+        "raw_envelope_text_bytes": 190691,
+        "evidence_min_bytes": 283805,
+        "evidence_max_bytes": 283805,
+        "limit": 100,
+        "elapsed_seconds": 0.005260200003249338
+      },
+      {
+        "page_records": 1000,
+        "joined_observations": 1000,
+        "distinct_evidence": 1,
+        "repeated_evidence_text_bytes": 283805000,
+        "unique_evidence_text_bytes": 283805,
+        "raw_envelope_text_bytes": 1906866,
+        "evidence_min_bytes": 283805,
+        "evidence_max_bytes": 283805,
+        "limit": 1000,
+        "elapsed_seconds": 0.013736699998844415
+      }
+    ]
+  },
+  "profiles": [],
+  "status": "DIAGNOSIS_COMPLETE"
+}

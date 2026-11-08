@@ -1,0 +1,20 @@
+{
+  "kind": "PORTABLE_READONLY_CANDIDATE_COMPARISON",
+  "native_application_source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+  "candidate_source_sha": "719b02eea4134730b5d688143022706a9cae8dbe",
+  "candidate_installed": false,
+  "installed_instance_id": "349a538bb15343ca990e5ca3f8a36373",
+  "reference_data_sha256": "555ef9749bcdaa24f6e91d447affd16c09b60a3b8930b7fe9c9e77a420053e47",
+  "candidate_data_sha256": "555ef9749bcdaa24f6e91d447affd16c09b60a3b8930b7fe9c9e77a420053e47",
+  "reference_data_coverage_sha256": "074888f75a752ee0342d3cceb85a1a9e28c49c4a3d52577148e6feb41af97a9f",
+  "candidate_data_coverage_sha256": "074888f75a752ee0342d3cceb85a1a9e28c49c4a3d52577148e6feb41af97a9f",
+  "fields_equal": {
+    "data": true,
+    "coverage": true,
+    "availability": true,
+    "provenance": true
+  },
+  "continuation_present_equal": true,
+  "cursor_note": "Opaque API HMAC cursor and internal raw continuation are intentionally not compared byte-for-byte",
+  "status": "DATA_COVERAGE_AND_ENVELOPE_MATCH"
+}
