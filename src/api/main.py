@@ -70,7 +70,7 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             503: {"model": ErrorEnvelope},
             409: {"model": ErrorEnvelope},
             404: {"model": ErrorEnvelope},
-            422: {"model": ErrorEnvelope},
+            422: {"model": ErrorEnvelope, "description": "Unprocessable Content"},
         },
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]"])
