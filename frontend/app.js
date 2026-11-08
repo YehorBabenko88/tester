@@ -364,6 +364,7 @@ async function loadInstruments(
   }
 }
 $("#search").addEventListener("input", () => {
+  persistView();
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => loadInstruments(), 180);
 });
