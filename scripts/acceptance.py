@@ -24,6 +24,17 @@ def check(*args):
         if os.name == "nt"
         else None
     )
+    if (
+        os.name == "nt"
+        and os.environ.get("GITHUB_ACTIONS") == "true"
+        and args[:2] == ("-m", "pytest")
+    ):
+        # CI runners are elevated; owner-only ACL assertions require a real
+        # standard-user token, not weakened guards or skipped Windows tests.
+        from scripts.windows_ci_tests import run_pytest
+
+        run_pytest(args, cwd=ROOT, env=child_env)
+        return
     subprocess.run([sys.executable, *args], cwd=ROOT, check=True, env=child_env)
 
 
