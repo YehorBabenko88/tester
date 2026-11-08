@@ -125,6 +125,23 @@ def _api():
     function(adv, "ConvertStringSidToSidW", [W.LPCWSTR, C.POINTER(W.LPVOID)])
     function(adv, "ConvertSidToStringSidW", [W.LPVOID, C.POINTER(W.LPWSTR)])
     function(adv, "GetLengthSid", [W.LPVOID], W.DWORD)
+    function(adv, "GetAclInformation", [W.LPVOID, W.LPVOID, W.DWORD, C.c_int])
+    function(adv, "GetAce", [W.LPVOID, W.DWORD, C.POINTER(W.LPVOID)])
+    function(
+        adv,
+        "ConvertStringSecurityDescriptorToSecurityDescriptorW",
+        [W.LPCWSTR, W.DWORD, C.POINTER(W.LPVOID), C.POINTER(W.DWORD)],
+    )
+    function(
+        adv,
+        "ConvertSecurityDescriptorToStringSecurityDescriptorW",
+        [W.LPVOID, W.DWORD, W.DWORD, C.POINTER(W.LPWSTR), C.POINTER(W.DWORD)],
+    )
+    function(
+        adv,
+        "GetSecurityDescriptorDacl",
+        [W.LPVOID, C.POINTER(W.BOOL), C.POINTER(W.LPVOID), C.POINTER(W.BOOL)],
+    )
     function(
         adv,
         "CreateRestrictedToken",
@@ -255,6 +272,30 @@ def run_pytest(args, *, cwd, env):
             ),
             flush=True,
         )
+        from scripts.windows_ci_tokens import (
+            default_dacl,
+            install_copy_default_dacl,
+            replacement_default_dacl,
+            verify_replacement,
+        )
+
+        original_dacl = default_dacl(kernel, adv, token)
+        copy_before = default_dacl(kernel, adv, restricted)
+        print(
+            "CI default DACL before: "
+            + json.dumps(dict(original=original_dacl, restricted=copy_before), sort_keys=True),
+            flush=True,
+        )
+        replacement = replacement_default_dacl(original_dacl, copy_before, user_text)
+        install_copy_default_dacl(kernel, adv, restricted, replacement)
+        copy_after = default_dacl(kernel, adv, restricted)
+        print(
+            "CI restricted default DACL after: " + json.dumps(copy_after, sort_keys=True),
+            flush=True,
+        )
+        verify_replacement(copy_after, user_text)
+        if default_dacl(kernel, adv, token) != original_dacl:
+            raise RuntimeError("Original token default DACL changed; refusing tests")
         # Only this explicit CI checkout receives an additional individual-user
         # Modify ACE; existing ACEs/owners are preserved, no recursive /T change.
         require_ci_workspace(env, root)
