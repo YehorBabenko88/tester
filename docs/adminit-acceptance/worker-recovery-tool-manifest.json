@@ -1,0 +1,12 @@
+{
+  "schema": "tester-lab-recovery-tool/v1",
+  "application_source_sha": "7b59b415760de83061cd8b91dc75f2f0e5c3878d",
+  "deploy_manifest_sha256": "b4438d10495d65e684f9e40a7a29d68e114c772efd4df3edf969d1cb65d4823a",
+  "runtime_manifest_sha256": "0f441d54ba7604a668cd9ce0b65883521f9ba8ee2512cde22379637ef46e569a",
+  "tool_source_sha": "5098fa31f7b624cca968e239ac3c8ace8d4ba32a",
+  "tool_tree_sha": "51dc28ecc77b85bdd2c6d20d6bb0aa950c0e50d6",
+  "script_sha256": "c6b1d1bb7b4245b7657fa5721502e073e6422a02320a0646ed445e814eb6d176",
+  "published_script_path": "C:\\Users\\Administrator\\Documents\\Codex\\2026-11-08\\files-pasted-by-the-user-codex\\work\\published\\5098fa31f7b624cca968e239ac3c8ace8d4ba32a\\scripts\\windows\\Test-TesterLabWorkerRecovery.ps1",
+  "archive_sha256": "579b0a3758a790288077c64a122e9b86013d707aeb52d8fabf9e9cdd95bcfc6a",
+  "termination_limit": 1
+}
