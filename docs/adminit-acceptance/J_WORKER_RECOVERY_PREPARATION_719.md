@@ -115,6 +115,18 @@ The candidate script has an explicit `-text` Git attribute and LF bytes so its
 published SHA-256 remains identical on Windows. Do not substitute the baseline
 CRLF script hash or regenerate a manifest to conceal any byte mismatch.
 
+Review pins for this candidate:
+
+- Tool source: `4f1476e4a1279f6da7ded75be417c4aa2058259b`.
+- Script SHA-256: `3f2667d2fa342aac12435e5c91167f2d4f9e238259c12425647db33c52757c11`.
+- Proposal: `worker-recovery-tool-719-proposal.json`, SHA-256
+  `e4305b30f4f252a6ab4b40c9c4119856ea8f3eac572d8a8b6472022186f2cd22`.
+
+The separate proposal commit adds metadata only; its tool source SHA deliberately
+identifies the preceding immutable implementation commit to avoid a circular
+self-hash. Independent read-only review of that implementation reported no
+blocking findings and independently reran all 12 mocked fixtures successfully.
+
 ## Safe sequence for the coordinator after a separate future authorization
 
 1. Keep this preparation source-only now. Preserve the canceled TOOL509 receipt.
