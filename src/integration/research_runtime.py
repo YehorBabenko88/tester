@@ -25,6 +25,7 @@ from src.api.research_ledger import (
     validate_research_dsn,
 )
 from src.integration.research_lab import _save, load_lab
+from src.integration.runtime_identity import require_runtime_argv
 
 
 def require_published_origin(source_root, expected_sha):
@@ -271,16 +272,10 @@ def assert_api_process(root, application_sha, source):
         or plain(process.cwd()) != plain(source)
     ):
         raise ApiOwnershipError("api_process_identity_changed")
-    args = process.cmdline()
-    if "-m" not in args or args[args.index("-m") + 1] != "src.integration.research_runtime":
-        raise ApiOwnershipError("api_process_arguments_mismatch")
-    for flag, expected in (
-        ("--application-source-sha", application_sha),
-        ("--lab-source-sha", owner["lab_source_sha"]),
-        ("--root", str(root)),
-    ):
-        if flag not in args or args[args.index(flag) + 1] != expected:
-            raise ApiOwnershipError("api_process_arguments_mismatch")
+    try:
+        require_runtime_argv(process.cmdline(), root, owner["lab_source_sha"], application_sha)
+    except ValueError:
+        raise ApiOwnershipError("api_process_arguments_mismatch") from None
 
     # On this Windows host the listening row can have an unmapped state NONE.
     # Never accept that row on faith: establish a harmless no-credential TCP
