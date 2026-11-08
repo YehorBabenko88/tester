@@ -195,7 +195,7 @@ def verify_research_bundle(bundle: dict) -> None:
         expected = run_synthetic_research(value["strategy"], value["snapshot"])
     except (KeyError, TypeError) as exc:
         raise ValueError("Missing immutable research inputs") from exc
-    if value != expected:
+    if _canonical(value) != _canonical(expected):
         raise ValueError("Research bundle does not match genuine producer replay")
 
 
