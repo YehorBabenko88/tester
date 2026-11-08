@@ -265,16 +265,12 @@ def run_pytest(args, *, cwd, env):
         )
         from scripts.windows_ci_diagnostics import diagnose
 
-        print(
-            "CI native context: "
-            + json.dumps(
-                diagnose(kernel, adv, token, restricted, env=env, root=root), sort_keys=True
-            ),
-            flush=True,
-        )
+        native_context = diagnose(kernel, adv, token, restricted, env=env, root=root)
+        print("CI native context: " + json.dumps(native_context, sort_keys=True), flush=True)
         from scripts.windows_ci_tokens import (
             default_dacl,
             install_copy_default_dacl,
+            measured_logon_sid,
             replacement_default_dacl,
             verify_replacement,
         )
@@ -286,14 +282,17 @@ def run_pytest(args, *, cwd, env):
             + json.dumps(dict(original=original_dacl, restricted=copy_before), sort_keys=True),
             flush=True,
         )
-        replacement = replacement_default_dacl(original_dacl, copy_before, user_text)
+        logon_sid = measured_logon_sid(
+            native_context["current_token"], native_context["restricted_token"]
+        )
+        replacement = replacement_default_dacl(original_dacl, copy_before, user_text, logon_sid)
         install_copy_default_dacl(kernel, adv, restricted, replacement)
         copy_after = default_dacl(kernel, adv, restricted)
         print(
             "CI restricted default DACL after: " + json.dumps(copy_after, sort_keys=True),
             flush=True,
         )
-        verify_replacement(copy_after, user_text)
+        verify_replacement(copy_after, user_text, logon_sid)
         if default_dacl(kernel, adv, token) != original_dacl:
             raise RuntimeError("Original token default DACL changed; refusing tests")
         # Only this explicit CI checkout receives an additional individual-user
