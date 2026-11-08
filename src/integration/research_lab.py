@@ -70,7 +70,13 @@ def _save(path, value, *, new=False):
 
 
 def _run(args, *, timeout=90):
-    result = subprocess.run(args, capture_output=True, timeout=timeout)
+    result = subprocess.run(
+        args,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=timeout,
+    )
     if result.returncode:
         # PostgreSQL diagnostics may contain config/DSN information. Keep output
         # private rather than forwarding it into the user/GitHub test logs.
@@ -189,29 +195,70 @@ def prepare(workspace, root, pg_bin, source_sha):
             "start",
         ]
     )
+    return confirm_started(root, source_sha)
+
+
+def confirm_started(root, source_sha):
+    """Finish only this fresh owned bootstrap after an ambiguous launcher wait.
+
+    No server is started/stopped here. A legacy root/marker is never adopted;
+    SCRAM credentials, actual endpoint, owned path and live process must agree.
+    """
     import psutil
     import psycopg
     from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict
 
-    pid = int(plain(root / "pgdata/postmaster.pid").read_text().splitlines()[0])
+    root = plain(root)
+    value = load_lab(root, source_sha)
+    pg_bin = _binary_dir(value["pg_bin"])
+    private = json.loads(plain(root / "private.json").read_text(encoding="utf-8"))
+    auth = conninfo_to_dict(private["database_url"])
+    if (
+        set(auth) != {"host", "port", "user", "password", "dbname"}
+        or auth["host"] != "127.0.0.1"
+        or auth["port"] != "55471"
+        or auth["user"] != "research_owner"
+        or auth["dbname"] != value["database"]
+    ):
+        raise LabScopeError("Fresh research credentials differ")
+    lines = plain(root / "pgdata/postmaster.pid").read_text().splitlines()
+    pid = int(lines[0])
     process = psutil.Process(pid)
-    if plain(process.exe()) != plain(_exe(pg_bin, "postgres")):
-        raise LabScopeError("Started PostgreSQL image differs")
-    value.update(postgres_pid=pid, postgres_created=process.create_time())
-    _save(root / ".research-lab.json", value)
+    argv = process.cmdline()
+    if (
+        plain(lines[1]) != root / "pgdata"
+        or int(lines[3]) != 55471
+        or plain(process.exe()) != plain(_exe(pg_bin, "postgres"))
+        or abs(process.create_time() - int(lines[2])) > 2
+        or "-D" not in argv
+        or plain(argv[argv.index("-D") + 1]) != root / "pgdata"
+    ):
+        raise LabScopeError("Fresh postmaster identity differs")
+    previously_bound = "postgres_pid" in value
+    if previously_bound and (
+        pid != value["postgres_pid"] or process.create_time() != value["postgres_created"]
+    ):
+        raise LabScopeError("Previously bound research process changed")
+    bootstrap = dict(auth, dbname="postgres")
     with psycopg.connect(
-        host="127.0.0.1",
-        port=55471,
-        user="research_owner",
-        password=password,
-        dbname="postgres",
-        autocommit=True,
+        **bootstrap, hostaddr="127.0.0.1", autocommit=True, connect_timeout=3
     ) as conn:
-        if plain(conn.execute("SHOW data_directory").fetchone()[0]) != root / "pgdata":
-            raise LabScopeError("Fresh cluster endpoint differs")
-        conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(value["database"])))
+        actual = conn.execute("SELECT current_setting('data_directory'),inet_server_port()")
+        directory, port = actual.fetchone()
+        if plain(directory) != root / "pgdata" or port != 55471:
+            raise LabScopeError("Authenticated fresh cluster endpoint differs")
+        exists = conn.execute(
+            "SELECT 1 FROM pg_database WHERE datname=%s", (value["database"],)
+        ).fetchone()
+        if exists and not previously_bound:
+            raise LabScopeError("Existing unclaimed research database; adoption refused")
+        value.update(postgres_pid=pid, postgres_created=process.create_time())
+        _save(root / ".research-lab.json", value)
+        if not exists:
+            conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(value["database"])))
     return dict(
-        status="OWNED_RESEARCH_POSTGRES_STARTED",
+        status="OWNED_RESEARCH_POSTGRES_CONFIRMED",
         root=str(root),
         postgres_pid=pid,
         postgres_port=55471,
@@ -248,7 +295,7 @@ def stop(root, source_sha):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("prepare", "stop"))
+    parser.add_argument("action", choices=("prepare", "confirm", "stop"))
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--source-sha", required=True)
     parser.add_argument("--workspace", type=Path)
@@ -259,6 +306,8 @@ def main():
             if args.workspace is None or args.pg_bin is None:
                 parser.error("prepare requires explicit workspace and pg-bin")
             result = prepare(args.workspace, args.root, args.pg_bin, args.source_sha)
+        elif args.action == "confirm":
+            result = confirm_started(args.root, args.source_sha)
         else:
             result = stop(args.root, args.source_sha)
         print(json.dumps(result))

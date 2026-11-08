@@ -1,11 +1,13 @@
 """Guard tests; no PostgreSQL process or installed service is accessed."""
 
 import json
+import sys
+import time
 from pathlib import Path
 
 import pytest
 
-from src.integration.research_lab import LabScopeError, check_layout, load_lab
+from src.integration.research_lab import LabScopeError, _run, check_layout, load_lab
 
 
 def test_refuses_adoption_escape_and_reparse(tmp_path):
@@ -71,3 +73,13 @@ def test_workspace_cannot_be_an_installed_lab():
     if Path("C:/TesterLab").is_absolute():
         with pytest.raises(LabScopeError):
             check_layout(Path("C:/TesterLab"), Path("C:/TesterLab/research-" + "a" * 32))
+
+
+def test_detached_server_inherited_output_does_not_block_launcher():
+    # Like pg_ctl: launcher exits, server child retains inherited stdout handles.
+    code = (
+        "import subprocess,sys;subprocess.Popen([sys.executable,'-c','import time;time.sleep(2)'])"
+    )
+    start = time.monotonic()
+    _run([sys.executable, "-c", code], timeout=0.5)
+    assert time.monotonic() - start < 1
