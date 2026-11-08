@@ -2,10 +2,11 @@
 import copy
 import tempfile
 import unittest
-from unittest.mock import patch
 from fastapi.testclient import TestClient
 from src.api.config import Settings
 from src.api.main import create_app
+from src.api.providers import ProviderDataUnavailable,ProviderUnavailable
+from src.integration.storage_reader import StorageTradeReader
 import test_storage_trade_reader as fixtures
 
 
@@ -23,11 +24,14 @@ class StorageDataErrorTests(unittest.TestCase):
                 corrupt=[[1700000000000,1700000060000]] if mode=='integrity' else [],
                 unavailable=[[1700000000000,1700000060000]] if mode=='unavailable' else [])
         with tempfile.TemporaryDirectory() as directory:
-            settings=Settings(data_dir=directory,database_url='postgresql://fixture@127.0.0.1/tester_ci',
-                provider_factory='src.integration.storage_reader:create_reader')
-            with patch('src.api.config.load_settings',return_value=settings),patch('src.storage.store.Store',return_value=Store()):
-                with TestClient(create_app(settings),base_url='http://127.0.0.1:8765') as client:
-                    return client.get('/api/'+resource,params=dict(symbol='BTCUSDT',start_ms=1700000000000,end_ms=1700000060000,limit=1))
+            # Exercise the real reader-to-API error contract. Configuration factory
+            # ownership has independent adversarial tests; never weaken that gate
+            # to admit PEP 660 synthetic namespace paths in an editable test install.
+            settings=Settings(data_dir=directory,database_url=None,provider_factory=None)
+            reader=StorageTradeReader(Store(),unavailable_error=ProviderUnavailable,
+                data_error=ProviderDataUnavailable)
+            with TestClient(create_app(settings,provider=reader),base_url='http://127.0.0.1:8765') as client:
+                return client.get('/api/'+resource,params=dict(symbol='BTCUSDT',start_ms=1700000000000,end_ms=1700000060000,limit=1))
 
     def test_unverified_original_run_is_data_unavailable_not_disconnected(self):
         response=self.request('provenance')
