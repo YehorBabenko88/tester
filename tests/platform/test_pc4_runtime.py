@@ -6,6 +6,15 @@ from src.integration.pc4_runtime import MODULE, validate_receipt, worker_state
 from src.integration.runtime_identity import require_runtime_argv
 
 
+def canonical_market_fixture_dsn():
+    from src.integration.market_runtime import canonical_dsn
+
+    return canonical_dsn(
+        "host=127.0.0.1 port=55471 user=research_owner password=disposable-test-only dbname=tester_research_unit",
+        {"database": "tester_research_unit"},
+    )
+
+
 def receipt():
     return dict(
         schema="tester-pc4-combined/1",
@@ -85,7 +94,8 @@ def test_factory_constructs_routes_without_database_ddl_or_os_actions(monkeypatc
         raise AssertionError("factory must not connect or spawn")
 
     monkeypatch.setattr(ExecutionLedger, "connection", refuse)
-    settings = SimpleNamespace(dsn="host=127.0.0.1 port=55471 dbname=tester_research_unit")
+    settings = SimpleNamespace(dsn=canonical_market_fixture_dsn())
+    original = settings.dsn
     app = application(
         settings,
         Path("owned-root"),
@@ -96,6 +106,10 @@ def test_factory_constructs_routes_without_database_ddl_or_os_actions(monkeypatc
     assert "/api/control/research-executions" in paths
     assert "/api/control/research" in paths
     assert "/api/pc4/identity" in paths
+    assert settings.dsn == original
+    from psycopg.conninfo import conninfo_to_dict
+
+    assert "hostaddr" not in conninfo_to_dict(app.state.research_control.store.dsn)
 
 
 def limited_role():
@@ -139,7 +153,7 @@ def test_operator_secret_written_once_with_mocked_database_handoff(tmp_path, mon
     root.mkdir()
     source = tmp_path / "source"
     source.mkdir()
-    dsn = "host=127.0.0.1 port=55471 user=research_owner password=disposable-test-only dbname=tester_research_unit"
+    dsn = canonical_market_fixture_dsn()
     monkeypatch.setattr(
         runtime,
         "context",
@@ -223,3 +237,56 @@ def test_prepare_terminal_pair_uses_exact_pinned_linear_source_and_actual_f():
     bundle = run_synthetic_research(strategy, snapshot.snapshot)
     assert bundle["result"]["metrics"]["funding_costs"] == "0.0100"
     assert bundle["certification"]["real_market_coverage"] == "NOT_PROVEN"
+
+
+def test_real_market_canonical_dsn_adapts_to_research_without_changing_market_policy():
+    from psycopg.conninfo import conninfo_to_dict
+
+    from src.api.research_ledger import PersistentResearchLedger, validate_research_dsn
+    from src.integration.market_runtime import canonical_dsn
+    from src.integration.pc4_runtime import research_dsn
+
+    raw = "host=127.0.0.1 port=55471 user=research_owner password=disposable-test-only dbname=tester_research_unit"
+    market = canonical_dsn(raw, {"database": "tester_research_unit"})
+    before = conninfo_to_dict(market)
+    assert before["hostaddr"] == "127.0.0.1"
+    with pytest.raises(ValueError):
+        validate_research_dsn(market)
+    adapted = research_dsn(market)
+    expected = {k: v for k, v in before.items() if k != "hostaddr"}
+    assert conninfo_to_dict(adapted) == expected
+    assert conninfo_to_dict(PersistentResearchLedger(adapted).dsn) == expected
+    assert conninfo_to_dict(market) == before
+    with pytest.raises(ValueError):
+        validate_research_dsn(market)  # Public research refusal remains strict.
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        dict(hostaddr="127.0.0.2"),
+        dict(hostaddr="foreign.invalid"),
+        dict(host="::1", hostaddr="::1"),
+        dict(port="5432"),
+        dict(port="55472"),
+        dict(user="tester_pc4_admin"),
+        dict(options="-c role=other"),
+        dict(dbname="postgres"),
+    ],
+)
+def test_research_dsn_boundary_rejects_mismatch_options_and_other_scope(change):
+    from psycopg.conninfo import make_conninfo
+
+    from src.integration.pc4_runtime import research_dsn
+
+    values = dict(
+        host="127.0.0.1",
+        hostaddr="127.0.0.1",
+        port="55471",
+        user="research_owner",
+        password="disposable-test-only",
+        dbname="tester_research_unit",
+    )
+    values.update(change)
+    with pytest.raises(ValueError):
+        research_dsn(make_conninfo(**values))
