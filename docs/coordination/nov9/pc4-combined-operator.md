@@ -21,6 +21,7 @@ single-use: partial failure preserves files and refuses resume/adoption.
 
 ```
 python -B -m src.integration.pc4_runtime prepare --root ROOT --lab-source-sha LAB_SHA --application-source-sha APP_SHA
+python -B -m src.integration.pc4_runtime limit-role --root ROOT --lab-source-sha LAB_SHA --application-source-sha APP_SHA
 python -B -m src.integration.pc4_runtime serve --root ROOT --lab-source-sha LAB_SHA --application-source-sha APP_SHA
 python -B -m src.integration.pc4_runtime verify --root ROOT --lab-source-sha LAB_SHA --application-source-sha APP_SHA
 python -B -m src.integration.pc4_runtime shutdown --root ROOT --lab-source-sha LAB_SHA --application-source-sha APP_SHA
@@ -35,6 +36,26 @@ or URL; the receipt binds its file hash. Token lifetime is one hour, not refresh
 automatically. The operator may supply its token/input_digest to the UI privately;
 never include that file in logs, screenshots, manifests or uploaded artifacts.
 The existing `private.json` remains the lab's PostgreSQL secret; no DSN is printed.
+
+Before serve, the explicit `limit-role` step is mandatory. It creates a separate
+operator-only tester_pc4_admin superuser with a fresh secret retained solely in
+owner-root operator-admin-private.json. Both bootstrap and administrator verify
+the owned data_directory/database/port and matching PostgreSQL system identifier
+before DDL. In the administrator transaction, research_owner is renamed to
+tester_pc4_bootstrap (its owner OID and SU flag stay intact), and its LOGIN is
+disabled: leaving the renamed same-password SU login usable would bypass runtime
+restrictions. A NEW limited research_owner uses the existing password, so all
+runtime configuration/seed/DSN bytes remain unchanged.
+
+The new role gets only DML/sequence access to the five runtime schemas, SELECT
+on qualified snapshots, and pg_read_all_settings for owned directory verification.
+It owns neither database nor schema/table, has no elevated role flags, no CREATE
+or TEMP, and no other role membership. PUBLIC CREATE/TEMP are revoked only in
+this test-owned database. Runtime context/serve checks these restrictions and
+refuses bootstrap/SU, ownership, unexpected memberships or create privileges.
+No foreign roles/databases are changed. Partial role handoff retains the private
+stage/secret and refuses automatic resume; ROOT investigates with its private
+operator credential. Never upload either private file or expose either DSN.
 
 Serve verifies the source/root/seed, PostgreSQL process image/PID/argv/birth and
 actual data_directory via unchanged market context, and current execution grant.
@@ -62,7 +83,7 @@ records and all data are retained, so serve refuses same-root process restart or
 adoption. Durable job restart semantics are separately tested by ledger reopen;
 this harness does not claim physical same-root restart acceptance.
 
-Pure regression evidence: module-absent RED then 28 PASS for runtime, argv and
+Pure regression evidence: module-absent/role-validator RED then 29 PASS for runtime, argv and
 execution tests; Ruff check/format passed. No actual API/PG/process/browser/SCM
 execution by this contributing agent. Root must review and run the new immutable
 candidate, including real PG ledger first and no-route-mock browser acceptance.

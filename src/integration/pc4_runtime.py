@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import socket
 import subprocess
 import sys
@@ -29,6 +30,189 @@ from src.integration.research_runtime import (
 from src.integration.runtime_identity import require_runtime_argv
 
 MODULE = "src.integration.pc4_runtime"
+DML_SCHEMAS = (
+    "tester_platform",
+    "tester_storage",
+    "tester_lab",
+    "tester_catalog",
+    "tester_research",
+)
+
+
+def validate_runtime_role(row):
+    expected = dict(
+        current_user="research_owner",
+        session_user="research_owner",
+        rolsuper=False,
+        rolcreatedb=False,
+        rolcreaterole=False,
+        rolreplication=False,
+        rolbypassrls=False,
+        rolcanlogin=True,
+        owns_database=False,
+        owns_objects=False,
+        has_create=False,
+        other_membership=False,
+        read_settings=True,
+    )
+    if any(
+        row.get(k) != v or (isinstance(v, bool) and row.get(k) is not v)
+        for k, v in expected.items()
+    ):
+        raise ValueError("Limited runtime role required")
+
+
+def assert_runtime_role(conn):
+    row = conn.execute("""SELECT current_user,session_user,r.rolsuper,r.rolcreatedb,
+        r.rolcreaterole,r.rolreplication,r.rolbypassrls,r.rolcanlogin,
+        (SELECT datdba=r.oid FROM pg_database WHERE datname=current_database()) AS owns_database,
+        (EXISTS(SELECT 1 FROM pg_namespace WHERE nspowner=r.oid)
+         OR EXISTS(SELECT 1 FROM pg_class WHERE relowner=r.oid)) AS owns_objects,
+        (has_database_privilege(current_user,current_database(),'CREATE')
+         OR has_database_privilege(current_user,current_database(),'TEMP')
+         OR EXISTS(SELECT 1 FROM pg_namespace WHERE nspname IN
+            ('public','tester_platform','tester_storage','tester_lab','tester_catalog','tester_research','tester_snapshots')
+            AND has_schema_privilege(current_user,oid,'CREATE'))) AS has_create,
+        EXISTS(SELECT 1 FROM pg_roles x WHERE x.oid<>r.oid AND x.rolname<>'pg_read_all_settings'
+            AND pg_has_role(current_user,x.oid,'MEMBER')) AS other_membership,
+        pg_has_role(current_user,'pg_read_all_settings','USAGE') AS read_settings
+        FROM pg_roles r WHERE r.rolname=current_user""").fetchone()
+    validate_runtime_role(row or {})
+
+
+def _cluster_identity(conn, root, marker):
+    row = conn.execute("""SELECT current_database() AS db,inet_server_port() AS port,
+        current_setting('data_directory') AS directory,
+        (pg_control_system()).system_identifier::text AS system_identifier""").fetchone()
+    if (
+        row["db"] != marker["database"]
+        or row["port"] != 55471
+        or plain(row["directory"]) != root / "pgdata"
+    ):
+        raise ValueError("Owned PostgreSQL identity differs")
+    return row["system_identifier"]
+
+
+def limit_role(root, lab_sha, app_sha):
+    """Explicit owned-cluster operator handoff after all prepare DDL, before serve.
+
+    Config bytes stay unchanged. Retain the old owner OID, but never leave its
+    same-password superuser login usable by the new limited runtime principal.
+    """
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    from psycopg.rows import dict_row
+
+    source, root, marker, settings, _, _ = context(root, lab_sha, app_sha, authenticate=False)
+    secret_path = plain(root / "operator-admin-private.json")
+    if secret_path.exists() or plain(root / "pc4-role.json").exists():
+        raise ValueError("Role handoff already attempted; unsafe resume refused")
+    for name in (".pc4-api.json", ".market-api.json", ".market-worker.json"):
+        if plain(root / name).exists():
+            raise ValueError("Role handoff must precede runtime activation")
+    with psycopg.connect(settings.dsn, row_factory=dict_row, connect_timeout=3) as bootstrap:
+        system_id = _cluster_identity(bootstrap, root, marker)
+        original = bootstrap.execute(
+            "SELECT oid,rolsuper FROM pg_roles WHERE rolname=current_user"
+        ).fetchone()
+        if not original or not original["rolsuper"]:
+            raise ValueError("Original bootstrap superuser required")
+        if bootstrap.execute(
+            "SELECT 1 FROM pg_roles WHERE rolname IN ('tester_pc4_admin','tester_pc4_bootstrap')"
+        ).fetchone():
+            raise ValueError("Reserved operator roles already exist")
+        credentials = conninfo_to_dict(settings.dsn)
+        admin_dsn = make_conninfo(
+            **{**credentials, "user": "tester_pc4_admin", "password": secrets.token_urlsafe(48)}
+        )
+        state = dict(
+            schema="tester-pc4-admin-private/1",
+            root=str(root),
+            source_root=str(source),
+            application_source_sha=app_sha,
+            lab_source_sha=lab_sha,
+            system_identifier=system_id,
+            bootstrap_oid=original["oid"],
+            database_url=admin_dsn,
+            stage="creating_admin",
+        )
+        _save(secret_path, state, new=True)
+        admin_password = conninfo_to_dict(admin_dsn)["password"]
+        bootstrap.execute(
+            sql.SQL(
+                "CREATE ROLE tester_pc4_admin LOGIN SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD {}"
+            ).format(sql.Literal(admin_password))
+        )
+    state["stage"] = "handoff"
+    _save(secret_path, state)
+    with psycopg.connect(admin_dsn, row_factory=dict_row, connect_timeout=3) as admin:
+        if _cluster_identity(admin, root, marker) != system_id:
+            raise ValueError("Operator connected to different cluster")
+        if admin.execute("SELECT current_user AS name").fetchone()["name"] != "tester_pc4_admin":
+            raise ValueError("Operator role identity differs")
+        admin.execute("ALTER ROLE research_owner RENAME TO tester_pc4_bootstrap")
+        admin.execute("ALTER ROLE tester_pc4_bootstrap NOLOGIN")
+        admin.execute(
+            sql.SQL(
+                "CREATE ROLE research_owner LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD {}"
+            ).format(sql.Literal(credentials["password"]))
+        )
+        admin.execute("GRANT pg_read_all_settings TO research_owner")
+        db = sql.Identifier(marker["database"])
+        admin.execute(sql.SQL("REVOKE CREATE,TEMP ON DATABASE {} FROM PUBLIC").format(db))
+        admin.execute(sql.SQL("GRANT CONNECT ON DATABASE {} TO research_owner").format(db))
+        admin.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
+        for schema in (*DML_SCHEMAS, "tester_snapshots"):
+            name = sql.Identifier(schema)
+            admin.execute(sql.SQL("REVOKE CREATE ON SCHEMA {} FROM PUBLIC").format(name))
+            admin.execute(sql.SQL("GRANT USAGE ON SCHEMA {} TO research_owner").format(name))
+            permissions = (
+                sql.SQL("SELECT")
+                if schema == "tester_snapshots"
+                else sql.SQL("SELECT,INSERT,UPDATE,DELETE")
+            )
+            admin.execute(
+                sql.SQL("GRANT {} ON ALL TABLES IN SCHEMA {} TO research_owner").format(
+                    permissions, name
+                )
+            )
+            if schema != "tester_snapshots":
+                admin.execute(
+                    sql.SQL(
+                        "GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA {} TO research_owner"
+                    ).format(name)
+                )
+        old = admin.execute(
+            "SELECT oid,rolsuper,rolcanlogin FROM pg_roles WHERE rolname='tester_pc4_bootstrap'"
+        ).fetchone()
+        if old["oid"] != original["oid"] or not old["rolsuper"] or old["rolcanlogin"]:
+            raise ValueError("Bootstrap owner handoff differs")
+    # Verify using the byte-identical runtime DSN, not the privileged connection.
+    with ExecutionLedger(settings.dsn).connection() as runtime:
+        assert_runtime_role(runtime)
+        if (
+            plain(runtime.execute("SHOW data_directory").fetchone()["data_directory"])
+            != root / "pgdata"
+        ):
+            raise ValueError("Limited connection directory differs")
+    state["stage"] = "ready"
+    _save(secret_path, state)
+    receipt = dict(
+        schema="tester-pc4-role/1",
+        application_source_sha=app_sha,
+        root=str(root),
+        source_root=str(source),
+        system_identifier=system_id,
+        bootstrap_login=False,
+        runtime_role="research_owner",
+        runtime_privileged=False,
+        private_sha256=hashlib.sha256(secret_path.read_bytes()).hexdigest(),
+    )
+    _save(root / "pc4-role.json", receipt, new=True)
+    return dict(
+        status="LIMITED_RUNTIME_ROLE_VERIFIED", runtime_privileged=False, bootstrap_login=False
+    )
 
 
 def worker_state(state, failures):
@@ -133,6 +317,8 @@ def context(root, lab_sha, app_sha, *, authenticate=True):
         raise ValueError("Combined private identity differs")
     ledger = ExecutionLedger(dsn)
     if authenticate:
+        with ledger.connection() as conn:
+            assert_runtime_role(conn)
         actor = ledger.authenticate("Bearer " + private["token"])
         if actor != Identity(private["actor"]):
             raise ValueError("Combined principal differs")
@@ -361,13 +547,14 @@ def serve(root, lab_sha, app_sha):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("prepare", "serve", "verify", "shutdown"))
+    parser.add_argument("action", choices=("prepare", "limit-role", "serve", "verify", "shutdown"))
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--lab-source-sha", required=True)
     parser.add_argument("--application-source-sha", required=True)
     args = parser.parse_args()
     try:
-        result = globals()[args.action](args.root, args.lab_source_sha, args.application_source_sha)
+        operation = limit_role if args.action == "limit-role" else globals()[args.action]
+        result = operation(args.root, args.lab_source_sha, args.application_source_sha)
         if result is not None:
             print(json.dumps(result))
     except Exception as error:

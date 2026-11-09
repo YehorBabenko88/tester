@@ -96,3 +96,32 @@ def test_factory_constructs_routes_without_database_ddl_or_os_actions(monkeypatc
     assert "/api/control/research-executions" in paths
     assert "/api/control/research" in paths
     assert "/api/pc4/identity" in paths
+
+
+def limited_role():
+    return dict(
+        current_user="research_owner",
+        session_user="research_owner",
+        rolsuper=False,
+        rolcreatedb=False,
+        rolcreaterole=False,
+        rolreplication=False,
+        rolbypassrls=False,
+        rolcanlogin=True,
+        owns_database=False,
+        owns_objects=False,
+        has_create=False,
+        other_membership=False,
+        read_settings=True,
+    )
+
+
+def test_runtime_role_refuses_all_privileged_flags_ownership_create_and_membership():
+    from src.integration.pc4_runtime import validate_runtime_role
+
+    validate_runtime_role(limited_role())
+    for field in limited_role():
+        value = limited_role()
+        value[field] = "wrong" if isinstance(value[field], str) else not value[field]
+        with pytest.raises(ValueError):
+            validate_runtime_role(value)
