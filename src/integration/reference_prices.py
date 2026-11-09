@@ -17,6 +17,7 @@ from contracts.v1.validate import validate_record
 from contracts.v1_1.price_candle import _schema as price_schema
 from contracts.v1_1.price_candle import validate_price_candle
 from src.api.config import load_settings
+from src.api.financial_query import HttpTime
 from src.api.models import Query
 from src.api.providers import ProviderDataUnavailable, ProviderUnavailable
 from src.api.scope import CursorCodec, CursorError
@@ -330,8 +331,8 @@ def create_price_router(reader):
     def prices(
         category: Literal["linear", "inverse"],
         symbol: str,
-        start_ms: int,
-        end_ms: int,
+        start_ms: HttpTime,
+        end_ms: HttpTime,
         candle_kind: Literal["official_mark", "official_index"],
         interval: str = "1",
         limit: int = 100,

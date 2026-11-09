@@ -91,3 +91,8 @@ price1.1 route/default isolation, typed OpenAPI and explicit profile selector.
 PostgreSQL/real HTTP source/browser/process effects were not executed or certified.
 ROOT still must review, publish immutable candidate and physically test one bounded
 sample, then scoped larger samples, under the limited runtime role.
+
+Independent review P2 follow-up: route plain-int parameters accepted decimal-shaped
+time strings such as0.0. Regression RED observed; start_ms/end_ms now reuse the
+existing strict HttpTime parser, matching the v1.0 time boundary. Full145-test
+focused suite PASS again; Ruff PASS. No source/network or PG action.

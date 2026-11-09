@@ -289,6 +289,8 @@ def test_explicit_profile_routes_and_legacy_default_remain_distinct(tmp_path):
         == 422
     )
     assert "PriceEnvelope" in app.openapi()["components"]["schemas"]
+    for change in ({"start_ms": "0.0"}, {"end_ms": "60000.0"}):
+        assert client.get("/api/price-candles", params=params | change).status_code == 422
 
 
 def test_actual_reference_reader_dict_row_projection_and_authentic_run():
