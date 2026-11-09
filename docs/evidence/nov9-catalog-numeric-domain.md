@@ -30,3 +30,16 @@ nonfinite/malformed regressions plus existing source, pagination, history, sched
 and adapter tests. No real PostgreSQL, host API/server, SCM, browser, office or
 Bybit network execution. No ADMINIT configuration or secrets accessed. This is a
 code regression result, not deployment, real source, or database acceptance.
+
+Independent review follow-up: old persisted snapshots also require read-time
+qualification before any new successful acquisition. Added eight cases covering
+all four unsigned fields in legacy OBSERVED snapshots and retained STALE snapshots
+after actual mocked ticker failure. RED on initial PR54: 8 failed / 23 passed.
+`query` now applies the same negative-domain helper to its existing deepcopy;
+response is unavailable with original negative raw_value/source/time, while the
+stored OBSERVED/STALE observation and snapshot are unchanged. Signed changes and
+zero remain unchanged.
+
+Same full selected command with `--basetemp=../pytest-legacy-green`: 141 passed,
+6 PostgreSQL deselected, one dependency deprecation warning, 3.17 seconds.
+`git diff --check` passes. No real PG/host/runtime actions performed.

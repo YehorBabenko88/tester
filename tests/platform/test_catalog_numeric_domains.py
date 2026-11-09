@@ -1,5 +1,7 @@
 """Pure source-boundary regressions: no HTTP, database or runtime startup."""
 
+from copy import deepcopy
+
 import pytest
 
 from src.api.market_catalog import CatalogService
@@ -67,3 +69,41 @@ def test_nonfinite_or_malformed_values_remain_unavailable(value):
     result = metric("lastPrice", value, "price")
     assert result["state"] == "UNAVAILABLE"
     assert result["value"] is None
+
+
+@pytest.mark.parametrize("field,name", UNSIGNED)
+@pytest.mark.parametrize("ticker_failure", [False, True])
+def test_legacy_persisted_negative_projection_preserves_stored_fact(field, name, ticker_failure):
+    from src.api.persistent_market_catalog import PersistentCatalogService
+    from tests.platform.test_catalog_runtime import MemoryStore
+
+    source = Source(field, "1.25")
+    old = CatalogService(source, clock=lambda: 1000)
+    assert old.refresh("linear")
+    snapshot = deepcopy(old._snapshots["linear"])
+    snapshot["rows"][0]["metrics"][name]["value"] = "-1.25"
+    store = MemoryStore()
+    store.state["linear"].update(snapshot=snapshot, attempt=deepcopy(old._attempts["linear"]))
+    service = PersistentCatalogService(source, store, clock=lambda: 1000, jitter=lambda: 0)
+    if ticker_failure:
+        original = source.call
+
+        def fail_tickers(endpoint, params):
+            if endpoint == "/tickers":
+                raise OSError("offline")
+            return original(endpoint, params)
+
+        source.call = fail_tickers
+        assert not service.refresh("linear")
+    stored_before = deepcopy(store.state["linear"])
+    result = service.query("linear")["rows"][0]["metrics"][name]
+    assert result["state"] == "UNAVAILABLE"
+    assert result["value"] is None
+    assert result["reason"] == "negative_value"
+    assert result["raw_value"] == "-1.25"
+    assert result["source_time_ms"] == 1_000_000
+    assert result["observed_at"] == 1000
+    assert store.state["linear"] == stored_before
+    stored_metric = stored_before["snapshot"]["rows"][0]["metrics"][name]
+    assert stored_metric["value"] == "-1.25"
+    assert stored_metric["state"] == ("STALE" if ticker_failure else "OBSERVED")

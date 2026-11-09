@@ -45,6 +45,10 @@ def _number(value):
         return None
 
 
+def _negative_unsigned(name, value):
+    return name in NONNEGATIVE_METRICS and _number(value) is not None and Decimal(value) < 0
+
+
 def _source_freshness(stamp, now):
     if stamp is None:
         return "UNKNOWN", "source_time_missing"
@@ -148,11 +152,7 @@ class CatalogService:
                     row["metrics"] = {}
                     for name, field in METRICS.items():
                         value = _number(ticker.get(field))
-                        negative = (
-                            value is not None
-                            and name in NONNEGATIVE_METRICS
-                            and Decimal(value) < 0
-                        )
+                        negative = _negative_unsigned(name, value)
                         if negative:
                             value = None
                         row["metrics"][name] = {
@@ -372,7 +372,16 @@ class CatalogService:
             source_state = "STALE"
         rows = snapshot["rows"] if snapshot else []
         for row in rows:
-            for metric in row["metrics"].values():
+            for name, metric in row["metrics"].items():
+                # Qualify old persisted facts too; query's snapshot is a deepcopy,
+                # so this projection never rewrites the stored observation.
+                if _negative_unsigned(name, metric["value"]):
+                    metric.update(
+                        raw_value=metric["value"],
+                        value=None,
+                        state="UNAVAILABLE",
+                        reason="negative_value",
+                    )
                 if metric["value"] is not None:
                     state, reason = _source_freshness(metric.get("source_time_ms"), now)
                     if (
