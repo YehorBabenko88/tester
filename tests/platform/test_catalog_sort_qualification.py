@@ -21,7 +21,7 @@ def catalog():
         ("E_TOO_LONG", "9" * 101, "OBSERVED", "fixture", 1000000),
         ("F_FLOAT", 1000.0, "OBSERVED", "fixture", 1000000),
         ("G_BLANK_SOURCE", "999", "OBSERVED", "", 1000000),
-        ("VALID_LOW", "-3", "OBSERVED", "fixture", 1000000),
+        ("VALID_LOW", "0.5", "OBSERVED", "fixture", 1000000),
         ("VALID_MID", "1", "OBSERVED", "fixture", 1000000),
         ("VALID_STALE", "2", "STALE", "fixture", 1000000),
     ]
@@ -61,7 +61,7 @@ def test_render_unavailable_values_sort_after_observed_and_stale(direction, expe
         "E_TOO_LONG", "F_FLOAT", "G_BLANK_SOURCE",
     ]
     assert result["rows"][0]["metrics"]["price"]["value"] == (
-        "-3" if direction == "asc" else "2"
+        "0.5" if direction == "asc" else "2"
     )
     stale = next(row for row in result["rows"] if row["symbol"] == "VALID_STALE")
     assert stale["metrics"]["price"]["state"] == "STALE"
