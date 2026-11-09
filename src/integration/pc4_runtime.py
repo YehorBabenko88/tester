@@ -67,12 +67,13 @@ def assert_runtime_role(conn):
         r.rolcreaterole,r.rolreplication,r.rolbypassrls,r.rolcanlogin,
         (SELECT datdba=r.oid FROM pg_database WHERE datname=current_database()) AS owns_database,
         (EXISTS(SELECT 1 FROM pg_namespace WHERE nspowner=r.oid)
-         OR EXISTS(SELECT 1 FROM pg_class WHERE relowner=r.oid)) AS owns_objects,
+         OR EXISTS(SELECT 1 FROM pg_class WHERE relowner=r.oid)
+         OR EXISTS(SELECT 1 FROM pg_proc WHERE proowner=r.oid)
+         OR EXISTS(SELECT 1 FROM pg_type WHERE typowner=r.oid)) AS owns_objects,
         (has_database_privilege(current_user,current_database(),'CREATE')
          OR has_database_privilege(current_user,current_database(),'TEMP')
-         OR EXISTS(SELECT 1 FROM pg_namespace WHERE nspname IN
-            ('public','tester_platform','tester_storage','tester_lab','tester_catalog','tester_research','tester_snapshots')
-            AND has_schema_privilege(current_user,oid,'CREATE'))) AS has_create,
+         OR EXISTS(SELECT 1 FROM pg_namespace
+            WHERE has_schema_privilege(current_user,oid,'CREATE'))) AS has_create,
         EXISTS(SELECT 1 FROM pg_roles x WHERE x.oid<>r.oid AND x.rolname<>'pg_read_all_settings'
             AND pg_has_role(current_user,x.oid,'MEMBER')) AS other_membership,
         pg_has_role(current_user,'pg_read_all_settings','USAGE') AS read_settings
@@ -269,10 +270,7 @@ def prepare(root, lab_sha, app_sha):
     migrate_research(dsn)
     repository = QualifiedSnapshotRepository(dsn)
     repository.migrate()
-    snapshot = repository.publish_fixture()
-    strategy = json.loads(
-        (source / "src/integration/fixtures/f998/example.strategy.json").read_text()
-    )
+    snapshot, strategy = terminal_inputs(repository)
     ledger = ExecutionLedger(dsn)
     digest = ledger.register(strategy, repository, snapshot.snapshot_id)
     actor = "pc4-synthetic:" + root.name[9:]
@@ -304,6 +302,13 @@ def prepare(root, lab_sha, app_sha):
     )
     _save(root / "pc4-seed.json", receipt, new=True)
     return {**receipt, "status": "PREPARED_NOT_STARTED", "native_service": False}
+
+
+def terminal_inputs(repository):
+    """Exact separately authored terminal SYNTHETIC source, never relabel spot."""
+    from src.integration.qualified_snapshot import certified_terminal_fixture_strategy
+
+    return repository.publish_terminal_fixture(), certified_terminal_fixture_strategy()
 
 
 def context(root, lab_sha, app_sha, *, authenticate=True):

@@ -1,6 +1,5 @@
 """Hosted-only composed producer/consumer PG gates; no local connection by default."""
 
-import json
 import os
 from pathlib import Path
 from uuid import uuid4
@@ -30,10 +29,10 @@ def setup_execution():
     migrate_research(dsn)
     repository = QualifiedSnapshotRepository(dsn)
     repository.migrate()
-    snapshot = repository.publish_fixture()
-    strategy = json.loads(
-        (provider / "src/integration/fixtures/f998/example.strategy.json").read_text()
-    )
+    from src.integration.qualified_snapshot import certified_terminal_fixture_strategy
+
+    snapshot = repository.publish_terminal_fixture()
+    strategy = certified_terminal_fixture_strategy()
     ledger = ExecutionLedger(dsn)
     digest = ledger.register(strategy, repository, snapshot.snapshot_id)
     actor = "execution-test:" + uuid4().hex
@@ -44,7 +43,10 @@ def setup_execution():
 @pytest.mark.integration
 def test_real_pg_snapshot_to_f_restart_replay_artifact_and_ack(setup_execution):
     ledger, repository, strategy, digest, actor, token = setup_execution
-    assert ledger.register(strategy, repository, repository.publish_fixture().snapshot_id) == digest
+    assert (
+        ledger.register(strategy, repository, repository.publish_terminal_fixture().snapshot_id)
+        == digest
+    )
     request = ExecutionRequest(request_id=str(uuid4()), input_digest=digest)
     job = ledger.submit_execution(actor, request)
     assert ledger.submit_execution(actor, request)["job_id"] == job["job_id"]
@@ -57,7 +59,7 @@ def test_real_pg_snapshot_to_f_restart_replay_artifact_and_ack(setup_execution):
         summary["summary"]["artifact_digest"]
         == completed["chart_command"]["expected_artifact_digest"]
     )
-    assert summary["summary"]["metrics"]["net_realized_pnl"] == "-5.19500"
+    assert summary["summary"]["metrics"]["funding_costs"] == "0.0100"
     assert reopened.dispatch_execution(actor, job["job_id"]) == completed
     identity = reopened.authenticate("Bearer " + token)
     assert identity == Identity(actor)
@@ -225,3 +227,56 @@ def test_hosted_actual_g_http_auth_origin_execution_and_chart_ack(setup_executio
         thread.join(5)
         listener.close()
         assert not thread.is_alive(), "hosted test server did not stop"
+
+
+@pytest.mark.integration
+def test_hosted_role_guard_refuses_create_on_unexpected_schema_without_dropping(setup_execution):
+    import secrets
+
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    from psycopg.rows import dict_row
+
+    from src.integration.pc4_runtime import assert_runtime_role
+
+    ledger, _, _, _, _, _ = setup_execution
+    password = secrets.token_urlsafe(32)
+    probe = "tester_guard_probe_" + uuid4().hex
+    with ledger.connection() as admin:
+        # This workflow owns its fresh service cluster; never adopt an existing role.
+        assert not admin.execute("SELECT 1 FROM pg_roles WHERE rolname='research_owner'").fetchone()
+        admin.execute(
+            sql.SQL(
+                "CREATE ROLE research_owner LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD {}"
+            ).format(sql.Literal(password))
+        )
+        admin.execute("GRANT pg_read_all_settings TO research_owner")
+        db = admin.execute("SELECT current_database() AS db").fetchone()["db"]
+        admin.execute(
+            sql.SQL("REVOKE CREATE,TEMP ON DATABASE {} FROM PUBLIC").format(sql.Identifier(db))
+        )
+        admin.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
+        admin.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(probe)))
+    dsn = make_conninfo(
+        **{**conninfo_to_dict(ledger.dsn), "user": "research_owner", "password": password}
+    )
+    with psycopg.connect(dsn, row_factory=dict_row, connect_timeout=3) as runtime:
+        assert_runtime_role(runtime)  # Prevent a vacuous rejection caused by another flag.
+    try:
+        with ledger.connection() as admin:
+            admin.execute(
+                sql.SQL("GRANT CREATE ON SCHEMA {} TO research_owner").format(sql.Identifier(probe))
+            )
+        with psycopg.connect(dsn, row_factory=dict_row, connect_timeout=3) as runtime:
+            with pytest.raises(ValueError, match="Limited runtime role"):
+                assert_runtime_role(runtime)
+    finally:
+        with ledger.connection() as admin:
+            admin.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA {} FROM research_owner").format(
+                    sql.Identifier(probe)
+                )
+            )
+    with psycopg.connect(dsn, row_factory=dict_row, connect_timeout=3) as runtime:
+        assert_runtime_role(runtime)

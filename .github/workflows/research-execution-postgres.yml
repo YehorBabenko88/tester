@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: YehorBabenko88/tester
-          ref: ffa312659507699d132f9f111a7708428feb86be
+          ref: 4d9f365c44fb401fe051b48f4938a3674c058d9c
           path: snapshot-provider
       - uses: actions/setup-python@v5
         with:
@@ -42,13 +42,14 @@ jobs:
           mkdir -p execution-evidence
           git rev-parse HEAD 'HEAD^{tree}' > execution-evidence/execution-source.txt
           git -C snapshot-provider rev-parse HEAD 'HEAD^{tree}' > execution-evidence/snapshot-source.txt
-          test "$(git -C snapshot-provider rev-parse HEAD)" = ffa312659507699d132f9f111a7708428feb86be
+          test "$(git -C snapshot-provider rev-parse HEAD)" = 4d9f365c44fb401fe051b48f4938a3674c058d9c
           git ls-files -z | xargs -0 sha256sum > execution-evidence/execution-files.sha256
           (cd snapshot-provider && git ls-files -z | xargs -0 sha256sum) > execution-evidence/snapshot-files.sha256
       - name: Durable PG snapshot, actual F, restart, grants, lease fencing, exact ACK
         run: >-
           python -m pytest tests/platform/test_research_execution.py
           tests/platform/test_research_summary.py
+          tests/platform/test_pc4_runtime.py
           tests/platform/test_research_execution_postgres.py -v
           --junitxml=execution-evidence/results.xml
       - uses: actions/upload-artifact@v4

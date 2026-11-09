@@ -193,3 +193,33 @@ def test_operator_secret_written_once_with_mocked_database_handoff(tmp_path, mon
     assert secret["root"] == str(root)
     assert secret["system_identifier"] == "123456"
     assert "stage" not in secret
+
+
+def test_prepare_terminal_pair_uses_exact_pinned_linear_source_and_actual_f():
+    import os
+
+    import src.integration
+
+    provider = os.environ.get("TEST_SNAPSHOT_PROVIDER_ROOT")
+    if provider:
+        src.integration.__path__.append(str(Path(provider).resolve() / "src/integration"))
+    try:
+        from src.integration.qualified_snapshot import certified_terminal_fixture_snapshot
+    except ModuleNotFoundError:
+        pytest.skip("separate pinned B terminal producer required")
+    from src.integration.pc4_runtime import terminal_inputs
+    from src.integration.strategy_lab import run_synthetic_research
+
+    class Repository:
+        @staticmethod
+        def publish_terminal_fixture():
+            return certified_terminal_fixture_snapshot()
+
+    snapshot, strategy = terminal_inputs(Repository())
+    assert snapshot.mode == "SYNTHETIC" and snapshot.admitted is True
+    assert snapshot.snapshot["category"] == "linear"
+    assert snapshot.snapshot["symbol"] == "BTCUSDT"
+    assert strategy["costs"]["funding_policy"] == "required"
+    bundle = run_synthetic_research(strategy, snapshot.snapshot)
+    assert bundle["result"]["metrics"]["funding_costs"] == "0.0100"
+    assert bundle["certification"]["real_market_coverage"] == "NOT_PROVEN"

@@ -1,7 +1,7 @@
 # Issue59 F/J/G/K execution seam — operator scoped, SYNTHETIC only
 
 Base ea4d9b2cbfc15e1af54ea6bf73a530b68763873e. Snapshot producer dependency:
-PR61 ffa312659507699d132f9f111a7708428feb86be. Financial authority remains
+PR61 4d9f365c44fb401fe051b48f4938a3674c058d9c. Financial authority remains
 the existing pinned F engine; no additional price/PnL/risk calculations.
 
 Explicit setup: operator runs `migrate_research(dsn)`; B repository `.migrate()`
