@@ -1,3 +1,11 @@
+# PC4 physical portable evaluation — 2026-11-09
+
+User now authorizes isolated portable physical testing on PC4. Installed source remains ea4d9b2; PG55471/API18767 are owned, limited-role and OS-identity verified; existing PG5432 and ADMINIT are untouched. Actual real catalog1995linear/76inverse,25completedjobs,145unique records,154source links,32global sort cases,2scheduled refreshes,1market browser and13timeframe browser cases PASS. Backup restored into a new retained database with matching145rows/hash. All821installed source files unchanged;14app-only screenshots and detailed reports are in Draft64/docs/physical-test/pc4-20261109. Real10-row canonical history probe correctly refuses F because coverage/visibility UNKNOWN.
+
+EXPERIMENTAL_PORTABLE only; no native SCM/UAC/forcekill/reboot/main merge/trading/deletion. Full acceptance NO_GO: hostedCI queued, qualified synthetic research and genuine summary/SLTP candidate integration in progress. The original spot fixture cannot be silently relabeled as terminal linear; a separate byte-pinned synthetic terminal fixture is required. Auxiliary public sources were observed but adapters/analytics remain NOT_INTEGRATED; exact corrective task postedIssue58. Current checkpoint: docs/physical-test/pc4-20261109/CHECKPOINT.json. All older installation restrictions/statuses below are historical records.
+
+---
+
 # Nov9 â€” PC4 readonly continuation / pinned candidate / NO_GO
 
 Current direct-user continuation runs on **PC4, not ADMINIT**, Windows 11 Pro build26200, nonadmin. No tester SCM service or lab listener. Existing user PostgreSQL5432 was not changed; readonly database listing needs authentication, so names remain NOT_ENUMERATED. No local app/PG/browser/server launch, installation, service restart, office connection, firewall change or main merge in this cycle. Historical Nov7 and ADMINIT evidence below does not identify a current installation.

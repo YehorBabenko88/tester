@@ -1,0 +1,2 @@
+# These JSON bytes are cryptographically pinned; never convert checkout newlines.
+*.json -text

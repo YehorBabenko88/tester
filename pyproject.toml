@@ -21,7 +21,7 @@ include = ["src.api*", "src.control*", "src.ingest*", "src.storage*", "src.analy
 "src.storage" = ["migrations/*.sql"]
 "contracts.v1" = ["market.schema.json"]
 "contracts.v1_1" = ["price_candle.schema.json"]
-"src.integration" = ["POLICY_PIN.json", "F_SOURCE_PIN.json", "fixtures/f998/*.json"]
+"src.integration" = ["POLICY_PIN.json", "F_SOURCE_PIN.json", "fixtures/f998/*.json", "fixtures/pc4-terminal-linear-v1/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
