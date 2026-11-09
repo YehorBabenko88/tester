@@ -1,0 +1,915 @@
+{
+  "at": "2026-11-09T18:12:10.931959+00:00",
+  "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "scope": "owned PID/birth-verified API+downloadworker+PG tree, mostly idle after E2E; not load or hardlimit acceptance",
+  "elapsed_seconds": 11.07567339995876,
+  "peak_sampled_rss_sum_bytes": 420544512,
+  "cpu_seconds_delta_surviving": 0.875,
+  "database_bytes": 11982527,
+  "pgdata_bytes": 82824016,
+  "wal_bytes": 33554432,
+  "queue": [
+    {
+      "state": "completed",
+      "count": 1
+    }
+  ],
+  "samples": [
+    {
+      "elapsed_seconds": 0.00021659996127709746,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 24.734375
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.421875
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.328125
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 14815232,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20611072,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        },
+        {
+          "pid": 32856,
+          "rss": 16490496,
+          "cpu_seconds": 0.015625
+        }
+      ],
+      "rss_sum": 420544512
+    },
+    {
+      "elapsed_seconds": 1.0005677999579348,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 24.78125
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.421875
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.328125
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 14888960,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404131840
+    },
+    {
+      "elapsed_seconds": 2.00128779996885,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 24.859375
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.421875
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.359375
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 14962688,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404205568
+    },
+    {
+      "elapsed_seconds": 3.0018974999547936,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 24.953125
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.421875
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.390625
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 15044608,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404287488
+    },
+    {
+      "elapsed_seconds": 4.002615699952003,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 24.953125
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.421875
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.390625
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 15118336,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404361216
+    },
+    {
+      "elapsed_seconds": 5.003215699980501,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 25.03125
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.4375
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.390625
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 15192064,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404434944
+    },
+    {
+      "elapsed_seconds": 6.003703399968799,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 25.140625
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.4375
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.390625
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 15265792,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404508672
+    },
+    {
+      "elapsed_seconds": 7.004058499995153,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 25.21875
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.4375
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.390625
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 15339520,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404582400
+    },
+    {
+      "elapsed_seconds": 8.004737599985674,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 25.296875
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.4375
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.40625
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 15413248,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404656128
+    },
+    {
+      "elapsed_seconds": 9.005544499959797,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 25.34375
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.4375
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.40625
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 15486976,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404729856
+    },
+    {
+      "elapsed_seconds": 10.006226099969354,
+      "processes": [
+        {
+          "pid": 32424,
+          "rss": 131059712,
+          "cpu_seconds": 25.390625
+        },
+        {
+          "pid": 33984,
+          "rss": 4313088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 3544,
+          "rss": 7602176,
+          "cpu_seconds": 0.0
+        },
+        {
+          "pid": 2920,
+          "rss": 68435968,
+          "cpu_seconds": 2.4375
+        },
+        {
+          "pid": 38416,
+          "rss": 19144704,
+          "cpu_seconds": 6.421875
+        },
+        {
+          "pid": 35572,
+          "rss": 28028928,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 35220,
+          "rss": 13332480,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 31368,
+          "rss": 13111296,
+          "cpu_seconds": 0.0625
+        },
+        {
+          "pid": 29312,
+          "rss": 15568896,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 23264,
+          "rss": 20615168,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 32508,
+          "rss": 14188544,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 18220,
+          "rss": 13619200,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 10316,
+          "rss": 13529088,
+          "cpu_seconds": 0.015625
+        },
+        {
+          "pid": 7824,
+          "rss": 22048768,
+          "cpu_seconds": 0.171875
+        },
+        {
+          "pid": 13812,
+          "rss": 20213760,
+          "cpu_seconds": 0.03125
+        }
+      ],
+      "rss_sum": 404811776
+    }
+  ]
+}

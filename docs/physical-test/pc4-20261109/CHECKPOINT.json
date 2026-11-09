@@ -6,13 +6,13 @@
     59,
     60
   ],
-  "confirmed_at": "2026-11-09T18:02:17.776056+00:00",
+  "confirmed_at": "2026-11-09T18:14:36.932202+00:00",
   "host": "PC4",
   "windows_build": "26200",
   "administrator": false,
   "mode": "EXPERIMENTAL_PORTABLE",
-  "installed_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
-  "installed_tree": "4c3ae8380d74c0e4d55d614c6e1053a59ea0171c",
+  "installed_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "installed_tree": "9488dc721a8b462ac346cbf845b55dee6505e840",
   "retained_previous_labs": [
     {
       "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-28675bef2c3941d286bc6621951f8634",
@@ -23,7 +23,7 @@
   "pg_bind": "127.0.0.1:55471",
   "pg5432_untouched": true,
   "native_service": "NOT_INSTALLED",
-  "phase": "DIAGNOSE_PUBLISHED_CANDIDATE_1",
+  "phase": "QUALIFIED_SYNTHETIC_RESEARCH_PHYSICAL_PASS_BOUNDED",
   "tests": {
     "all_source_pages": "PASS1995linear/76inverse;11originalHTTPpages",
     "global_sort": "PASS32wholecatalogcases",
@@ -32,15 +32,19 @@
     "timeframes_browser": "PASS13/13 actual;mousewheel/pan/crosshair/calendarNavigation;0pageerrors",
     "market_browser": "PASSactual0Goutsidelegacy10,sort/search/persistence/inlineprogress",
     "backup_restore": "PASS145rows toNEWrestoredDB;dump+allDBsretained",
-    "limited_role": "PASS5elevatedflagsfalse,notDBowner,bootstrapNOLOGIN",
-    "initial_stop": "PASSownAPI+workercooperativestop+ownPGstop,recordsretained",
-    "restart_same_lab": "NOT_RUN_single_use_runtime_refuses_adoption",
+    "limited_role": "PASS newlimitedOID/bootstrapNOLOGIN; actualunexpected-schema CREATE refusal thenrevoke",
+    "initial_stop": "PASS baselineAPIworkercooperative+ownedPGstop;failedcandidatePGstopretained",
+    "restart_same_lab": "NOT_IMPLEMENTED singleuseCLI;Esource-onlytaskactive",
     "crash_kill": "NOT_RUN_no_forcekill/reboot",
-    "research": "PENDING_NEW_PINNED_CANDIDATE_PR61_62_63",
+    "research": "PASS actualPG-F-authorizedG/E-D chart ACK+summary SLTP statistics;1 realbrowsercase,3fills1trade;SYNTHETIC_ONLY",
     "real_market_F": "BLOCKED_HISTORICAL_COVERAGE_UNKNOWN",
     "analytics": "Candles+Volume observed;other10panelsUNAVAILABLE/NOT_INTEGRATED;no fabricatedorderflow",
     "trader_intelligence": "NOT_READY_PERMISSION_GATED",
-    "real_data_admission_safety": "PASS actual10canonicalBTCrows read from ownedPG; admittedfalse,Finputnull,visibilitynotproven preserved"
+    "real_data_admission_safety": "PASS actual10PGrows;REAL/UNKNOWNprepare_input+register refused;noexecutionledgerchanges",
+    "live_candidate_ingest": "PASS10actualBTCclosedcandles limitedrole;hashPGreadback",
+    "live_security": "PASS wrongtoken401/unregistered403/foreignOrigin403/anonymoussummary401",
+    "research_restore": "PASSnewownedDB raw/snapshot/artifact/execution/ACKhashesmatch",
+    "hidpi": "PASS actualDPR2 strategy +1m candles/volume gestures/backingCSSratio;13baselineDPR1,NOT13DPR2"
   },
   "resource": {
     "samples": 11,
@@ -77,15 +81,16 @@
   "hosted_ci": "QUEUED_NOT_ACCEPTED",
   "go_no_go": "NO_GO_FULL_ACCEPTANCE",
   "next": [
-    "Review narrowly validated market/research DSN adapter and regression in PR63",
-    "Publish replacement immutable combined SHA, retain failed lab, no retry or adoption",
-    "Create fresh owned lab then prepare/limit-role/negative CREATE probe/actual synthetic browser",
-    "CI queued is not acceptance; no native SCM or UAC"
+    "Publish sanitized immutable-source evidence in Draft64",
+    "Run published DPR2 private browser harness separately pinned to installed6a",
+    "Review source-only restart and mark/index DraftPRs before any newcandidate installation",
+    "Cooperative shutdown using published ownership-checkedpc4CLI, retain data; no kill/UAC/SCM",
+    "Fullacceptance NO_GO:queuedCI/realcoverage/analytics/native/hardcaps/crash remain gated"
   ],
   "pending_integration_blocker": "Original certified synthetic fixture is SPOT while terminal admits linear/inverse; UI correctly rejects mismatch. A separately byte-pinned synthetic linear fixture is being authored; no local relabeling or UI guard bypass.",
-  "runtime_state": "ALL_OWNED_API_WORKER_POSTGRES_STOPPED_RETAINED",
+  "runtime_state": "RUNNING_OWNED_API32424_WORKER33984_PG38416",
   "baseline_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-fa84840d666f4cc18977c552ee1a5870",
-  "active_lab_root": null,
+  "active_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-95012633c22841c0a36edeb227536a18",
   "candidate_1": {
     "at": "2026-11-09T18:00:03.732071+00:00",
     "candidate_sha": "efd04cf77ded1e14f3b7787b9dba55d94bf9e78b",
@@ -99,5 +104,198 @@
     "no_installed_hotfix": true,
     "postgres_5432_pid_unchanged": 7584,
     "next": "GitHub adapter regression -> publish reviewed replacement SHA -> fresh owned lab, no resume"
-  }
+  },
+  "installed_archive_sha256": "d16aedfeca91d91efff30667c625a09676adf9a6ba5540f7535f8b0ae9833112",
+  "research_proof": {
+    "at": "2026-11-09T18:10:22.826417+00:00",
+    "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+    "job_id": "056d074f-ddb5-4467-8456-80f1ad1e1aa4",
+    "state": "complete",
+    "attempts": 1,
+    "persisted_chart_ack": {
+      "job_id": "fda3a6e1-655c-4a47-8e87-cb0a45d86441",
+      "artifact_digest": "d185bf3b72202987b2691a6e02a84d04d9e70fe76e54a05335ac2fd2260a501e",
+      "rendered_fill_ids": [
+        "f1",
+        "f2",
+        "f3"
+      ]
+    },
+    "audit": [
+      {
+        "event": "claimed",
+        "count": 1
+      },
+      {
+        "event": "completed",
+        "count": 1
+      },
+      {
+        "event": "execution_claimed",
+        "count": 1
+      },
+      {
+        "event": "execution_completed",
+        "count": 1
+      },
+      {
+        "event": "execution_credential_issued",
+        "count": 1
+      },
+      {
+        "event": "execution_input_registered",
+        "count": 1
+      },
+      {
+        "event": "execution_submitted",
+        "count": 1
+      },
+      {
+        "event": "published",
+        "count": 1
+      },
+      {
+        "event": "render_ack",
+        "count": 1
+      },
+      {
+        "event": "submitted",
+        "count": 1
+      }
+    ],
+    "ledger_counts": {
+      "execution_inputs": 1,
+      "execution_jobs": 1,
+      "artifacts": 1,
+      "jobs": 1,
+      "acknowledgments": 1
+    },
+    "same_request_reopen_idempotent": true,
+    "summary_replay_digest_matches_browser": true,
+    "summary_digest": "c8d5f9e160be3bc44f07d93b3f0bf5540c41aa1bc411a8c223ab5cd64585b1f8",
+    "real_admission_refusal": {
+      "at": "2026-11-09T18:10:22.669653+00:00",
+      "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+      "live_job_id": "b7d7f6da-e74a-449d-9f42-cd56839c902a",
+      "actual_pg_rows": 10,
+      "limited_role_ingest_and_record_hashes_match": true,
+      "real_snapshot": {
+        "mode": "REAL",
+        "admitted": false,
+        "f_input": null,
+        "reasons": [
+          "coverage_unknown",
+          "historical_visibility_not_proven",
+          "real_source_not_admitted"
+        ]
+      },
+      "refusals": [
+        {
+          "boundary": "prepare_input",
+          "refused": true,
+          "reason": "only admitted immutable synthetic snapshots supported"
+        },
+        {
+          "boundary": "register",
+          "refused": true,
+          "reason": "invalid_qualified_snapshot_id"
+        }
+      ],
+      "before": {
+        "execution_inputs": 1,
+        "execution_jobs": 1,
+        "artifacts": 1,
+        "jobs": 1,
+        "acknowledgments": 1
+      },
+      "after": {
+        "execution_inputs": 1,
+        "execution_jobs": 1,
+        "artifacts": 1,
+        "jobs": 1,
+        "acknowledgments": 1
+      },
+      "no_research_ledger_effects": true
+    }
+  },
+  "candidate_2_resources": {
+    "at": "2026-11-09T18:12:10.931959+00:00",
+    "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+    "scope": "owned PID/birth-verified API+downloadworker+PG tree, mostly idle after E2E; not load or hardlimit acceptance",
+    "elapsed_seconds": 11.07567339995876,
+    "peak_sampled_rss_sum_bytes": 420544512,
+    "cpu_seconds_delta_surviving": 0.875,
+    "database_bytes": 11982527,
+    "pgdata_bytes": 82824016,
+    "wal_bytes": 33554432,
+    "queue": [
+      {
+        "state": "completed",
+        "count": 1
+      }
+    ]
+  },
+  "backup_candidate_2": {
+    "at": "2026-11-09T18:10:56.197967+00:00",
+    "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+    "source_database": "tester_research_95012633c22841c0a36edeb227536a18",
+    "new_restored_database": "tester_research_95012633c22841c0a36edeb227536a18_restore_1617c4b2",
+    "dump_file": "candidate-2-research-20261109T181055Z.dump",
+    "dump_bytes": 282439,
+    "dump_sha256": "4a980febf39b49a5adc5e469ee5f64c4f88f4963a2c66ce4adff2268fde3d809",
+    "source": {
+      "raw": {
+        "rows": 10,
+        "sha256": "8609cf577249fbec48b1b417c9de6700d3a92d063b01b8882238d6315888e722"
+      },
+      "snapshot": {
+        "rows": 1,
+        "sha256": "5a1c81ee76ced6cdc6c1d32692e2a4e643ec28fbc5c637103376da3ac460cb91"
+      },
+      "artifacts": {
+        "rows": 1,
+        "sha256": "8e13442f420806b27fd35858ab414ed0fbf98a4eab97850a2d6ef671e3990683"
+      },
+      "execution": {
+        "rows": 1,
+        "sha256": "5dd939ba8ddb5364db56b61c2b5987d562c0657f85a07dc308b682459ca9fc22"
+      },
+      "ack": {
+        "rows": 1,
+        "sha256": "1a9605077d900e3b414bf6d94d2cfc9e802a530b11de0a12607b57664b45ff26"
+      }
+    },
+    "restored": {
+      "raw": {
+        "rows": 10,
+        "sha256": "8609cf577249fbec48b1b417c9de6700d3a92d063b01b8882238d6315888e722"
+      },
+      "snapshot": {
+        "rows": 1,
+        "sha256": "5a1c81ee76ced6cdc6c1d32692e2a4e643ec28fbc5c637103376da3ac460cb91"
+      },
+      "artifacts": {
+        "rows": 1,
+        "sha256": "8e13442f420806b27fd35858ab414ed0fbf98a4eab97850a2d6ef671e3990683"
+      },
+      "execution": {
+        "rows": 1,
+        "sha256": "5dd939ba8ddb5364db56b61c2b5987d562c0657f85a07dc308b682459ca9fc22"
+      },
+      "ack": {
+        "rows": 1,
+        "sha256": "1a9605077d900e3b414bf6d94d2cfc9e802a530b11de0a12607b57664b45ff26"
+      }
+    },
+    "all_compared_rows_and_content_equal": true,
+    "data_and_backup_retained": true,
+    "no_existing_database_modified": true
+  },
+  "code_tasks": {
+    "E": "ACTIVE source-only safe append-only same-root portable restart",
+    "D": "ACTIVE source-only DPR1|2 private harness validation",
+    "A": "ACTIVE source-only bounded mark/index ingestion, no coverage upgrade"
+  },
+  "hidpi_harness": "5169c81af10a0d53ca5c59a8984a9add54abaec1",
+  "research_runs": "Two distinct browserrequests DPR1/DPR2; originalPGproof/backup recordedbeforesecondrun"
 }

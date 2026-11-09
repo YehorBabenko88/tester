@@ -1,0 +1,6 @@
+{
+  "harness_sha": "5169c81af10a0d53ca5c59a8984a9add54abaec1",
+  "application_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "archive_sha256": "3a604ba3ba09741d6833011e17fa6ec59e039c1fc58b9fd5cdf4c421ed6b0443",
+  "scope": "published separate test harness only; no installed app change"
+}
