@@ -9,7 +9,7 @@ from .financial_query import MAX_TIME, PriceStep
 
 T = TypeVar("T")
 Category = Literal["linear", "inverse", "spot"]
-Kind = Literal["candles", "trades", "footprint", "open_interest", "funding"]
+Kind = Literal["candles", "trades", "footprint", "open_interest", "funding", "mark", "index"]
 
 
 class Envelope(BaseModel, Generic[T]):
