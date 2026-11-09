@@ -1,0 +1,15 @@
+{
+  "status": "PASS_ACTUAL_BACKUP_RESTORE",
+  "source_database": "tester_research_fa84840d666f4cc18977c552ee1a5870",
+  "restore_database": "tester_research_fa84840d666f4cc18977c552ee1a5870_restore_f5ee5544",
+  "pg_port": 55471,
+  "dump_file": "market-20261109T171240Z.dump",
+  "dump_sha256": "5eda5c4f1187173d690c06ae60bfb65192201165156f3121afa378184e8bcda2",
+  "dump_bytes": 441821,
+  "restored_raw_records": 145,
+  "restored_projections": 145,
+  "raw_rows_sha256": "8731313589ff846e667209d6ffa609b0e85dbada36d5f71ff7209f4c04aa9165",
+  "original_database_mutated": false,
+  "all_databases_and_backup_retained": true,
+  "postgres5432_untouched": true
+}

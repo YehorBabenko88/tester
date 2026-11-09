@@ -1,0 +1,12 @@
+{
+  ".market-api.json": {
+    "pid": 34892,
+    "same_birth_alive": false
+  },
+  ".market-worker.json": {
+    "pid": 26296,
+    "same_birth_alive": false
+  },
+  "cooperative_stop_request": true,
+  "diagnostic": "Strict origin verifier rejected forward-slash root argv; process and data were real, but not accepted. Next fresh launch will use exact native Resolve-Path. No guard bypass."
+}

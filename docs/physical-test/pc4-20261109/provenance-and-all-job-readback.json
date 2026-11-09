@@ -1,0 +1,12 @@
+{
+  "raw_records": 145,
+  "source_links_revalidated": 154,
+  "source_orphans": 0,
+  "all_job_count": 25,
+  "job_acknowledgments_match_actual_postgresql": true,
+  "original_event_precision_preserved": true,
+  "database_bytes": 15546047,
+  "wal_directory_bytes": 33554432,
+  "pgdata_directory_bytes": 88689488,
+  "quality": "UNKNOWN_NOT_HISTORICAL_CERTIFICATE"
+}

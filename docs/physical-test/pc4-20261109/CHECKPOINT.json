@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "repository": "YehorBabenko88/tester",
+  "issues": [
+    58,
+    59,
+    60
+  ],
+  "confirmed_at": "2026-11-09T17:30:48.576612+00:00",
+  "host": "PC4",
+  "windows_build": "26200",
+  "administrator": false,
+  "mode": "EXPERIMENTAL_PORTABLE",
+  "installed_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+  "installed_tree": "4c3ae8380d74c0e4d55d614c6e1053a59ea0171c",
+  "active_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-fa84840d666f4cc18977c552ee1a5870",
+  "retained_previous_labs": [
+    {
+      "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-28675bef2c3941d286bc6621951f8634",
+      "state": "STOPPED_RETAINED_AFTER_ARGV_DIAGNOSTIC"
+    }
+  ],
+  "api_bind": "127.0.0.1:18767",
+  "pg_bind": "127.0.0.1:55471",
+  "pg5432_untouched": true,
+  "native_service": "NOT_INSTALLED",
+  "phase": "REAL_MARKET_TESTS_PASSED_BOUNDED",
+  "tests": {
+    "all_source_pages": "PASS1995linear/76inverse;11originalHTTPpages",
+    "global_sort": "PASS32wholecatalogcases",
+    "automatic_refresh": "PASS2scheduledrefreshes;no manualPOST",
+    "downloads": "25completedjobs;145rawunique;154sourcelinks;0orphans",
+    "timeframes_browser": "PASS13/13 actual;mousewheel/pan/crosshair/calendarNavigation;0pageerrors",
+    "market_browser": "PASSactual0Goutsidelegacy10,sort/search/persistence/inlineprogress",
+    "backup_restore": "PASS145rows toNEWrestoredDB;dump+allDBsretained",
+    "limited_role": "PASS5elevatedflagsfalse,notDBowner,bootstrapNOLOGIN",
+    "initial_stop": "PASSownAPI+workercooperativestop+ownPGstop,recordsretained",
+    "restart_same_lab": "NOT_RUN_single_use_runtime_refuses_adoption",
+    "crash_kill": "NOT_RUN_no_forcekill/reboot",
+    "research": "PENDING_NEW_PINNED_CANDIDATE_PR61_62_63",
+    "real_market_F": "BLOCKED_HISTORICAL_COVERAGE_UNKNOWN",
+    "analytics": "Candles+Volume observed;other10panelsUNAVAILABLE/NOT_INTEGRATED;no fabricatedorderflow",
+    "trader_intelligence": "NOT_READY_PERMISSION_GATED",
+    "real_data_admission_safety": "PASS actual10canonicalBTCrows read from ownedPG; admittedfalse,Finputnull,visibilitynotproven preserved"
+  },
+  "resource": {
+    "samples": 11,
+    "sampling": "approximately1second;batch-start owned process tree;notkernel profiler",
+    "peak_sampled_rss_sum_bytes": 313769984,
+    "minimum_sampled_rss_sum_bytes": 311685120,
+    "elapsed_seconds": 13.072151184082031,
+    "cpu_seconds_delta_for_surviving_processes": 1.453125,
+    "max_running_downloads": 1,
+    "postgresql": {
+      "raw_records": 145,
+      "source_links_revalidated": 154,
+      "source_orphans": 0,
+      "all_job_count": 25,
+      "job_acknowledgments_match_actual_postgresql": true,
+      "original_event_precision_preserved": true,
+      "database_bytes": 15546047,
+      "wal_directory_bytes": 33554432,
+      "pgdata_directory_bytes": 88689488,
+      "quality": "UNKNOWN_NOT_HISTORICAL_CERTIFICATE"
+    },
+    "native_service": false,
+    "hard_os_job_caps": "NOT_TESTED_IN_PORTABLE_RUNTIME",
+    "browser": {
+      "asserted_cases": 13,
+      "all_completed": true,
+      "request_samples": 1326,
+      "response_latency_p95_ms": 128,
+      "latency_scope": "All observedlocalHTTP API responses including deliberate unavailable/error panels;notloadbenchmark",
+      "source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+      "harness_sha": "41884641e223418ff1111664856886ab8a1ff49d"
+    }
+  },
+  "hosted_ci": "QUEUED_NOT_ACCEPTED",
+  "go_no_go": "NO_GO_FULL_ACCEPTANCE",
+  "next": [
+    "Publish and review combined61+62+63 with limited-role failclosedguard",
+    "Retain currentbackup and stopownedruntime cooperatively beforefreshcandidatePGsameport",
+    "Run actualqualifiedPGsnapshot-F-authenticatedG/E-DACK synthetic;realUNKNOWNmustrefuse",
+    "Add genuineFsummary/SLTPschema viaGitHub thennewimmutablecandidate;neverhotfixinstalledsource",
+    "NativeSCM/UAC and destructivecrash/reboot remain separatelyscoped"
+  ],
+  "pending_integration_blocker": "Original certified synthetic fixture is SPOT while terminal admits linear/inverse; UI correctly rejects mismatch. A separately byte-pinned synthetic linear fixture is being authored; no local relabeling or UI guard bypass."
+}

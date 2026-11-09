@@ -1,0 +1,32 @@
+{
+  "samples": 11,
+  "sampling": "approximately1second;batch-start owned process tree;notkernel profiler",
+  "peak_sampled_rss_sum_bytes": 313769984,
+  "minimum_sampled_rss_sum_bytes": 311685120,
+  "elapsed_seconds": 13.072151184082031,
+  "cpu_seconds_delta_for_surviving_processes": 1.453125,
+  "max_running_downloads": 1,
+  "postgresql": {
+    "raw_records": 145,
+    "source_links_revalidated": 154,
+    "source_orphans": 0,
+    "all_job_count": 25,
+    "job_acknowledgments_match_actual_postgresql": true,
+    "original_event_precision_preserved": true,
+    "database_bytes": 15546047,
+    "wal_directory_bytes": 33554432,
+    "pgdata_directory_bytes": 88689488,
+    "quality": "UNKNOWN_NOT_HISTORICAL_CERTIFICATE"
+  },
+  "native_service": false,
+  "hard_os_job_caps": "NOT_TESTED_IN_PORTABLE_RUNTIME",
+  "browser": {
+    "asserted_cases": 13,
+    "all_completed": true,
+    "request_samples": 1326,
+    "response_latency_p95_ms": 128,
+    "latency_scope": "All observedlocalHTTP API responses including deliberate unavailable/error panels;notloadbenchmark",
+    "source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_sha": "41884641e223418ff1111664856886ab8a1ff49d"
+  }
+}

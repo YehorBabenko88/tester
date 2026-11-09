@@ -1,0 +1,742 @@
+[
+  {
+    "id": "cada34a4-d95a-4b0a-a7c3-68b97ff98e02",
+    "request": {
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "b6b75835b952f65bd0054bfec4e75ddc8b8b89f6ca1de895d52f2e78caf53801",
+          "f0eada3a66f95cc793a50c170e0563a4fc2c543d197f0729c6d0321918c907fb",
+          "65bc95986f1712e6d32ee4bf893efa999c2ff0c031fb229ec761c4913aa4f9da"
+        ],
+        "record_hashes": {
+          "085537a8b4a3fbba1493be800689c76f9b1ead93375d703c1c2c5e1e2f912e46": "92a5a40eddf9fdbd29b51159cca65d5721120825a2def27916a0edd58152362f",
+          "09b3829367c916e04cadb3ea2a769b675fc731c9dd3c2dd20569be0844609beb": "28bd60dd846a59a4ad9d0452e21f15ce6a70d5b8a2325aed0f3711e1bee7ea31",
+          "399eb8cd36b2df65505a9543d984c60f34df40a238be7bafd5f9f6f8d33c3652": "9bec9b8633206e50a1fa378a66d2e548425dd512f41297329bee49333c297e64",
+          "4ec8b022d9b770ce695a904fe30f5cda6823983c554bd6db38633bd34db06909": "4e80f67f692be72276b56215033d2ef2f6c8951a30a886295f8437d36a57ab2e",
+          "50ed432d24c34615b9fb78accb22686e5a98a7c5281716a64724bc0cd865e6ec": "0efcf8f487a0f88e9a08390603159c12c765a6a8592313f7abf3e5e499dcbd6c",
+          "7778ca563199b31704b0732e312d1209bacd28b482def42429b6d907b91bf7da": "8f2528d88f15778fe59ed832385bc904b813aee353f4b721c3ad9e6cd7119c8f",
+          "79b6f175050d9271cce8bf012e214d8954b44a4bd8a99d68c1569656946db2f1": "53d72cebd23fc122d534fb30244e98458e5ce45dae2b2f04b7c1b644c7d73691",
+          "c4b500077cf2463206f7ac3fd085ae0573ec3af221b1f669aef76bce5c8185f0": "b2f2f9c0da1b91054564ab6a51978ce61678ede08ef40dc6d2414155b47ca8a2",
+          "d884d65de00102963d4b96d4712a4978cd23feb65bdaea5ec95c53f3fb87846a": "416aef6574bc1c9af5acf24f51f7c244177b328cacd64689f8a4cf8c72418b3f",
+          "dc1126638e72b5486ceacafc755fcfc03bd50694145a2fa551b3c75c2fdb5ae6": "c1af8dee9620a0da9d8d49c1307923eddc2ed33c6adec4e91ef65119f2f5c747"
+        },
+        "work_complete": true,
+        "bytes_received": 2121,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2461053000297397,
+        "bytes_per_second": 1702.1033454792143,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1057,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+            "source_hash": "b6b75835b952f65bd0054bfec4e75ddc8b8b89f6ca1de895d52f2e78caf53801"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "f0eada3a66f95cc793a50c170e0563a4fc2c543d197f0729c6d0321918c907fb"
+          },
+          {
+            "bytes": 930,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "65bc95986f1712e6d32ee4bf893efa999c2ff0c031fb229ec761c4913aa4f9da"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "1e6e9134b14a48899e745eca214f5613",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:35.184847Z",
+    "updated_at": "2026-11-09T17:02:37.039190Z"
+  },
+  {
+    "id": "7eba0343-e9b6-4781-8ed0-0cbcfef3004a",
+    "request": {
+      "category": "linear",
+      "symbol": "ETHUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "2da910d71338b84541d970b8be26e9ce44db293b19b335c77f6fad0abafe5115",
+          "f90a480015d6488c073797e68007e0b1fead844c679836003cb400a1d0aa02ce",
+          "2076d1e3645e5fbf7e91b90d7f30a13546f20e99e5dfd360a5336e144195e217"
+        ],
+        "record_hashes": {
+          "03e0168c63dd1601c7d17c61c259b0b80b295c0dca0104a88e3e3c6876902fb1": "6a60ccef5dd50062d5d47e9d8a1c0356d19828b1c4d1bb81b8124f0f404af555",
+          "163042f05c10fdbc1f2148f28dcb597f4ce8ff61302d26749ddaea90793c1300": "fef76274a5ee04caceeba8fc20599c657534b3d922b0f474ffdcf340d7c379d7",
+          "62416485b0e911c949f279108e87ba2a04115bfa10ea086c341a136023d0a4e1": "3b68ea1ce41a0fbdf684076a684cfc4ba0fd63cafffe15fc2014e90fd9196d37",
+          "92c60b3fe9a6a818a1d13edc8118876d5402227fe2cb88a54eca1bf4fc93f4a2": "27a11e172704e37a281aaa8d02c89fdd68c7687bf527f30cd02620884ff0f3d7",
+          "97fdfaed5aeffaf5be183f153806095db5ec392b39968c093151a4016b7876c0": "e2404e1d06975efc9c58eed204ef5048c92272c3e5a570a8b1eafe487d59753e",
+          "bb42f05175ad4732ec4517e455c4036754a8089c9857b8c693a9d72d9f8a08eb": "d71cb2b2a1dd5bb6e004ff6db1ae4a7a2e870def29aa43640d5ae2fcace3fc46",
+          "e0c03909cd222b1d38c1b961bfe7261b0251ee5f6c50861a2b80ec0044a0557a": "1457a66d4ec37a8ab7885c242dc39b1284721a9b9cc49377fbdb9681859713a9",
+          "e745484c37807120b4ed390ac4f6391cb8e77f7fdffe2bce5a3dca8232e18c76": "d348198f506cf49ccd1ea91dbb9bd4d7c8c563ce6ddfca0b568b9b1af97197b4",
+          "ea09344f26210488ec6ccfb82bcbdd2226f617638e1fdae395d7046434a5104b": "a9a118a0637ba75e82a416a842091890ae37e7213875eb5575802a14fd35bbe6",
+          "f958545838d404e70e114aa2b7e0b40d806f1ab25702f626aeb1294a6fe53b62": "a34d26038f461b2697dc4bcfa92e963e5877fb04108655a617747a97b2be0cb8"
+        },
+        "work_complete": true,
+        "bytes_received": 2111,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2725115999928676,
+        "bytes_per_second": 1658.923973668949,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1055,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=ETHUSDT",
+            "source_hash": "2da910d71338b84541d970b8be26e9ce44db293b19b335c77f6fad0abafe5115"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "f90a480015d6488c073797e68007e0b1fead844c679836003cb400a1d0aa02ce"
+          },
+          {
+            "bytes": 922,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=ETHUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "2076d1e3645e5fbf7e91b90d7f30a13546f20e99e5dfd360a5336e144195e217"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "20e4e1633b414ff7aac979435599d8ac",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:35.372387Z",
+    "updated_at": "2026-11-09T17:02:38.443458Z"
+  },
+  {
+    "id": "e021eacf-94ce-437e-bdbb-7fb5cb30aa74",
+    "request": {
+      "category": "linear",
+      "symbol": "SOLUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "3f78162ecb6f2076b6af9623870a9e8327c66a878f1d3d35e2cf4ae5ea8e88a5",
+          "2b2ddce32016733bac96b673626f21a9f32125a5cbf2819c5d5b8b7930edc83f",
+          "b20563b7e0d11ba4bdcda7b63443c7ba70d9bef563525e34df6e0081116834a0"
+        ],
+        "record_hashes": {
+          "012a368b2105bc75ae775380dc1ae4a6ac1242753c75d8b4a8ac8197beecd155": "a0d6438644f4f76b27ae4d084efdc52bd5c9d618810c9d80dd5f4ab3bcddef5b",
+          "0c8c23a5d134a28489ff7b0042c87e67f47f5e30e94d82c6aee53b2daf364757": "09178c00b7bdc1856e646bcc932b8338352897be13f993f2a8f3e4211159a927",
+          "146fe40502f9622442863d7eab6359ceb0131966850f6c052ca3579fc0b9ee38": "c98a342713145c77ad061bf63c257b444a8568fa1872873bcff40ca8d0ee4fbb",
+          "4ba006f4fdd1f732cd46727cb726ca62184d096342905181cfa3f69540e3559a": "0cda38c6a6435e2af13d1abcc87fa9df0a6b527f61ff6d6a3fc9c0bba4e690cb",
+          "7df2c3b35fde7d572fa6e4d7d147927f14f6145c844e05b9f91f1a619897a73b": "79f21bf4da99bf0e63b09437dca655e9370945e7e1b4b03284e524092a398f39",
+          "8790c678d0cc83b7e5aa4cef5ff3afd3dbe1b365f7e3e1b8d6f466ed1d70c351": "9d663584bdd944761f44f03154af63cc4fe0011916edf93273051e34171c758f",
+          "96188e4cf5f14b10db7b1fb5b815155910304fe21573555013494ec4919d1915": "92f171e7287e43676d75466a0ff31bdccd9e755d172884a641cfb349e276cf29",
+          "be2547ecf79d25c75f350be126176068153cdf2bf7f151cb5f04898fb640e0a0": "79119b90cf0d544a6f1d0ce13aaf8ce1d68f7ace2be140fe66c5714b55292c87",
+          "d016180adf1b5e610f548e7a7259fcc73961d8011617dee9b9d9d5cb1222c9bb": "9339d6aa1ba917d1ee3cfc45cf4bcd41877b1bae8b49a9fd2217c76e09b7a4ec",
+          "d3d6f739be744673986b40dddef01ea9ec837ec78c983a4fbfbbb3376e80d2a1": "2880510ad51b8034b39d2862f200ddcccb5ba92f94054c96c64982a9a363e78b"
+        },
+        "work_complete": true,
+        "bytes_received": 2017,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2610675999894738,
+        "bytes_per_second": 1599.438444074557,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1048,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=SOLUSDT",
+            "source_hash": "3f78162ecb6f2076b6af9623870a9e8327c66a878f1d3d35e2cf4ae5ea8e88a5"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "2b2ddce32016733bac96b673626f21a9f32125a5cbf2819c5d5b8b7930edc83f"
+          },
+          {
+            "bytes": 835,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=SOLUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "b20563b7e0d11ba4bdcda7b63443c7ba70d9bef563525e34df6e0081116834a0"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "d49e8db7789d4ff583528110d0b99394",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:35.543152Z",
+    "updated_at": "2026-11-09T17:02:39.865452Z"
+  },
+  {
+    "id": "0274086b-63c4-43aa-a118-9494033bdb95",
+    "request": {
+      "category": "linear",
+      "symbol": "XRPUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "ca1bd559a2f0cdbd0dd08839960482b320e3eeefe2e19f7b872149cdaf93f6fb",
+          "c93d7b6f318d01ff75d24bee7b692aff735c22c815c206cde8dd4ba35baf10e0",
+          "12dcb660425a1b9a97501c8e4f63ae237974a77891ee6b54ba37ad8840f1b979"
+        ],
+        "record_hashes": {
+          "10a73a3c989679f418b1dee57fe804b269c88780a53d035b10b9d964f8113f89": "2d1b6171995c25d0d93d67dc0b98275a0a4714cd71ae72dfdfee895b5a29bedf",
+          "30457cdd058dc605c565e34b9d912a9e593971db1c78a4aa7f2d95bf4f80ec25": "fd3102dee41896b9a61445f832f25b62abebc00640d9c25b0b763d88ccabb44e",
+          "315ce76f1a3447e94e40c90fe54c7c3eb923913b39410a339b44fe2067ab60af": "0dc8040489491c893a705205a5d66456f5fb99e297f5da17a5bd81c6eb910743",
+          "33fef1f9e19dc4f44d20f3a7a6c0606ea752cb73edf40653c721b2099b26c9dc": "26e01b9452738ae639769c0196a41a2fa167e88f9208aeb727a8ce5948c4150b",
+          "6547f7f33a5b2b9df03cbe26715031f329119b54b3026ad6649cad5b19dc3daa": "fc3318f2624e3bc2d0b5cf2992deb42d3a0839179c2401d68352d6a50fa12fc1",
+          "6aca11057a066db01546f4f29fd398bf02b63a04b1dafd3c7517ee19b1fa9b7a": "300638e49380140727d000053cce205a7086b6c99b2f17f1a28646c81324484d",
+          "bf097fa017a17f093750a3c04cd84f27e3ed474d43267c475d3925b82a1164f6": "7bd0aeaff05eec86253d8f77335abcee5cf467d23db4af748f231581635fff3e",
+          "d022ea9ab0e6ed5cf26020576d4c8b21347b796d920c0f27deb16f3857add8f5": "c7c128e724926b120248026df56ea82f30bc576cdefd638040bcf0abac4d64d7",
+          "f24e4f78b395b18e4556956526014d891fd2e45de174b538d4f9aecbd86b5c9f": "e7929d81870847be059019aaa2bde3910da0f28c78c3072e9517b060dee9b253",
+          "f2dbdac05704a75d9bf31b4c87a3d0631d1efce0f0b33e63c15a9da6ccd9814d": "c7c78c93e89e911ca7dd9d1e590b268213b8590e66f34142a02c1e8bc4add1fc"
+        },
+        "work_complete": true,
+        "bytes_received": 2096,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2551953999791294,
+        "bytes_per_second": 1669.8595294683607,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1051,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=XRPUSDT",
+            "source_hash": "ca1bd559a2f0cdbd0dd08839960482b320e3eeefe2e19f7b872149cdaf93f6fb"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "c93d7b6f318d01ff75d24bee7b692aff735c22c815c206cde8dd4ba35baf10e0"
+          },
+          {
+            "bytes": 911,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=XRPUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "12dcb660425a1b9a97501c8e4f63ae237974a77891ee6b54ba37ad8840f1b979"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "7ea0e9e46cee400cba84d37117791c90",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:35.701773Z",
+    "updated_at": "2026-11-09T17:02:41.265913Z"
+  },
+  {
+    "id": "a92945f3-5f37-48f6-b234-9dff47cd2883",
+    "request": {
+      "category": "linear",
+      "symbol": "DOGEUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "f09a07531351476f2a4d4bde09cf4770e726ea1d300d213a773a95648f6c7c36",
+          "4bbb502236b59988f0664c1aa0cc20da10c065621aa500aff16a4b7baa5a69a4",
+          "c8c3c5919583009b6f5a95549c06facf743a83fd05c288581c39e19363299d6f"
+        ],
+        "record_hashes": {
+          "2be8799a84910f522e124a87e19f730057ebe663c6870924d1eaca79076ffd8c": "2d4d91cca2a5c066191c347e6632afb17b570185e3e16171016e74e62a791e25",
+          "439fcc86259a833b2d6b864aadbadda2b9f2d8113b592635e4f6625fb3b2bea2": "581e64920141d37152edeb909a2f37422086553b6c37d0120f76d81f67d0142f",
+          "475a0a2ce3ea9129e17a4284575d374fdba0acc26d51dfc4cb2a219077c72b18": "a9687b773a72152f035a546d2a9d91158efcce6c958829c99c447b95e068d07f",
+          "60324a4f607c4caeda5db5cf27d2bc2000d035e1fe3f269930a3a8b781ecd560": "24e07cbd352b9e3d917fce7d2fd1a8fc90f08ba38ea17db3e5f5be413e91cfa2",
+          "638637ad26a8dee623b2e3d61ca3d370124f8b04fe0d52de0554772b53e488df": "84847d965d8a9ad8e5aef70f2be81cdea5e0011a6f7acf82745be7c3c81afcfe",
+          "8eb56e6caa73fe38536432ed546cf344e2340590cfbc61703cc8c9365e19ee4c": "a02a4198208b8d365fb5117bbc5d1db2c86346efb15a673586f2d30e28d45354",
+          "a9457f1f4ac3526a4a8e37ee7ed203f5405f4f7bbf6d70efc4f7d6b7aab582b6": "f0467b69934e302367607544daa38ef9e3fce48ee23893b01001a1b0322fe192",
+          "b0ec382651f16f85a2fbcc70eda2e1dee7c0a5df7b0ecec50dc54ce492ca5f94": "f6f07407feb1171b730b7096e143eb59fc001fbd5c7aeb86ec8d6d6cd4cfab5e",
+          "ced6f373a938a6e739256497800c9451fe3703cf105b39b24499709c973abf08": "90ab204601c56e3df3dbc3cb8d9b5d54b8704ee79378df16cce5a5589d6361c1",
+          "fd85462b6415fa5610235e92e4c3c009a2d04deb07bec3aee7e01c1b2ec757e6": "b1b8bd55e0ad0b404abd9429f9f394d56dd40460c68a363b1e2e07b7274348e8"
+        },
+        "work_complete": true,
+        "bytes_received": 2109,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2517336999881081,
+        "bytes_per_second": 1684.8631622045777,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1055,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=DOGEUSDT",
+            "source_hash": "f09a07531351476f2a4d4bde09cf4770e726ea1d300d213a773a95648f6c7c36"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "4bbb502236b59988f0664c1aa0cc20da10c065621aa500aff16a4b7baa5a69a4"
+          },
+          {
+            "bytes": 920,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=DOGEUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "c8c3c5919583009b6f5a95549c06facf743a83fd05c288581c39e19363299d6f"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "4cd2d68bc47a47dd854cf3fc02948b27",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:35.867513Z",
+    "updated_at": "2026-11-09T17:02:42.657729Z"
+  },
+  {
+    "id": "ea0aba5a-ba60-4c3e-adb9-f25476cc91c3",
+    "request": {
+      "category": "linear",
+      "symbol": "ADAUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "a66d1da0f049a6e96e2a6746273ddd1261943dcc77855ccc5a601dc9d5687211",
+          "2336ad95cc4b27400c32b50321d55449157dd417797cb8947e6dc5ee62b0ce88",
+          "fe1f946bdc1b7a255b9a87a954f42263a165aca3952e3b0b1fc26f90a3e07d29"
+        ],
+        "record_hashes": {
+          "11849b5d9be663a735d9c4373e21594b4c28040815e71a9c75279f50cbb4b9f6": "335ac6c6baadf191c204c88665d0810be4e6b045dcf169f5ed7f8f19f31caccb",
+          "121700fbaedc98168b7f6e7d97edd76e8c710e45e87c14283954af7df4e4ab77": "cbc713269c76f73b6744212cae6fa6fecd75146d76038cf79604403a76c4d8cf",
+          "2e82e1cae2eddbff45cb3326a58c2be181ee21d3f8973d0d79208af70ca2ae41": "41742fa8d5f6055fdf74bad9e13484f7bb40fd60830e70018856e20f9c62f6bb",
+          "5940311ed47f764770fce633afa72d719da0dfab78cfa213c13cece149d902fe": "2f53a7da9c878ed963b4951b97d87689811002e10227b334e811937cafabd786",
+          "65c9790a43b03344167317b3dbac643e310b1e1eb0c4ccec2ca0795d10ce2779": "085bc1f840a62a8b1b47a50a0d155c4f4470bbecc34e645635ee573c4996befe",
+          "8bb4c505b82d7e23ff20a8aa306a7968e26d06d502be606b101b8484970bb117": "dab349d6981b6cd5817f9598e83734673c65923fc8d84f8a65c0b0f9b3e0ba0f",
+          "c6596ec9c317ff0d1f40cb6a57ee78baaf85d9b499eab76a9e3bb98071cd7b37": "0caf45bc73128b86b211eafb6bcbdd40e9d5e019a3b992b7be51a1b761cdea86",
+          "df903f9b555ce7e1183cfcb930f021077388182a4b59e0a017c1e5169cc7231c": "fa01639c1136c998530c66b9c58fd365e1be87022fdb4616207b3ab4473459b0",
+          "e9ad7efa9a61ac91b628726d11bee31dcd7ac75b287f5ef1b446012a0e730d2b": "2dadfaea459aeac8429d305c25043e42a6fbae8cb1e450dc3e6c7d0aa9553a85",
+          "ef693e8cb5508062cbad0ccd12d20f0befeb473ad96a180bbf647c69a0d8d041": "f894858c436dd5a7b16b3e0f0900ac0a3ab735cf492d189498b3a160fb09bd59"
+        },
+        "work_complete": true,
+        "bytes_received": 2048,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2563762000063434,
+        "bytes_per_second": 1630.0850016019563,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1047,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=ADAUSDT",
+            "source_hash": "a66d1da0f049a6e96e2a6746273ddd1261943dcc77855ccc5a601dc9d5687211"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "2336ad95cc4b27400c32b50321d55449157dd417797cb8947e6dc5ee62b0ce88"
+          },
+          {
+            "bytes": 867,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=ADAUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "fe1f946bdc1b7a255b9a87a954f42263a165aca3952e3b0b1fc26f90a3e07d29"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "acb3b9d2de534b808eaeb069e273faf7",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:36.042264Z",
+    "updated_at": "2026-11-09T17:02:44.061928Z"
+  },
+  {
+    "id": "a41c7a87-41e6-4d90-806b-7c268575acb4",
+    "request": {
+      "category": "linear",
+      "symbol": "AVAXUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "de68fee33bac5b829d6a38d2fedd81fc81bbb31918cd52d1073cf1ef6d512b5a",
+          "f9c464d78528137e9053d051febb575cfa459459cfa8a0e2346a98d332990825",
+          "8e882c75423ef3d7b164addabee129b8b7550cc22f20a4f8b39c1e4442333db6"
+        ],
+        "record_hashes": {
+          "13d39e5dd84ee66b9d8037181d6ef5755a8281a3c79a54e96ce9d747dea3597b": "2effb4ff581b3d9f791eefe664344857585aa74c22a55e37b41f009e0e1462f1",
+          "18e642640be9ee2207ddf0b22a028346f0fb5b707457f25c63a133b06b8948b7": "459027787315539bb15e6f2433fe6ad9784d05ba916f17e4c5129106b283cec1",
+          "19a76e73ea63a8cf556ef15a5d215e5c002858265932bc2c71c30d6250942b82": "80cfb36a44844e8ae7bc33e487d0c26897f46019acc359115e194564ddc5ac69",
+          "3a4f551026c27292e8b5c5236eeffa12fafff4a467c49a3db1fdaecde194421d": "d593b5efa8ad1af220af73c4f1a798da24e933b7a80c873993a3e80b1f816341",
+          "6698164d9639c82c02b2cc8c3b9c53bec8ac2e0c90dc6f93261353d839e46538": "911a8e0af5de9a37371841df9bf18f3bfcfbeb6dd2ba9e3062b640f4cec9efd5",
+          "6b53674a59776e3a6cd8e35da9696f4f200cf39c5a3032fe438b738f9ac1499e": "8c7e4f9290cceadb95cbd616d3e1de3cf8971973829d491ec484185e778e1522",
+          "aad112e27251a41856ffb71001b7561a1a25f9afef6da73c4cb62be505d1010b": "1d806602a2c8dc1895019d706f7e59403134ebb175f947bda355e59244d93cc4",
+          "b215d7f260a00fd52d974326d95863b8f391ef8aa028ab39a2c5d9f6db17e6c0": "f8255bdc3ff9c1cfda623f153fe04f8a3fd52c4826781277398a62088e8b32f2",
+          "c73602aafb437f5a2ec3761730be9f55bcb6ce77ef3ddf96c4d06e47cdec8232": "f465b28aff3ddbd87d70d556965e551275c277813dc707a65623113180dee34a",
+          "e2bada8ff217fea66b50324cf1e37c89f59635036a5838fe16e2fda2d36c3722": "ffabc39f0b264e26e5148e666340052ab4dae31948696bb2153c53d407828efa"
+        },
+        "work_complete": true,
+        "bytes_received": 2039,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2486183000146411,
+        "bytes_per_second": 1633.0050584522835,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1056,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=AVAXUSDT",
+            "source_hash": "de68fee33bac5b829d6a38d2fedd81fc81bbb31918cd52d1073cf1ef6d512b5a"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "f9c464d78528137e9053d051febb575cfa459459cfa8a0e2346a98d332990825"
+          },
+          {
+            "bytes": 849,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=AVAXUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "8e882c75423ef3d7b164addabee129b8b7550cc22f20a4f8b39c1e4442333db6"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "5cb7d811679b419aacf0fdd4a1878343",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:36.260381Z",
+    "updated_at": "2026-11-09T17:02:45.495829Z"
+  },
+  {
+    "id": "05a64ef5-8f64-457e-9049-81784ad81fe6",
+    "request": {
+      "category": "linear",
+      "symbol": "LINKUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "fba079db919385cf2acba4aa6411f3ffe18aaa79fe7c130982c8b296c0389ec6",
+          "dcfbc705257b353e062f22a24a777e94db39fd923384abc78cae5b09572d64e5",
+          "8f775b18d4d6721bc27c36229e2148cbdaef50e069018e99e858578dc3cfb533"
+        ],
+        "record_hashes": {
+          "1a4102d68f0be12386ba47b22ec9f468cdbac86f732c2d82cbe6d19625a6514a": "2fefa915d2a50002bf114543afe5a8dc1557ea20326b4e081249fc2ffee6bff6",
+          "2b6f8327409c34faa14a59fa6b3f909670c4b9cdfe73ae2b53d915a3c53c5d5e": "9d585fb6ba2eae846157cdd316b94a8eb4716e6fdd5acd0454bcf8d16a6f28c8",
+          "2e2f33f340bb66f8d094557a83c6019f311f94e3714edd4425e10f78c4345437": "1940169f27be50bcfa817b0d1d6e7b2d622903dabd5c4647185591a2fb061a40",
+          "587208530ba05684bd73617be7b21b3711fcf85bebc72c76a7f209549557919a": "e7033e6caba764e9c7481d1fe794bef85dcf00a4cc52a9e18367af113329e5b6",
+          "81b00e0d20a05500eb2890283875151116c94ecdfe14b09d5e08368e3536469e": "70ae74e6be434461376e8adf83aac6966ac2b58b11220e5d572b6fae16678415",
+          "8c0642968f9fb1bac5c05f8ef5e84a14eed10422a2f14b437d4d2579dc96ddce": "1ba70a29a53a9b1e0a47dea99b3e455da1d9e376357c6a4e7f6b694463820610",
+          "8ef1724b223ca4466b7e9b0338eab17d167852a7aed602297e05f59eaf4ba36d": "285dd5ec7b3e27825940b260dd6b98275f352ddffb8a3b5d6f5f7cd566287b5a",
+          "f9678d590d8ffbf08ef863d4978c7f82148b2da1e14039ee66309b112df61736": "9be9376e80cd7fb0e71eb4d24e3447132b27db459d79edf128e838f071f75ecf",
+          "f9b4e3905ed67ebb5261c8dc88b55d2a2d7b412c84bd603c28a428524d211f0a": "67e5462ee24eb410ee4f2cebdfa56592e0b3ff56a471fcc873170076b12b195d",
+          "fab3fcb19137b8439076b4d7c33da61cc4750bf1d517e9380183eaf2039e9340": "763958833cd340bf1346450be860cc8065baa3b8232a4db6a108c6a3f2c22023"
+        },
+        "work_complete": true,
+        "bytes_received": 2050,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.259620199969504,
+        "bytes_per_second": 1627.4746943956848,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1054,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=LINKUSDT",
+            "source_hash": "fba079db919385cf2acba4aa6411f3ffe18aaa79fe7c130982c8b296c0389ec6"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "dcfbc705257b353e062f22a24a777e94db39fd923384abc78cae5b09572d64e5"
+          },
+          {
+            "bytes": 862,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=LINKUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "8f775b18d4d6721bc27c36229e2148cbdaef50e069018e99e858578dc3cfb533"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "c3fc1d04cf494d6f892c3889d0bb3e24",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:36.452987Z",
+    "updated_at": "2026-11-09T17:02:46.900605Z"
+  },
+  {
+    "id": "2bfd94aa-e335-4814-9a21-001c83fab8be",
+    "request": {
+      "category": "linear",
+      "symbol": "DOTUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "849af5dd48e346e250c88ff5f06aba60ba8d15680cf242996fbc0bccdc3997ce",
+          "ec7735b20e9d65b7f01c0126e22810386d757c0d5c084e6ab68425c4abc3a072",
+          "ce93a20cdd44d56ba43e02e9aa61ab51d960b11ef88dd71f37e0649d49a6b806"
+        ],
+        "record_hashes": {
+          "0b10ac9bafb401aecdc97f4f0b2b1d59c9cf002e2184b7528f3d5ef45b333e5e": "59844376623725315cd716f2c1fe1ee8bfd7f24831a1dee34935d89307006ff6",
+          "2bf2aae02a54f253813c2423e58a69891df9faaf7af00e723cf8af9faa840168": "b180aa7f4905e2a587352bb203ed24fa02eaebd0c417f861fe17223d6920b8ed",
+          "2ca392ed96b944792894f0c6674d57bb78aa038c339181ab6be5180b2ffad2bf": "8b7d324a9b88e8a1bf4bd8fc8da4627c593781a34ae79e7e70d704c05577b794",
+          "39fa3c1ebdc0771e168c99eb63e5b866696275e13104258b5a038bf7c49798dd": "1f228c6b1520f733c25496765c55ef3fbf05f56cca0386893f133686942a0e86",
+          "3de4e3b17d5517603801661543ab54be3937fdd9a6f95c03d82cc64c54dd3e6c": "6a6df06d1b6e119a2dc4e95df9958795909e51db4576a39d8d271556546bc319",
+          "5634e3f626588e138d74b71475389bcb35963d96b5de47eb5c2e5a7c77dfdd1e": "df22b3301c84d5069462127eca164b69c620e0b66fd84ee5714a3d4821dcf763",
+          "693856afe1ef14018c055c5333df5e82950505fc23f4ef696838f271a8ccbd27": "9b65ee5c493e2959a490c767355ff22769d79c7720c57d68624c68519ff0d443",
+          "714b34b1e2af2bdfd3b9c20826fdfc9be9628c2e140822335e7d2fb1833521ed": "919e476c5c6c0d3061f5d2a42dd2f1c141254298bab4bcc1669bc0fa4747c6af",
+          "e6ee61772874b399ab9673bcd49ed9c61c227a7454a0b26bf5f97f5d90ab94fa": "79ad6af5dc9a58b5ea28a33ac6866a14c49563bb68c93d09bdea2631614d37a6",
+          "fe3f35a82402a8ce1cf1cf83cb204338476b13d2023b929a75c135944dc3047c": "3e7640b7bda8e984219b5991bce2f3c64a2c5336f0aead8b8e920f2e75aff664"
+        },
+        "work_complete": true,
+        "bytes_received": 2056,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.2470982000231743,
+        "bytes_per_second": 1648.6271890712328,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1054,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=DOTUSDT",
+            "source_hash": "849af5dd48e346e250c88ff5f06aba60ba8d15680cf242996fbc0bccdc3997ce"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "ec7735b20e9d65b7f01c0126e22810386d757c0d5c084e6ab68425c4abc3a072"
+          },
+          {
+            "bytes": 868,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=DOTUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "ce93a20cdd44d56ba43e02e9aa61ab51d960b11ef88dd71f37e0649d49a6b806"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "7ad0eebdebbf4cafa5d639d9dd7f6c12",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:36.622281Z",
+    "updated_at": "2026-11-09T17:02:48.286594Z"
+  },
+  {
+    "id": "30f2996a-fb7a-41b8-8d4c-1347d9546a35",
+    "request": {
+      "category": "linear",
+      "symbol": "LTCUSDT",
+      "source": "bybit",
+      "kind": "candles",
+      "interval": "1",
+      "start_ms": 1794242820000,
+      "end_ms": 1794243420000
+    },
+    "state": "completed",
+    "progress": 1.0,
+    "checkpoint": {
+      "source": "bybit",
+      "batches": 1,
+      "coverage": "UNKNOWN",
+      "telemetry": {
+        "source": "bybit",
+        "coverage": "UNKNOWN",
+        "byte_scope": "decoded_http_response_body",
+        "evidence_refs": [
+          "cee155a3bad78713734476756a0052569e90bb29c745eb332ef6896369876767",
+          "3715517c8829dcb2766d41386e6b5f6e1aa5086b542172cd5870b22f8313b90b",
+          "83b66a43d8a4ed24df77eb3ee3dde75ea25659724a818de70c8caf87a94cc40a"
+        ],
+        "record_hashes": {
+          "0fda371ff1243c7ee87bfef9c9d23f3562a9ebda2e2c13501a054347ec8d8a87": "9f39dc03440e19d76daae4d514883f9011ca7c24563d0ea6cd5bd7f38e1576a7",
+          "3256fff0758c17476a7e685096c0058946bbf46f5b3dbec25e55b2d3c82b64f7": "06b59e9045d753ea5c8c77863f67ba82a53c3a321050d8400890f32cc23d7a96",
+          "50f98e5d340421c8f8466168025fe145d12f7deef2f34357c69e963d31122476": "4af2d5e83a00a0fd048a738f3ce7da9f8245014a4af2ada598bd743fec4fe686",
+          "8d71119f55f3aed09ecd8b0d32c2d6dc4c259843d7cf4255904dd52ae91df02a": "437f969e4d1ec937e7b55a2c7c2f66090d2d02a5576ce283713f3ec728839173",
+          "909e815aa34a2bdbc922ab184644b4e2d6d1cb32e0c65b0573777592ef811a4d": "d7ffd8b2782a75c249c0fc4960055e382541625ae71ebad4e18ec5e1fe878c99",
+          "90b49c1e2fbe3931ea9707bed3e48b55f0739fbd0fc30044af0214a4006fb331": "09ea19c4e72df1c99c0173844e130f7bcfda9393b377d9ba1d961187cff2d2f3",
+          "93adac755b217c5931370388fee55e7c1e5d22c156792b3a3b708a4427b6d80b": "650a6d1bd0eb08d42d1ee56849fb9ceb0d63293102c7065b646f7ae055b078c2",
+          "a87c7682892198714df1371c61707e1c0226ad789346773d8a937369031e1f29": "720ee0160c20c791fb934643cd99390ab9feadccf853b3075b27581385f8497f",
+          "ebdb6f81bc10bf94262a7af29ea525c691e5ba1ee87ebf12f8f0a4c2cf086c0b": "e4f4884faa95cc086efd48e007ae4e2c57631f746df4ac004b7379389c499def",
+          "ec7484533fb7480b3784a98793f27ee8fa37a794c249634bc082ab7ab936760d": "3692a4dd4e695384296bb77bb80e8f4235f746d722ea2ce0c3c2859c9150d456"
+        },
+        "work_complete": true,
+        "bytes_received": 1982,
+        "expected_bytes": null,
+        "schema_version": 1,
+        "elapsed_seconds": 1.261675599962473,
+        "bytes_per_second": 1570.9267897857042,
+        "expected_records": null,
+        "records_ingested": 10,
+        "records_verified": 10,
+        "response_receipts": [
+          {
+            "bytes": 1045,
+            "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=LTCUSDT",
+            "source_hash": "cee155a3bad78713734476756a0052569e90bb29c745eb332ef6896369876767"
+          },
+          {
+            "bytes": 134,
+            "source_ref": "https://api.bybit.com/v5/market/time?",
+            "source_hash": "3715517c8829dcb2766d41386e6b5f6e1aa5086b542172cd5870b22f8313b90b"
+          },
+          {
+            "bytes": 803,
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=LTCUSDT&limit=1000&interval=1&start=1794242820000&end=1794243419999",
+            "source_hash": "83b66a43d8a4ed24df77eb3ee3dde75ea25659724a818de70c8caf87a94cc40a"
+          }
+        ],
+        "verification_scope": "stored record values and original provenance; not historical completeness"
+      },
+      "acquisition_id": "6a71ee7aaaea450b86364c5558e559a5",
+      "source_records": 10
+    },
+    "attempts": 1,
+    "error": null,
+    "created_at": "2026-11-09T17:02:36.806402Z",
+    "updated_at": "2026-11-09T17:02:49.793037Z"
+  }
+]

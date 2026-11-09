@@ -1,0 +1,322 @@
+[
+  {
+    "category": "linear",
+    "metric": "price",
+    "direction": "asc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "price",
+    "direction": "desc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "price_change_24h",
+    "direction": "asc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "price_change_24h",
+    "direction": "desc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "volume_24h",
+    "direction": "asc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "volume_24h",
+    "direction": "desc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "turnover_24h",
+    "direction": "asc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "turnover_24h",
+    "direction": "desc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "open_interest",
+    "direction": "asc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "open_interest",
+    "direction": "desc",
+    "total": 1995,
+    "visible_numeric": 937,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "price_change_1h",
+    "direction": "asc",
+    "total": 1995,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "price_change_1h",
+    "direction": "desc",
+    "total": 1995,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "oi_change_1h",
+    "direction": "asc",
+    "total": 1995,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "oi_change_1h",
+    "direction": "desc",
+    "total": 1995,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "oi_change_24h",
+    "direction": "asc",
+    "total": 1995,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "linear",
+    "metric": "oi_change_24h",
+    "direction": "desc",
+    "total": 1995,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "0865b63b12dcdf39825c2d58d68627c0ee1548ce224c8f621ad9208e34f02c11",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "price",
+    "direction": "asc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "price",
+    "direction": "desc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "price_change_24h",
+    "direction": "asc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "price_change_24h",
+    "direction": "desc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "volume_24h",
+    "direction": "asc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "volume_24h",
+    "direction": "desc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "turnover_24h",
+    "direction": "asc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "turnover_24h",
+    "direction": "desc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "open_interest",
+    "direction": "asc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "open_interest",
+    "direction": "desc",
+    "total": 76,
+    "visible_numeric": 26,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "price_change_1h",
+    "direction": "asc",
+    "total": 76,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "price_change_1h",
+    "direction": "desc",
+    "total": 76,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "oi_change_1h",
+    "direction": "asc",
+    "total": 76,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "oi_change_1h",
+    "direction": "desc",
+    "total": 76,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "oi_change_24h",
+    "direction": "asc",
+    "total": 76,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  },
+  {
+    "category": "inverse",
+    "metric": "oi_change_24h",
+    "direction": "desc",
+    "total": 76,
+    "visible_numeric": 0,
+    "unavailable_last": true,
+    "revision": "03e2a1fd7a69468e244cd7517ed6aa163b2ca1ddb1aaf0cf67feb5b7072713b6",
+    "pagination_consistent": true
+  }
+]

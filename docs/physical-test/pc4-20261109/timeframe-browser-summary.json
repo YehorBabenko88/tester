@@ -1,0 +1,1224 @@
+[
+  {
+    "case": {
+      "interval": "1",
+      "start_ms": 1794243540000,
+      "end_ms": 1794243720000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 3911,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 382650,
+      "max_elapsed_ms": 150,
+      "http_errors": 88
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "3",
+      "start_ms": 1794243060000,
+      "end_ms": 1794243600000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 3969,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 375988,
+      "max_elapsed_ms": 203,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "5",
+      "start_ms": 1794242700000,
+      "end_ms": 1794243600000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 4121,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 376004,
+      "max_elapsed_ms": 251,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "15",
+      "start_ms": 1794240900000,
+      "end_ms": 1794243600000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 4007,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 376067,
+      "max_elapsed_ms": 255,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "30",
+      "start_ms": 1794238200000,
+      "end_ms": 1794243600000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 3982,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 376068,
+      "max_elapsed_ms": 145,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "60",
+      "start_ms": 1794232800000,
+      "end_ms": 1794243600000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 4496,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 376080,
+      "max_elapsed_ms": 224,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "120",
+      "start_ms": 1794218400000,
+      "end_ms": 1794240000000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 4069,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 376116,
+      "max_elapsed_ms": 186,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "240",
+      "start_ms": 1794196800000,
+      "end_ms": 1794240000000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 3683,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 376137,
+      "max_elapsed_ms": 143,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "360",
+      "start_ms": 1794160800000,
+      "end_ms": 1794225600000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 3598,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 376124,
+      "max_elapsed_ms": 154,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 3 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "720",
+      "start_ms": 1794139200000,
+      "end_ms": 1794225600000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 4025,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 369749,
+      "max_elapsed_ms": 190,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 2 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 2 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "D",
+      "start_ms": 1794096000000,
+      "end_ms": 1794182400000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 3617,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 362212,
+      "max_elapsed_ms": 193,
+      "http_errors": 89
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 1 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 1 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "W",
+      "start_ms": 1792972800000,
+      "end_ms": 1794182400000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 3651,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 369672,
+      "max_elapsed_ms": 149,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 2 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 2 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  },
+  {
+    "case": {
+      "interval": "M",
+      "start_ms": 1788220800000,
+      "end_ms": 1793491200000,
+      "records_expected_min": 1
+    },
+    "application_source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+    "harness_source_sha": "41884641e223418ff1111664856886ab8a1ff49d",
+    "assertions_completed": true,
+    "duration_ms": 4049,
+    "api_metrics": {
+      "count": 102,
+      "total_response_bytes": 369703,
+      "max_elapsed_ms": 188,
+      "http_errors": 90
+    },
+    "page_errors": [],
+    "request_failures": [],
+    "panels": [
+      {
+        "kind": "candles",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 2 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "volume",
+        "message_hidden": false,
+        "canvas_hidden": false,
+        "page": "Previous data pagePage 1 \u00b7 2 records (\u22641000)Next data page"
+      },
+      {
+        "kind": "footprint",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "delta",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "cvd",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "profile",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "poc",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "vwap",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "open_interest",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "funding",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "mark",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      },
+      {
+        "kind": "index",
+        "message_hidden": false,
+        "canvas_hidden": true,
+        "page": "Previous data pagePage 1Next data page"
+      }
+    ]
+  }
+]
