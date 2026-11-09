@@ -1,0 +1,84 @@
+{
+  "at": "2026-11-09T19:09:44.677233+00:00",
+  "europe_berlin": "2026-11-09T20:09:44.677233+01:00",
+  "host": "PC4",
+  "windows_build": 26200,
+  "administrator": false,
+  "python": "3.14.0",
+  "postgresql": "PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "runtime_proof": {
+    "status": "OWNED_COMBINED_PROCESSES_VERIFIED",
+    "api": {
+      "pid": 30552,
+      "observer": {
+        "polls": 1,
+        "rows_seen": 7,
+        "matching_tuple_rows": 1,
+        "local_endpoint_rows": 3,
+        "elapsed_ms": 1,
+        "samples": [
+          {
+            "scope": "local_endpoint",
+            "status": "LISTEN",
+            "type_kind": "SocketKind",
+            "type_code": 1,
+            "count": 1
+          },
+          {
+            "scope": "exact_tuple",
+            "status": "ESTABLISHED",
+            "type_kind": "SocketKind",
+            "type_code": 1,
+            "count": 1
+          },
+          {
+            "scope": "local_endpoint",
+            "status": "FIN_WAIT2",
+            "type_kind": "SocketKind",
+            "type_code": 1,
+            "count": 1
+          }
+        ]
+      },
+      "binding": "OS image/birth/cwd/exact-pc4-module/accepted-TCP-four-tuple"
+    },
+    "worker": {
+      "pid": 2272,
+      "binding": "OS image/birth/cwd/fixed-worker-module/config-path"
+    },
+    "native_service": false,
+    "real_market_coverage": "NOT_PROVEN"
+  },
+  "health": {
+    "schema_version": "1.0",
+    "data": {
+      "provider": "configured",
+      "instance_id": null,
+      "status": "ok",
+      "database": "ok",
+      "worker": "ok",
+      "storage": "ok",
+      "free_bytes": 837606559744,
+      "used_bytes": 6556715
+    },
+    "next_cursor": null
+  },
+  "identity": {
+    "status": "EXPERIMENTAL_PORTABLE",
+    "native_service": false,
+    "application_source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "mode": "SYNTHETIC_ONLY",
+    "real_market_coverage": "NOT_PROVEN",
+    "research_worker": {
+      "state": "RUNNING",
+      "failures": 0
+    }
+  },
+  "private_execution_grant_expiry": {
+    "expires_at": "2026-11-09 19:39:41.036213+00",
+    "revoked": false
+  },
+  "free_memory_bytes": 17706483712,
+  "free_disk_bytes": 837606559744
+}

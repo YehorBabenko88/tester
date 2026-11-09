@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "repository": "YehorBabenko88/tester",
-  "confirmed_at": "2026-11-09T19:00:29.347376+00:00",
-  "confirmed_at_europe_berlin": "2026-11-09T20:00:29.347376+01:00",
+  "confirmed_at": "2026-11-09T19:09:44.677233+00:00",
+  "confirmed_at_europe_berlin": "2026-11-09T20:09:44.677233+01:00",
   "host": "PC4",
   "windows_build": "26200",
   "administrator": false,
@@ -237,5 +237,44 @@
     "CoordinateBhistoricaladmission,E/Bsafeappend-onlyrestart,D/Ecapabilitygating,Cfinancialports,Hsourcepermissiontaskswithdedup",
     "NoUAC/SCM/reboot/trade/mainmerge/officeaccess withoutseparatescopedapproval",
     "Frozenapplicationbranchunchanged;newphysicalproofonlyevidencebranch"
-  ]
+  ],
+  "latest_runtime_attestation": "candidate-4-final-attestation.json",
+  "evidence_pr": 69,
+  "last_published_evidence_head": "c4d6e5804046ce0b32186f6ee1418092420f205e",
+  "source_frozen_head": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "api_pty_session_id": 93055,
+  "runtime_versions": {
+    "python": "3.14.0",
+    "postgresql": "PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35227, 64-bit"
+  },
+  "execution_grant_expiry": {
+    "expires_at": "2026-11-09 19:39:41.036213+00",
+    "revoked": false
+  },
+  "remote_marker_ledger": [
+    {
+      "issue": 58,
+      "comment": 6748896756,
+      "marker": "master:pc4-3b2eef8-physical-final-v1",
+      "state": "BOUNDED_TESTS_PASSED;REMAINING_CHANGES_REQUESTED"
+    },
+    {
+      "issue": 59,
+      "comment": 6748897151,
+      "marker": "master:pc4-3b2eef8-research-physical-v1",
+      "state": "SYNTHETIC_PHYSICAL_PASS;REAL_NOT_ACCEPTED"
+    },
+    {
+      "issue": 60,
+      "comment": 6748897518,
+      "marker": "master:pc4-3b2eef8-coordination-v1",
+      "state": "SOURCE_FROZEN;EVIDENCE_SEPARATE"
+    }
+  ],
+  "remaining_task_execution": "GitHubcorrectivetasksqueued; no unverified nextagent-sessionstart claimed",
+  "native_scm_attestation": {
+    "owned_test_service_names": [],
+    "existing_postgresql_x64_18": "Running",
+    "existing_postgres_pid": 7584
+  }
 }
