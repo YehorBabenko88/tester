@@ -15,6 +15,7 @@ from .qualified_snapshot import (
     MAX_BYTES,
     QualifiedSnapshot,
     certified_fixture_snapshot,
+    certified_terminal_fixture_snapshot,
     verify_qualified_snapshot,
 )
 
@@ -72,7 +73,13 @@ class QualifiedSnapshotRepository(PersistentResearchLedger):
         Existing conflicting content is rejected inside the same transaction;
         no caller-supplied completeness, timestamps or certification are accepted.
         """
-        value = certified_fixture_snapshot()
+        return self._publish_verified(certified_fixture_snapshot())
+
+    def publish_terminal_fixture(self) -> QualifiedSnapshot:
+        """Explicit fixed LINEAR variant; original spot publication stays unchanged."""
+        return self._publish_verified(certified_terminal_fixture_snapshot())
+
+    def _publish_verified(self, value) -> QualifiedSnapshot:
         with self.connection() as conn:
             conn.execute(
                 "INSERT INTO tester_snapshots.qualified(snapshot_id,document) VALUES (%s,%s) "

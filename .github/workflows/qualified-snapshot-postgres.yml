@@ -39,7 +39,8 @@ jobs:
       - name: Pure admission and actual PostgreSQL fixture readback into F
         run: >-
           python -m pytest -v tests/platform/test_qualified_snapshot.py
-          tests/platform/test_snapshot_repository.py --junitxml=qualified-snapshot.xml
+          tests/platform/test_snapshot_repository.py tests/platform/test_terminal_snapshot.py
+          --junitxml=qualified-snapshot.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:

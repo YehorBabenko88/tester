@@ -1,8 +1,8 @@
 """Typed, bounded B→F seam. Historical visibility is never inferred from event time.
 
 Real canonical reads remain UNVERIFIED: current B does not prove historical
-visibility, and this bridge has no authority to upgrade source evidence. The only
-admitted input is the byte-pinned explicitly SYNTHETIC F fixture.
+visibility, and this bridge has no authority to upgrade source evidence. Only
+the two byte-pinned explicitly SYNTHETIC fixture variants are admitted.
 """
 
 import hashlib
@@ -17,6 +17,7 @@ from src.strategy.dsl import digest, integer
 
 SCHEMA = "tester.qualified-snapshot/1"
 F_SOURCE_SHA = "998c5bc89d1b35c9ad3047b1e50dcb1295120e31"
+TERMINAL_MANIFEST_SHA256 = "a3c5d795e3e356b2789503b0cb1fdbbb74fe0c0a3c8b5fc10e4b5ab1ed233af4"
 MAX_BYTES = 16 * 1024 * 1024
 MAX_BARS = 1000  # One B repeatable-read page only; never stitch transaction snapshots.
 INTERVAL_MS = {
@@ -182,6 +183,75 @@ def certified_fixture_snapshot() -> QualifiedSnapshot:
     )
 
 
+def _terminal_fixture_inputs():
+    root = Path(__file__).parent / "fixtures/pc4-terminal-linear-v1"
+    manifest_raw = (root / "manifest.json").read_bytes()
+    if hashlib.sha256(manifest_raw).hexdigest() != TERMINAL_MANIFEST_SHA256:
+        raise ValueError("terminal_fixture_manifest_pin_mismatch")
+    manifest = json.loads(manifest_raw)
+    if (
+        manifest["schema_version"] != "tester.synthetic-fixture/1"
+        or manifest["fixture_namespace"] != "synthetic:pc4-terminal-linear/v1"
+        or manifest["source"] != "SYNTHETIC"
+        or manifest["engine_source_sha"] != F_SOURCE_SHA
+        or manifest["real_market_coverage"] != "NOT_PROVEN"
+        or set(manifest["files"]) != {"strategy.json", "snapshot.json"}
+    ):
+        raise ValueError("terminal_fixture_identity_mismatch")
+    values = []
+    for name in ("strategy.json", "snapshot.json"):
+        raw = (root / name).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != manifest["files"][name]:
+            raise ValueError("terminal_fixture_content_pin_mismatch")
+        values.append(json.loads(raw))
+    return values[0], values[1], manifest
+
+
+def certified_terminal_fixture_strategy() -> dict:
+    """Exact matching authored synthetic strategy; never transform old spot inputs."""
+    strategy, _, _ = _terminal_fixture_inputs()
+    return strategy
+
+
+def certified_terminal_fixture_snapshot() -> QualifiedSnapshot:
+    """Separate terminal-compatible synthetic LINEAR fixture, not market history."""
+    from src.integration.strategy_lab import _synthetic_metadata
+
+    strategy, snapshot, manifest = _terminal_fixture_inputs()
+    _synthetic_metadata(snapshot)
+    validated, warnings, gaps = validate_snapshot(snapshot, strategy)
+    if (
+        snapshot["category"] != "linear"
+        or snapshot["symbol"] != "BTCUSDT"
+        or strategy["costs"]["funding_policy"] != "required"
+        or gaps
+        or not {"SYNTHETIC_DATA", "NON_CERTIFIED"} <= set(warnings)
+        or not 1 <= len(validated["candles"]) <= MAX_BARS
+    ):
+        raise ValueError("terminal_fixture_quality_mismatch")
+    proof = dict(
+        source="SYNTHETIC",
+        source_sha=F_SOURCE_SHA,
+        fixture_namespace=manifest["fixture_namespace"],
+        fixture_manifest_sha256=TERMINAL_MANIFEST_SHA256,
+        fixture_hashes=manifest["files"],
+        coverage=dict(status="COMPLETE", scope="PINNED_FIXTURE_ONLY"),
+        historical_visibility="SYNTHETIC_FIXTURE",
+        real_market_coverage="NOT_PROVEN",
+        funding="HYPOTHETICAL_FIXED_SCHEDULE_NOT_EXCHANGE_EVIDENCE",
+    )
+    return QualifiedSnapshot(
+        "SYNTHETIC",
+        digest(proof),
+        digest(snapshot),
+        digest(proof),
+        True,
+        (),
+        _json(snapshot),
+        _json(proof),
+    )
+
+
 def verify_qualified_snapshot(value: QualifiedSnapshot | dict) -> QualifiedSnapshot:
     """Re-pin exact admitted synthetic input, including caller-rehashed documents.
 
@@ -190,10 +260,11 @@ def verify_qualified_snapshot(value: QualifiedSnapshot | dict) -> QualifiedSnaps
     """
     supplied = value.as_dict() if isinstance(value, QualifiedSnapshot) else value
     supplied = json.loads(_json(supplied))
-    expected = certified_fixture_snapshot()
-    if supplied != expected.as_dict():
-        raise ValueError("snapshot_not_exact_certified_synthetic_fixture")
-    return expected
+    for factory in (certified_fixture_snapshot, certified_terminal_fixture_snapshot):
+        expected = factory()
+        if supplied == expected.as_dict():
+            return expected
+    raise ValueError("snapshot_not_exact_certified_synthetic_fixture")
 
 
 def read_canonical_snapshot(store, request: SnapshotRequest) -> QualifiedSnapshot:

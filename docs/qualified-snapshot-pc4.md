@@ -1,5 +1,12 @@
 # Issue59 qualified PostgreSQL snapshot seam
 
+Terminal follow-up: separate byte-pinned SYNTHETIC LINEAR fixture added; see
+terminal-synthetic-fixture.md. Default old spot unchanged. New APIs
+certified_terminal_fixture_snapshot/strategy and publish_terminal_fixture provide
+only that fixed variant. Verifier accepts exactly both fixed wrappers. Final local
+focused suite27 passed/2 PostgreSQL cases deselected; genuine F terminal replay
+models explicitly hypothetical required funding. No real-data gate relaxed.
+
 Base ea4d9b2cbfc15e1af54ea6bf73a530b68763873e. Owner B/A/E data-snapshot,
 branch workstream/pc4-qualified-snapshot-20261109. Tester only. No runtime startup,
 install, office/market network or PostgreSQL action was executed locally.

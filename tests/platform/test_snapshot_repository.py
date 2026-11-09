@@ -68,7 +68,8 @@ def test_publication_refuses_conflicting_existing_fact(monkeypatch):
 
 
 @pytest.mark.integration
-def test_postgres_snapshot_restart_readback_and_f_execution():
+@pytest.mark.parametrize("variant", ["spot", "terminal"])
+def test_postgres_snapshot_restart_readback_and_f_execution(variant):
     dsn = os.environ.get("TEST_QUALIFIED_SNAPSHOT_DATABASE_URL")
     if not dsn:
         pytest.skip("hosted CI explicitly disposable snapshot PostgreSQL required")
@@ -77,16 +78,21 @@ def test_postgres_snapshot_restart_readback_and_f_execution():
     repo = QualifiedSnapshotRepository(dsn)
     repo.migrate()
     repo.migrate()
-    first = repo.publish_fixture()
-    assert repo.publish_fixture().as_dict() == first.as_dict()
+    publish = repo.publish_fixture if variant == "spot" else repo.publish_terminal_fixture
+    first = publish()
+    assert publish().as_dict() == first.as_dict()
     loaded = QualifiedSnapshotRepository(dsn).read(first.snapshot_id)
     assert loaded.as_dict() == first.as_dict()
     from pathlib import Path
 
     import src.integration.qualified_snapshot as producer
 
-    strategy = json.loads(
-        (Path(producer.__file__).parent / "fixtures/f998/example.strategy.json").read_bytes()
+    strategy = (
+        json.loads(
+            (Path(producer.__file__).parent / "fixtures/f998/example.strategy.json").read_bytes()
+        )
+        if variant == "spot"
+        else producer.certified_terminal_fixture_strategy()
     )
     bundle = run_synthetic_research(strategy, loaded.snapshot)
     assert bundle["snapshot_digest"] == loaded.snapshot_digest
