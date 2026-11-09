@@ -183,3 +183,57 @@ test("selection invalidation while request is pending never renders or ACKs stal
     globalThis.fetch = original;
   }
 });
+import { readFileSync } from "node:fs";
+const producerFixture = JSON.parse(
+  readFileSync(new URL("./fixtures/research-summary.json", import.meta.url)),
+);
+for (const valid of [true, false])
+  test(`authenticated summary ${valid ? "displays exact history and risk lines" : "refusal leaves valid chart without risk lines"}`, async () => {
+    const original = globalThis.fetch,
+      artifact = producerFixture.chart,
+      digest = producerFixture.envelope.summary.artifact_digest;
+    const envelope = structuredClone(producerFixture.envelope);
+    if (!valid) envelope.summary_digest = "0".repeat(64);
+    const responses = [
+      { job_id: "chart-job" },
+      { state: "complete", artifact, artifact_digest: digest },
+      { accepted: true },
+      envelope,
+    ];
+    const paths = [];
+    globalThis.fetch = async (path) => {
+      paths.push(path);
+      return new Response(JSON.stringify(responses.shift()));
+    };
+    try {
+      const page = root(),
+        viewer = mountResearchViewer(page);
+      assert.equal(
+        await viewer.load(command(artifact, digest), "fixture-token", {
+          jobId: "execution-job",
+          inputDigest: envelope.summary.input_digest,
+        }),
+        true,
+      );
+      const canvas = page.querySelector("#research-canvas");
+      assert.equal(canvas.dataset.renderAck, "accepted");
+      assert.equal(
+        paths[3],
+        "/api/control/research-executions/execution-job/summary",
+      );
+      if (valid) {
+        assert.equal(canvas.dataset.summaryDigest, envelope.summary_digest);
+        assert.equal(JSON.parse(canvas.dataset.renderedLevels).length, 2);
+        assert.ok(page.querySelector("#research-summary").children.length > 0);
+      } else {
+        assert.equal(canvas.dataset.summaryDigest, undefined);
+        assert.deepEqual(JSON.parse(canvas.dataset.renderedLevels), []);
+        assert.match(
+          page.querySelector("#research-summary").textContent,
+          /DATA_UNAVAILABLE/,
+        );
+      }
+    } finally {
+      globalThis.fetch = original;
+    }
+  });

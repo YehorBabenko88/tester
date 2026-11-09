@@ -73,6 +73,7 @@ export async function executeRegisteredStrategy({
   delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   maxPolls = 30,
   signal,
+  onComplete = () => {},
 }) {
   const binding = validateExecutionSelection(selection);
   if (
@@ -127,8 +128,11 @@ export async function executeRegisteredStrategy({
     if (signal?.aborted) throw Error("EXECUTION_CANCELLED");
     const result = await request(`${base}/${encodeURIComponent(job.job_id)}`);
     if (result?.job_id !== job.job_id) throw Error("EXECUTION_JOB_MISMATCH");
-    if (result.state === "complete")
-      return validateExecutionCommand(result, binding, job.job_id);
+    if (result.state === "complete") {
+      const command = validateExecutionCommand(result, binding, job.job_id);
+      onComplete({ jobId: job.job_id, inputDigest });
+      return command;
+    }
     if (!["pending", "running"].includes(result.state))
       throw Error("EXECUTION_NOT_COMPLETE");
     if (attempt + 1 < maxPolls) await delay(200);

@@ -1,3 +1,5 @@
+import { readResearchSummary } from "./research-summary.js";
+import { renderResearchSummary } from "./research-summary-view.js";
 import {
   ResearchChart,
   validateResearchChart,
@@ -23,6 +25,11 @@ export function mountResearchViewer(root, { isCurrent = () => true } = {}) {
     $("#research-provenance").textContent = "";
     delete canvas.dataset.artifactDigest;
     delete canvas.dataset.renderAck;
+    delete canvas.dataset.summaryDigest;
+    const summaryBox = $("#research-summary");
+    summaryBox.replaceChildren();
+    summaryBox.textContent =
+      "DATA_UNAVAILABLE · No authenticated digest-bound summary loaded.";
   }
   async function api(path, token, body) {
     const response = await fetch(path, {
@@ -84,7 +91,7 @@ export function mountResearchViewer(root, { isCurrent = () => true } = {}) {
       body.append(row);
     }
   }
-  async function load(command, suppliedToken) {
+  async function load(command, suppliedToken, executionBinding = null) {
     if (loading) return;
     loading = true;
 
@@ -162,6 +169,34 @@ export function mountResearchViewer(root, { isCurrent = () => true } = {}) {
       canvas.dataset.artifactDigest = result.artifact_digest;
       canvas.dataset.renderAck = "accepted";
       status.textContent = `SIMULATED  |  SYNTHETIC ONLY  |  ${ids.length} persisted fills rendered and acknowledged. Real market coverage NOT PROVEN.`;
+      if (executionBinding) {
+        const box = $("#research-summary");
+        try {
+          const summary = await readResearchSummary({
+            ...executionBinding,
+            token,
+            artifact,
+            artifactDigest: result.artifact_digest,
+          });
+          current();
+          renderResearchSummary(box, summary, (fillId) => {
+            const marker = artifact.markers.find((m) => m.fill_id === fillId);
+            chart.setRange(marker.window_start_ms, marker.window_end_ms);
+          });
+          chart.setLevels(summary.levels);
+          canvas.dataset.summaryDigest = await researchDigest(summary);
+          current();
+        } catch (error) {
+          if (generation !== epoch || !isCurrent()) {
+            clear();
+            return false;
+          }
+          chart.setLevels([]);
+          delete canvas.dataset.summaryDigest;
+          box.replaceChildren();
+          box.textContent = `DATA_UNAVAILABLE · Summary / SLTP refused: ${error.message}`;
+        }
+      }
       return true;
     } catch (error) {
       if (generation !== epoch) return false;
@@ -183,7 +218,7 @@ export function mountResearchViewer(root, { isCurrent = () => true } = {}) {
       canvas.dispatchEvent(new KeyboardEvent("keydown", { key })),
     );
   $("#research-reset").addEventListener("click", () => {
-    if (active) chart.set(active);
+    if (active) chart.setRange(active.start_ms, active.end_ms);
   });
 
   return { load, clear };

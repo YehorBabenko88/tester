@@ -90,7 +90,13 @@ export function validateResearchChart(c) {
   }
   return c;
 }
-export function researchGeometry(c, range, width, height) {
+export function researchGeometry(c, range, width, height, suppliedLevels = []) {
+  const levels = suppliedLevels.filter(
+    (level) =>
+      level.start_ms < range[1] &&
+      level.end_ms > range[0] &&
+      level.known_at_ms <= c.cutoff_ms,
+  );
   const rows = c.candles.filter(
     (b) => b.start_ms < range[1] && b.end_ms > range[0],
   );
@@ -103,6 +109,7 @@ export function researchGeometry(c, range, width, height) {
   const values = [
     ...rows.flatMap((b) => [Number(b.low), Number(b.high)]),
     ...markers.map((m) => Number(m.price)),
+    ...levels.map((level) => Number(level.price)),
   ];
   let lo = Math.min(...values),
     hi = Math.max(...values);
@@ -120,6 +127,12 @@ export function researchGeometry(c, range, width, height) {
     x,
     y,
     rows,
+    levels: levels.map((level) => ({
+      source: level,
+      start_x: x(Math.max(range[0], level.start_ms)),
+      end_x: x(Math.min(range[1], level.end_ms, c.cutoff_ms)),
+      y: y(Number(level.price)),
+    })),
     markers: markers.map((m) => ({
       source: m,
       x: x(m.timestamp_ms),
@@ -140,6 +153,7 @@ export function researchGeometry(c, range, width, height) {
 export class ResearchChart {
   constructor(canvas, onDraw = () => {}) {
     this.canvas = canvas;
+    this.summaryLevels = [];
     this.onDraw = onDraw;
     canvas.tabIndex = 0;
     this.resize = new ResizeObserver(() => this.draw());
@@ -192,8 +206,13 @@ export class ResearchChart {
     });
   }
   set(c) {
+    this.summaryLevels = [];
     this.data = validateResearchChart(c);
     this.range = [c.start_ms, c.end_ms];
+    this.draw();
+  }
+  setLevels(levels) {
+    this.summaryLevels = levels;
     this.draw();
   }
   setRange(a, b) {
@@ -210,6 +229,8 @@ export class ResearchChart {
     this.draw();
   }
   clear() {
+    this.summaryLevels = [];
+    delete this.canvas.dataset.renderedLevels;
     this.data = null;
     this.range = null;
     this.lastGeometry = null;
@@ -232,7 +253,7 @@ export class ResearchChart {
     const ctx = c.getContext("2d");
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
-    const g = researchGeometry(this.data, this.range, w, h);
+    const g = researchGeometry(this.data, this.range, w, h, this.summaryLevels);
     ctx.save();
     ctx.beginPath();
     ctx.rect(
@@ -267,6 +288,22 @@ export class ResearchChart {
         Math.max(1, Math.abs(g.y(Number(b.open)) - g.y(Number(b.close)))),
       );
     }
+    for (const level of g.levels) {
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = level.source.kind === "sl" ? "#f6848a" : "#61d5bf";
+      ctx.beginPath();
+      ctx.moveTo(level.start_x, level.y);
+      ctx.lineTo(level.end_x, level.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.font = "10px Consolas";
+      ctx.fillText(
+        `SIMULATED ${level.source.kind.toUpperCase()} ${level.source.price}`,
+        level.start_x + 3,
+        level.y - 3,
+      );
+    }
     for (const m of g.markers) {
       ctx.strokeStyle = "#f3c273";
       ctx.fillStyle = "#f3c273";
@@ -299,6 +336,16 @@ export class ResearchChart {
         window: m.window,
       })),
     });
+    c.dataset.renderedLevels = JSON.stringify(
+      g.levels.map((level) => ({
+        entry_fill_id: level.source.entry_fill_id,
+        kind: level.source.kind,
+        price: level.source.price,
+        start_x: level.start_x,
+        end_x: level.end_x,
+        y: level.y,
+      })),
+    );
     c.dataset.renderedFillIds = JSON.stringify(
       g.markers.map((m) => m.source.fill_id),
     );

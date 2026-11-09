@@ -87,19 +87,23 @@ export function mountStrategyWorkspace(
     const expected = { ...binding };
     requestId ||= crypto.randomUUID();
     try {
+      let executionBinding = null;
       const command = await executeRegisteredStrategy({
         selection: expected,
         token,
         inputDigest: $("#strategy-input-digest").value,
         requestId,
         signal: abort.signal,
+        onComplete: (value) => {
+          executionBinding = value;
+        },
       });
       const current = validateExecutionSelection(getSelection());
       if (Object.keys(expected).some((key) => expected[key] !== current[key]))
         throw Error("SELECTION_CHANGED");
       $("#strategy-execution-status").textContent =
-        "SIMULATED · SYNTHETIC ONLY · Execution complete; validating persisted chart and render acknowledgement. Statistics and SL/TP remain unavailable without typed artifacts.";
-      if (!(await viewer.load(command, token)))
+        "SIMULATED · SYNTHETIC ONLY · Execution complete; validating persisted chart and render acknowledgement. Statistics and SL/TP require an authenticated, digest-bound producer summary.";
+      if (!(await viewer.load(command, token, executionBinding)))
         throw Error("ARTIFACT_UNAVAILABLE");
     } catch (error) {
       viewer.clear();
@@ -111,15 +115,7 @@ export function mountStrategyWorkspace(
       eligibility();
     }
   });
-  const headings = [
-    "Strategy preview",
-    "Stop Loss / Take Profit",
-    "Simulation journal",
-    "Equity",
-    "Drawdown",
-    "Trade overlays",
-    "Trader disclosures and hypotheses",
-  ];
+  const headings = ["Strategy preview", "Trader disclosures and hypotheses"];
   for (const title of headings) {
     const card = document.createElement("article");
     card.className = "chart-panel";
