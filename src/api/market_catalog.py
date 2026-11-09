@@ -23,6 +23,7 @@ METRICS = {
     "turnover_24h": "turnover24h",
     "open_interest": "openInterest",
 }
+NONNEGATIVE_METRICS = frozenset({"price", "volume_24h", "turnover_24h", "open_interest"})
 UNAVAILABLE = ("volatility", "price_change_1h", "oi_change_1h", "oi_change_24h", "market_cap")
 
 
@@ -42,6 +43,10 @@ def _number(value):
         return value if Decimal(value).is_finite() else None
     except InvalidOperation:
         return None
+
+
+def _negative_unsigned(name, value):
+    return name in NONNEGATIVE_METRICS and _number(value) is not None and Decimal(value) < 0
 
 
 def _source_freshness(stamp, now):
@@ -147,14 +152,21 @@ class CatalogService:
                     row["metrics"] = {}
                     for name, field in METRICS.items():
                         value = _number(ticker.get(field))
+                        negative = _negative_unsigned(name, value)
+                        if negative:
+                            value = None
                         row["metrics"][name] = {
                             "value": value,
                             "state": source_state if value is not None else "UNAVAILABLE",
                             "source": ticker_url,
                             "observed_at": now,
                             "source_time_ms": source_stamp,
-                            "reason": source_reason if value is not None else "not_provided",
+                            "reason": "negative_value"
+                            if negative
+                            else source_reason if value is not None else "not_provided",
                         }
+                        if negative:
+                            row["metrics"][name]["raw_value"] = ticker[field]
                     for name in UNAVAILABLE:
                         row["metrics"][name] = {
                             "value": None,
@@ -360,7 +372,16 @@ class CatalogService:
             source_state = "STALE"
         rows = snapshot["rows"] if snapshot else []
         for row in rows:
-            for metric in row["metrics"].values():
+            for name, metric in row["metrics"].items():
+                # Qualify old persisted facts too; query's snapshot is a deepcopy,
+                # so this projection never rewrites the stored observation.
+                if _negative_unsigned(name, metric["value"]):
+                    metric.update(
+                        raw_value=metric["value"],
+                        value=None,
+                        state="UNAVAILABLE",
+                        reason="negative_value",
+                    )
                 if metric["value"] is not None:
                     state, reason = _source_freshness(metric.get("source_time_ms"), now)
                     if (

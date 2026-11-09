@@ -1,7 +1,7 @@
 {
   "repository": "YehorBabenko88/tester",
   "observed_at": "2026-11-09",
-  "note": "Snapshot before integration candidate publication; exact head check URLs retained. Historical failures are not waived.",
+  "note": "Snapshot before candidate publication; historical failing checks are not waived.",
   "pull_requests": [
     {
       "number": 53,
@@ -856,7 +856,162 @@
           "head": "abcb3123c783176bbd2e554df88a0d1e25709a30",
           "status": "completed",
           "conclusion": "success",
-          "url": "https://github.com/YehorBabenko…1676 tokens truncated…       "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42519624270/job/128850046248"
+        },
+        {
+          "name": "postgres-acceptance",
+          "head": "abcb3123c783176bbd2e554df88a0d1e25709a30",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42519624270/job/128850046013"
+        }
+      ]
+    },
+    {
+      "number": 41,
+      "head": "4ff33523486d54584b89b97f0f1637779942041d",
+      "branch": "workstream/issue40-market-catalog",
+      "base": "integration/adminit-wave-il",
+      "draft": true,
+      "checks": [
+        {
+          "name": "linux (3.14)",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516956098/job/128841967147"
+        },
+        {
+          "name": "linux (3.11)",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516956098/job/128841967102"
+        },
+        {
+          "name": "windows",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516956098/job/128841966885"
+        },
+        {
+          "name": "test (windows-latest)",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516956012/job/128841966490"
+        },
+        {
+          "name": "postgres-acceptance",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516956012/job/128841966483"
+        },
+        {
+          "name": "test (ubuntu-latest)",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516956012/job/128841966372"
+        },
+        {
+          "name": "test (ubuntu-latest)",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516951417/job/128841952783"
+        },
+        {
+          "name": "test (windows-latest)",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516951417/job/128841952730"
+        },
+        {
+          "name": "postgres-acceptance",
+          "head": "4ff33523486d54584b89b97f0f1637779942041d",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42516951417/job/128841952631"
+        }
+      ]
+    },
+    {
+      "number": 39,
+      "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+      "branch": "integration/adminit-wave-il",
+      "base": "integration/adminit-acceptance",
+      "draft": true,
+      "checks": [
+        {
+          "name": "linux (3.14)",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527217878/job/128873375968"
+        },
+        {
+          "name": "linux (3.11)",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527217878/job/128873375905"
+        },
+        {
+          "name": "postgres-acceptance",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527217902/job/128873375796"
+        },
+        {
+          "name": "test (ubuntu-latest)",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527217902/job/128873375718"
+        },
+        {
+          "name": "fixture-browser",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527217946/job/128873375656"
+        },
+        {
+          "name": "windows",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527217878/job/128873375545"
+        },
+        {
+          "name": "test (windows-latest)",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527217902/job/128873375504"
+        },
+        {
+          "name": "test (ubuntu-latest)",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527210957/job/128873354336"
+        },
+        {
+          "name": "postgres-acceptance",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527210957/job/128873354267"
+        },
+        {
+          "name": "test (windows-latest)",
+          "head": "0ec0f9aebd67a811bd6254b8afbe38b5e0a742e9",
           "status": "completed",
           "conclusion": "success",
           "url": "https://github.com/YehorBabenko88/tester/actions/runs/42527210957/job/128873354107"
