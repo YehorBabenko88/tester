@@ -1,8 +1,12 @@
-# PC4 physical portable evaluation — 2026-11-09
+# PC4 current portable physical checkpoint — 2026-11-09
 
-User now authorizes isolated portable physical testing on PC4. Installed source remains ea4d9b2; PG55471/API18767 are owned, limited-role and OS-identity verified; existing PG5432 and ADMINIT are untouched. Actual real catalog1995linear/76inverse,25completedjobs,145unique records,154source links,32global sort cases,2scheduled refreshes,1market browser and13timeframe browser cases PASS. Backup restored into a new retained database with matching145rows/hash. All821installed source files unchanged;14app-only screenshots and detailed reports are in Draft64/docs/physical-test/pc4-20261109. Real10-row canonical history probe correctly refuses F because coverage/visibility UNKNOWN.
+Installed immutable application `6a24e50d51f4d65783c4436b94fe87cc883acbeb`, tree `9488dc721a8b462ac346cbf845b55dee6505e840`, archive SHA256 `d16aedfeca91d91efff30667c625a09676adf9a6ba5540f7535f8b0ae9833112`; 905 extracted-archive source files rehashed unchanged. OwnedAPI18767/worker/PG55471 active, limitedrole/OSidentity verified. ExistingPG5432 andADMINIT untouched. Full current checkpoint: docs/physical-test/pc4-20261109/CHECKPOINT.json.
 
-EXPERIMENTAL_PORTABLE only; no native SCM/UAC/forcekill/reboot/main merge/trading/deletion. Full acceptance NO_GO: hostedCI queued, qualified synthetic research and genuine summary/SLTP candidate integration in progress. The original spot fixture cannot be silently relabeled as terminal linear; a separate byte-pinned synthetic terminal fixture is required. Auxiliary public sources were observed but adapters/analytics remain NOT_INTEGRATED; exact corrective task postedIssue58. Current checkpoint: docs/physical-test/pc4-20261109/CHECKPOINT.json. All older installation restrictions/statuses below are historical records.
+Actual syntheticPG→F→authorizedG/E→D chartACK/statistics/SLTP/journal PASS atDPR1/DPR2. Newly downloaded10instruments×60closedcandles=600rawrows; all hashes matchPG; boundedserialworkermax1,17.26seconds,peak453672960RSSbytes—not10parallel/hardcaps/sustainedstress. RealUNKNOWNinput+registerrefused,noFjobchanges. Pause/resume+same-inputdedup PASS. Newownedbackup/restore matchedraw/snapshot/artifact/execution/ACK asof18:10UTC;laterjobsnotinthatbackup.
+
+HistoricalEAbaseline separately verified fullcatalog1995linear/76inverse,11sourcepages,32globalsorts,2scheduledrefreshes,13timeframesDPR1 and145rowrestore. NewDPR2test scope is1timeframe+1strategy, notall13. ExpectedunsupportedpanelHTTP/consoleerrorsremainUNAVAILABLE;pageerrorszero.
+
+EXPERIMENTAL_PORTABLE / NO_GO fullacceptance. CIqueued. Same-rootrestartNOT_READY/DESIGN_ONLY Draft67; no markerdeletion/adoption/retroenrollment. A source-only boundedmark/indexprofile ACTIVE; DHiDPI Draft66 complete andphysicallytested. Realhistoricalvisibility/coverage,missinganalytics/TI,nativeSCM/crash/reboot/hardcaps remain gated. No installedhotfix/UAC/service/mainmerge/trading/deletion. Allrecordsbelowarehistorical.
 
 ---
 

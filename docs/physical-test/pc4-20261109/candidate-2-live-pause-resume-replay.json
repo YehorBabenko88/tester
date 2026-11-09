@@ -1,0 +1,24 @@
+{
+  "at": "2026-11-09T18:20:42.242852+00:00",
+  "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "job_id": "6ba64c23-2711-4d56-8ac7-01ae0080bde9",
+  "initial_state": "paused",
+  "stable_after_two_seconds": "paused",
+  "resume_state": "queued",
+  "final_state": "completed",
+  "attempts": 1,
+  "resume_to_completion_seconds": 2.3682343999971636,
+  "before": {
+    "raw_rows": 10,
+    "hash": "cfb81bb7b4c47e940e38ebe5a4285df824cc669e235e7fab832fc4dfbbdc5642",
+    "source_links": 10
+  },
+  "after": {
+    "raw_rows": 10,
+    "hash": "cfb81bb7b4c47e940e38ebe5a4285df824cc669e235e7fab832fc4dfbbdc5642",
+    "source_links": 20
+  },
+  "raw_content_unchanged_on_actual_replay": true,
+  "coverage": "UNKNOWN",
+  "scope": "API pause/resume and same-input dedup, NOT process restart or powerloss"
+}

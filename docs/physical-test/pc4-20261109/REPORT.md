@@ -1,6 +1,16 @@
-# PC4 experimental portable physical baseline
+# PC4 current physical status
 
-Installed source: `ea4d9b2cbfc15e1af54ea6bf73a530b68763873e`; tree: `4c3ae8380d74c0e4d55d614c6e1053a59ea0171c`. All 821 tracked source files were rehashed after the physical tests. No installed source was patched. This is **EXPERIMENTAL_PORTABLE / NO_GO for full acceptance**, with hosted CI still queued.
+Current installed application: `6a24e50d51f4d65783c4436b94fe87cc883acbeb`; portableAPI18767/PG55471 active at 2026-11-09T18:23:46.237464+00:00. Evidence-only newer Git HEAD is not an installed upgrade. **EXPERIMENTAL_PORTABLE / NO_GO full acceptance**.
+
+Synthetic PG→F→G/E→D ACK/statistics/SLTP/journal passed at DPR1 and DPR2. Latest10-instrument1hour batch produced600unique raw candles and all10×60acknowledged hashes matched actualPG. All10jobs completed in17.26s, sampledpeak453672960RSSbytes (~433MiB), CPUdelta7.25seconds; maxrunningworker1, not10parallel or sustainedstress. Database17.26MB/WAL32MiB atthatcutoff.
+
+RealUNKNOWN input remains refused; no look-ahead or completeness fabricated. APIpause/resume+sameinputreplay passed with10rawrows unchanged and retained source links10→20. Backup/restore proof below is as-of its timestamp before the secondresearchrun/latermarketbatch, not a fullcurrent-state backup. Zero pageerrors is asserted; expected unsupported-panel HTTP/console errors exist and remain UNAVAILABLE.
+
+Release manifest describes exact extracted archive filesystem bytes (including Git archive EOL materialization), not an assertion that every file byte matches its normalized rawGitblob. Published source fixtures retain their explicit byte pins. No installed source hotfix.
+
+# Historical EA baseline — superseded by current installation below
+
+Historical installed source at baseline-test time: `ea4d9b2cbfc15e1af54ea6bf73a530b68763873e`; tree: `4c3ae8380d74c0e4d55d614c6e1053a59ea0171c`. All 821 tracked source files were rehashed after the physical tests. No installed source was patched. This is **EXPERIMENTAL_PORTABLE / NO_GO for full acceptance**, with hosted CI still queued.
 
 ## Isolation
 
@@ -23,7 +33,7 @@ The initial launch was correctly rejected by the strict argv verifier because th
 
 ## Next gates
 
-The reviewed PR61/62/63 candidate adds a qualified synthetic PostgreSQL snapshot, authorized F execution, UI result binding and an explicit limited-role operator handoff. It must be published and tested as a new immutable installation. Full research, statistics/SL/TP, same-lab restart, crash recovery, native service and missing analytics remain unaccepted. Continue from CHECKPOINT.json; only the root agent may operate PC4 resources.
+Historical next gate (subsequently completed by6a below): the reviewed PR61/62/63 candidate adds a qualified synthetic PostgreSQL snapshot, authorized F execution, UI result binding and an explicit limited-role operator handoff. It must be published and tested as a new immutable installation. Full research, statistics/SL/TP, same-lab restart, crash recovery, native service and missing analytics remain unaccepted. Continue from CHECKPOINT.json; only the root agent may operate PC4 resources.
 
 ## Published research candidate attempt
 
@@ -35,8 +45,8 @@ Independent exact-source local checks: 633 platform tests passed, 5 skipped, 30 
 
 Replacement `6a24e50d51f4d65783c4436b94fe87cc883acbeb`, tree `9488dc721a8b462ac346cbf845b55dee6505e840`, archive SHA256 `d16aedfeca91d91efff30667c625a09676adf9a6ba5540f7535f8b0ae9833112`: all 905 tracked files rehashed unchanged. The GitHub-first DSN correction from Draft65 was independently reviewed and combined Ruff passed. Fresh PostgreSQL prepare and limited-role handoff passed. An unexpected-schema CREATE grant caused actual refusal, then revoke restored the guard; the empty probe schema is retained.
 
-Actual no-route-mock browser: qualified synthetic PostgreSQL snapshot → genuine F → durable execution → scoped G/E → D chart ACK → digest-bound summary, statistics, trade journal and entry-window SL/TP: **1 PASS (3.3s)**, three fills, one closed trade, funding `0.0100`. PostgreSQL independently confirms all three acknowledged fill IDs, one execution/artifact/chart job/ACK, summary replay and same-request reopen idempotency. Screenshot: screenshots/authenticated-synthetic-summary.png. Everything is visibly SYNTHETIC, simulated and real-market coverage NOT_PROVEN.
+Actual no-route-mock browser: qualified synthetic PostgreSQL snapshot â†’ genuine F â†’ durable execution â†’ scoped G/E â†’ D chart ACK â†’ digest-bound summary, statistics, trade journal and entry-window SL/TP: **1 PASS (3.3s)**, three fills, one closed trade, funding `0.0100`. PostgreSQL independently confirms all three acknowledged fill IDs, one execution/artifact/chart job/ACK, summary replay and same-request reopen idempotency. Screenshot: screenshots/authenticated-synthetic-summary.png. Everything is visibly SYNTHETIC, simulated and real-market coverage NOT_PROVEN.
 
 A new live 10-candle BTC job completed under the limited role; PG values match all acknowledged hashes. Its REAL/UNKNOWN qualified read remains unadmitted: both input preparation and registry reject it, leaving research table counts unchanged. Actual foreign Origin plus valid capability was 403; anonymous completed summary was 401. No external connection was made for the Origin header check.
 
-A new candidate backup was restored into a new owned database, matching all compared raw/snapshot/artifact/execution/ACK content hashes. Data, private backups and failed environments are retained. A mostly idle post-E2E 11-second owned-process sample peaked at 420,544,512 RSS bytes; it is not a load or hard-limit test. Same-root restart and HiDPI remain separate active source tasks. Native SCM, crash/reboot, real historical admission and missing analytics remain unaccepted; hosted CI is queued.
+A new candidate backup was restored into a new owned database, matching all compared raw/snapshot/artifact/execution/ACK content hashes. Data, private backups and failed environments are retained. A mostly idle post-E2E 11-second owned-process sample peaked at 420,544,512 RSS bytes; it is not a load or hard-limit test. Same-root restart remains DESIGN_ONLY/NOT_READY (Draft67). Subsequent actual DPR2 strategy and1m candle/volume/gesture cases passed using separatelypublished harness5169; notall13DPR2. Native SCM, crash/reboot, real historical admission and missing analytics remain unaccepted; hosted CI is queued.

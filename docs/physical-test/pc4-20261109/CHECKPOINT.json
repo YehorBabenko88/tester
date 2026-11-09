@@ -6,7 +6,7 @@
     59,
     60
   ],
-  "confirmed_at": "2026-11-09T18:14:36.932202+00:00",
+  "confirmed_at": "2026-11-09T18:23:46.237464+00:00",
   "host": "PC4",
   "windows_build": "26200",
   "administrator": false,
@@ -41,10 +41,11 @@
     "analytics": "Candles+Volume observed;other10panelsUNAVAILABLE/NOT_INTEGRATED;no fabricatedorderflow",
     "trader_intelligence": "NOT_READY_PERMISSION_GATED",
     "real_data_admission_safety": "PASS actual10PGrows;REAL/UNKNOWNprepare_input+register refused;noexecutionledgerchanges",
-    "live_candidate_ingest": "PASS10actualBTCclosedcandles limitedrole;hashPGreadback",
+    "live_candidate_ingest": "PASS10hour-historyjobs/10symbols,600uniqueraw,each60hashesPGmatched;workermaxrunning1,not10parallel",
     "live_security": "PASS wrongtoken401/unregistered403/foreignOrigin403/anonymoussummary401",
     "research_restore": "PASSnewownedDB raw/snapshot/artifact/execution/ACKhashesmatch",
-    "hidpi": "PASS actualDPR2 strategy +1m candles/volume gestures/backingCSSratio;13baselineDPR1,NOT13DPR2"
+    "hidpi": "PASS actualDPR2 strategy +1m candles/volume gestures/backingCSSratio;13baselineDPR1,NOT13DPR2",
+    "pause_resume_replay": "PASSpausedstable2s\u2192queued\u2192completed;10rawunchangedhash/source_links10\u219220;notprocessrestart"
   },
   "resource": {
     "samples": 11,
@@ -81,13 +82,11 @@
   "hosted_ci": "QUEUED_NOT_ACCEPTED",
   "go_no_go": "NO_GO_FULL_ACCEPTANCE",
   "next": [
-    "Publish sanitized immutable-source evidence in Draft64",
-    "Run published DPR2 private browser harness separately pinned to installed6a",
-    "Review source-only restart and mark/index DraftPRs before any newcandidate installation",
-    "Cooperative shutdown using published ownership-checkedpc4CLI, retain data; no kill/UAC/SCM",
-    "Fullacceptance NO_GO:queuedCI/realcoverage/analytics/native/hardcaps/crash remain gated"
+    "Review A newmark/index DraftPR exactSHA, fulltypedcontractandpurechecks before newimmutablecandidate",
+    "Same-rootrestart BLOCKED/DESIGN_ONLY Draft67; neverunlink/rename oldrecords or retro-enroll6a",
+    "Preserve activeowned6a API32424/worker33984/PG38416 until controllednextcandidate/shutdown",
+    "NativeSCM/UAC/crash/reboot,historicalvisibility,missinganalytics/TI,hardcaps/sustainedstress andqueuedCI remain acceptancegates"
   ],
-  "pending_integration_blocker": "Original certified synthetic fixture is SPOT while terminal admits linear/inverse; UI correctly rejects mismatch. A separately byte-pinned synthetic linear fixture is being authored; no local relabeling or UI guard bypass.",
   "runtime_state": "RUNNING_OWNED_API32424_WORKER33984_PG38416",
   "baseline_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-fa84840d666f4cc18977c552ee1a5870",
   "active_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-95012633c22841c0a36edeb227536a18",
@@ -103,7 +102,9 @@
     "attempts_this_cause": 1,
     "no_installed_hotfix": true,
     "postgres_5432_pid_unchanged": 7584,
-    "next": "GitHub adapter regression -> publish reviewed replacement SHA -> fresh owned lab, no resume"
+    "next": "GitHub adapter regression -> publish reviewed replacement SHA -> fresh owned lab, no resume",
+    "historical_failed_candidate": true,
+    "resolved_by_installed_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb"
   },
   "installed_archive_sha256": "d16aedfeca91d91efff30667c625a09676adf9a6ba5540f7535f8b0ae9833112",
   "research_proof": {
@@ -292,10 +293,89 @@
     "no_existing_database_modified": true
   },
   "code_tasks": {
-    "E": "ACTIVE source-only safe append-only same-root portable restart",
-    "D": "ACTIVE source-only DPR1|2 private harness validation",
-    "A": "ACTIVE source-only bounded mark/index ingestion, no coverage upgrade"
+    "A": "ACTIVE source-only boundedmark/index opt-inreader/handler/profile;noDanalytics",
+    "E": "Draft67 DESIGN_ONLY/RESTART_NOT_READY 6010b214;no productionrestartaction",
+    "D": "Draft66 5169c81 sourcecomplete+rootDPR2PASS;artifactauditinprogress"
   },
   "hidpi_harness": "5169c81af10a0d53ca5c59a8984a9add54abaec1",
-  "research_runs": "Two distinct browserrequests DPR1/DPR2; originalPGproof/backup recordedbeforesecondrun"
+  "research_runs": "Two distinct browserrequests DPR1/DPR2; originalPGproof/backup recordedbeforesecondrun",
+  "confirmed_at_europe_berlin": "2026-11-09T19:23:46.239002+01:00",
+  "resolved_blockers": [
+    {
+      "defect": "SPOT fixture incompatible with linear terminal",
+      "resolved_by": "separately-authored byte-pinned B4d9 terminal-linear fixture, actual6a physicalbrowserPASS;originalspotunchanged"
+    },
+    {
+      "defect": "market canonical hostaddr/research DSN policy mismatch",
+      "resolved_by": "Draft65 2997df7, actual6a freshprepare/limitedrole/PGbrowserPASS"
+    }
+  ],
+  "resource_scope": "resource is retained baseline EA ten10-candle/DPR1 proof;candidate_2_resources is newer mostlyidle sample;ten_hour_batch is current17secondload",
+  "ten_hour_batch": {
+    "at": "2026-11-09T18:22:23.253734+00:00",
+    "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+    "scope": "10 simultaneous submitted hour-history jobs, serial bounded worker;NOT10parallelrunning/hardcaps/sustainedstress",
+    "symbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "DOGEUSDT",
+      "ADAUSDT",
+      "AVAXUSDT",
+      "LINKUSDT",
+      "DOTUSDT",
+      "LTCUSDT"
+    ],
+    "all_job_hashes_match_actual_pg": true,
+    "raw_unique_records": 600,
+    "per_symbol": [
+      {
+        "symbol": "ADAUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "AVAXUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "BTCUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "DOGEUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "DOTUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "ETHUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "LINKUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "LTCUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "SOLUSDT",
+        "count": 60
+      },
+      {
+        "symbol": "XRPUSDT",
+        "count": 60
+      }
+    ],
+    "database_bytes": 17258175,
+    "wal_bytes": 33554432,
+    "elapsed_seconds": 17.261458200053312,
+    "cpu_seconds_delta_surviving": 7.25,
+    "peak_sampled_rss_sum": 453672960,
+    "max_running": 1
+  }
 }
