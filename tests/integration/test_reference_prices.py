@@ -360,6 +360,10 @@ def test_actual_reference_reader_dict_row_projection_and_authentic_run():
     store.read_page.return_value["observations"][0]["authentic_run"] = False
     with pytest.raises(ProviderUnavailable):
         ReferencePriceReader(store).read("price-candles", query)
+    # B's LEFT JOIN intentionally retains an unlinked raw row with source=None.
+    store.read_page.return_value["observations"][0]["source"] = None
+    with pytest.raises(ProviderUnavailable):
+        ReferencePriceReader(store).read("price-candles", query)
 
 
 def test_published_pc4_selector_is_explicit_and_unknown_profile_precedes_side_effects(monkeypatch):

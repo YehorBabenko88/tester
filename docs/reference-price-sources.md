@@ -96,3 +96,9 @@ Independent review P2 follow-up: route plain-int parameters accepted decimal-sha
 time strings such as0.0. Regression RED observed; start_ms/end_ms now reuse the
 existing strict HttpTime parser, matching the v1.0 time boundary. Full145-test
 focused suite PASS again; Ruff PASS. No source/network or PG action.
+
+Independent storage review P2 follow-up: B retains source=None for an unlinked raw
+row. Reader now preserves that missing declaration asNone before applying the
+existing strict authenticity/provenance gate; it returns typed unavailable503,
+not AttributeError500. No source facts or positive authority are manufactured.
+Actual dict_row/unlinked-source regression was RED, then full145 tests PASS again.

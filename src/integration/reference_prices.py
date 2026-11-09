@@ -302,7 +302,10 @@ class ReferencePriceReader(CatalogReader):
                 if o["record_key"] == row["record_key"]
             ]
             for o in observations:
-                o["source_ingestion_run"] = o["source"].get("ingestion_run")
+                source = o.get("source")
+                o["source_ingestion_run"] = (
+                    source.get("ingestion_run") if isinstance(source, dict) else None
+                )
             row["provenance"] = dict(
                 observations=observations,
                 unlinked_sources=[],
