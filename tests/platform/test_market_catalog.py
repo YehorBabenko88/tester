@@ -357,7 +357,7 @@ def test_exchange_time_qualifies_metric_freshness(stamp, state, reason):
     source.call = timestamp
     service = CatalogService(source, clock=lambda: 1000)
     assert service.refresh("linear")
-    result = service.query("linear", sort="price", direction="desc", limit=1)
+    result = service.query("linear", search="S1199", sort="price", direction="desc", limit=1)
     metric = result["rows"][0]["metrics"]["price"]
     assert metric["value"] == "999999"
     assert metric["state"] == state

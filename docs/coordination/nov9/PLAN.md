@@ -4,7 +4,7 @@ Owner: MASTER. Scope: tester only, GitHub-first, Draft PR, no main merge.
 
 ## Host boundary
 
-Readonly preflight identifies PC4, Windows 11 Pro build 26200, Ryzen 7 7800X3D (16 logical), 33,463,590,912 bytes RAM, 840,827,748,352 bytes free C:, KINGSTON SNV3S1000G NVMe. Current token nonadmin. Existing postgresql-x64-18 runs on 5432; database names AUTH_REQUIRED (passwordless readonly listing rejected). No tester SCM service; no lab listeners on 18765–18767 or 55469–55471. Prepared Nov7 releases are not installed services. C:/TesterLab absent. PC4 is not ADMINIT. No office connection, credential reuse, local installation, database mutation, server or service launch is authorized for this cycle.
+Readonly preflight identifies PC4, Windows 11 Pro build 26200, Ryzen 7 7800X3D (16 logical), 33,463,590,912 bytes RAM, 840,827,748,352 bytes free C:, KINGSTON SNV3S1000G NVMe. Current token nonadmin. Existing postgresql-x64-18 runs on 5432; database names AUTH_REQUIRED (passwordless readonly listing rejected). No tester SCM service; no lab listeners on 18765â€“18767 or 55469â€“55471. Prepared Nov7 releases are not installed services. C:/TesterLab absent. PC4 is not ADMINIT. No office connection, credential reuse, local installation, database mutation, server or service launch is authorized for this cycle.
 
 ## Pins and dependency matrix
 
@@ -41,3 +41,7 @@ TDD composition RED: two missing-module failures. GREEN: two in-process route/li
 
 Do not install or start a new Windows service on PC4 without separate confirmation. Automation remains PAUSED; no new schedule. Do not reuse ADMINIT paths or credentials. Next: resolve PR54 legacy cache domain defect, pin its reviewed SHA, run exact candidate CI, implement bounded combined synthetic browser harness and record manifest and actual test outputs. Status NO_GO until all mandatory evidence exists.
 
+
+## Integration correction and independent review
+
+PR57 edcd738 fixes render-qualified global sort. Initial combination with PR54 exposed three fixture failures because a supposedly valid price was negative; same PR corrected its fixture to0.5, preserving the domain guard. Root combined suite:200PASS,13SKIP,8subtests. PR56 bb69eb9 adds hosted genuine F publication→actual authenticated G job→PostgreSQL→same-job D canvas ACK and ledger check; market catalog deliberately disabled. This is a bounded gate, not full download/strategy E2E. Independent composition review found no blocking flaw; root added bounded server-thread shutdown assertion to real PostgreSQL HTTP test. New workflows retain exactsource manifests and private capability exclusion.

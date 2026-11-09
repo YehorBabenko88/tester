@@ -276,6 +276,7 @@ def test_actual_g_http_postgres_roundtrip(persistent, combined, tmp_path):
         server.should_exit = True
         thread.join(timeout=5)
         sock.close()
+        assert not thread.is_alive(), "Research HTTP server failed bounded shutdown"
 
 
 def test_connection_pins_validated_numeric_host_over_environment(monkeypatch):
