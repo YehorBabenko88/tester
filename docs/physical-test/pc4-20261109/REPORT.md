@@ -24,3 +24,9 @@ The initial launch was correctly rejected by the strict argv verifier because th
 ## Next gates
 
 The reviewed PR61/62/63 candidate adds a qualified synthetic PostgreSQL snapshot, authorized F execution, UI result binding and an explicit limited-role operator handoff. It must be published and tested as a new immutable installation. Full research, statistics/SL/TP, same-lab restart, crash recovery, native service and missing analytics remain unaccepted. Continue from CHECKPOINT.json; only the root agent may operate PC4 resources.
+
+## Published research candidate attempt
+
+Combined candidate `efd04cf77ded1e14f3b7787b9dba55d94bf9e78b` (tree `5a8ba22a4161e11326fb89374b39b44fa5683376`, archive SHA256 `8722660b242be7ba5ef61709cb5a9ffcc9605cbf1651289f83ef05f8d290da3f`, 902 files) failed physical prepare: the market canonical DSN supplies hostaddr, which the research DSN policy rejects. Market seed completed, research DDL did not. No sources were patched or preparation retried. The failed third lab and both earlier labs are stopped and retained. Existing PostgreSQL 5432 PID7584 remains unchanged. PR63 correction task: issuecomment-6747516363.
+
+Independent exact-source local checks: 633 platform tests passed, 5 skipped, 30 integration deselected; domain archive checks gave 181 passes, 68 skips and two Git-object-dependent failures. All 14 metadata tests passed from the exact candidate Git worktree. These checks do not erase the physical preparation failure or substitute for queued hosted CI.

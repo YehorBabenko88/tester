@@ -1,0 +1,14 @@
+{
+  "at": "2026-11-09T18:00:03.732071+00:00",
+  "candidate_sha": "efd04cf77ded1e14f3b7787b9dba55d94bf9e78b",
+  "tree_sha": "5a8ba22a4161e11326fb89374b39b44fa5683376",
+  "archive_sha256": "8722660b242be7ba5ef61709cb5a9ffcc9605cbf1651289f83ef05f8d290da3f",
+  "stage": "PREPARE_FAILED_RETAINED_STOPPED",
+  "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-429bdccfca164b44823d3eb3c2db7bd3",
+  "cause": "market canonical hostaddr rejected by unchanged research DSN policy",
+  "reproduction": "market_runtime.context -> canonical keys hostaddr; PersistentResearchLedger raises ValueError before research DDL",
+  "attempts_this_cause": 1,
+  "no_installed_hotfix": true,
+  "postgres_5432_pid_unchanged": 7584,
+  "next": "GitHub adapter regression -> publish reviewed replacement SHA -> fresh owned lab, no resume"
+}

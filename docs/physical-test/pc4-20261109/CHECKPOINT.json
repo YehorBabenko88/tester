@@ -6,14 +6,13 @@
     59,
     60
   ],
-  "confirmed_at": "2026-11-09T17:30:48.576612+00:00",
+  "confirmed_at": "2026-11-09T18:02:17.776056+00:00",
   "host": "PC4",
   "windows_build": "26200",
   "administrator": false,
   "mode": "EXPERIMENTAL_PORTABLE",
   "installed_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
   "installed_tree": "4c3ae8380d74c0e4d55d614c6e1053a59ea0171c",
-  "active_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-fa84840d666f4cc18977c552ee1a5870",
   "retained_previous_labs": [
     {
       "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-28675bef2c3941d286bc6621951f8634",
@@ -24,7 +23,7 @@
   "pg_bind": "127.0.0.1:55471",
   "pg5432_untouched": true,
   "native_service": "NOT_INSTALLED",
-  "phase": "REAL_MARKET_TESTS_PASSED_BOUNDED",
+  "phase": "DIAGNOSE_PUBLISHED_CANDIDATE_1",
   "tests": {
     "all_source_pages": "PASS1995linear/76inverse;11originalHTTPpages",
     "global_sort": "PASS32wholecatalogcases",
@@ -78,11 +77,27 @@
   "hosted_ci": "QUEUED_NOT_ACCEPTED",
   "go_no_go": "NO_GO_FULL_ACCEPTANCE",
   "next": [
-    "Publish and review combined61+62+63 with limited-role failclosedguard",
-    "Retain currentbackup and stopownedruntime cooperatively beforefreshcandidatePGsameport",
-    "Run actualqualifiedPGsnapshot-F-authenticatedG/E-DACK synthetic;realUNKNOWNmustrefuse",
-    "Add genuineFsummary/SLTPschema viaGitHub thennewimmutablecandidate;neverhotfixinstalledsource",
-    "NativeSCM/UAC and destructivecrash/reboot remain separatelyscoped"
+    "Review narrowly validated market/research DSN adapter and regression in PR63",
+    "Publish replacement immutable combined SHA, retain failed lab, no retry or adoption",
+    "Create fresh owned lab then prepare/limit-role/negative CREATE probe/actual synthetic browser",
+    "CI queued is not acceptance; no native SCM or UAC"
   ],
-  "pending_integration_blocker": "Original certified synthetic fixture is SPOT while terminal admits linear/inverse; UI correctly rejects mismatch. A separately byte-pinned synthetic linear fixture is being authored; no local relabeling or UI guard bypass."
+  "pending_integration_blocker": "Original certified synthetic fixture is SPOT while terminal admits linear/inverse; UI correctly rejects mismatch. A separately byte-pinned synthetic linear fixture is being authored; no local relabeling or UI guard bypass.",
+  "runtime_state": "ALL_OWNED_API_WORKER_POSTGRES_STOPPED_RETAINED",
+  "baseline_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-fa84840d666f4cc18977c552ee1a5870",
+  "active_lab_root": null,
+  "candidate_1": {
+    "at": "2026-11-09T18:00:03.732071+00:00",
+    "candidate_sha": "efd04cf77ded1e14f3b7787b9dba55d94bf9e78b",
+    "tree_sha": "5a8ba22a4161e11326fb89374b39b44fa5683376",
+    "archive_sha256": "8722660b242be7ba5ef61709cb5a9ffcc9605cbf1651289f83ef05f8d290da3f",
+    "stage": "PREPARE_FAILED_RETAINED_STOPPED",
+    "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-429bdccfca164b44823d3eb3c2db7bd3",
+    "cause": "market canonical hostaddr rejected by unchanged research DSN policy",
+    "reproduction": "market_runtime.context -> canonical keys hostaddr; PersistentResearchLedger raises ValueError before research DDL",
+    "attempts_this_cause": 1,
+    "no_installed_hotfix": true,
+    "postgres_5432_pid_unchanged": 7584,
+    "next": "GitHub adapter regression -> publish reviewed replacement SHA -> fresh owned lab, no resume"
+  }
 }

@@ -1,0 +1,38 @@
+{
+  "at": "2026-11-09T18:02:00.019802+00:00",
+  "source_sha": "efd04cf77ded1e14f3b7787b9dba55d94bf9e78b",
+  "platform": {
+    "passed": 633,
+    "skipped": 5,
+    "integration_deselected": 30,
+    "subtests_passed": 8,
+    "seconds": 59.0
+  },
+  "domains_archive": {
+    "passed": 181,
+    "skipped": 68,
+    "subtests_passed": 57,
+    "failed": 2,
+    "cause": "Two ingest metadata tests require pinned Git object database; immutable archive intentionally has no .git"
+  },
+  "git_dependent_metadata_exact_worktree": {
+    "passed": 14,
+    "seconds": 1.46,
+    "worktree_head": "efd04cf77ded1e14f3b7787b9dba55d94bf9e78b"
+  },
+  "application_failure_separate": "Physical prepare market canonical hostaddr/research validation boundary remains reproducible and assigned",
+  "logs": [
+    {
+      "path": "candidate-1-platform-tests.log",
+      "sha256": "b0e6981b59929fd0324ac5d7651eb6803ca89bcf2bb663678d8a5c8689487748"
+    },
+    {
+      "path": "candidate-1-domain-tests.log",
+      "sha256": "8ff08b96ed5d73f7284681d6ab331c410644b0c811c6c5d864a462d1dd0c7b51"
+    },
+    {
+      "path": "candidate-1-git-dependent-metadata-tests.log",
+      "sha256": "72e9666372b582f4e7b91708f25eb3ae0dd1fb7a74765073c44ec57f75bf5f38"
+    }
+  ]
+}
