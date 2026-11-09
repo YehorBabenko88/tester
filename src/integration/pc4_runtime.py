@@ -291,9 +291,8 @@ def prepare(root, lab_sha, app_sha):
     )
     # Preserve market_runtime's previous synthetic-root refusal and fresh-DB seed.
     market_runtime.seed(root, lab_sha, app_sha)
-    from src.integration.snapshot_repository import QualifiedSnapshotRepository
-
     from src.api.research_ledger import migrate_research
+    from src.integration.snapshot_repository import QualifiedSnapshotRepository
 
     migrate_research(research)
     repository = QualifiedSnapshotRepository(research)
@@ -604,3 +603,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
