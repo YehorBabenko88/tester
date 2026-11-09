@@ -19,14 +19,25 @@ class Source:
         else:
             result.update(nextPageCursor="", list=[])
             if params["status"] == "Trading":
-                result["list"] = [dict(symbol="BTCUSDT", status="Trading",
-                                       contractType="LinearPerpetual", baseCoin="BTC",
-                                       quoteCoin="USDT", settleCoin="USDT")]
+                result["list"] = [
+                    dict(
+                        symbol="BTCUSDT",
+                        status="Trading",
+                        contractType="LinearPerpetual",
+                        baseCoin="BTC",
+                        quoteCoin="USDT",
+                        settleCoin="USDT",
+                    )
+                ]
         return result, "https://api.bybit.com/v5/market" + endpoint
 
 
-UNSIGNED = [("lastPrice", "price"), ("volume24h", "volume_24h"),
-            ("turnover24h", "turnover_24h"), ("openInterest", "open_interest")]
+UNSIGNED = [
+    ("lastPrice", "price"),
+    ("volume24h", "volume_24h"),
+    ("turnover24h", "turnover_24h"),
+    ("openInterest", "open_interest"),
+]
 
 
 def metric(field, value, name):

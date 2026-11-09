@@ -163,7 +163,9 @@ class CatalogService:
                             "source_time_ms": source_stamp,
                             "reason": "negative_value"
                             if negative
-                            else source_reason if value is not None else "not_provided",
+                            else source_reason
+                            if value is not None
+                            else "not_provided",
                         }
                         if negative:
                             row["metrics"][name]["raw_value"] = ticker[field]
