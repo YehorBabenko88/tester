@@ -1,0 +1,3743 @@
+{
+  "classification": "ROOT_ONLY_ACTUAL_BACKEND_NO_ROUTE_MOCK",
+  "application_source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "expected_device_scale_factor": 2,
+  "harness_source_sha": "5169c81af10a0d53ca5c59a8984a9add54abaec1",
+  "source_identity": "operator supplied immutable release pin; this harness does not attest process identity",
+  "case_file_sha256": "b8c2b3921e915ece194cd5c03ff032d54774dc1d01239a5cee6e2af01de94b83",
+  "case": {
+    "interval": "1",
+    "start_ms": 1794249060000,
+    "end_ms": 1794249660000,
+    "records_expected_min": 10
+  },
+  "symbol": "BTCUSDT",
+  "started_utc": "2026-11-09T18:45:04.688Z",
+  "page_errors": [],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  ],
+  "request_failures": [],
+  "api": [
+    {
+      "path": "/api/sources",
+      "query": {
+        "category": "linear",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 14,
+      "response_bytes": 592,
+      "response_sha256": "e79ec101302d3b4ec926be09e102e72384c53587facadbd49ea7da37c8d1619c",
+      "schema_version": "1.0",
+      "records": 1,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 0,
+        "end_ms": 253402300799000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/market-catalog/linear",
+      "query": {
+        "search": "",
+        "sort": "symbol",
+        "direction": "none",
+        "status": "Trading",
+        "offset": "0",
+        "limit": "50"
+      },
+      "status": 200,
+      "elapsed_ms": 158,
+      "response_bytes": 143004,
+      "response_sha256": "95a54bc4b32e3da023cda5624816b31f982a3e6570d05ae99f0278a4a902145c",
+      "schema_version": "1.0",
+      "records": null
+    },
+    {
+      "path": "/api/market-catalog/linear",
+      "query": {
+        "search": "",
+        "sort": "price",
+        "direction": "asc",
+        "status": "Trading",
+        "offset": "0",
+        "limit": "50"
+      },
+      "status": 200,
+      "elapsed_ms": 131,
+      "response_bytes": 142957,
+      "response_sha256": "24deec57d3bcfb1a4171e8937ef2dd4d4d8976d3b06bc6fd78bb584dd72feb30",
+      "schema_version": "1.0",
+      "records": null
+    },
+    {
+      "path": "/api/market-catalog/linear",
+      "query": {
+        "search": "BTCUSDT",
+        "sort": "price",
+        "direction": "asc",
+        "status": "Trading",
+        "offset": "0",
+        "limit": "50"
+      },
+      "status": 200,
+      "elapsed_ms": 131,
+      "response_bytes": 31543,
+      "response_sha256": "6754a0c51f3a4ea5bdff16bc3712743d091eaa692bbfb5878b4ec4cf1a044af7",
+      "schema_version": "1.0",
+      "records": null
+    },
+    {
+      "path": "/api/sources",
+      "query": {
+        "category": "linear",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 4,
+      "response_bytes": 592,
+      "response_sha256": "e79ec101302d3b4ec926be09e102e72384c53587facadbd49ea7da37c8d1619c",
+      "schema_version": "1.0",
+      "records": 1,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 0,
+        "end_ms": 253402300799000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/market-catalog/linear",
+      "query": {
+        "search": "BTCUSDT",
+        "sort": "price",
+        "direction": "asc",
+        "status": "Trading",
+        "offset": "0",
+        "limit": "50"
+      },
+      "status": 200,
+      "elapsed_ms": 259,
+      "response_bytes": 31543,
+      "response_sha256": "6754a0c51f3a4ea5bdff16bc3712743d091eaa692bbfb5878b4ec4cf1a044af7",
+      "schema_version": "1.0",
+      "records": null
+    },
+    {
+      "path": "/api/footprint",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 422,
+      "elapsed_ms": 10,
+      "response_bytes": 131,
+      "response_sha256": "7fd73c654244b35515f0f7690d2f019b72750d36fe62f06efd700a39f41ca528",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "financial_query_required"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "delta"
+      },
+      "status": 404,
+      "elapsed_ms": 12,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "profile"
+      },
+      "status": 404,
+      "elapsed_ms": 12,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "cvd"
+      },
+      "status": 404,
+      "elapsed_ms": 13,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "poc"
+      },
+      "status": 404,
+      "elapsed_ms": 14,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "vwap"
+      },
+      "status": 404,
+      "elapsed_ms": 14,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/open-interest",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "5min"
+      },
+      "status": 503,
+      "elapsed_ms": 16,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/funding",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "event"
+      },
+      "status": 503,
+      "elapsed_ms": 16,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "index"
+      },
+      "status": 404,
+      "elapsed_ms": 18,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "mark"
+      },
+      "status": 404,
+      "elapsed_ms": 18,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/candles",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 97,
+      "response_bytes": 12968,
+      "response_sha256": "7615ed47e4c25b52de88eeac454ab3112204a3a7ad9cbbd06c85f45fa9e473b4",
+      "schema_version": "1.0",
+      "records": 10,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/coverage",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 503,
+      "elapsed_ms": 17,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/footprint",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 422,
+      "elapsed_ms": 9,
+      "response_bytes": 131,
+      "response_sha256": "7fd73c654244b35515f0f7690d2f019b72750d36fe62f06efd700a39f41ca528",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "financial_query_required"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "delta"
+      },
+      "status": 404,
+      "elapsed_ms": 10,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "poc"
+      },
+      "status": 404,
+      "elapsed_ms": 11,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "cvd"
+      },
+      "status": 404,
+      "elapsed_ms": 11,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "profile"
+      },
+      "status": 404,
+      "elapsed_ms": 12,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "vwap"
+      },
+      "status": 404,
+      "elapsed_ms": 13,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/open-interest",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "5min"
+      },
+      "status": 503,
+      "elapsed_ms": 14,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/funding",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "event"
+      },
+      "status": 503,
+      "elapsed_ms": 14,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "mark"
+      },
+      "status": 404,
+      "elapsed_ms": 15,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "index"
+      },
+      "status": 404,
+      "elapsed_ms": 16,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/candles",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 91,
+      "response_bytes": 12968,
+      "response_sha256": "7615ed47e4c25b52de88eeac454ab3112204a3a7ad9cbbd06c85f45fa9e473b4",
+      "schema_version": "1.0",
+      "records": 10,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/coverage",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 503,
+      "elapsed_ms": 11,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/footprint",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 422,
+      "elapsed_ms": 4,
+      "response_bytes": 131,
+      "response_sha256": "7fd73c654244b35515f0f7690d2f019b72750d36fe62f06efd700a39f41ca528",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "financial_query_required"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "delta"
+      },
+      "status": 404,
+      "elapsed_ms": 8,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "profile"
+      },
+      "status": 404,
+      "elapsed_ms": 9,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "cvd"
+      },
+      "status": 404,
+      "elapsed_ms": 10,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "poc"
+      },
+      "status": 404,
+      "elapsed_ms": 11,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "vwap"
+      },
+      "status": 404,
+      "elapsed_ms": 12,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/funding",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "event"
+      },
+      "status": 503,
+      "elapsed_ms": 14,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/open-interest",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "5min"
+      },
+      "status": 503,
+      "elapsed_ms": 15,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "index"
+      },
+      "status": 404,
+      "elapsed_ms": 16,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "mark"
+      },
+      "status": 404,
+      "elapsed_ms": 17,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/candles",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 88,
+      "response_bytes": 9165,
+      "response_sha256": "5af70fcb0372bae60328278db2cf5e835a3d65bc07843031374ec63552f13ae3",
+      "schema_version": "1.0",
+      "records": 7,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 1794249120000,
+        "end_ms": 1794249540000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/coverage",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249120000",
+        "end_ms": "1794249540000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 503,
+      "elapsed_ms": 9,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/footprint",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 422,
+      "elapsed_ms": 8,
+      "response_bytes": 131,
+      "response_sha256": "7fd73c654244b35515f0f7690d2f019b72750d36fe62f06efd700a39f41ca528",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "financial_query_required"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "cvd"
+      },
+      "status": 404,
+      "elapsed_ms": 10,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "poc"
+      },
+      "status": 404,
+      "elapsed_ms": 11,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "profile"
+      },
+      "status": 404,
+      "elapsed_ms": 12,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "delta"
+      },
+      "status": 404,
+      "elapsed_ms": 13,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/open-interest",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "5min"
+      },
+      "status": 503,
+      "elapsed_ms": 15,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "vwap"
+      },
+      "status": 404,
+      "elapsed_ms": 16,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/funding",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "event"
+      },
+      "status": 503,
+      "elapsed_ms": 17,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "mark"
+      },
+      "status": 404,
+      "elapsed_ms": 17,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "index"
+      },
+      "status": 404,
+      "elapsed_ms": 18,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/candles",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 98,
+      "response_bytes": 12968,
+      "response_sha256": "7615ed47e4c25b52de88eeac454ab3112204a3a7ad9cbbd06c85f45fa9e473b4",
+      "schema_version": "1.0",
+      "records": 10,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/coverage",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 503,
+      "elapsed_ms": 11,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/footprint",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 422,
+      "elapsed_ms": 6,
+      "response_bytes": 131,
+      "response_sha256": "7fd73c654244b35515f0f7690d2f019b72750d36fe62f06efd700a39f41ca528",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "financial_query_required"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "profile"
+      },
+      "status": 404,
+      "elapsed_ms": 11,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "poc"
+      },
+      "status": 404,
+      "elapsed_ms": 12,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "cvd"
+      },
+      "status": 404,
+      "elapsed_ms": 13,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "delta"
+      },
+      "status": 404,
+      "elapsed_ms": 14,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "vwap"
+      },
+      "status": 404,
+      "elapsed_ms": 15,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/funding",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "event"
+      },
+      "status": 503,
+      "elapsed_ms": 17,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/open-interest",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "5min"
+      },
+      "status": 503,
+      "elapsed_ms": 17,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "index"
+      },
+      "status": 404,
+      "elapsed_ms": 19,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "mark"
+      },
+      "status": 404,
+      "elapsed_ms": 20,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/candles",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 96,
+      "response_bytes": 11699,
+      "response_sha256": "fedf2a6fc0e86b605bed6352497d3c611f65887dee1535d49c31976c3e31af8a",
+      "schema_version": "1.0",
+      "records": 9,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 1794249000000,
+        "end_ms": 1794249600000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/coverage",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249000000",
+        "end_ms": "1794249600000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 503,
+      "elapsed_ms": 12,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/footprint",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 422,
+      "elapsed_ms": 4,
+      "response_bytes": 131,
+      "response_sha256": "7fd73c654244b35515f0f7690d2f019b72750d36fe62f06efd700a39f41ca528",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "financial_query_required"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "profile"
+      },
+      "status": 404,
+      "elapsed_ms": 8,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "poc"
+      },
+      "status": 404,
+      "elapsed_ms": 10,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "delta"
+      },
+      "status": 404,
+      "elapsed_ms": 11,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "cvd"
+      },
+      "status": 404,
+      "elapsed_ms": 12,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/open-interest",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "5min"
+      },
+      "status": 503,
+      "elapsed_ms": 14,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/funding",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "event"
+      },
+      "status": 503,
+      "elapsed_ms": 15,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "vwap"
+      },
+      "status": 404,
+      "elapsed_ms": 15,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "mark"
+      },
+      "status": 404,
+      "elapsed_ms": 16,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "index"
+      },
+      "status": 404,
+      "elapsed_ms": 16,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/candles",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 100,
+      "response_bytes": 12968,
+      "response_sha256": "7615ed47e4c25b52de88eeac454ab3112204a3a7ad9cbbd06c85f45fa9e473b4",
+      "schema_version": "1.0",
+      "records": 10,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/coverage",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 503,
+      "elapsed_ms": 15,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/footprint",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 422,
+      "elapsed_ms": 5,
+      "response_bytes": 131,
+      "response_sha256": "7fd73c654244b35515f0f7690d2f019b72750d36fe62f06efd700a39f41ca528",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "financial_query_required"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "cvd"
+      },
+      "status": 404,
+      "elapsed_ms": 7,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "delta"
+      },
+      "status": 404,
+      "elapsed_ms": 8,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "poc"
+      },
+      "status": 404,
+      "elapsed_ms": 10,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "profile"
+      },
+      "status": 404,
+      "elapsed_ms": 11,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "vwap"
+      },
+      "status": 404,
+      "elapsed_ms": 13,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/open-interest",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "5min"
+      },
+      "status": 503,
+      "elapsed_ms": 13,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/funding",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "event"
+      },
+      "status": 503,
+      "elapsed_ms": 15,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "index"
+      },
+      "status": 404,
+      "elapsed_ms": 16,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "mark"
+      },
+      "status": 404,
+      "elapsed_ms": 17,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/candles",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 91,
+      "response_bytes": 6622,
+      "response_sha256": "804e6ebd7477f98d75a490b69f6100f20eed1672bbe3692f9b3810d582115374",
+      "schema_version": "1.0",
+      "records": 5,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 1794249360000,
+        "end_ms": 1794249960000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/coverage",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249360000",
+        "end_ms": "1794249960000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 503,
+      "elapsed_ms": 11,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/footprint",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 422,
+      "elapsed_ms": 28,
+      "response_bytes": 131,
+      "response_sha256": "7fd73c654244b35515f0f7690d2f019b72750d36fe62f06efd700a39f41ca528",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "financial_query_required"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "poc"
+      },
+      "status": 404,
+      "elapsed_ms": 34,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "profile"
+      },
+      "status": 404,
+      "elapsed_ms": 36,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "cvd"
+      },
+      "status": 404,
+      "elapsed_ms": 37,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "delta"
+      },
+      "status": 404,
+      "elapsed_ms": 37,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "vwap"
+      },
+      "status": 404,
+      "elapsed_ms": 39,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/open-interest",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "5min"
+      },
+      "status": 503,
+      "elapsed_ms": 41,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/funding",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "source_interval": "event"
+      },
+      "status": 503,
+      "elapsed_ms": 42,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "mark"
+      },
+      "status": 404,
+      "elapsed_ms": 43,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/analytics",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000",
+        "metric": "index"
+      },
+      "status": 404,
+      "elapsed_ms": 42,
+      "response_bytes": 22,
+      "response_sha256": "37ec4665a8102d115ffd1ac20dae94c98b4dac64b0c1a68228aa2a531caeb35d",
+      "records": null
+    },
+    {
+      "path": "/api/candles",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 200,
+      "elapsed_ms": 228,
+      "response_bytes": 12968,
+      "response_sha256": "7615ed47e4c25b52de88eeac454ab3112204a3a7ad9cbbd06c85f45fa9e473b4",
+      "schema_version": "1.0",
+      "records": 10,
+      "availability": {
+        "status": "PARTIAL",
+        "reason": "Bounded public observations; no historical completeness certificate"
+      },
+      "coverage": {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      }
+    },
+    {
+      "path": "/api/coverage",
+      "query": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "start_ms": "1794249060000",
+        "end_ms": "1794249660000",
+        "interval": "1",
+        "limit": "1000"
+      },
+      "status": 503,
+      "elapsed_ms": 10,
+      "response_bytes": 112,
+      "response_sha256": "2df859f77657063cd4e67a418b42505c3f7d6131bc219adc30260bc764ff5419",
+      "schema_version": "1.0",
+      "records": null,
+      "error_code": "provider_unavailable"
+    }
+  ],
+  "panels": [
+    {
+      "kind": "candles",
+      "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw · unclosed 0 · closure unknown 0",
+      "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+      "message_hidden": false,
+      "canvas_hidden": false,
+      "canvas_dimensions": {
+        "width": 3012,
+        "height": 520,
+        "css_width": 1506,
+        "css_height": 260
+      },
+      "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249060000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249600000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+      "page": "Previous data pagePage 1 · 10 records (≤1000)Next data page",
+      "exact_rows": 10
+    },
+    {
+      "kind": "volume",
+      "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw",
+      "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+      "message_hidden": false,
+      "canvas_hidden": false,
+      "canvas_dimensions": {
+        "width": 1478,
+        "height": 340,
+        "css_width": 739,
+        "css_height": 170
+      },
+      "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249060000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249600000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+      "page": "Previous data pagePage 1 · 10 records (≤1000)Next data page",
+      "exact_rows": 10
+    },
+    {
+      "kind": "footprint",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 422 financial_query_required: Financial query cannot be served with these inputs",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "delta",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "cvd",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "profile",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "poc",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "vwap",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "open_interest",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "funding",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "mark",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "index",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    }
+  ],
+  "gestures": [
+    {
+      "name": "wheel_zoom",
+      "before": [
+        1794249060000,
+        1794249660000
+      ],
+      "after": [
+        1794249120000,
+        1794249540000
+      ],
+      "status": 200,
+      "panels": [
+        {
+          "kind": "candles",
+          "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw · unclosed 0 · closure unknown 0",
+          "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+          "message_hidden": false,
+          "canvas_hidden": false,
+          "canvas_dimensions": {
+            "width": 3012,
+            "height": 520,
+            "css_width": 1506,
+            "css_height": 260
+          },
+          "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+          "page": "Previous data pagePage 1 · 7 records (≤1000)Next data page",
+          "exact_rows": 7
+        },
+        {
+          "kind": "volume",
+          "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw",
+          "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+          "message_hidden": false,
+          "canvas_hidden": false,
+          "canvas_dimensions": {
+            "width": 1478,
+            "height": 340,
+            "css_width": 739,
+            "css_height": 170
+          },
+          "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249120000,\n      \"end_ms\": 1794249540000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+          "page": "Previous data pagePage 1 · 7 records (≤1000)Next data page",
+          "exact_rows": 7
+        },
+        {
+          "kind": "footprint",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 422 financial_query_required: Financial query cannot be served with these inputs",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "delta",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "cvd",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "profile",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "poc",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "vwap",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "open_interest",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "funding",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "mark",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "index",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        }
+      ]
+    },
+    {
+      "name": "pointer_pan",
+      "before": [
+        1794249060000,
+        1794249660000
+      ],
+      "after": [
+        1794249000000,
+        1794249600000
+      ],
+      "status": 200,
+      "panels": [
+        {
+          "kind": "candles",
+          "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw · unclosed 0 · closure unknown 0",
+          "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+          "message_hidden": false,
+          "canvas_hidden": false,
+          "canvas_dimensions": {
+            "width": 3012,
+            "height": 520,
+            "css_width": 1506,
+            "css_height": 260
+          },
+          "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249060000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+          "page": "Previous data pagePage 1 · 9 records (≤1000)Next data page",
+          "exact_rows": 9
+        },
+        {
+          "kind": "volume",
+          "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw",
+          "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+          "message_hidden": false,
+          "canvas_hidden": false,
+          "canvas_dimensions": {
+            "width": 1478,
+            "height": 340,
+            "css_width": 739,
+            "css_height": 170
+          },
+          "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249000000,\n      \"end_ms\": 1794249600000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249060000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+          "page": "Previous data pagePage 1 · 9 records (≤1000)Next data page",
+          "exact_rows": 9
+        },
+        {
+          "kind": "footprint",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 422 financial_query_required: Financial query cannot be served with these inputs",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "delta",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "cvd",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "profile",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "poc",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "vwap",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "open_interest",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "funding",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "mark",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "index",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        }
+      ]
+    },
+    {
+      "name": "navigation_later",
+      "before": [
+        1794249060000,
+        1794249660000
+      ],
+      "after": [
+        1794249360000,
+        1794249960000
+      ],
+      "status": 200,
+      "panels": [
+        {
+          "kind": "candles",
+          "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw · unclosed 0 · closure unknown 0",
+          "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+          "message_hidden": false,
+          "canvas_hidden": false,
+          "canvas_dimensions": {
+            "width": 3012,
+            "height": 520,
+            "css_width": 1506,
+            "css_height": 260
+          },
+          "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249600000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+          "page": "Previous data pagePage 1 · 5 records (≤1000)Next data page",
+          "exact_rows": 5
+        },
+        {
+          "kind": "volume",
+          "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw",
+          "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+          "message_hidden": false,
+          "canvas_hidden": false,
+          "canvas_dimensions": {
+            "width": 1478,
+            "height": 340,
+            "css_width": 739,
+            "css_height": 170
+          },
+          "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249360000,\n      \"end_ms\": 1794249960000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249600000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+          "page": "Previous data pagePage 1 · 5 records (≤1000)Next data page",
+          "exact_rows": 5
+        },
+        {
+          "kind": "footprint",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 422 financial_query_required: Financial query cannot be served with these inputs",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "delta",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "cvd",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "profile",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "poc",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "vwap",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "open_interest",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "funding",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "mark",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        },
+        {
+          "kind": "index",
+          "meta": "",
+          "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+          "message_hidden": false,
+          "canvas_hidden": true,
+          "canvas_dimensions": {
+            "width": 300,
+            "height": 150,
+            "css_width": 0,
+            "css_height": 0
+          },
+          "evidence": "",
+          "page": "Previous data pagePage 1Next data page",
+          "exact_rows": 0
+        }
+      ]
+    }
+  ],
+  "device_pixel_ratio": 2,
+  "catalog": {
+    "revision": "9f97af53642f09ac3e7e3d2838ba1c9cd36220a2123d67a093d6c49c54216a8f",
+    "total": 930,
+    "rendered": 50,
+    "sort": "price",
+    "direction": "asc"
+  },
+  "candles": {
+    "rows": [
+      {
+        "low": "74587",
+        "high": "74622",
+        "kind": "official_trade",
+        "open": "74620.2",
+        "close": "74610.8",
+        "venue": "bybit",
+        "end_ms": 1794249120000,
+        "symbol": "BTCUSDT",
+        "volume": "32.815",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249060000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249060000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249060000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74579.7",
+        "high": "74624.6",
+        "kind": "official_trade",
+        "open": "74610.8",
+        "close": "74610.1",
+        "venue": "bybit",
+        "end_ms": 1794249180000,
+        "symbol": "BTCUSDT",
+        "volume": "35.487",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249120000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249120000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249120000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74540.7",
+        "high": "74610.1",
+        "kind": "official_trade",
+        "open": "74610.1",
+        "close": "74540.8",
+        "venue": "bybit",
+        "end_ms": 1794249240000,
+        "symbol": "BTCUSDT",
+        "volume": "47.344",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249180000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249180000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249180000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74526.9",
+        "high": "74549.6",
+        "kind": "official_trade",
+        "open": "74540.8",
+        "close": "74532.1",
+        "venue": "bybit",
+        "end_ms": 1794249300000,
+        "symbol": "BTCUSDT",
+        "volume": "13.816",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249240000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249240000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249240000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74532.1",
+        "high": "74564.7",
+        "kind": "official_trade",
+        "open": "74532.1",
+        "close": "74547.5",
+        "venue": "bybit",
+        "end_ms": 1794249360000,
+        "symbol": "BTCUSDT",
+        "volume": "36.174",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249300000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249300000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249300000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74538",
+        "high": "74571",
+        "kind": "official_trade",
+        "open": "74547.5",
+        "close": "74561.9",
+        "venue": "bybit",
+        "end_ms": 1794249420000,
+        "symbol": "BTCUSDT",
+        "volume": "19.726",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249360000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249360000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249360000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74560.6",
+        "high": "74578.7",
+        "kind": "official_trade",
+        "open": "74561.9",
+        "close": "74578.7",
+        "venue": "bybit",
+        "end_ms": 1794249480000,
+        "symbol": "BTCUSDT",
+        "volume": "13.636",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249420000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249420000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249420000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74578.6",
+        "high": "74646.1",
+        "kind": "official_trade",
+        "open": "74578.7",
+        "close": "74613",
+        "venue": "bybit",
+        "end_ms": 1794249540000,
+        "symbol": "BTCUSDT",
+        "volume": "29.565",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249480000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249480000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249480000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74599.3",
+        "high": "74647.2",
+        "kind": "official_trade",
+        "open": "74613",
+        "close": "74628.4",
+        "venue": "bybit",
+        "end_ms": 1794249600000,
+        "symbol": "BTCUSDT",
+        "volume": "37.189",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249540000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249540000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249540000,
+        "schema_version": "1.0"
+      },
+      {
+        "low": "74616.7",
+        "high": "74669.8",
+        "kind": "official_trade",
+        "open": "74628.4",
+        "close": "74639.2",
+        "venue": "bybit",
+        "end_ms": 1794249660000,
+        "symbol": "BTCUSDT",
+        "volume": "11.06",
+        "category": "linear",
+        "coverage": {
+          "status": "UNKNOWN",
+          "start_ms": 1794249060000,
+          "end_ms": 1794249660000,
+          "evidence_refs": []
+        },
+        "interval": "1",
+        "start_ms": 1794249600000,
+        "is_closed": true,
+        "provenance": [
+          {
+            "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+            "source_hash": "1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd",
+            "source_kind": "bybit_rest",
+            "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+            "source_timestamp": "1794249600000",
+            "timestamp_precision": "ms"
+          }
+        ],
+        "availability": {
+          "status": "PARTIAL",
+          "reason": "Observed official closed candles; historical coverage not certified"
+        },
+        "timestamp_ms": 1794249600000,
+        "schema_version": "1.0"
+      }
+    ],
+    "availability": "PARTIAL",
+    "coverage": [
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      },
+      {
+        "status": "UNKNOWN",
+        "start_ms": 1794249060000,
+        "end_ms": 1794249660000,
+        "evidence_refs": []
+      }
+    ],
+    "provenance": [
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249060000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249120000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249180000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249240000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249300000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249360000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249420000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249480000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249540000",
+        "timestamp_precision": "ms"
+      },
+      {
+        "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+        "source_hash": "1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd",
+        "source_kind": "bybit_rest",
+        "ingestion_run": "run:73f62061c4374b108c30b7160a009835",
+        "source_timestamp": "1794249600000",
+        "timestamp_precision": "ms"
+      }
+    ]
+  },
+  "candle_canvas": {
+    "width": 3012,
+    "height": 520,
+    "css_width": 1506,
+    "css_height": 260,
+    "market_pixels": 21036
+  },
+  "volume_canvas": {
+    "width": 1478,
+    "height": 340,
+    "css_width": 739,
+    "css_height": 170,
+    "market_pixels": 50638
+  },
+  "crosshair": "2026-11-09T18:34:42.000Z",
+  "restored_panels": [
+    {
+      "kind": "candles",
+      "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw · unclosed 0 · closure unknown 0",
+      "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+      "message_hidden": false,
+      "canvas_hidden": false,
+      "canvas_dimensions": {
+        "width": 3012,
+        "height": 520,
+        "css_width": 1506,
+        "css_height": 260
+      },
+      "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249060000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249600000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+      "page": "Previous data pagePage 1 · 10 records (≤1000)Next data page",
+      "exact_rows": 10
+    },
+    {
+      "kind": "volume",
+      "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw",
+      "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+      "message_hidden": false,
+      "canvas_hidden": false,
+      "canvas_dimensions": {
+        "width": 1478,
+        "height": 340,
+        "css_width": 739,
+        "css_height": 170
+      },
+      "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249060000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249600000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+      "page": "Previous data pagePage 1 · 10 records (≤1000)Next data page",
+      "exact_rows": 10
+    },
+    {
+      "kind": "footprint",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 422 financial_query_required: Financial query cannot be served with these inputs",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "delta",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "cvd",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "profile",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "poc",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "vwap",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "open_interest",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "funding",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "mark",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "index",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    }
+  ],
+  "finished_utc": "2026-11-09T18:45:09.403Z",
+  "duration_ms": 4715,
+  "assertions_completed": true,
+  "final_panels": [
+    {
+      "kind": "candles",
+      "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw · unclosed 0 · closure unknown 0",
+      "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+      "message_hidden": false,
+      "canvas_hidden": false,
+      "canvas_dimensions": {
+        "width": 3012,
+        "height": 520,
+        "css_width": 1506,
+        "css_height": 260
+      },
+      "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249060000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249600000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+      "page": "Previous data pagePage 1 · 10 records (≤1000)Next data page",
+      "exact_rows": 10
+    },
+    {
+      "kind": "volume",
+      "meta": "PARTIAL · bybit_rest: https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999 · as of Unknown · completeness UNKNOWN · raw",
+      "message": "Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified",
+      "message_hidden": false,
+      "canvas_hidden": false,
+      "canvas_dimensions": {
+        "width": 1478,
+        "height": 340,
+        "css_width": 739,
+        "css_height": 170
+      },
+      "evidence": "{\n  \"availability\": \"PARTIAL\",\n  \"reason\": \"Bounded public observations; no historical completeness certificate · Observed official closed candles; historical coverage not certified\",\n  \"coverage\": [\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    },\n    {\n      \"status\": \"UNKNOWN\",\n      \"start_ms\": 1794249060000,\n      \"end_ms\": 1794249660000,\n      \"evidence_refs\": []\n    }\n  ],\n  \"provenance\": [\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"3fa6ed2077db21900db70e0b9a6fe30f8c58e1ada0f6c1384351bc3836eccef2\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249060000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"d21cc7dc2bb15e032bd95ad1ebf9e251353f71793d3b3a30e90147db7da3ef37\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249120000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"977cfd8e3899bfc1780e6838b4c516eccc2895cbb9965ef22fc0de9c5ba1adc0\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249180000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"dd69237dd4db0e28449bf1653a691ba7d8552e009c85a4d5f9207015e191365a\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249240000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"20166e93e955308a215fe3746c4ef21dbe609e0896d6febedbaa321ae4616a27\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249300000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1820187a00480e18510eabe3d148bc77592a751a57287a24e34ae92864f3995b\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249360000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1837bdb6d700f218ca5622cf38120ea2778bfabcb2a37ba03ebb126adac24b4e\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249420000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"2e0c65758e64cc4a02b70fb624f73b64c79c23074d6b2cf2f37cff3b1f8f5173\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249480000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"a7535c1ed731bddf587e4e51cdbdb12e6ddde172b179bc1db2886d9a760faae7\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249540000\",\n      \"timestamp_precision\": \"ms\"\n    },\n    {\n      \"source_ref\": \"https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999\",\n      \"source_hash\": \"1fc318dfaec38ca319dbb4c1303582f6c439fe12e574ba1c1e470d3045143bbd\",\n      \"source_kind\": \"bybit_rest\",\n      \"ingestion_run\": \"run:73f62061c4374b108c30b7160a009835\",\n      \"source_timestamp\": \"1794249600000\",\n      \"timestamp_precision\": \"ms\"\n    }\n  ]\n}",
+      "page": "Previous data pagePage 1 · 10 records (≤1000)Next data page",
+      "exact_rows": 10
+    },
+    {
+      "kind": "footprint",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 422 financial_query_required: Financial query cannot be served with these inputs",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "delta",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "cvd",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "profile",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "poc",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "vwap",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "open_interest",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "funding",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 503 provider_unavailable: Requested provider is not connected",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "mark",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    },
+    {
+      "kind": "index",
+      "meta": "",
+      "message": "DATA_UNAVAILABLE · 404 API_ERROR: Not Found",
+      "message_hidden": false,
+      "canvas_hidden": true,
+      "canvas_dimensions": {
+        "width": 300,
+        "height": 150,
+        "css_width": 0,
+        "css_height": 0
+      },
+      "evidence": "",
+      "page": "Previous data pagePage 1Next data page",
+      "exact_rows": 0
+    }
+  ],
+  "api_metrics": {
+    "count": 102,
+    "total_response_bytes": 447525,
+    "max_elapsed_ms": 259,
+    "http_errors": 88
+  }
+}

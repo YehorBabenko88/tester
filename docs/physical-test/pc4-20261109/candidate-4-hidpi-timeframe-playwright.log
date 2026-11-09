@@ -1,0 +1,13 @@
+
+Running 1 test using 1 worker
+
+
+
+[1A[2K(node:36964) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1A[2K(node:36964) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[1A[2K[1/1] tests\pc4-owned-timeframes.e2e.js:151:3 › PC4 actual BTCUSDT timeframe 1
+[1A[2K  1 passed (5.9s)

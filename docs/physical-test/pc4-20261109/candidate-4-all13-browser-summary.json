@@ -1,0 +1,33 @@
+{
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "harness_sha": "5169c81af10a0d53ca5c59a8984a9add54abaec1",
+  "cases": 13,
+  "all_assertions_completed": true,
+  "actual_dpr": 2,
+  "intervals": [
+    "1",
+    "3",
+    "5",
+    "15",
+    "30",
+    "60",
+    "120",
+    "240",
+    "360",
+    "720",
+    "D",
+    "W",
+    "M"
+  ],
+  "page_errors": 0,
+  "raw_bytes": 1152455,
+  "raw_sha256": "a1dc7b8085fb843192ca1822efa903d260e3d140066ade5b863ae5f9225b25be",
+  "gzip_bytes": 54186,
+  "gzip_sha256": "2f92dc5a45a51b3686e0d98e53943a0cdf3c51a8ffda41ded6201dfac4762b22",
+  "console_resource_errors": 1167,
+  "console_error_classes": {
+    "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)": 104,
+    "Failed to load resource: the server responded with a status of 404 (Not Found)": 728,
+    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)": 335
+  }
+}

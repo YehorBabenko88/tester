@@ -1,0 +1,132 @@
+{
+  "at": "2026-11-09T18:40:19.442514+00:00",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "scope": "explicitsecondoperatorpass afterpublishedprepare-price-sources, beforelimitedrole/APIstart",
+  "versions_before": {
+    "platform": [
+      [
+        "001_jobs.sql",
+        "0bc442a49feb7fbd3c225822c5b3bf1ba486a84256ad6610d71008481b78daaa"
+      ],
+      [
+        "002_admission.sql",
+        "263651e0ad5fc00cf4a87126f75c25094c728eea2b9be7153951367866489150"
+      ]
+    ],
+    "storage": [
+      [
+        1,
+        "72c83a9524f2ec8631463e2325e4ad245145288a313006c6fbb1be7b8c0e9018"
+      ],
+      [
+        2,
+        "8b70fae27fce23e8b0a9e2d52f3b14daade123837d93ccd12e76e77c4822901c"
+      ],
+      [
+        3,
+        "39e7708f323733de0d8a5a43bfe40c0b11b32e6c6c09ace56eee1d86955fe323"
+      ],
+      [
+        4,
+        "45d555b21b109a5783eac555061bcf1fbcf6ea2effd827526c0f9b7eef1bd254"
+      ],
+      [
+        5,
+        "1eec298593de7bffc4563786d3935fdb2429465e864e3f42410727d6cd0943c3"
+      ],
+      [
+        6,
+        "8d35b1993052cfb1ae421528b9221d98b7fb779ddfa36d7e9e05b76b18b0de08"
+      ],
+      [
+        7,
+        "8aed96de746823c47bc4e7ef7719741a35a625ddb098890bc56d717472bb914f"
+      ]
+    ],
+    "catalog": [
+      [
+        "001_catalog.sql",
+        "df921c9fe42387b2346929c50aa87217c0674a13d24fb3a34763209cdb97c3d3"
+      ],
+      [
+        "002_ticker_observations.sql",
+        "d425f6bdc9cc06e5bd355713296d1d307ba36c262c179528259c9420d2a3c68b"
+      ]
+    ],
+    "research": [
+      [
+        "001_research.sql",
+        "48f40a2afe4b67e3113584d31d992254e9b186efa7d6c974e9187f230d40c32e"
+      ],
+      [
+        "002_execution.sql",
+        "ecbe1157c18690fddd3f5f6e9b5915e2e7f2be92b3b01d79437caaf438f605d2"
+      ]
+    ],
+    "snapshot_count": 1
+  },
+  "versions_after": {
+    "platform": [
+      [
+        "001_jobs.sql",
+        "0bc442a49feb7fbd3c225822c5b3bf1ba486a84256ad6610d71008481b78daaa"
+      ],
+      [
+        "002_admission.sql",
+        "263651e0ad5fc00cf4a87126f75c25094c728eea2b9be7153951367866489150"
+      ]
+    ],
+    "storage": [
+      [
+        1,
+        "72c83a9524f2ec8631463e2325e4ad245145288a313006c6fbb1be7b8c0e9018"
+      ],
+      [
+        2,
+        "8b70fae27fce23e8b0a9e2d52f3b14daade123837d93ccd12e76e77c4822901c"
+      ],
+      [
+        3,
+        "39e7708f323733de0d8a5a43bfe40c0b11b32e6c6c09ace56eee1d86955fe323"
+      ],
+      [
+        4,
+        "45d555b21b109a5783eac555061bcf1fbcf6ea2effd827526c0f9b7eef1bd254"
+      ],
+      [
+        5,
+        "1eec298593de7bffc4563786d3935fdb2429465e864e3f42410727d6cd0943c3"
+      ],
+      [
+        6,
+        "8d35b1993052cfb1ae421528b9221d98b7fb779ddfa36d7e9e05b76b18b0de08"
+      ],
+      [
+        7,
+        "8aed96de746823c47bc4e7ef7719741a35a625ddb098890bc56d717472bb914f"
+      ]
+    ],
+    "catalog": [
+      [
+        "001_catalog.sql",
+        "df921c9fe42387b2346929c50aa87217c0674a13d24fb3a34763209cdb97c3d3"
+      ],
+      [
+        "002_ticker_observations.sql",
+        "d425f6bdc9cc06e5bd355713296d1d307ba36c262c179528259c9420d2a3c68b"
+      ]
+    ],
+    "research": [
+      [
+        "001_research.sql",
+        "48f40a2afe4b67e3113584d31d992254e9b186efa7d6c974e9187f230d40c32e"
+      ],
+      [
+        "002_execution.sql",
+        "ecbe1157c18690fddd3f5f6e9b5915e2e7f2be92b3b01d79437caaf438f605d2"
+      ]
+    ],
+    "snapshot_count": 1
+  },
+  "checksums_and_snapshot_count_unchanged": true
+}

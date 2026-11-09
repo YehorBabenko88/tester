@@ -1,0 +1,71 @@
+{
+  "at": "2026-11-09T18:53:47.681021+00:00",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "tree_sha": "d18c949b887187889c9651a43a92d15858fd6eb5",
+  "archive_sha256": "684f1c7c1668bbcd13dbfa23b6473717ccbd6a45df3717087de094a145cf173b",
+  "unchanged_source_files": 930,
+  "changed_source_files": [],
+  "actual_raw_records": 244,
+  "dataset_counts": [
+    {
+      "dataset": "candles",
+      "rows": 44
+    },
+    {
+      "dataset": "index",
+      "rows": 100
+    },
+    {
+      "dataset": "mark",
+      "rows": 100
+    }
+  ],
+  "source_links_renormalized": 284,
+  "completed_market_jobs": 38,
+  "all_job_record_hashes_match_pg": true,
+  "original_http_receipts_rehashed": 114,
+  "research_ledger": {
+    "execution_inputs": 1,
+    "execution_jobs": 1,
+    "artifacts": 1,
+    "jobs": 1,
+    "acknowledgments": 1
+  },
+  "chart_ack": [
+    {
+      "job_id": "cfd25c2b-3416-4737-8123-350eafb03a5a",
+      "artifact_digest": "d185bf3b72202987b2691a6e02a84d04d9e70fe76e54a05335ac2fd2260a501e",
+      "rendered_fill_ids": [
+        "f1",
+        "f2",
+        "f3"
+      ]
+    }
+  ],
+  "summary_digest_matches_browser": true,
+  "real_admission": {
+    "admitted": false,
+    "f_input": null,
+    "reasons": [
+      "coverage_unknown",
+      "historical_visibility_not_proven",
+      "real_source_not_admitted"
+    ],
+    "prepare_and_register_denials": [
+      "only admitted immutable synthetic snapshots supported",
+      "invalid_qualified_snapshot_id"
+    ],
+    "no_ledger_effects": true
+  },
+  "identity": {
+    "status": "EXPERIMENTAL_PORTABLE",
+    "native_service": false,
+    "application_source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "mode": "SYNTHETIC_ONLY",
+    "real_market_coverage": "NOT_PROVEN",
+    "research_worker": {
+      "state": "RUNNING",
+      "failures": 0
+    }
+  }
+}

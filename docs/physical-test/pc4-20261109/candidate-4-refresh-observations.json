@@ -1,0 +1,61 @@
+{
+  "at": "2026-11-09T18:56:17.205196+00:00",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "source_ticker_points": [
+    {
+      "category": "inverse",
+      "source_time_ms": 1794249637716,
+      "symbols": 26
+    },
+    {
+      "category": "inverse",
+      "source_time_ms": 1794249955690,
+      "symbols": 26
+    },
+    {
+      "category": "inverse",
+      "source_time_ms": 1794250267324,
+      "symbols": 26
+    },
+    {
+      "category": "inverse",
+      "source_time_ms": 1794250576886,
+      "symbols": 26
+    },
+    {
+      "category": "linear",
+      "source_time_ms": 1794249635319,
+      "symbols": 937
+    },
+    {
+      "category": "linear",
+      "source_time_ms": 1794249941621,
+      "symbols": 937
+    },
+    {
+      "category": "linear",
+      "source_time_ms": 1794250251350,
+      "symbols": 937
+    },
+    {
+      "category": "linear",
+      "source_time_ms": 1794250563265,
+      "symbols": 937
+    }
+  ],
+  "schedule": [
+    {
+      "category": "inverse",
+      "next_refresh_at": 1794250880.5603907,
+      "pending": false,
+      "failures": 0
+    },
+    {
+      "category": "linear",
+      "next_refresh_at": 1794250869.447468,
+      "pending": false,
+      "failures": 0
+    }
+  ],
+  "scope": "No manualmarketrefreshPOST performed. Distinct retained source ticker timestamps show five-minute periodic source observations; not metric historical completeness."
+}
