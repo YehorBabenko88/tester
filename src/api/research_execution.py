@@ -1,6 +1,7 @@
 """Opt-in operator-granted synthetic F execution; no default startup or migrations."""
 
 import hashlib
+import json
 import re
 import secrets
 from typing import Annotated, Literal
@@ -173,6 +174,44 @@ class ExecutionLedger(PersistentResearchLedger):
         with self.connection() as conn:
             return self._public(self._job(conn, actor, job_id))
 
+    def execution_summary(self, actor, job_id):
+        from .research_summary import MAX_SUMMARY_BYTES, project_summary
+
+        with self.connection() as conn:
+            row = self._job(conn, actor, job_id)
+            if row["state"] != "complete":
+                raise ValueError("completed execution required")
+            command = Command.model_validate(row["chart_command"])
+            self._acl(conn, actor, command)
+            stored = conn.execute(
+                """SELECT bundle_digest,CASE WHEN octet_length(bundle_text)<=%s
+                THEN bundle_text ELSE NULL END AS bundle_text FROM tester_research.artifacts
+                WHERE artifact_digest=%s""",
+                (MAX_SUMMARY_BYTES, command.expected_artifact_digest),
+            ).fetchone()
+            if not stored or stored["bundle_text"] is None:
+                raise ValueError("bounded verified artifact required")
+            bundle = json.loads(stored["bundle_text"])
+            if canonical_digest(bundle) != stored["bundle_digest"]:
+                raise ValueError("stored bundle hash differs")
+            value = conn.execute(
+                "SELECT value FROM tester_research.execution_inputs WHERE input_digest=%s",
+                (row["input_digest"],),
+            ).fetchone()["value"]
+            if (
+                canonical_digest(value) != row["input_digest"]
+                or bundle["strategy"] != value["strategy"]
+                or bundle["snapshot"] != value["qualified"]["snapshot"]
+            ):
+                raise ValueError("summary execution input differs")
+            envelope = project_summary(bundle, row["input_digest"])
+            if (
+                envelope["summary"]["artifact_digest"] != command.expected_artifact_digest
+                or envelope["summary"]["run_id"] != command.run_id
+            ):
+                raise ValueError("summary chart binding differs")
+            return envelope
+
     def pending_executions(self, actor):
         with self.connection() as conn:
             self._credential(conn, actor)
@@ -240,6 +279,7 @@ def create_execution_app(dsn):
     from fastapi import Depends, Header, HTTPException
 
     from .research_ledger import create_persistent_control_app
+    from .research_summary import SummaryEnvelope
 
     ledger = ExecutionLedger(dsn)
     # Reuse the reviewed Host/Origin middleware; no insecure root-mounted router.
@@ -273,6 +313,10 @@ def create_execution_app(dsn):
     @app.get("/api/control/research-executions/{job_id}")
     def result(job_id: UUID, actor=Depends(identity)):
         return invoke(lambda: ledger.execution_result(actor.actor, str(job_id)))
+
+    @app.get("/api/control/research-executions/{job_id}/summary", response_model=SummaryEnvelope)
+    def summary(job_id: UUID, actor=Depends(identity)):
+        return invoke(lambda: ledger.execution_summary(actor.actor, str(job_id)))
 
     return app
 

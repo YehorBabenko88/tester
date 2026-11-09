@@ -51,6 +51,13 @@ def test_real_pg_snapshot_to_f_restart_replay_artifact_and_ack(setup_execution):
     reopened = ExecutionLedger(ledger.dsn)
     completed = reopened.dispatch_execution(actor, job["job_id"])
     assert completed["state"] == "complete"
+    summary = reopened.execution_summary(actor, job["job_id"])
+    assert summary["summary"]["input_digest"] == digest
+    assert (
+        summary["summary"]["artifact_digest"]
+        == completed["chart_command"]["expected_artifact_digest"]
+    )
+    assert summary["summary"]["metrics"]["net_realized_pnl"] == "-5.19500"
     assert reopened.dispatch_execution(actor, job["job_id"]) == completed
     identity = reopened.authenticate("Bearer " + token)
     assert identity == Identity(actor)
@@ -94,6 +101,10 @@ def test_real_pg_artifact_only_credential_cannot_execute_and_capacity_bounded(se
         )
     with pytest.raises(Denied):
         ledger.execution_result(other, jobs[0]["job_id"])
+    with pytest.raises(Denied):
+        ledger.execution_summary(other, jobs[0]["job_id"])
+    with pytest.raises(ValueError, match="completed"):
+        ledger.execution_summary(actor, jobs[0]["job_id"])
     with ledger.connection() as conn:
         conn.execute("UPDATE tester_research.credentials SET revoked=true WHERE actor=%s", (actor,))
     with pytest.raises(Denied):
@@ -191,6 +202,16 @@ def test_hosted_actual_g_http_auth_origin_execution_and_chart_ack(setup_executio
         assert gateway.execution_submit(request)["job_id"] == job["job_id"]
         ledger.dispatch_execution(actor, job["job_id"])
         complete = gateway.execution_result(job["job_id"])
+        with httpx.Client(base_url=origin, timeout=3, trust_env=False) as client:
+            path = "/api/control/research-executions/" + job["job_id"] + "/summary"
+            assert client.get(path).status_code == 401
+            response = client.get(path, headers={"Authorization": "Bearer " + token})
+            assert response.status_code == 200
+            summary = response.json()
+            from src.api.research_control import canonical_digest
+
+            assert summary["summary_digest"] == canonical_digest(summary["summary"])
+            assert summary["summary"]["input_digest"] == digest
         command = Command.model_validate(complete["chart_command"])
         chart_job = gateway.research_submit(command, actor=actor)
         app.state.research_control.dispatch(Identity(actor), chart_job["job_id"])

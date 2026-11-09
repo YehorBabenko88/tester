@@ -56,6 +56,38 @@ contract; this execution result is not an ACK and is not a renderer substitute.
 Existing chart Command supports twelve intervals, excludes M. No new statistics,
 SL/TP or journal values are invented; existing F bundle is canonical evidence.
 
+Authenticated GET `/api/control/research-executions/{job_id}/summary` is limited
+to that actor's completed execution and requires both current pair and artifact
+ACL. It bounds the persisted bundle_text transfer to 8MiB, checks stored bundle
+hash, genuine J/F replay and original execution strategy/snapshot/input binding,
+then returns strict `SummaryEnvelope` from src/api/research_summary.py. No token,
+grant, private DB field or caller-supplied financial value is exposed.
+
+Envelope `{summary,summary_digest}` hashes canonical summary. Summary exact keys:
+schema_version `tester.research-summary/1`, input_digest, artifact_digest, run_id,
+source_sha, engine_version, certification, metrics, trades, equity_curve, brackets,
+levels. Metrics/trades/equity/brackets are exact verified F facts, retaining
+decimal/scientific strings, null uncertainty and confidence without calculations.
+Limits: 500 trades, 2001 equity points, 2000 brackets, 1000 levels, 8MiB envelope
+source bound. G's existing 1MiB transport cap stays unchanged and refuses larger
+responses rather than truncating them; the browser applies its own bounded read.
+
+Each level has exactly `{entry_fill_id,kind:'sl'|'tp',price,start_ms,end_ms,
+known_at_ms}`: price copies recorded closed-trade SL/TP and times copy the
+corresponding actual chart entry-fill uncertainty window. This is **entry-window
+only**, never an assertion of full position lifetime or trailing updates. Exact
+duplicate levels from partial exits deduplicate; conflicts reject. All trade
+rows and brackets remain intact. Open brackets remain authentic table/point
+facts; no open-position horizon or trailing line is invented. Chart/2 and its ACK
+remain unchanged. Summary failure must leave the valid chart intact with summary
+and levels unavailable. Standalone artifact reading without a completed execution
+does not acquire summary permission implicitly.
+
+Summary pure evidence: module-absent RED then eight tests PASS for exact facts,
+bindings, original precision, tamper/rehash rejection, partial-exit presentation
+dedup and typed G binding. Hosted PG/HTTP tests now include summary auth/hash/input
+and chart binding but remain NOT_RUN until actual execution.
+
 Executed locally: module-absent RED, then 10 pure tests PASS, four hosted-only PG
 tests SKIP; Ruff check/format PASS. No local TCP/server/PG/browser/install actions.
 Hosted workflow checks out exact snapshot-producer SHA separately, records both

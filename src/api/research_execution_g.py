@@ -6,6 +6,28 @@ from .research_g_client import ResearchGatewayClient
 
 
 class ExecutionGatewayClient(ResearchGatewayClient):
+    def execution_summary(self, job_id, *, input_digest, command: Command):
+        from src.backtest.engine import ENGINE_VERSION
+        from src.integration.strategy_lab import F_SOURCE_SHA
+
+        from .research_control import canonical_digest
+        from .research_summary import SummaryEnvelope
+
+        envelope = SummaryEnvelope.model_validate(
+            self._call("GET", "research-executions/" + self._id(job_id) + "/summary")
+        ).model_dump(mode="json")
+        summary = envelope["summary"]
+        if (
+            canonical_digest(summary) != envelope["summary_digest"]
+            or summary["input_digest"] != input_digest
+            or summary["artifact_digest"] != command.expected_artifact_digest
+            or summary["run_id"] != command.run_id
+            or summary["source_sha"] != F_SOURCE_SHA
+            or summary["engine_version"] != ENGINE_VERSION
+        ):
+            raise ValueError("summary binding mismatch")
+        return envelope
+
     def execution_submit(self, request: ExecutionRequest):
         request = ExecutionRequest.model_validate(request.model_dump())
         result = self._call("POST", "research-executions", request.model_dump(mode="json"))

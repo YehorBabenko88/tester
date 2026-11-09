@@ -48,6 +48,7 @@ jobs:
       - name: Durable PG snapshot, actual F, restart, grants, lease fencing, exact ACK
         run: >-
           python -m pytest tests/platform/test_research_execution.py
+          tests/platform/test_research_summary.py
           tests/platform/test_research_execution_postgres.py -v
           --junitxml=execution-evidence/results.xml
       - uses: actions/upload-artifact@v4
