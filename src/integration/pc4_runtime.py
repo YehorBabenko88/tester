@@ -277,8 +277,10 @@ def validate_receipt(value, root, source, lab_sha, app_sha, private_hash):
         raise ValueError("Pinned combined receipt differs")
 
 
-def prepare(root, lab_sha, app_sha):
+def prepare(root, lab_sha, app_sha, *, source_profile="candles"):
     """Fresh root operator setup only; partial failure remains retained and refused."""
+    if source_profile not in {"candles", "reference-prices/1.1"}:
+        raise ValueError("Unrecognized owned market source profile")
     source, root, _, dsn = market_runtime.context(root, lab_sha, app_sha)
     research = research_dsn(dsn)
     for name in ("pc4-preparing.json", "pc4-seed.json", "execution-private.json"):
@@ -290,7 +292,10 @@ def prepare(root, lab_sha, app_sha):
         new=True,
     )
     # Preserve market_runtime's previous synthetic-root refusal and fresh-DB seed.
-    market_runtime.seed(root, lab_sha, app_sha)
+    if source_profile == "candles":
+        market_runtime.seed(root, lab_sha, app_sha)
+    else:
+        market_runtime.seed(root, lab_sha, app_sha, source_profile=source_profile)
     from src.api.research_ledger import migrate_research
     from src.integration.snapshot_repository import QualifiedSnapshotRepository
 
@@ -584,15 +589,26 @@ def serve(root, lab_sha, app_sha):
             raise ValueError("Owned download worker exited unexpectedly")
 
 
+def prepare_price_sources(root, lab_sha, app_sha):
+    return prepare(root, lab_sha, app_sha, source_profile="reference-prices/1.1")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("prepare", "limit-role", "serve", "verify", "shutdown"))
+    parser.add_argument(
+        "action",
+        choices=("prepare", "prepare-price-sources", "limit-role", "serve", "verify", "shutdown"),
+    )
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--lab-source-sha", required=True)
     parser.add_argument("--application-source-sha", required=True)
     args = parser.parse_args()
     try:
-        operation = limit_role if args.action == "limit-role" else globals()[args.action]
+        operation = {"limit-role": limit_role, "prepare-price-sources": prepare_price_sources}.get(
+            args.action
+        )
+        if operation is None:
+            operation = globals()[args.action]
         result = operation(args.root, args.lab_source_sha, args.application_source_sha)
         if result is not None:
             print(json.dumps(result))

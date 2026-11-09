@@ -96,6 +96,12 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         },
     )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]"])
+    if settings.provider_factory == "src.integration.reference_prices:create_reader":
+        from src.integration.reference_prices import ReferencePriceReader, create_price_router
+
+        if not isinstance(reader, ReferencePriceReader):
+            raise ValueError("Reference-price source profile requires its exact typed reader")
+        app.include_router(create_price_router(reader))
     if catalog is not None:
         from .market_catalog import create_market_router
 
