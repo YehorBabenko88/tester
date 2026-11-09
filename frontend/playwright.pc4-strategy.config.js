@@ -8,6 +8,10 @@ if (
   throw Error(
     "Private strategy case, pc4-owned opt-in and exact application/harness SHAs required",
   );
+const rawScale = process.env.TESTER_PC4_DEVICE_SCALE_FACTOR ?? "1";
+if (!["1", "2"].includes(rawScale))
+  throw Error("TESTER_PC4_DEVICE_SCALE_FACTOR must be 1 or 2");
+const deviceScaleFactor = Number(rawScale);
 const channel = process.env.TESTER_PC4_BROWSER_CHANNEL;
 if (channel && !["chrome", "msedge"].includes(channel))
   throw Error("Existing Chrome or Edge only; no browser installation");
@@ -28,6 +32,7 @@ export default defineConfig({
     headless: true,
     ...(channel ? { channel } : {}),
     viewport: { width: 1600, height: 1000 },
+    deviceScaleFactor,
     trace: "off",
     screenshot: "off",
     video: "off",
