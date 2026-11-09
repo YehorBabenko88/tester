@@ -55,7 +55,10 @@ this test-owned database. Runtime context/serve checks these restrictions and
 refuses bootstrap/SU, ownership, unexpected memberships or create privileges.
 No foreign roles/databases are changed. Partial role handoff retains the private
 stage/secret and refuses automatic resume; ROOT investigates with its private
-operator credential. Never upload either private file or expose either DSN.
+operator credential. The admin secret is written exactly once and never rewritten
+for stage updates; sanitized progress is separate in pc4-role-progress.json, so
+a progress-write failure cannot truncate the only administrative credential.
+Never upload either private file or expose either DSN.
 
 Serve verifies the source/root/seed, PostgreSQL process image/PID/argv/birth and
 actual data_directory via unchanged market context, and current execution grant.
@@ -83,7 +86,7 @@ records and all data are retained, so serve refuses same-root process restart or
 adoption. Durable job restart semantics are separately tested by ledger reopen;
 this harness does not claim physical same-root restart acceptance.
 
-Pure regression evidence: module-absent/role-validator RED then 29 PASS for runtime, argv and
+Pure regression evidence: module-absent/role-validator/secret-rewrite RED then 30 PASS for runtime, argv and
 execution tests; Ruff check/format passed. No actual API/PG/process/browser/SCM
 execution by this contributing agent. Root must review and run the new immutable
 candidate, including real PG ledger first and no-route-mock browser acceptance.

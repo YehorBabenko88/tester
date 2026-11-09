@@ -125,3 +125,71 @@ def test_runtime_role_refuses_all_privileged_flags_ownership_create_and_membersh
         value[field] = "wrong" if isinstance(value[field], str) else not value[field]
         with pytest.raises(ValueError):
             validate_runtime_role(value)
+
+
+def test_operator_secret_written_once_with_mocked_database_handoff(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    import psycopg
+
+    from src.integration import pc4_runtime as runtime
+
+    root = tmp_path / "root"
+    root.mkdir()
+    source = tmp_path / "source"
+    source.mkdir()
+    dsn = "host=127.0.0.1 port=55471 user=research_owner password=disposable-test-only dbname=tester_research_unit"
+    monkeypatch.setattr(
+        runtime,
+        "context",
+        lambda *a, **k: (
+            source,
+            root,
+            {"database": "tester_research_unit"},
+            SimpleNamespace(dsn=dsn),
+            {},
+            None,
+        ),
+    )
+    monkeypatch.setattr(runtime, "_cluster_identity", lambda *a: "123456")
+    monkeypatch.setattr(runtime, "assert_runtime_role", lambda *a: None)
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def execute(self, statement, *args):
+            result = None
+            if isinstance(statement, str):
+                if statement.startswith("SELECT oid,rolsuper FROM"):
+                    result = {"oid": 42, "rolsuper": True}
+                elif statement.startswith("SELECT current_user AS name"):
+                    result = {"name": "tester_pc4_admin"}
+                elif statement.startswith("SELECT oid,rolsuper,rolcanlogin"):
+                    result = {"oid": 42, "rolsuper": True, "rolcanlogin": False}
+                elif statement == "SHOW data_directory":
+                    result = {"data_directory": str(root / "pgdata")}
+            return SimpleNamespace(fetchone=lambda: result)
+
+    monkeypatch.setattr(psycopg, "connect", lambda *a, **k: Connection())
+    monkeypatch.setattr(runtime.ExecutionLedger, "connection", lambda *a: Connection())
+    actual_save = runtime._save
+    writes = []
+
+    def record(path, value, *, new=False):
+        if path.name == "operator-admin-private.json":
+            writes.append((new, json.dumps(value, sort_keys=True)))
+        return actual_save(path, value, new=new)
+
+    monkeypatch.setattr(runtime, "_save", record)
+    result = runtime.limit_role(root, "b" * 40, "a" * 40)
+    assert result["runtime_privileged"] is False
+    assert len(writes) == 1 and writes[0][0] is True
+    secret = json.loads((root / "operator-admin-private.json").read_text())
+    assert secret["root"] == str(root)
+    assert secret["system_identifier"] == "123456"
+    assert "stage" not in secret

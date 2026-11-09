@@ -106,7 +106,8 @@ def limit_role(root, lab_sha, app_sha):
 
     source, root, marker, settings, _, _ = context(root, lab_sha, app_sha, authenticate=False)
     secret_path = plain(root / "operator-admin-private.json")
-    if secret_path.exists() or plain(root / "pc4-role.json").exists():
+    progress_path = plain(root / "pc4-role-progress.json")
+    if secret_path.exists() or progress_path.exists() or plain(root / "pc4-role.json").exists():
         raise ValueError("Role handoff already attempted; unsafe resume refused")
     for name in (".pc4-api.json", ".market-api.json", ".market-worker.json"):
         if plain(root / name).exists():
@@ -135,17 +136,23 @@ def limit_role(root, lab_sha, app_sha):
             system_identifier=system_id,
             bootstrap_oid=original["oid"],
             database_url=admin_dsn,
-            stage="creating_admin",
         )
         _save(secret_path, state, new=True)
+        progress = dict(
+            schema="tester-pc4-role-progress/1",
+            root=str(root),
+            application_source_sha=app_sha,
+            stage="creating_admin",
+        )
+        _save(progress_path, progress, new=True)
         admin_password = conninfo_to_dict(admin_dsn)["password"]
         bootstrap.execute(
             sql.SQL(
                 "CREATE ROLE tester_pc4_admin LOGIN SUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD {}"
             ).format(sql.Literal(admin_password))
         )
-    state["stage"] = "handoff"
-    _save(secret_path, state)
+    progress["stage"] = "handoff"
+    _save(progress_path, progress)
     with psycopg.connect(admin_dsn, row_factory=dict_row, connect_timeout=3) as admin:
         if _cluster_identity(admin, root, marker) != system_id:
             raise ValueError("Operator connected to different cluster")
@@ -196,8 +203,8 @@ def limit_role(root, lab_sha, app_sha):
             != root / "pgdata"
         ):
             raise ValueError("Limited connection directory differs")
-    state["stage"] = "ready"
-    _save(secret_path, state)
+    progress["stage"] = "ready"
+    _save(progress_path, progress)
     receipt = dict(
         schema="tester-pc4-role/1",
         application_source_sha=app_sha,
