@@ -1,10 +1,14 @@
-"""Exact Python invocation shape for the two explicit owned runtime CLIs."""
+"""Exact Python invocation shape for the explicitly allowlisted owned runtime CLIs."""
 
 
 def require_runtime_argv(
     args, root, lab_sha, application_sha, *, module="src.integration.research_runtime"
 ):
-    if module not in {"src.integration.research_runtime", "src.integration.market_runtime"}:
+    if module not in {
+        "src.integration.research_runtime",
+        "src.integration.market_runtime",
+        "src.integration.pc4_runtime",
+    }:
         raise ValueError("Unrecognized owned runtime module")
     expected = [
         "-m",
