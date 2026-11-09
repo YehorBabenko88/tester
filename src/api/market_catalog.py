@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import random
+import re
 import threading
 import time
 from copy import deepcopy
@@ -54,6 +55,23 @@ def _source_freshness(stamp, now):
     if now * 1000 - stamp >= 300000:
         return "STALE", "source_time_stale"
     return "OBSERVED", None
+
+
+def _metric_sort_value(metric):
+    """Match catalogMetric render qualification before global page slicing."""
+    value = metric.get("value")
+    stamp = metric.get("source_time_ms")
+    if (
+        not isinstance(value, str)
+        or len(value) > 100
+        or re.fullmatch(r"-?[0-9]+(?:\.[0-9]+)?", value) is None
+        or not metric.get("source")
+        or type(stamp) is not int
+        or abs(stamp) > 9007199254740991
+        or metric.get("state") not in {"OBSERVED", "STALE"}
+    ):
+        return None
+    return value
 
 
 def _metric_unit(row, name):
@@ -394,7 +412,7 @@ class CatalogService:
         if direction != "none":
 
             def value(row):
-                return row.get(sort) if sort in fields else row["metrics"][sort]["value"]
+                return row.get(sort) if sort in fields else _metric_sort_value(row["metrics"][sort])
 
             present = [row for row in rows if value(row) is not None]
             absent = [row for row in rows if value(row) is None]
