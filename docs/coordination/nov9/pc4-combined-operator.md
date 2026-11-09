@@ -31,6 +31,15 @@ Prepare reuses market's fresh-root/fresh-database seed and its existing refusal
 of previous synthetic roots. It explicitly migrates the research ledger (002)
 and B snapshot repository, publishes only the exact pinned synthetic snapshot,
 registers the pinned DSL and grants that immutable input to one principal.
+The PC4 composition explicitly adapts the already verified canonical market DSN
+for research only: exact fixed loopback hostaddr must equal host, fixed port/user
+and canonical key set must match, and only hostaddr is removed before the strict
+public research validator. Research connections re-pin that literal address
+internally. Market config/DSN/seed bytes and privileged operator connections keep
+their original hostaddr; the public research safety policy is not relaxed.
+This fixes ROOT's retained `efd04cf` preparation failure after market seed, before
+research DDL. Installed failed sources/lab remain immutable and are not retried;
+the corrected source must be published into a new immutable candidate/new lab.
 The source is the separate terminal-compatible byte-pinned SYNTHETIC linear
 BTCUSDT fixture from PR61 4d9f365c44fb401fe051b48f4938a3674c058d9c, via
 publish_terminal_fixture() and certified_terminal_fixture_strategy(); the original
@@ -99,7 +108,8 @@ this harness does not claim physical same-root restart acceptance.
 Pure regression evidence: module-absent/role-validator/secret-rewrite RED; terminal
 pair is also tested against exact producer raw Git source with genuine F execution.
 The broader runtime/market/research/argv/execution/summary pure regression suite
-passed; five actual PG/HTTP/role cases remain hosted-only and were not run locally.
+passed (85 PASS including nine DSN-boundary regressions); five actual PG/HTTP/role
+cases remain hosted-only and were not run locally.
 Ruff check/format passed. No actual API/PG/process/browser/SCM
 execution by this contributing agent. Root must review and run the new immutable
 candidate, including real PG ledger first and no-route-mock browser acceptance.

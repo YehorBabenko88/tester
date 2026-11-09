@@ -39,6 +39,33 @@ DML_SCHEMAS = (
 )
 
 
+def research_dsn(canonical_market_dsn):
+    """PC4 composition boundary only; retain public research DSN safety policy.
+
+    Market context has already proved this fixed literal endpoint against the
+    owned PostgreSQL process/directory. Research deliberately forbids supplied
+    hostaddr and re-pins it internally on every connection; remove only that
+    redundant field after exact endpoint/scope checks, never from market config.
+    """
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    from src.api.research_ledger import validate_research_dsn
+
+    values = conninfo_to_dict(canonical_market_dsn)
+    if (
+        set(values) != {"dbname", "host", "hostaddr", "password", "port", "user"}
+        or values["host"] != "127.0.0.1"
+        or values["hostaddr"] != values["host"]
+        or values["port"] != "55471"
+        or values["user"] != "research_owner"
+    ):
+        raise ValueError("Exact verified PC4 market DSN required")
+    del values["hostaddr"]
+    result = make_conninfo(**values)
+    validate_research_dsn(result)
+    return result
+
+
 def validate_runtime_role(row):
     expected = dict(
         current_user="research_owner",
@@ -197,7 +224,7 @@ def limit_role(root, lab_sha, app_sha):
         if old["oid"] != original["oid"] or not old["rolsuper"] or old["rolcanlogin"]:
             raise ValueError("Bootstrap owner handoff differs")
     # Verify using the byte-identical runtime DSN, not the privileged connection.
-    with ExecutionLedger(settings.dsn).connection() as runtime:
+    with ExecutionLedger(research_dsn(settings.dsn)).connection() as runtime:
         assert_runtime_role(runtime)
         if (
             plain(runtime.execute("SHOW data_directory").fetchone()["data_directory"])
@@ -253,6 +280,7 @@ def validate_receipt(value, root, source, lab_sha, app_sha, private_hash):
 def prepare(root, lab_sha, app_sha):
     """Fresh root operator setup only; partial failure remains retained and refused."""
     source, root, _, dsn = market_runtime.context(root, lab_sha, app_sha)
+    research = research_dsn(dsn)
     for name in ("pc4-preparing.json", "pc4-seed.json", "execution-private.json"):
         if plain(root / name).exists():
             raise ValueError("Combined preparation already attempted; adoption/resume refused")
@@ -267,11 +295,11 @@ def prepare(root, lab_sha, app_sha):
 
     from src.api.research_ledger import migrate_research
 
-    migrate_research(dsn)
-    repository = QualifiedSnapshotRepository(dsn)
+    migrate_research(research)
+    repository = QualifiedSnapshotRepository(research)
     repository.migrate()
     snapshot, strategy = terminal_inputs(repository)
-    ledger = ExecutionLedger(dsn)
+    ledger = ExecutionLedger(research)
     digest = ledger.register(strategy, repository, snapshot.snapshot_id)
     actor = "pc4-synthetic:" + root.name[9:]
     token = ledger.issue_execution_credential(actor, digest, ttl_seconds=3600)
@@ -327,7 +355,7 @@ def context(root, lab_sha, app_sha, *, authenticate=True):
         or private.get("actor") != "pc4-synthetic:" + root.name[9:]
     ):
         raise ValueError("Combined private identity differs")
-    ledger = ExecutionLedger(dsn)
+    ledger = ExecutionLedger(research_dsn(dsn))
     if authenticate:
         with ledger.connection() as conn:
             assert_runtime_role(conn)
@@ -343,7 +371,7 @@ def application(settings, root, private, ledger):
     """Explicit combined factory; no setup/DDL, native worker or OS actions here."""
     from src.api.main import create_app
 
-    child = create_execution_app(settings.dsn)
+    child = create_execution_app(research_dsn(settings.dsn))
     child.state.pc4_research = worker_state("starting", 0)
     stop = asyncio.Event()
 
