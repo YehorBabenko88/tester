@@ -27,6 +27,13 @@ in RUNNER_TEMP, excluded from uploads. No trace containing HTTP credentials is e
 
 Reproduce pure checks: `python -m pytest tests/platform/test_combined_browser_fixture.py -q`.
 Hosted gate: `.github/workflows/combined-synthetic-browser.yml`; timeout 15 minutes.
+Initial HEAD 146823a145b851caf6fb22020833504ef5310b38 had an actual Actions
+validation failure before any jobs: run 42652212268
+(https://github.com/YehorBabenko88/tester/actions/runs/42652212268).
+Its job.env referenced runner.temp, which is unavailable in that context.
+Follow-up moves the path export into a Bash step using RUNNER_TEMP/GITHUB_ENV
+and removes the redundant GITHUB_ACTIONS override. This source correction is
+not proof of successful Actions validation until a new run creates a job.
 Each G readiness/dispatch phase shares a 30-second deadline; browser timeout is 60s.
 App shutdown cancels only its in-process polling task. CI service/container cleanup
 is performed by GitHub Actions; this fixture performs no database DROP or DELETE.

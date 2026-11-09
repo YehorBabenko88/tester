@@ -20,11 +20,12 @@ jobs:
           --health-cmd "pg_isready -U tester_ci -d tester_research_combined_ci"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      GITHUB_ACTIONS: "true"
       TESTER_COMBINED_CI: synthetic-disposable
       TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
-      TESTER_COMBINED_FIXTURE_FILE: ${{ runner.temp }}/combined-private.json
     steps:
+      - name: Set private fixture path for subsequent steps
+        shell: bash
+        run: echo "TESTER_COMBINED_FIXTURE_FILE=$RUNNER_TEMP/combined-private.json" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
