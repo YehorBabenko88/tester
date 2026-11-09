@@ -1,320 +1,173 @@
 {
   "schema_version": 1,
   "repository": "YehorBabenko88/tester",
-  "issues": [
-    58,
-    59,
-    60
-  ],
-  "confirmed_at": "2026-11-09T18:23:46.237464+00:00",
+  "confirmed_at": "2026-11-09T19:00:29.347376+00:00",
+  "confirmed_at_europe_berlin": "2026-11-09T20:00:29.347376+01:00",
   "host": "PC4",
   "windows_build": "26200",
   "administrator": false,
   "mode": "EXPERIMENTAL_PORTABLE",
-  "installed_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
-  "installed_tree": "9488dc721a8b462ac346cbf845b55dee6505e840",
-  "retained_previous_labs": [
-    {
-      "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-28675bef2c3941d286bc6621951f8634",
-      "state": "STOPPED_RETAINED_AFTER_ARGV_DIAGNOSTIC"
-    }
-  ],
+  "phase": "ACTUAL_REFERENCE_PRICES_AND_ALL13_DPR2_PASS_BOUNDED",
+  "go_no_go": "NO_GO_FULL_ACCEPTANCE",
+  "installed_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "installed_tree": "d18c949b887187889c9651a43a92d15858fd6eb5",
+  "installed_archive_sha256": "684f1c7c1668bbcd13dbfa23b6473717ccbd6a45df3717087de094a145cf173b",
+  "verified_source_files": 930,
+  "source_manifest_semantics": "exact extracted archive materialized bytes, including CRLF where configured; not all rawGitblob bytes",
+  "installed_source_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\releases\\3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "active_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-de6199587da84d9493ed985527500d2a",
+  "runtime_state": "RUNNING_OWNED_API30552_WORKER2272_PG9084",
   "api_bind": "127.0.0.1:18767",
   "pg_bind": "127.0.0.1:55471",
   "pg5432_untouched": true,
+  "pg5432_original_pid": 7584,
+  "original_user_database_names": "NOT_ENUMERATED_AUTH_REQUIRED",
   "native_service": "NOT_INSTALLED",
-  "phase": "QUALIFIED_SYNTHETIC_RESEARCH_PHYSICAL_PASS_BOUNDED",
-  "tests": {
-    "all_source_pages": "PASS1995linear/76inverse;11originalHTTPpages",
-    "global_sort": "PASS32wholecatalogcases",
-    "automatic_refresh": "PASS2scheduledrefreshes;no manualPOST",
-    "downloads": "25completedjobs;145rawunique;154sourcelinks;0orphans",
-    "timeframes_browser": "PASS13/13 actual;mousewheel/pan/crosshair/calendarNavigation;0pageerrors",
-    "market_browser": "PASSactual0Goutsidelegacy10,sort/search/persistence/inlineprogress",
-    "backup_restore": "PASS145rows toNEWrestoredDB;dump+allDBsretained",
-    "limited_role": "PASS newlimitedOID/bootstrapNOLOGIN; actualunexpected-schema CREATE refusal thenrevoke",
-    "initial_stop": "PASS baselineAPIworkercooperative+ownedPGstop;failedcandidatePGstopretained",
-    "restart_same_lab": "NOT_IMPLEMENTED singleuseCLI;Esource-onlytaskactive",
-    "crash_kill": "NOT_RUN_no_forcekill/reboot",
-    "research": "PASS actualPG-F-authorizedG/E-D chart ACK+summary SLTP statistics;1 realbrowsercase,3fills1trade;SYNTHETIC_ONLY",
-    "real_market_F": "BLOCKED_HISTORICAL_COVERAGE_UNKNOWN",
-    "analytics": "Candles+Volume observed;other10panelsUNAVAILABLE/NOT_INTEGRATED;no fabricatedorderflow",
-    "trader_intelligence": "NOT_READY_PERMISSION_GATED",
-    "real_data_admission_safety": "PASS actual10PGrows;REAL/UNKNOWNprepare_input+register refused;noexecutionledgerchanges",
-    "live_candidate_ingest": "PASS10hour-historyjobs/10symbols,600uniqueraw,each60hashesPGmatched;workermaxrunning1,not10parallel",
-    "live_security": "PASS wrongtoken401/unregistered403/foreignOrigin403/anonymoussummary401",
-    "research_restore": "PASSnewownedDB raw/snapshot/artifact/execution/ACKhashesmatch",
-    "hidpi": "PASS actualDPR2 strategy +1m candles/volume gestures/backingCSSratio;13baselineDPR1,NOT13DPR2",
-    "pause_resume_replay": "PASSpausedstable2s\u2192queued\u2192completed;10rawunchangedhash/source_links10\u219220;notprocessrestart"
-  },
-  "resource": {
-    "samples": 11,
-    "sampling": "approximately1second;batch-start owned process tree;notkernel profiler",
-    "peak_sampled_rss_sum_bytes": 313769984,
-    "minimum_sampled_rss_sum_bytes": 311685120,
-    "elapsed_seconds": 13.072151184082031,
-    "cpu_seconds_delta_for_surviving_processes": 1.453125,
-    "max_running_downloads": 1,
-    "postgresql": {
-      "raw_records": 145,
-      "source_links_revalidated": 154,
-      "source_orphans": 0,
-      "all_job_count": 25,
-      "job_acknowledgments_match_actual_postgresql": true,
-      "original_event_precision_preserved": true,
-      "database_bytes": 15546047,
-      "wal_directory_bytes": 33554432,
-      "pgdata_directory_bytes": 88689488,
-      "quality": "UNKNOWN_NOT_HISTORICAL_CERTIFICATE"
-    },
-    "native_service": false,
-    "hard_os_job_caps": "NOT_TESTED_IN_PORTABLE_RUNTIME",
-    "browser": {
-      "asserted_cases": 13,
-      "all_completed": true,
-      "request_samples": 1326,
-      "response_latency_p95_ms": 128,
-      "latency_scope": "All observedlocalHTTP API responses including deliberate unavailable/error panels;notloadbenchmark",
-      "source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
-      "harness_sha": "41884641e223418ff1111664856886ab8a1ff49d"
-    }
-  },
-  "hosted_ci": "QUEUED_NOT_ACCEPTED",
-  "go_no_go": "NO_GO_FULL_ACCEPTANCE",
-  "next": [
-    "Review A newmark/index DraftPR exactSHA, fulltypedcontractandpurechecks before newimmutablecandidate",
-    "Same-rootrestart BLOCKED/DESIGN_ONLY Draft67; neverunlink/rename oldrecords or retro-enroll6a",
-    "Preserve activeowned6a API32424/worker33984/PG38416 until controllednextcandidate/shutdown",
-    "NativeSCM/UAC/crash/reboot,historicalvisibility,missinganalytics/TI,hardcaps/sustainedstress andqueuedCI remain acceptancegates"
-  ],
-  "runtime_state": "RUNNING_OWNED_API32424_WORKER33984_PG38416",
-  "baseline_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-fa84840d666f4cc18977c552ee1a5870",
-  "active_lab_root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-95012633c22841c0a36edeb227536a18",
-  "candidate_1": {
-    "at": "2026-11-09T18:00:03.732071+00:00",
-    "candidate_sha": "efd04cf77ded1e14f3b7787b9dba55d94bf9e78b",
-    "tree_sha": "5a8ba22a4161e11326fb89374b39b44fa5683376",
-    "archive_sha256": "8722660b242be7ba5ef61709cb5a9ffcc9605cbf1651289f83ef05f8d290da3f",
-    "stage": "PREPARE_FAILED_RETAINED_STOPPED",
-    "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-429bdccfca164b44823d3eb3c2db7bd3",
-    "cause": "market canonical hostaddr rejected by unchanged research DSN policy",
-    "reproduction": "market_runtime.context -> canonical keys hostaddr; PersistentResearchLedger raises ValueError before research DDL",
-    "attempts_this_cause": 1,
-    "no_installed_hotfix": true,
-    "postgres_5432_pid_unchanged": 7584,
-    "next": "GitHub adapter regression -> publish reviewed replacement SHA -> fresh owned lab, no resume",
-    "historical_failed_candidate": true,
-    "resolved_by_installed_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb"
-  },
-  "installed_archive_sha256": "d16aedfeca91d91efff30667c625a09676adf9a6ba5540f7535f8b0ae9833112",
-  "research_proof": {
-    "at": "2026-11-09T18:10:22.826417+00:00",
-    "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
-    "job_id": "056d074f-ddb5-4467-8456-80f1ad1e1aa4",
-    "state": "complete",
-    "attempts": 1,
-    "persisted_chart_ack": {
-      "job_id": "fda3a6e1-655c-4a47-8e87-cb0a45d86441",
-      "artifact_digest": "d185bf3b72202987b2691a6e02a84d04d9e70fe76e54a05335ac2fd2260a501e",
-      "rendered_fill_ids": [
-        "f1",
-        "f2",
-        "f3"
-      ]
-    },
-    "audit": [
+  "elevation": "NOT_REQUESTED",
+  "source_candidate_branch": "integration/pc4-physical-20261109",
+  "source_pr": 64,
+  "physical_evidence_branch": "evidence/pc4-physical-20261109",
+  "automation": "Not modified/resumed;last-knownPAUSED,futureinvocationnotverified",
+  "actual_tests": {
+    "catalog": "PASS1995linear/76inverse/allAPIpagespinnedrevision;6+5sourcepages",
+    "timeframes": "PASSall13 actualcurrentSHA/DPR2/pan/zoom/crosshair/calendar;0pageerrors,1167resourceconsoleerrors",
+    "market_jobs": 38,
+    "raw_records": 244,
+    "datasets": [
       {
-        "event": "claimed",
-        "count": 1
+        "dataset": "candles",
+        "rows": 44
       },
       {
-        "event": "completed",
-        "count": 1
+        "dataset": "index",
+        "rows": 100
       },
       {
-        "event": "execution_claimed",
-        "count": 1
-      },
-      {
-        "event": "execution_completed",
-        "count": 1
-      },
-      {
-        "event": "execution_credential_issued",
-        "count": 1
-      },
-      {
-        "event": "execution_input_registered",
-        "count": 1
-      },
-      {
-        "event": "execution_submitted",
-        "count": 1
-      },
-      {
-        "event": "published",
-        "count": 1
-      },
-      {
-        "event": "render_ack",
-        "count": 1
-      },
-      {
-        "event": "submitted",
-        "count": 1
+        "dataset": "mark",
+        "rows": 100
       }
     ],
-    "ledger_counts": {
+    "source_links_revalidated": 284,
+    "HTTP_bodies_rehashed": 114,
+    "ten_reference_instruments": "PASS20jobs/200hashesactualPG;UNKNOWNcoverage",
+    "price1.1": "PASSpagination/novolume/cross-kindcursor422/lexicaltime422/legacyroute503",
+    "research": "PASSactualPG-F-authG/E-D ACK/statistics/SLTP/journal DPR2;SYNTHETIC_ONLY",
+    "real_admission": "REFUSEDprepare/register,FinputNULL,ledgerunchanged",
+    "migrations": "PASSexplicitsecondoperatorpass/checksumsunchanged",
+    "backup_restore": "PASScurrent244raw/284sources/244projections/snapshot/artifact/execution/ACKsevenhashgroups;NEWDB;190privateFSsourcefilesbackup",
+    "controlled_stop": "PASSprevious6a publishedshutdown exit0/worker+ownedPGstop,allretained",
+    "same_root_restart": "NOT_IMPLEMENTED/DESIGN_ONLY Draft67",
+    "concurrency": "configured1;twojobatomicSQLprobeobserved1.20jobHTTPsamplesNONATOMICnotconcurrencyproof",
+    "native_crash_hardcaps_sustainedstress": "NOT_RUN"
+  },
+  "current_integrity": {
+    "at": "2026-11-09T18:53:47.681021+00:00",
+    "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "tree_sha": "d18c949b887187889c9651a43a92d15858fd6eb5",
+    "archive_sha256": "684f1c7c1668bbcd13dbfa23b6473717ccbd6a45df3717087de094a145cf173b",
+    "unchanged_source_files": 930,
+    "changed_source_files": [],
+    "actual_raw_records": 244,
+    "dataset_counts": [
+      {
+        "dataset": "candles",
+        "rows": 44
+      },
+      {
+        "dataset": "index",
+        "rows": 100
+      },
+      {
+        "dataset": "mark",
+        "rows": 100
+      }
+    ],
+    "source_links_renormalized": 284,
+    "completed_market_jobs": 38,
+    "all_job_record_hashes_match_pg": true,
+    "original_http_receipts_rehashed": 114,
+    "research_ledger": {
       "execution_inputs": 1,
       "execution_jobs": 1,
       "artifacts": 1,
       "jobs": 1,
       "acknowledgments": 1
     },
-    "same_request_reopen_idempotent": true,
-    "summary_replay_digest_matches_browser": true,
-    "summary_digest": "c8d5f9e160be3bc44f07d93b3f0bf5540c41aa1bc411a8c223ab5cd64585b1f8",
-    "real_admission_refusal": {
-      "at": "2026-11-09T18:10:22.669653+00:00",
-      "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
-      "live_job_id": "b7d7f6da-e74a-449d-9f42-cd56839c902a",
-      "actual_pg_rows": 10,
-      "limited_role_ingest_and_record_hashes_match": true,
-      "real_snapshot": {
-        "mode": "REAL",
-        "admitted": false,
-        "f_input": null,
-        "reasons": [
-          "coverage_unknown",
-          "historical_visibility_not_proven",
-          "real_source_not_admitted"
-        ]
-      },
-      "refusals": [
-        {
-          "boundary": "prepare_input",
-          "refused": true,
-          "reason": "only admitted immutable synthetic snapshots supported"
-        },
-        {
-          "boundary": "register",
-          "refused": true,
-          "reason": "invalid_qualified_snapshot_id"
-        }
-      ],
-      "before": {
-        "execution_inputs": 1,
-        "execution_jobs": 1,
-        "artifacts": 1,
-        "jobs": 1,
-        "acknowledgments": 1
-      },
-      "after": {
-        "execution_inputs": 1,
-        "execution_jobs": 1,
-        "artifacts": 1,
-        "jobs": 1,
-        "acknowledgments": 1
-      },
-      "no_research_ledger_effects": true
-    }
-  },
-  "candidate_2_resources": {
-    "at": "2026-11-09T18:12:10.931959+00:00",
-    "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
-    "scope": "owned PID/birth-verified API+downloadworker+PG tree, mostly idle after E2E; not load or hardlimit acceptance",
-    "elapsed_seconds": 11.07567339995876,
-    "peak_sampled_rss_sum_bytes": 420544512,
-    "cpu_seconds_delta_surviving": 0.875,
-    "database_bytes": 11982527,
-    "pgdata_bytes": 82824016,
-    "wal_bytes": 33554432,
-    "queue": [
+    "chart_ack": [
       {
-        "state": "completed",
-        "count": 1
+        "job_id": "cfd25c2b-3416-4737-8123-350eafb03a5a",
+        "artifact_digest": "d185bf3b72202987b2691a6e02a84d04d9e70fe76e54a05335ac2fd2260a501e",
+        "rendered_fill_ids": [
+          "f1",
+          "f2",
+          "f3"
+        ]
       }
-    ]
-  },
-  "backup_candidate_2": {
-    "at": "2026-11-09T18:10:56.197967+00:00",
-    "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
-    "source_database": "tester_research_95012633c22841c0a36edeb227536a18",
-    "new_restored_database": "tester_research_95012633c22841c0a36edeb227536a18_restore_1617c4b2",
-    "dump_file": "candidate-2-research-20261109T181055Z.dump",
-    "dump_bytes": 282439,
-    "dump_sha256": "4a980febf39b49a5adc5e469ee5f64c4f88f4963a2c66ce4adff2268fde3d809",
-    "source": {
-      "raw": {
-        "rows": 10,
-        "sha256": "8609cf577249fbec48b1b417c9de6700d3a92d063b01b8882238d6315888e722"
-      },
-      "snapshot": {
-        "rows": 1,
-        "sha256": "5a1c81ee76ced6cdc6c1d32692e2a4e643ec28fbc5c637103376da3ac460cb91"
-      },
-      "artifacts": {
-        "rows": 1,
-        "sha256": "8e13442f420806b27fd35858ab414ed0fbf98a4eab97850a2d6ef671e3990683"
-      },
-      "execution": {
-        "rows": 1,
-        "sha256": "5dd939ba8ddb5364db56b61c2b5987d562c0657f85a07dc308b682459ca9fc22"
-      },
-      "ack": {
-        "rows": 1,
-        "sha256": "1a9605077d900e3b414bf6d94d2cfc9e802a530b11de0a12607b57664b45ff26"
+    ],
+    "summary_digest_matches_browser": true,
+    "real_admission": {
+      "admitted": false,
+      "f_input": null,
+      "reasons": [
+        "coverage_unknown",
+        "historical_visibility_not_proven",
+        "real_source_not_admitted"
+      ],
+      "prepare_and_register_denials": [
+        "only admitted immutable synthetic snapshots supported",
+        "invalid_qualified_snapshot_id"
+      ],
+      "no_ledger_effects": true
+    },
+    "identity": {
+      "status": "EXPERIMENTAL_PORTABLE",
+      "native_service": false,
+      "application_source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "mode": "SYNTHETIC_ONLY",
+      "real_market_coverage": "NOT_PROVEN",
+      "research_worker": {
+        "state": "RUNNING",
+        "failures": 0
       }
-    },
-    "restored": {
-      "raw": {
-        "rows": 10,
-        "sha256": "8609cf577249fbec48b1b417c9de6700d3a92d063b01b8882238d6315888e722"
-      },
-      "snapshot": {
-        "rows": 1,
-        "sha256": "5a1c81ee76ced6cdc6c1d32692e2a4e643ec28fbc5c637103376da3ac460cb91"
-      },
-      "artifacts": {
-        "rows": 1,
-        "sha256": "8e13442f420806b27fd35858ab414ed0fbf98a4eab97850a2d6ef671e3990683"
-      },
-      "execution": {
-        "rows": 1,
-        "sha256": "5dd939ba8ddb5364db56b61c2b5987d562c0657f85a07dc308b682459ca9fc22"
-      },
-      "ack": {
-        "rows": 1,
-        "sha256": "1a9605077d900e3b414bf6d94d2cfc9e802a530b11de0a12607b57664b45ff26"
-      }
-    },
-    "all_compared_rows_and_content_equal": true,
-    "data_and_backup_retained": true,
-    "no_existing_database_modified": true
-  },
-  "code_tasks": {
-    "A": "ACTIVE source-only boundedmark/index opt-inreader/handler/profile;noDanalytics",
-    "E": "Draft67 DESIGN_ONLY/RESTART_NOT_READY 6010b214;no productionrestartaction",
-    "D": "Draft66 5169c81 sourcecomplete+rootDPR2PASS;artifactauditinprogress"
-  },
-  "hidpi_harness": "5169c81af10a0d53ca5c59a8984a9add54abaec1",
-  "research_runs": "Two distinct browserrequests DPR1/DPR2; originalPGproof/backup recordedbeforesecondrun",
-  "confirmed_at_europe_berlin": "2026-11-09T19:23:46.239002+01:00",
-  "resolved_blockers": [
-    {
-      "defect": "SPOT fixture incompatible with linear terminal",
-      "resolved_by": "separately-authored byte-pinned B4d9 terminal-linear fixture, actual6a physicalbrowserPASS;originalspotunchanged"
-    },
-    {
-      "defect": "market canonical hostaddr/research DSN policy mismatch",
-      "resolved_by": "Draft65 2997df7, actual6a freshprepare/limitedrole/PGbrowserPASS"
     }
-  ],
-  "resource_scope": "resource is retained baseline EA ten10-candle/DPR1 proof;candidate_2_resources is newer mostlyidle sample;ten_hour_batch is current17secondload",
-  "ten_hour_batch": {
-    "at": "2026-11-09T18:22:23.253734+00:00",
-    "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
-    "scope": "10 simultaneous submitted hour-history jobs, serial bounded worker;NOT10parallelrunning/hardcaps/sustainedstress",
+  },
+  "browser_summary": {
+    "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "harness_sha": "5169c81af10a0d53ca5c59a8984a9add54abaec1",
+    "cases": 13,
+    "all_assertions_completed": true,
+    "actual_dpr": 2,
+    "intervals": [
+      "1",
+      "3",
+      "5",
+      "15",
+      "30",
+      "60",
+      "120",
+      "240",
+      "360",
+      "720",
+      "D",
+      "W",
+      "M"
+    ],
+    "page_errors": 0,
+    "raw_bytes": 1152455,
+    "raw_sha256": "a1dc7b8085fb843192ca1822efa903d260e3d140066ade5b863ae5f9225b25be",
+    "gzip_bytes": 54186,
+    "gzip_sha256": "2f92dc5a45a51b3686e0d98e53943a0cdf3c51a8ffda41ded6201dfac4762b22",
+    "console_resource_errors": 1167,
+    "console_error_classes": {
+      "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)": 104,
+      "Failed to load resource: the server responded with a status of 404 (Not Found)": 728,
+      "Failed to load resource: the server responded with a status of 503 (Service Unavailable)": 335
+    }
+  },
+  "resources": {
+    "at": "2026-11-09T18:43:23.155407+00:00",
+    "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "scope": "10instruments\u00d7mark/index,20simultaneouslysubmittedjobs,serialboundedworker;not20parallel/hardcaps/sustainedstress",
     "symbols": [
       "BTCUSDT",
       "ETHUSDT",
@@ -327,55 +180,62 @@
       "DOTUSDT",
       "LTCUSDT"
     ],
-    "all_job_hashes_match_actual_pg": true,
-    "raw_unique_records": 600,
-    "per_symbol": [
-      {
-        "symbol": "ADAUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "AVAXUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "BTCUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "DOGEUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "DOTUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "ETHUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "LINKUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "LTCUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "SOLUSDT",
-        "count": 60
-      },
-      {
-        "symbol": "XRPUSDT",
-        "count": 60
-      }
-    ],
-    "database_bytes": 17258175,
+    "all_200_job_hashes_match_pg": true,
+    "total_raw_records": 210,
+    "elapsed_seconds": 30.386700899980497,
+    "peak_sampled_rss_sum": 405557248,
+    "cpu_seconds_delta_surviving": 12.296875,
+    "database_bytes": 13555391,
     "wal_bytes": 33554432,
-    "elapsed_seconds": 17.261458200053312,
-    "cpu_seconds_delta_surviving": 7.25,
-    "peak_sampled_rss_sum": 453672960,
-    "max_running": 1
-  }
+    "max_running_from_nonatomic_per_job_HTTP_samples": 2,
+    "queue_sample_limit": "Sequential per-job HTTP reads can straddle completion/start and overcount running; this is NOT an atomic concurrency maximum"
+  },
+  "backup_evidence": "candidate-4-final-backup-restore.json",
+  "historical_checkpoint": "candidate-2-history-checkpoint.json",
+  "retained_previous_labs": [
+    {
+      "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-28675bef2c3941d286bc6621951f8634",
+      "state": "STOPPED_RETAINED"
+    },
+    {
+      "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-429bdccfca164b44823d3eb3c2db7bd3",
+      "state": "STOPPED_RETAINED"
+    },
+    {
+      "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-95012633c22841c0a36edeb227536a18",
+      "state": "STOPPED_RETAINED"
+    },
+    {
+      "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-fa84840d666f4cc18977c552ee1a5870",
+      "state": "STOPPED_RETAINED"
+    }
+  ],
+  "rejected_uninstalled_candidate": {
+    "sha": "9d028165749ec956ea7cc2601be9b04df32f2888",
+    "reason": "sourceNoneHTTP500P2fixedbeforephysicalactivation",
+    "artifact": "retained"
+  },
+  "producer_status": {
+    "A": "Draft68 81150ad;sourcecomplete+root10instrumentmark/indexPASS",
+    "D": "Draft66 5169c81;rootall13DPR2+strategyPASS",
+    "E": "review8115sevenadversePASS;Draft67 6010b214DESIGN_ONLY/notrestart"
+  },
+  "outstanding": [
+    "HostedCIpending/queued;NOT_CI_ACCEPTED",
+    "REALhistoricalqualityvisibility/publication/UTC/restore/allmutatorprotocolnotadmitted",
+    "Funding/OI/tradeshistory/analytics/Footprint/Delta/CVD/VWAP/POC/VolumeProfileNOT_INTEGRATED",
+    "Mark/index1.1APIworks;DpricepanelNOT_INTEGRATED",
+    "1167HTTPresourceconsoleerrors,0pageerrors:unsupportedanalytics404/footprint422/unavailable503mustremainUNAVAILABLE",
+    "Same-rootrestart/inplaceupgrade/crash/reboot/nativeSCM/hardlimits/sustainedparallel10NOT_ACCEPTED",
+    "TraderIntelligenceNOT_READY/sourcepermissiongate;anonymousprintsnottraderhistory",
+    "Onehourprivateexecutioncapability;noautorefresh/unsafeoldrootreprepare"
+  ],
+  "next": [
+    "Readthisevidencebranchcheckpoint;verifyactualhost/SCM/PIDbirths/ports/exact930filemanifestbeforeactions",
+    "Currentpublishedpc4_runtime verify/shutdown with exactroot/SHAabove;afterAPIworkerexit research_lab stop;neverforeignkill/deleteflags",
+    "Noautomaticreinstall/repeatedrestore/fixturejobs;allbackups/dataretained",
+    "CoordinateBhistoricaladmission,E/Bsafeappend-onlyrestart,D/Ecapabilitygating,Cfinancialports,Hsourcepermissiontaskswithdedup",
+    "NoUAC/SCM/reboot/trade/mainmerge/officeaccess withoutseparatescopedapproval",
+    "Frozenapplicationbranchunchanged;newphysicalproofonlyevidencebranch"
+  ]
 }

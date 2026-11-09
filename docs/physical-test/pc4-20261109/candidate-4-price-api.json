@@ -1,0 +1,868 @@
+{
+  "at": "2026-11-09T18:42:16.948908+00:00",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "readers": [
+    {
+      "kind": "mark",
+      "pages": [
+        {
+          "rows": 3,
+          "terminal": false
+        },
+        {
+          "rows": 3,
+          "terminal": false
+        },
+        {
+          "rows": 3,
+          "terminal": false
+        },
+        {
+          "rows": 1,
+          "terminal": true
+        }
+      ],
+      "records": 10,
+      "schema_version": "1.1",
+      "no_fabricated_volume": true,
+      "cross_kind_cursor_refused": 422,
+      "legacy_v1_route_not_relabeled": 503,
+      "values": [
+        {
+          "low": "74588.9",
+          "high": "74625.92",
+          "kind": "official_mark",
+          "open": "74623.98",
+          "close": "74611.46",
+          "venue": "bybit",
+          "end_ms": 1794249120000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249060000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "b3bae3f865292153b5318930804c032b0159a5650aa027a2b6410386ff75f16d",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249060000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249060000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74582.59",
+          "high": "74624.6",
+          "kind": "official_mark",
+          "open": "74611.46",
+          "close": "74610.2",
+          "venue": "bybit",
+          "end_ms": 1794249180000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249120000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "4cd70a2783f1d6e3176c585f420efe78cb1de235eaa107cfae48fdfdd2396b54",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249120000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249120000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74543.45",
+          "high": "74610.2",
+          "kind": "official_mark",
+          "open": "74610.2",
+          "close": "74543.45",
+          "venue": "bybit",
+          "end_ms": 1794249240000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249180000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "74fc292472c2c5e69a0c298f7350fc0e1a8144a97fbdbbae7f75b55549db5260",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249180000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249180000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74530.56",
+          "high": "74549.6",
+          "kind": "official_mark",
+          "open": "74543.45",
+          "close": "74532.1",
+          "venue": "bybit",
+          "end_ms": 1794249300000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249240000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "bf513c7d9174e95584971db089bb95198dfa80dc012c8dca53fb5f0886176087",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249240000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249240000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74532.1",
+          "high": "74564.7",
+          "kind": "official_mark",
+          "open": "74532.1",
+          "close": "74548.24",
+          "venue": "bybit",
+          "end_ms": 1794249360000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249300000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "f809ec997ca0df8fcedcfe8f89cba145547d1ae46c494c2b2fe27b3f39bf6547",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249300000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249300000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74538",
+          "high": "74571",
+          "kind": "official_mark",
+          "open": "74548.24",
+          "close": "74561.9",
+          "venue": "bybit",
+          "end_ms": 1794249420000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249360000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "51e9722ca670e552022d039c69c68a272163d9d0e2952ef8ef7614a5e55179e2",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249360000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249360000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74561.9",
+          "high": "74577.5",
+          "kind": "official_mark",
+          "open": "74561.9",
+          "close": "74577.5",
+          "venue": "bybit",
+          "end_ms": 1794249480000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249420000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "fcc787e914a3b553e6152feadd61b2114e30feb47138edd31fda79bfc0926c44",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249420000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249420000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74577.5",
+          "high": "74646.1",
+          "kind": "official_mark",
+          "open": "74577.5",
+          "close": "74616.91",
+          "venue": "bybit",
+          "end_ms": 1794249540000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249480000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "87dec94d5d65e1b509c7f9d80399a23ab1a4cf590464c1c7ebd744cd91fec6ef",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249480000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249480000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74604.1",
+          "high": "74647.2",
+          "kind": "official_mark",
+          "open": "74616.91",
+          "close": "74633.42",
+          "venue": "bybit",
+          "end_ms": 1794249600000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249540000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "afe8c0a28d4fdd2428b18ae9b28f871a44ae46f9ee9bf9b18f0324b574215b20",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249540000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249540000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74621.35",
+          "high": "74669.8",
+          "kind": "official_mark",
+          "open": "74633.42",
+          "close": "74639.1",
+          "venue": "bybit",
+          "end_ms": 1794249660000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:62770d87cc3041ab9c6379c106822c27",
+              "evidence:5f5de83730455d1e77199930b9014a3a80dca94fb85c0cc88b8c17ddf8d980c1",
+              "task:5d5d8d2563074fc8a3eff54cce8876e4"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249600000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "03b6dc3247d0243084093861bccb8744223ccd4da1c232415b04f4299e91f44e",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:d9a6988cd84640e1b8ac356f256451dd",
+              "source_timestamp": "1794249600000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249600000,
+          "schema_version": "1.1"
+        }
+      ]
+    },
+    {
+      "kind": "index",
+      "pages": [
+        {
+          "rows": 3,
+          "terminal": false
+        },
+        {
+          "rows": 3,
+          "terminal": false
+        },
+        {
+          "rows": 3,
+          "terminal": false
+        },
+        {
+          "rows": 1,
+          "terminal": true
+        }
+      ],
+      "records": 10,
+      "schema_version": "1.1",
+      "no_fabricated_volume": true,
+      "cross_kind_cursor_refused": 422,
+      "legacy_v1_route_not_relabeled": 503,
+      "values": [
+        {
+          "low": "74619.47",
+          "high": "74655.52",
+          "kind": "official_index",
+          "open": "74654.29",
+          "close": "74642.83",
+          "venue": "bybit",
+          "end_ms": 1794249120000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249060000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "c3942edca408121fac95495c0fa929a56fa6902255b494870a6e2abcb32e73f0",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249060000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249060000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74614.53",
+          "high": "74655.73",
+          "kind": "official_index",
+          "open": "74642.83",
+          "close": "74641.81",
+          "venue": "bybit",
+          "end_ms": 1794249180000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249120000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "f06f591f69f588ecbf9acb27791f2002555a8f4f48feea181e9180e56f31de25",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249120000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249120000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74578.86",
+          "high": "74641.81",
+          "kind": "official_index",
+          "open": "74641.81",
+          "close": "74578.86",
+          "venue": "bybit",
+          "end_ms": 1794249240000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249180000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "9f4119caa790696cdfdfd3ce34d3ba31956c8f80191bd1682612d6c07da6b3ea",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249180000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249180000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74565.89",
+          "high": "74581.85",
+          "kind": "official_index",
+          "open": "74578.86",
+          "close": "74565.89",
+          "venue": "bybit",
+          "end_ms": 1794249300000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249240000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "42e508544ef1d9026328470241d25d0ca21fd8064822c0fc80668897148e8afb",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249240000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249240000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74565.89",
+          "high": "74596.13",
+          "kind": "official_index",
+          "open": "74565.89",
+          "close": "74583.47",
+          "venue": "bybit",
+          "end_ms": 1794249360000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249300000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "f8f313fcb4bfa1ae241833e4521066550112f67ed3f7d02adb661b5a916a2fb5",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249300000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249300000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74571.67",
+          "high": "74600.82",
+          "kind": "official_index",
+          "open": "74583.47",
+          "close": "74590.78",
+          "venue": "bybit",
+          "end_ms": 1794249420000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249360000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "25a0275bc892531cfc3280b1fbfbd91aeaf5785fd8de3bab0607616c0fa56ad6",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249360000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249360000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74590.78",
+          "high": "74605.15",
+          "kind": "official_index",
+          "open": "74590.78",
+          "close": "74603.15",
+          "venue": "bybit",
+          "end_ms": 1794249480000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249420000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "c457a7f9a308106527974db64106ad83317d8d2bbb6a6dc8649c70376d832f5b",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249420000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249420000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74603.15",
+          "high": "74674.19",
+          "kind": "official_index",
+          "open": "74603.15",
+          "close": "74647.13",
+          "venue": "bybit",
+          "end_ms": 1794249540000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249480000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "51f83a2e856d6c53fb1e72c6370ba8f26557c7f25ff68e37af0248b7e2b5b5b0",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249480000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249480000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74635",
+          "high": "74674.61",
+          "kind": "official_index",
+          "open": "74647.13",
+          "close": "74664.04",
+          "venue": "bybit",
+          "end_ms": 1794249600000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249540000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "5f93dd5e9ab8ba5da2062b477ce72647fd64a5e09249c0354d8535beaad3cc67",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249540000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249540000,
+          "schema_version": "1.1"
+        },
+        {
+          "low": "74651.52",
+          "high": "74697.55",
+          "kind": "official_index",
+          "open": "74664.04",
+          "close": "74668.96",
+          "venue": "bybit",
+          "end_ms": 1794249660000,
+          "symbol": "BTCUSDT",
+          "category": "linear",
+          "coverage": {
+            "status": "UNKNOWN",
+            "start_ms": 1794249060000,
+            "end_ms": 1794249660000,
+            "evidence_refs": [
+              "task:eae7d72c96124360a1361913b144b7f2",
+              "evidence:3cfe707ad4064a507a8e8ff4c1973c5ed464bc1a0bef59560cc8e7241f7d3267",
+              "task:24b0a3fd820049708afe0486969e854b"
+            ]
+          },
+          "interval": "1",
+          "start_ms": 1794249600000,
+          "is_closed": true,
+          "provenance": [
+            {
+              "source_ref": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794249060000&end=1794249659999",
+              "source_hash": "02215e4e034286d15291f5e99af3f11a8e171348f08de0ab30a88dfb3f83784d",
+              "source_kind": "bybit_rest",
+              "ingestion_run": "run:8daf0486863047dc81524b9bd5a77726",
+              "source_timestamp": "1794249600000",
+              "timestamp_precision": "ms"
+            }
+          ],
+          "availability": {
+            "status": "PARTIAL",
+            "reason": "Observed closed reference price; history not certified"
+          },
+          "timestamp_ms": 1794249600000,
+          "schema_version": "1.1"
+        }
+      ]
+    }
+  ],
+  "decimal_timestamp_string_refused": 422,
+  "trade_candle_compatibility_job": {
+    "id": "85041ebd-d593-42b4-8bb8-e29ef08492a1",
+    "state": "completed",
+    "records": 10
+  }
+}

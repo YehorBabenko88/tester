@@ -1,0 +1,227 @@
+{
+  "at": "2026-11-09T18:44:36.832930+00:00",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "scope": "two bounded replay jobs; each state count uses one actual SQL aggregate snapshot; not reconstruction of prior20jobpeak",
+  "job_ids": [
+    "05704498-7336-4bcf-ab98-a61ff292ec05",
+    "be539d97-3607-46ce-a10d-6d790924aa8b"
+  ],
+  "configured_max_running": 1,
+  "maximum_atomic_running_observed": 1,
+  "all_replay_jobs_completed": true,
+  "samples": [
+    {
+      "elapsed": 0.021030600008089095,
+      "atomic_global_state_counts": {
+        "queued": 2,
+        "completed": 23
+      }
+    },
+    {
+      "elapsed": 0.15189179999288172,
+      "atomic_global_state_counts": {
+        "queued": 2,
+        "completed": 23
+      }
+    },
+    {
+      "elapsed": 0.27664629998616874,
+      "atomic_global_state_counts": {
+        "queued": 2,
+        "completed": 23
+      }
+    },
+    {
+      "elapsed": 0.4003787999972701,
+      "atomic_global_state_counts": {
+        "queued": 2,
+        "completed": 23
+      }
+    },
+    {
+      "elapsed": 0.52314090001164,
+      "atomic_global_state_counts": {
+        "queued": 2,
+        "completed": 23
+      }
+    },
+    {
+      "elapsed": 0.6478415000019595,
+      "atomic_global_state_counts": {
+        "queued": 2,
+        "completed": 23
+      }
+    },
+    {
+      "elapsed": 0.77218199998606,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 0.8960159000125714,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 1.021770599996671,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 1.148133600014262,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 1.2693638000055216,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 1.3993079999927431,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 1.5253436000202782,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 1.6481720000156201,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 1.7699118999880739,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 1.9004064000328071,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 2.024399599991739,
+      "atomic_global_state_counts": {
+        "completed": 23,
+        "queued": 1,
+        "running": 1
+      }
+    },
+    {
+      "elapsed": 2.147290699998848,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 2.270453900040593,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 2.397142400033772,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 2.51941569999326,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 2.6482721000211313,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 2.7713853000313975,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 2.8932119000237435,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 3.0169591000303626,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 3.1420553000061773,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 3.266649700002745,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 3.387105900037568,
+      "atomic_global_state_counts": {
+        "running": 1,
+        "completed": 24
+      }
+    },
+    {
+      "elapsed": 3.5174077000119723,
+      "atomic_global_state_counts": {
+        "completed": 25
+      }
+    }
+  ]
+}

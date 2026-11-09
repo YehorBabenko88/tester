@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-09T18:31:59.375366+00:00",
+  "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "dump_file": "candidate-2-before-upgrade-20261109T183159Z.dump",
+  "dump_bytes": 771712,
+  "sha256": "e2f8c7446908a89ff2e6c3ad2a8731bf276d2ace8e9875380e395c2028bb01f8",
+  "actual_exported_snapshot_counts": {
+    "tester_storage.raw_records": 600,
+    "tester_storage.record_sources": 620,
+    "tester_research.execution_jobs": 2,
+    "tester_research.artifacts": 1,
+    "tester_research.acknowledgments": 2
+  },
+  "snapshot_scope": "operator-owned cluster verified; actualpg_dumpuses same exported REPEATABLE_READ snapshot",
+  "restore": "NOT_REPEATED; priorcandidate2schema+fivegroupcontent restore alreadyproven separately",
+  "backup_retained_private": true
+}

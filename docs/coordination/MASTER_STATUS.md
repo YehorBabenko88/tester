@@ -1,3 +1,13 @@
+# Active PC4 checkpoint — 2026-11-09
+
+Installed SHA `3b2eef8`, tree `d18c949b`; 930 unchanged source files. Owned API18767 and PostgreSQL55471 are running. Current evidence verifies 38 jobs, 244 raw records, 284 provenance links and 114 HTTP receipts. Ten-instrument mark/index API, all 13 timeframes at DPR2 and the synthetic F → G/E → D ACK/statistics/SLTP/journal path passed. Final seven-group backup/restore passed. REAL history remains unadmitted.
+
+Full acceptance is NO_GO: CI pending/queued, historical quality, financial analytics, Trader Intelligence, restart, native service and hard resource limits remain unresolved. Draft67 is design only. Zero page errors does not erase the 1,167 unavailable-resource console errors. No SCM, UAC, main merge, trading or office changes.
+
+The source branch `integration/pc4-physical-20261109` is frozen. Current physical evidence/checkpoint is on `evidence/pc4-physical-20261109`, at `docs/physical-test/pc4-20261109/CHECKPOINT.json`. Older statements below are historical.
+
+---
+
 # PC4 current portable physical checkpoint — 2026-11-09
 
 Installed immutable application `6a24e50d51f4d65783c4436b94fe87cc883acbeb`, tree `9488dc721a8b462ac346cbf845b55dee6505e840`, archive SHA256 `d16aedfeca91d91efff30667c625a09676adf9a6ba5540f7535f8b0ae9833112`; 905 extracted-archive source files rehashed unchanged. OwnedAPI18767/worker/PG55471 active, limitedrole/OSidentity verified. ExistingPG5432 andADMINIT untouched. Full current checkpoint: docs/physical-test/pc4-20261109/CHECKPOINT.json.

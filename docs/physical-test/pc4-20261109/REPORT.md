@@ -1,3 +1,37 @@
+# Current PC4 physical checkpoint
+
+HOST_IDENTITY: PC4, Windows 11 Pro build 26200, Ryzen 7800X3D, standard user.
+
+INSTALLED_SHA: `3b2eef8a4139195db1a775545e83f1c1f58bf403`. TREE: `d18c949b887187889c9651a43a92d15858fd6eb5`. Archive SHA256: `684f1c7c1668bbcd13dbfa23b6473717ccbd6a45df3717087de094a145cf173b`. All 930 extracted source files were rehashed unchanged. The manifest describes archive filesystem bytes, including configured CRLF materialization; these can differ from normalized raw Git blobs.
+
+PG_ISOLATION / API_BIND: owned PostgreSQL at `127.0.0.1:55471`, API at `127.0.0.1:18767`. The checkpoint attests API PID30552, worker PID2272 and PG PID9084. Original PG5432/PID7584 is untouched. SERVICE_STATUS: EXPERIMENTAL_PORTABLE; no Windows Service or UAC.
+
+UNIVERSE: current all-status catalog contains 1995 linear and 76 inverse instruments. All API pages were read using pinned revisions; the source reports six plus five pages. Four retained ticker observations per category show approximately five minutes plus acquisition latency, without a manual refresh POST. The earlier EA baseline independently verified 32 global sort cases; current browser cases also exercise sorting, search and selection.
+
+DATA_INGEST: 38 current jobs completed. PostgreSQL contains 244 unique raw records: 44 trade candles, 100 mark candles and 100 index candles. All job hashes matched actual records; 284 source links were independently normalized again, and 114 original HTTP bodies were rehashed. Ten instruments completed 20 mark/index jobs. That batch took 30.39 seconds, with sampled peak owned-process RSS of 405,557,248 bytes (about 387 MiB) and CPU delta of 12.30 seconds. This is a bounded test, not sustained stress or hard-limit acceptance. Sequential HTTP state samples can straddle job transitions; a separate two-job atomic SQL probe observed one running job with the configured limit of one. Ten simultaneous workers were not tested.
+
+COVERAGE: UNKNOWN. Actual REAL input preparation and registration refuse admission, leave F input absent and do not change the research ledger. No event, fetched or current time is substituted for proven historical knowledge time.
+
+DRAWING / TIMEFRAMES: all 13 timeframes passed on the current SHA in actual Chromium at DPR2, including D/W/M, wheel zoom, pan, crosshair, UTC navigation and canvas backing alignment. There were zero page errors, but 1,167 resource console errors: unsupported analytics 404, footprint 422, unavailable sources 503 and navigation into unobserved candle ranges. These responses are not analytics success.
+
+REFERENCE_PRICES: the explicit price-only v1.1 API returned closed mark/index candles without invented volume. Ten BTC records per kind traversed four pages and a terminal cursor. Cross-kind cursors and decimal-shaped timestamp strings returned 422. The v1.0 trade-candle route does not relabel reference prices. The D reference-price panel remains NOT_INTEGRATED.
+
+RESEARCH / CODEX_CONTROL: the actual qualified synthetic PostgreSQL snapshot → F → durable execution → authorized G/E → D chart ACK → summary, statistics, SL/TP and trade journal passed at DPR2. Three fills and one closed trade remained visibly SYNTHETIC. Risk lines use entry uncertainty windows; confidence is explicitly not estimated. Wrong tokens returned 401, unregistered inputs 403, foreign Origin with a valid capability 403 and anonymous summary reads 401. Negative checks did not create research jobs. This is not a real-market backtest or arbitrary-code permission.
+
+BACKUP: pg_dump used an exported repeatable-read snapshot and was restored into a new verified owned database. Seven content-hash groups matched: raw records, sources, projections, qualified snapshot, artifact, execution and ACK. Another private archive retains 190 source-body, journal and handoff files. Both databases and backups remain. The previous 600-row 6a database and its backup are stopped and retained.
+
+CI_RESULTS: pending/queued, not accepted. Application branch and Draft64 remain frozen at the installed SHA. Physical evidence uses `evidence/pc4-physical-20261109`, preventing report commits from cancelling source checks on the same ref.
+
+TRADER_INTELLIGENCE: NOT_READY, pending permitted identified sources. Anonymous market executions are not trader histories.
+
+REMAINING_BLOCKERS: historical-quality admission; funding/OI/trade history and financial analytics; D reference-price panel; unsupported-panel request traffic; safe same-root restart, in-place upgrade, crash recovery, native SCM, hard limits and sustained parallel load. Draft67 is DESIGN_ONLY, not an implemented restart. The private execution capability is a one-hour test grant and is not refreshed automatically.
+
+GO_NO_GO: **NO_GO for full acceptance; verified bounded portable functionality only.** No main merge, trading, office-PC changes, security changes, force kill, reboot or elevation.
+
+NEXT_ACTION: read CHECKPOINT.json, then verify host, actual process births, ports and source files before acting. Preserve the running candidate or stop it using the published ownership-checked shutdown, then stop only its PostgreSQL. Never delete retained process/stop markers or retroactively enroll old roots. Continue the specific GitHub corrective tasks; do not repeat completed installations or restores without a new reason.
+
+## Historical evidence below — superseded current-state statements
+
 # PC4 current physical status
 
 Current installed application: `6a24e50d51f4d65783c4436b94fe87cc883acbeb`; portableAPI18767/PG55471 active at 2026-11-09T18:23:46.237464+00:00. Evidence-only newer Git HEAD is not an installed upgrade. **EXPERIMENTAL_PORTABLE / NO_GO full acceptance**.

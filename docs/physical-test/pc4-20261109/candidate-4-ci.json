@@ -1,0 +1,201 @@
+{
+  "observed_at": "2026-11-09 18:55:49 UTC",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "runs": [
+    {
+      "id": 42675842190,
+      "name": "Python static and unit tests",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "evidence/pc4-physical-20261109",
+      "event": "push",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675842190"
+    },
+    {
+      "id": 42675693510,
+      "name": "research execution with pinned PG snapshot",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "integration/pc4-physical-20261109",
+      "event": "pull_request",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693510"
+    },
+    {
+      "id": 42675693324,
+      "name": "combined synthetic F-G-D browser",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "integration/pc4-physical-20261109",
+      "event": "pull_request",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693324"
+    },
+    {
+      "id": 42675693175,
+      "name": "PC4 qualified snapshot PostgreSQL",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "integration/pc4-physical-20261109",
+      "event": "pull_request",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693175"
+    },
+    {
+      "id": 42675693452,
+      "name": "Frontend contract and fixture browser tests",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "integration/pc4-physical-20261109",
+      "event": "pull_request",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693452"
+    },
+    {
+      "id": 42675693523,
+      "name": "Python static and unit tests",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "integration/pc4-physical-20261109",
+      "event": "pull_request",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693523"
+    },
+    {
+      "id": 42675693345,
+      "name": "Platform acceptance",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "integration/pc4-physical-20261109",
+      "event": "pull_request",
+      "status": "pending",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693345"
+    },
+    {
+      "id": 42675693665,
+      "name": "Pinned research PostgreSQL integration",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "integration/pc4-physical-20261109",
+      "event": "pull_request",
+      "status": "pending",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693665"
+    },
+    {
+      "id": 42675683353,
+      "name": "Python static and unit tests",
+      "head_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+      "head_branch": "integration/pc4-physical-20261109",
+      "event": "push",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675683353"
+    }
+  ],
+  "checks": [
+    {
+      "name": "test (ubuntu-latest)",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675842190/job/129356846663"
+    },
+    {
+      "name": "test (windows-latest)",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675842190/job/129356846593"
+    },
+    {
+      "name": "postgres-acceptance",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675842190/job/129356846243"
+    },
+    {
+      "name": "research-composition",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693665/job/129356328311"
+    },
+    {
+      "name": "postgres-acceptance",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693523/job/129356321528"
+    },
+    {
+      "name": "test (ubuntu-latest)",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693523/job/129356321296"
+    },
+    {
+      "name": "windows",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693345/job/129356321207"
+    },
+    {
+      "name": "linux (3.11)",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693345/job/129356321197"
+    },
+    {
+      "name": "test (windows-latest)",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693523/job/129356320902"
+    },
+    {
+      "name": "linux (3.14)",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693345/job/129356320663"
+    },
+    {
+      "name": "qualified-synthetic-execution",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693510/job/129356320160"
+    },
+    {
+      "name": "fixture-browser",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693452/job/129356319221"
+    },
+    {
+      "name": "same-job-render-ack",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693324/job/129356316533"
+    },
+    {
+      "name": "snapshot-roundtrip",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675693175/job/129356314380"
+    },
+    {
+      "name": "test (ubuntu-latest)",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675683353/job/129356281248"
+    },
+    {
+      "name": "postgres-acceptance",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675683353/job/129356281203"
+    },
+    {
+      "name": "test (windows-latest)",
+      "status": "queued",
+      "conclusion": null,
+      "url": "https://github.com/YehorBabenko88/tester/actions/runs/42675683353/job/129356280851"
+    }
+  ],
+  "acceptance": "NOT_CI_ACCEPTED"
+}

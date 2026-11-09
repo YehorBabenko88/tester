@@ -1,0 +1,9 @@
+{
+  "at": "2026-11-09T19:01:29.324063+00:00",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "foreign_Origin_with_valid_capability": 403,
+  "anonymous_summary": 401,
+  "execution_jobs_before": 1,
+  "execution_jobs_after": 1,
+  "scope": "Onlyownedloopbackrequests;Originheaderisnotanexternalconnection;secretsnotexported"
+}

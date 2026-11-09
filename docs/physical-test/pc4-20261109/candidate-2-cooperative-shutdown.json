@@ -1,0 +1,22 @@
+{
+  "at": "2026-11-09T18:39:23.938396+00:00",
+  "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "action": "publishedpc4_runtime.shutdown",
+  "forced": false,
+  "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-95012633c22841c0a36edeb227536a18",
+  "api_session_exit_code": 0,
+  "processes": [
+    {
+      "record": ".pc4-api.json",
+      "pid": 32424,
+      "original_identity_alive": false
+    },
+    {
+      "record": ".market-worker.json",
+      "pid": 33984,
+      "original_identity_alive": false
+    }
+  ],
+  "api_stop_marker_retained": true,
+  "worker_stop_marker_retained": true
+}

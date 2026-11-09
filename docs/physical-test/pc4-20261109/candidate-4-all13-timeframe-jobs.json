@@ -1,0 +1,873 @@
+{
+  "at": "2026-11-09T18:47:34.617296+00:00",
+  "source_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "scope": "new reference-profile release all13 inherited candle-cadence regression; priorEA evidence retained",
+  "jobs": [
+    {
+      "id": "1d80ca03-d758-4379-99fd-5647bb1a0adb",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "1",
+        "start_ms": 1794243540000,
+        "end_ms": 1794243720000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "f224d3483a7a27ea3c4efcb0dac063886efdbeb4083c517b7210b6a2eeba386e",
+            "0d7916c8a1cb070d7805564b672494764e61d6ec06a690cfc627e88ae0f1fbd2",
+            "e1b77d5a73400aa06a174d9c2b01efacce4121682575eff5dcda13fcb82759a5"
+          ],
+          "record_hashes": {
+            "a4986de4e84b18abba1a2430dcba258e28b1bca059a703045c6e20611fd55bb5": "a01fde9450d474a8e0930119b83a87dd3c23fb0c15c658f06f6f3903103b7622",
+            "ac317c5cfd0c89770c839705bd62268c24818461167402056ac9c8b0ff9040b7": "fa9d962379978dd6d3e75d61ff764577ea789525f402ac662d39d55f9710851a",
+            "b2e2ab3127c127e3f450251f09df26c401426fa443bf7b71549365b1c1faceab": "12b7bf5ab5f66efc8139fd0b9647d49940c942d278491afce51996fb9efd13c2"
+          },
+          "work_complete": true,
+          "bytes_received": 1556,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.2553569999872707,
+          "bytes_per_second": 1239.4880500254333,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "f224d3483a7a27ea3c4efcb0dac063886efdbeb4083c517b7210b6a2eeba386e"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "0d7916c8a1cb070d7805564b672494764e61d6ec06a690cfc627e88ae0f1fbd2"
+            },
+            {
+              "bytes": 365,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794243540000&end=1794243719999",
+              "source_hash": "e1b77d5a73400aa06a174d9c2b01efacce4121682575eff5dcda13fcb82759a5"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "b8af6fe1067b468ba3f99ec41362711d",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.226848Z",
+      "updated_at": "2026-11-09T18:47:17.825286Z"
+    },
+    {
+      "id": "f1d3b92e-e1ed-4e62-8168-9867b66c1d8f",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "3",
+        "start_ms": 1794243060000,
+        "end_ms": 1794243600000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "e988aa60e7f33568022d64e8a7075a7a9a6ee499ab6436aaf5d9529d53931aa4",
+            "f69461baf54444ec0fe912979d6bdd4019b66ab50e42fc4dcfb4413f50f119ef",
+            "ad9250c1bb8441baefa4ca6e3b4d374e2048716c2f98d5cd6315e5c285ca26ef"
+          ],
+          "record_hashes": {
+            "16f8e9b04dc91692f50967d1d98cd47843f168acf27903fbe64751beb7efd846": "fd72b801c2e0020514c27b73b0c038864ab62f5cc9ce404fc6af5b19b47df260",
+            "182c9e202ba17bc45f284d5b9e726bd21cc1d4f1d26d3917c60504456db6f821": "92565e81993108b0a4ae4602cea25d4c7ab8b3c224ea9ff3a86d2314729fca3e",
+            "785981400b0a173fc72849853a5a491f6cca364b6bec8637369998c4b362d3c6": "333ad4f6b32acd2cdeeca7a3b7a905c7a48665760d87b620a4e25feca8599493"
+          },
+          "work_complete": true,
+          "bytes_received": 1556,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.236411199963186,
+          "bytes_per_second": 1258.4809972979294,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "e988aa60e7f33568022d64e8a7075a7a9a6ee499ab6436aaf5d9529d53931aa4"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "f69461baf54444ec0fe912979d6bdd4019b66ab50e42fc4dcfb4413f50f119ef"
+            },
+            {
+              "bytes": 365,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=3&start=1794243060000&end=1794243599999",
+              "source_hash": "ad9250c1bb8441baefa4ca6e3b4d374e2048716c2f98d5cd6315e5c285ca26ef"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "09c78f31ad6c46db90fd3e61d1cf69c3",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.289696Z",
+      "updated_at": "2026-11-09T18:47:19.198219Z"
+    },
+    {
+      "id": "a40d8498-469e-4392-bcb3-2a377a2dfe57",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "5",
+        "start_ms": 1794242700000,
+        "end_ms": 1794243600000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "c25c8be3a2c6ae1f838de07091bc1f171c0f7c45e75cd27ca05f99d4887e1905",
+            "c7838ae33e2b04430112231d27bb692861e6a7509225493eb61bfd003a6567f6",
+            "25c0e526273381b6ff05614c74f20d87a232510cd94d8459dd2e35c1cfd5248a"
+          ],
+          "record_hashes": {
+            "8fc0be5e78c56b0b4064ad9c8edf27bb14b5466ce2d97e45775c86585d195b7b": "676698c0f501a82dacb36ed73c00d4560d9deadcf5934b6eae80baff4dc2b3f9",
+            "bbf2c244e4ab5369f61d17a20db7cd155859b4da36e99f6406e48e1f0cfe2175": "fe6b2bd41346582ef2ee8c79a725fd06fc11fd4a72353da4f5a72219df4129ce",
+            "d0433c4c7943df5a6667376a14b8db68e9f4d6e70360b96b8cf7b9ba7f592faa": "a4dbd906cf872888f92c2ce5f691aa3ca16e88ab82c7f3ab25639b3f85d8743d"
+          },
+          "work_complete": true,
+          "bytes_received": 1561,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.253435599966906,
+          "bytes_per_second": 1245.3771059647695,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "c25c8be3a2c6ae1f838de07091bc1f171c0f7c45e75cd27ca05f99d4887e1905"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "c7838ae33e2b04430112231d27bb692861e6a7509225493eb61bfd003a6567f6"
+            },
+            {
+              "bytes": 370,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=5&start=1794242700000&end=1794243599999",
+              "source_hash": "25c0e526273381b6ff05614c74f20d87a232510cd94d8459dd2e35c1cfd5248a"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "306c5529b8454cf4b42cc03d7e1f0e28",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.344002Z",
+      "updated_at": "2026-11-09T18:47:20.600983Z"
+    },
+    {
+      "id": "c29b5751-9490-4e38-9da6-fae762a9d6cf",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "15",
+        "start_ms": 1794240900000,
+        "end_ms": 1794243600000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "13873a31699fd9d914d05369600eecc7a3cb59b35c911a8e0b4a818e707ccc32",
+            "1966a19ac97a91ef1428b4c37ba573751ff4bc8cf893bb52efed40851df6f489",
+            "965cb3c4bb66e4b96bd45048d6a5a8dc9c58d1143feedf1f6467e7d738a98136"
+          ],
+          "record_hashes": {
+            "10c1922b772b92779c36fee7d5e5e7db626b4309e857ef8dc13d6fc1cd52a374": "951447ab53115d65074ee9a2679891195cba788f9125a2e8aa494eee023c26b2",
+            "1f241303b00bbf12e95a60ed625f57da2d21a9528e5bf61f61d2445a20c660f6": "ad59892d94165f00a6cf5bacd101772784a3731d080856db01145b14d891e662",
+            "b122e01cd8437893280c57f09831768a847f2a68642d281a149fbd54584f3a59": "9d4dcca6ac98ad2d62a23305d5fc74b36f9cf819dc050309d4916e29b51596bc"
+          },
+          "work_complete": true,
+          "bytes_received": 1565,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.237484899989795,
+          "bytes_per_second": 1264.6618960868984,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "13873a31699fd9d914d05369600eecc7a3cb59b35c911a8e0b4a818e707ccc32"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "1966a19ac97a91ef1428b4c37ba573751ff4bc8cf893bb52efed40851df6f489"
+            },
+            {
+              "bytes": 374,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=15&start=1794240900000&end=1794243599999",
+              "source_hash": "965cb3c4bb66e4b96bd45048d6a5a8dc9c58d1143feedf1f6467e7d738a98136"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "84cdc479d1ca48d497849cc5d6637c85",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.380049Z",
+      "updated_at": "2026-11-09T18:47:21.979608Z"
+    },
+    {
+      "id": "e746f1c3-b5eb-43e6-9578-b4cafe694204",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "30",
+        "start_ms": 1794238200000,
+        "end_ms": 1794243600000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "6c19bcaed5f76d77ab52ee23a16123c8fd9f7674d072169eaa486354f760a7e9",
+            "c2efa79e1ea227f9b2d2bc8c2412d9ac67b7b2073d7efed2f4dcebbb927414ae",
+            "256e797b8af5bd196cfc886523db82c2b468743178cedfd20d7c0c3efe94b4e2"
+          ],
+          "record_hashes": {
+            "3f4a31c56ec5ec3e46a06e5044e9ab354ccef3cd1abce630d3d22699a4e7bf30": "b3cdf56e485b8b98d8294389e4187b55569a0db482e2648633061397f6af076a",
+            "6023d44a9edc7edae43890a29dd21d117b824e319e3c191e413d0321092b6a14": "3651d6870881a98e801c0b4f60c178d5067f7fcde238941e0c872fae10533469",
+            "d803e088abc58f735d48e74f2e09d1cd3397d3b12f5a409bc55790202f33d9ee": "53cb05f998ea3744b3a1424c3cafa3ad1edd86654a7e5eb20fb145da47e396fd"
+          },
+          "work_complete": true,
+          "bytes_received": 1567,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.234052799991332,
+          "bytes_per_second": 1269.7998011195361,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "6c19bcaed5f76d77ab52ee23a16123c8fd9f7674d072169eaa486354f760a7e9"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "c2efa79e1ea227f9b2d2bc8c2412d9ac67b7b2073d7efed2f4dcebbb927414ae"
+            },
+            {
+              "bytes": 376,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=30&start=1794238200000&end=1794243599999",
+              "source_hash": "256e797b8af5bd196cfc886523db82c2b468743178cedfd20d7c0c3efe94b4e2"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "da542fe50bdd4d9fb2f30372c9cf4520",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.424732Z",
+      "updated_at": "2026-11-09T18:47:23.365368Z"
+    },
+    {
+      "id": "2de3f144-3ca8-4f9f-8c8b-9db67c6094a1",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "60",
+        "start_ms": 1794232800000,
+        "end_ms": 1794243600000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "83ad5d40fe1297ce2d90b233c4983cc770c91db7ac66f8d8aef58cbc1718c6f8",
+            "7bd84894bcd41225fe030df68f008bd85012e4f3f91dbb89c88442e3f0f330e2",
+            "1e3f47782cbcd666467180745e9c2aa67a400e3d3d888e756f46c4d848a17f3f"
+          ],
+          "record_hashes": {
+            "583b852af041ec8a5212011e909f5dbf766df518b0a9e82a61d6a927f7d84e01": "3eff563a1539501a6c28e5ef33d171beeca5d8059b707da434b031cad2d2cc8d",
+            "71e18e731fbfb9008e61c56bc792794b5213363020a3ac8898650136033d03f9": "adabc3a65de82bf34206e65d679db5fd4f4ebf6ec6bc05516e74645f143dfeee",
+            "79a96d929535314d71c4a3d84b7e7e37c8f9d5e48d61daa45c1d070a6c9d5dff": "a15c0074f956f1199a2a0a163dea3acc3f7f0ffbc51410f60f158ebefd8921bb"
+          },
+          "work_complete": true,
+          "bytes_received": 1571,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.2407455999637023,
+          "bytes_per_second": 1266.174145647552,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "83ad5d40fe1297ce2d90b233c4983cc770c91db7ac66f8d8aef58cbc1718c6f8"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "7bd84894bcd41225fe030df68f008bd85012e4f3f91dbb89c88442e3f0f330e2"
+            },
+            {
+              "bytes": 380,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=60&start=1794232800000&end=1794243599999",
+              "source_hash": "1e3f47782cbcd666467180745e9c2aa67a400e3d3d888e756f46c4d848a17f3f"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "ce39dcf89e964841ba9c07a16da1a898",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.480288Z",
+      "updated_at": "2026-11-09T18:47:24.742010Z"
+    },
+    {
+      "id": "056ed139-a0d1-410f-9f4e-dac22dfe0af4",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "120",
+        "start_ms": 1794218400000,
+        "end_ms": 1794240000000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "7d08365eeaf14b16a8448e348522049a97a6e5639120bcad34f2142b73fab559",
+            "ebf07befe0c203595383ce11cd298196232eac7d9978e9668cf24cf71222fcf2",
+            "6ea13f687a60b2eb200ad14b2e4148008564666f959791cf917e4a607e1ab7b7"
+          ],
+          "record_hashes": {
+            "3ecd573ce03e003a45921cb97403820afd69284afdee8776b1a906f4b43efc2a": "2863710c3c5a76cd510abaad30c91d279e1e712facc3a5d5fa31682d41d33ba4",
+            "4927e09b0abb4f35549c2c6cc7dd5a9ce6bbdae4fe1df3b8b165aa7944c4659e": "97b5b5f2ee58fff748acad357497a822a1e4e438f57298da2a9e566d66647d81",
+            "62e3cac9f32e794ac77ac1aa14a2a4f5d6c889e6b5f7af37aab8958b1248e67d": "dd7a020fc3de011f071abcc6e29d2303d1c079beafb9a139bd5427b9c2a9e6e4"
+          },
+          "work_complete": true,
+          "bytes_received": 1569,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.2349357000202872,
+          "bytes_per_second": 1270.5114930066602,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "7d08365eeaf14b16a8448e348522049a97a6e5639120bcad34f2142b73fab559"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "ebf07befe0c203595383ce11cd298196232eac7d9978e9668cf24cf71222fcf2"
+            },
+            {
+              "bytes": 378,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=120&start=1794218400000&end=1794239999999",
+              "source_hash": "6ea13f687a60b2eb200ad14b2e4148008564666f959791cf917e4a607e1ab7b7"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "7fb2ba96a74c44769972511c2815eaeb",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.517391Z",
+      "updated_at": "2026-11-09T18:47:26.146018Z"
+    },
+    {
+      "id": "a2219260-9704-4583-8d0c-7f9c1a66cc66",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "240",
+        "start_ms": 1794196800000,
+        "end_ms": 1794240000000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "0966f60f325c89a95e29a6b54077de34f51e98b23cb0860fbf5afb8e2b6788bc",
+            "1455abdc7bfb7a2c1962ac93bd745042874bfea3aba36b0afe498c865ef0f7f3",
+            "aa82c6a01aa1a2f5172843ede065b14b877de89107e5201682e6a7fb79a458a0"
+          ],
+          "record_hashes": {
+            "83569eba4723f8575d015774b4bf804922cebf696b443692f5b9844e17f650af": "218b33bbdcce9d567ccaf32575ca1b3002aec596b595c07ebe8d89db1752ffbd",
+            "c84a4c5ad12ae9c66d97e6e024c47e778edf327886f1ed01bbf2d7defe7f4f3f": "5d7c19f5f300f273befd8482363aad36ca13b856e33d4bf0851dac212abdcf8b",
+            "e1a6b090ba550377f2c053e9c53641fdb703e08552413c5a60f665e534d10285": "1a3683a496a2ac4c392161d0799c1eaeb0bb43b47347fa5be6aa62bcf228c599"
+          },
+          "work_complete": true,
+          "bytes_received": 1572,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.2415940999635495,
+          "bytes_per_second": 1266.1142639499901,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "0966f60f325c89a95e29a6b54077de34f51e98b23cb0860fbf5afb8e2b6788bc"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "1455abdc7bfb7a2c1962ac93bd745042874bfea3aba36b0afe498c865ef0f7f3"
+            },
+            {
+              "bytes": 381,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=240&start=1794196800000&end=1794239999999",
+              "source_hash": "aa82c6a01aa1a2f5172843ede065b14b877de89107e5201682e6a7fb79a458a0"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "c5b209cca16e45feab2d4640f01a6c79",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.574096Z",
+      "updated_at": "2026-11-09T18:47:27.535269Z"
+    },
+    {
+      "id": "9f0f5534-50d5-40ac-9a99-64261d8d5d62",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "360",
+        "start_ms": 1794160800000,
+        "end_ms": 1794225600000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "4ab52ee42bd96c5770e915766cadb650fe8aab71de24e56f7f4ab01a2697bb9c",
+            "78ad8333e12d0c965af1eae410fc177440b9d8fb468503ac71c1030e20b2546c",
+            "f868aaff874fe03bb7fc5ef8dc488bdb525b7844af34cf84eb0446dc3648d218"
+          ],
+          "record_hashes": {
+            "11a466720927d9c892748e7466139f6e3edecb7d3901a0f42762d0c30fee7bca": "95412c4ce73651ee6e975f25966a05668a439dd1cf124f234b12d61ad3156e59",
+            "cb7dafda5d132a34d1c2ddc45f3770614c8690c044c7811365bf4f35159aa5f9": "cad0a48fc6b8ab2b9e6df6e1c47220fadd519b51e506c6e0c7a8538a4bc15ede",
+            "cea22653791a4e845e563769b792c22ee85096491b49fe9aff4dadc20265e17b": "5fd996d06785016902b53401aeef7a950bff118b2d6d0a349971dc23f0fe921b"
+          },
+          "work_complete": true,
+          "bytes_received": 1573,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.2382906000129879,
+          "bytes_per_second": 1270.2995564881955,
+          "expected_records": null,
+          "records_ingested": 3,
+          "records_verified": 3,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "4ab52ee42bd96c5770e915766cadb650fe8aab71de24e56f7f4ab01a2697bb9c"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "78ad8333e12d0c965af1eae410fc177440b9d8fb468503ac71c1030e20b2546c"
+            },
+            {
+              "bytes": 382,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=360&start=1794160800000&end=1794225599999",
+              "source_hash": "f868aaff874fe03bb7fc5ef8dc488bdb525b7844af34cf84eb0446dc3648d218"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "1f9e37cd0ca246bcba2cb7191dd96ca8",
+        "source_records": 3
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.632131Z",
+      "updated_at": "2026-11-09T18:47:28.926830Z"
+    },
+    {
+      "id": "ca214791-9352-4b43-b6fa-22e00ead2f17",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "720",
+        "start_ms": 1794139200000,
+        "end_ms": 1794225600000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "ce089cedd8121d549f32fd229eb9e5ece9e632119ee4342e77fd91e8732eb863",
+            "43464750985056aa28869e80a7188c14cea2ac6627bf0f6b6dbb1b33ef164eaf",
+            "6fdacba8077e022d1538c7b85d583348b8e9a2b0dc7887b83ed6195a7fc5aa6b"
+          ],
+          "record_hashes": {
+            "3c3d9df83a97abcb834bdf118b8156b2d5d1b1ea9fba540616e0b6279e004b75": "eb1392cc8d3715a9a0c9feff344f1a712f11f5faee9ace2af723ebd8c43464c6",
+            "7f18389020e2621ea97abf995ffe9f44004ff547e9b070acea13b93cf72e7be5": "e16ce82fcca2c221e661fbb20d26371ef757b1b53cdf7b97c256947ec454e98e"
+          },
+          "work_complete": true,
+          "bytes_received": 1489,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.2329670999897644,
+          "bytes_per_second": 1207.6559058326545,
+          "expected_records": null,
+          "records_ingested": 2,
+          "records_verified": 2,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "ce089cedd8121d549f32fd229eb9e5ece9e632119ee4342e77fd91e8732eb863"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "43464750985056aa28869e80a7188c14cea2ac6627bf0f6b6dbb1b33ef164eaf"
+            },
+            {
+              "bytes": 298,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=720&start=1794139200000&end=1794225599999",
+              "source_hash": "6fdacba8077e022d1538c7b85d583348b8e9a2b0dc7887b83ed6195a7fc5aa6b"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "3ccfd94de1ba45b59a64cbb80cf95b7d",
+        "source_records": 2
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.667567Z",
+      "updated_at": "2026-11-09T18:47:30.307554Z"
+    },
+    {
+      "id": "0cc97d5c-93cc-4fa8-80ff-616c95416271",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "D",
+        "start_ms": 1794096000000,
+        "end_ms": 1794182400000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "22a8f5e293798aa43d59083dd7dcf1ef7c29e5e792fcfad73eb0697a2e4c71ec",
+            "b4fc1c0c35430dd60ed9a36df92de5369728e4fb140dc598a0779ccd6cd1edf0",
+            "40328fb4151bc1e43fdc5bfccce82319778bd9542e79f51a14459cb2b3d15385"
+          ],
+          "record_hashes": {
+            "1fc35e4674c7bcf37611f9fc25f702e5823248cf5d924cb632bf18389d3c21af": "2ef8c9aa91ba86b3ff281267c6ba8db3c8592baa119c7e3fe644ee098f3cdfb0"
+          },
+          "work_complete": true,
+          "bytes_received": 1401,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.2373345999512821,
+          "bytes_per_second": 1132.272547825917,
+          "expected_records": null,
+          "records_ingested": 1,
+          "records_verified": 1,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "22a8f5e293798aa43d59083dd7dcf1ef7c29e5e792fcfad73eb0697a2e4c71ec"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "b4fc1c0c35430dd60ed9a36df92de5369728e4fb140dc598a0779ccd6cd1edf0"
+            },
+            {
+              "bytes": 210,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=D&start=1794096000000&end=1794182399999",
+              "source_hash": "40328fb4151bc1e43fdc5bfccce82319778bd9542e79f51a14459cb2b3d15385"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "be17837da6f14440be0377b81c3d26b3",
+        "source_records": 1
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.703884Z",
+      "updated_at": "2026-11-09T18:47:31.693714Z"
+    },
+    {
+      "id": "015e4462-ceba-4aa3-aec4-10c9c4e57d59",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "W",
+        "start_ms": 1792972800000,
+        "end_ms": 1794182400000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "9f34d2185dd53fd7ecba74a2241447ee8b921d6ae1a8969aebed0f26cc9eef73",
+            "d0ec6d23debb48babff013bc11874b34b71123293a31a04adf4e3121bc03cd1a",
+            "c1005962e269b6009c057e416cafd74292b348290a2a6232efe8164278fac9b3"
+          ],
+          "record_hashes": {
+            "1edfa197d99c65e135022d6d228f4264acfdfdc681e60bc1a382b54187d3508e": "c3e332d5fbd58c26563aadd42863eadb9aeb9df8644f89be8b1f33d3124bf08f",
+            "c7bbfdb115f2365d96caa970210faaa8244e19c1408e14164710deb4c09af345": "2e85bb2304cd5f7da19e47948ce2f224c10705ca85c90a9e0585c4e1654f71bd"
+          },
+          "work_complete": true,
+          "bytes_received": 1489,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.229845900030341,
+          "bytes_per_second": 1210.7207902740217,
+          "expected_records": null,
+          "records_ingested": 2,
+          "records_verified": 2,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "9f34d2185dd53fd7ecba74a2241447ee8b921d6ae1a8969aebed0f26cc9eef73"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "d0ec6d23debb48babff013bc11874b34b71123293a31a04adf4e3121bc03cd1a"
+            },
+            {
+              "bytes": 298,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=W&start=1792972800000&end=1794182399999",
+              "source_hash": "c1005962e269b6009c057e416cafd74292b348290a2a6232efe8164278fac9b3"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "0586536f7b074762ba854ca478c389e2",
+        "source_records": 2
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.753297Z",
+      "updated_at": "2026-11-09T18:47:33.078642Z"
+    },
+    {
+      "id": "8c44c371-4df7-42f3-8ced-7b84e1ab2a24",
+      "request": {
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "source": "bybit",
+        "kind": "candles",
+        "interval": "M",
+        "start_ms": 1788220800000,
+        "end_ms": 1793491200000
+      },
+      "state": "completed",
+      "progress": 1.0,
+      "checkpoint": {
+        "source": "bybit",
+        "batches": 1,
+        "coverage": "UNKNOWN",
+        "telemetry": {
+          "source": "bybit",
+          "coverage": "UNKNOWN",
+          "byte_scope": "decoded_http_response_body",
+          "evidence_refs": [
+            "74def65edfe7da328568b06714cd71f8059686e7b63138a72e23275f3c92e4c9",
+            "fe54102a2eb7c7d06692906876d62dbcb2b365b60a358226d91fa51693ffb2f0",
+            "d902a69629625a5fd6dc2163af7c5eb4bfcafa6563c73ffdfae688867f24bc98"
+          ],
+          "record_hashes": {
+            "79ee339410dfeb31e15e4dc0d892c21f3287850c9e8a508f7cfb7adfbdb2715d": "b9357db06760f02b5dcfcc04c967bf95632dadae879b54da96047fee00bf0ce0",
+            "cb6b860c20c1e0d98f031acd7ddbad503e53db3274be6b76f62309bf8e6b1461": "5ddc7ee666961c192d116947275c3ea6d57a96e1e54247ce9d93d54b69cfb912"
+          },
+          "work_complete": true,
+          "bytes_received": 1497,
+          "expected_bytes": null,
+          "schema_version": 1,
+          "elapsed_seconds": 1.2583294000360183,
+          "bytes_per_second": 1189.6725928498133,
+          "expected_records": null,
+          "records_ingested": 2,
+          "records_verified": 2,
+          "response_receipts": [
+            {
+              "bytes": 1057,
+              "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+              "source_hash": "74def65edfe7da328568b06714cd71f8059686e7b63138a72e23275f3c92e4c9"
+            },
+            {
+              "bytes": 134,
+              "source_ref": "https://api.bybit.com/v5/market/time?",
+              "source_hash": "fe54102a2eb7c7d06692906876d62dbcb2b365b60a358226d91fa51693ffb2f0"
+            },
+            {
+              "bytes": 306,
+              "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=M&start=1788220800000&end=1793491199999",
+              "source_hash": "d902a69629625a5fd6dc2163af7c5eb4bfcafa6563c73ffdfae688867f24bc98"
+            }
+          ],
+          "verification_scope": "stored record values and original provenance; not historical completeness"
+        },
+        "acquisition_id": "63fbd69b98204215bf07f4f9588cb381",
+        "source_records": 2
+      },
+      "attempts": 1,
+      "error": null,
+      "created_at": "2026-11-09T18:47:16.800777Z",
+      "updated_at": "2026-11-09T18:47:34.591601Z"
+    }
+  ]
+}
