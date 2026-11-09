@@ -1,0 +1,12 @@
+
+Running 1 test using 1 worker
+
+
+
+
+
+[1A[2K[1/1] tests\market-backend.e2e.js:22:1 › real cached catalog global sorting and persistent queue download outside legacy ten
+[1A[2Ktests\market-backend.e2e.js:22:1 › real cached catalog global sorting and persistent queue download outside legacy ten
+{"application_source_sha":"ea4d9b2cbfc15e1af54ea6bf73a530b68763873e","catalog_revision":"7aed854d5c2d6c0ebc9de443328f5b238ff3163394532d3df847b36f0a6a6940","catalog_loaded":1995,"symbol":"0GUSDT","job_id":"e524f29b-8491-4bae-9620-aa84983c761f","download":"completed","coverage":"UNKNOWN","records_ingested":10,"bytes_received":2030}
+
+[1A[2K  1 passed (5.9s)

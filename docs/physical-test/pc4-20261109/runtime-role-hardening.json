@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-09T17:21:50.751521+00:00",
+  "runtime_flags": [
+    false,
+    false,
+    false,
+    false,
+    false
+  ],
+  "runtime_database_owner": false,
+  "bootstrap_superuser": true,
+  "bootstrap_login": false,
+  "operator_secret": "Separate random password; private owner-only file, never published",
+  "port": 55471,
+  "pg5432_touched": false
+}

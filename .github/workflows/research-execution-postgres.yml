@@ -1,0 +1,60 @@
+name: research execution with pinned PG snapshot
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualified-synthetic-execution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_execution_ci
+          POSTGRES_USER: tester_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['55472:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_ci -d tester_research_execution_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_execution_ci
+      TESTER_EXECUTION_PG: synthetic-disposable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/checkout@v4
+        with:
+          repository: YehorBabenko88/tester
+          ref: 4d9f365c44fb401fe051b48f4938a3674c058d9c
+          path: snapshot-provider
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Explicit source identities and provider path
+        shell: bash
+        run: |
+          echo "TEST_SNAPSHOT_PROVIDER_ROOT=$GITHUB_WORKSPACE/snapshot-provider" >> "$GITHUB_ENV"
+          mkdir -p execution-evidence
+          git rev-parse HEAD 'HEAD^{tree}' > execution-evidence/execution-source.txt
+          git -C snapshot-provider rev-parse HEAD 'HEAD^{tree}' > execution-evidence/snapshot-source.txt
+          test "$(git -C snapshot-provider rev-parse HEAD)" = 4d9f365c44fb401fe051b48f4938a3674c058d9c
+          git ls-files -z | xargs -0 sha256sum > execution-evidence/execution-files.sha256
+          (cd snapshot-provider && git ls-files -z | xargs -0 sha256sum) > execution-evidence/snapshot-files.sha256
+      - name: Durable PG snapshot, actual F, restart, grants, lease fencing, exact ACK
+        run: >-
+          python -m pytest tests/platform/test_research_execution.py
+          tests/platform/test_research_summary.py
+          tests/platform/test_pc4_runtime.py
+          tests/platform/test_research_execution_postgres.py -v
+          --junitxml=execution-evidence/results.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: research-execution-exact-sources
+          path: execution-evidence/
+          retention-days: 7

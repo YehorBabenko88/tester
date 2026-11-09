@@ -1,0 +1,74 @@
+{
+  "id": "5bddd5d0-1e85-45e2-9798-e20dca88052d",
+  "request": {
+    "category": "linear",
+    "symbol": "BTCUSDT",
+    "source": "bybit",
+    "kind": "candles",
+    "interval": "1",
+    "start_ms": 1794242760000,
+    "end_ms": 1794243360000
+  },
+  "state": "completed",
+  "progress": 1.0,
+  "checkpoint": {
+    "source": "bybit",
+    "batches": 1,
+    "coverage": "UNKNOWN",
+    "telemetry": {
+      "source": "bybit",
+      "coverage": "UNKNOWN",
+      "byte_scope": "decoded_http_response_body",
+      "evidence_refs": [
+        "32317704d8c42c0c62102aceacd21a9ca049fdbd5a31bd782f86abc38ceba79a",
+        "3f6d3b682fd999fc5339e54050f68ec08648c730f49bd9207e1062f4457da9f5",
+        "93fa4bbc778243a5b54177b6ef2bd540f2a38b88eb8b22e1d96ce0c16481490e"
+      ],
+      "record_hashes": {
+        "085537a8b4a3fbba1493be800689c76f9b1ead93375d703c1c2c5e1e2f912e46": "92a5a40eddf9fdbd29b51159cca65d5721120825a2def27916a0edd58152362f",
+        "09b3829367c916e04cadb3ea2a769b675fc731c9dd3c2dd20569be0844609beb": "28bd60dd846a59a4ad9d0452e21f15ce6a70d5b8a2325aed0f3711e1bee7ea31",
+        "151f5e3bef37b1c9fed53640b797b8359d3c341a4e2b379f915c8f16562ebb67": "3a1b048db3b5d1e4c73dafcc22e9629b0aadee8b42cb82664fcd5437d613703a",
+        "399eb8cd36b2df65505a9543d984c60f34df40a238be7bafd5f9f6f8d33c3652": "9bec9b8633206e50a1fa378a66d2e548425dd512f41297329bee49333c297e64",
+        "4ec8b022d9b770ce695a904fe30f5cda6823983c554bd6db38633bd34db06909": "4e80f67f692be72276b56215033d2ef2f6c8951a30a886295f8437d36a57ab2e",
+        "50ed432d24c34615b9fb78accb22686e5a98a7c5281716a64724bc0cd865e6ec": "0efcf8f487a0f88e9a08390603159c12c765a6a8592313f7abf3e5e499dcbd6c",
+        "7778ca563199b31704b0732e312d1209bacd28b482def42429b6d907b91bf7da": "8f2528d88f15778fe59ed832385bc904b813aee353f4b721c3ad9e6cd7119c8f",
+        "79b6f175050d9271cce8bf012e214d8954b44a4bd8a99d68c1569656946db2f1": "53d72cebd23fc122d534fb30244e98458e5ce45dae2b2f04b7c1b644c7d73691",
+        "c4b500077cf2463206f7ac3fd085ae0573ec3af221b1f669aef76bce5c8185f0": "b2f2f9c0da1b91054564ab6a51978ce61678ede08ef40dc6d2414155b47ca8a2",
+        "dc1126638e72b5486ceacafc755fcfc03bd50694145a2fa551b3c75c2fdb5ae6": "c1af8dee9620a0da9d8d49c1307923eddc2ed33c6adec4e91ef65119f2f5c747"
+      },
+      "work_complete": true,
+      "bytes_received": 2123,
+      "expected_bytes": null,
+      "schema_version": 1,
+      "elapsed_seconds": 1.2979090999579057,
+      "bytes_per_second": 1635.7077703429725,
+      "expected_records": null,
+      "records_ingested": 10,
+      "records_verified": 10,
+      "response_receipts": [
+        {
+          "bytes": 1057,
+          "source_ref": "https://api.bybit.com/v5/market/instruments-info?category=linear&limit=1&symbol=BTCUSDT",
+          "source_hash": "32317704d8c42c0c62102aceacd21a9ca049fdbd5a31bd782f86abc38ceba79a"
+        },
+        {
+          "bytes": 134,
+          "source_ref": "https://api.bybit.com/v5/market/time?",
+          "source_hash": "3f6d3b682fd999fc5339e54050f68ec08648c730f49bd9207e1062f4457da9f5"
+        },
+        {
+          "bytes": 932,
+          "source_ref": "https://api.bybit.com/v5/market/kline?category=linear&symbol=BTCUSDT&limit=1000&interval=1&start=1794242760000&end=1794243359999",
+          "source_hash": "93fa4bbc778243a5b54177b6ef2bd540f2a38b88eb8b22e1d96ce0c16481490e"
+        }
+      ],
+      "verification_scope": "stored record values and original provenance; not historical completeness"
+    },
+    "acquisition_id": "a2a6fb43bc4148d4bf54def9cd5ab80d",
+    "source_records": 10
+  },
+  "attempts": 1,
+  "error": null,
+  "created_at": "2026-11-09T17:01:50.823481Z",
+  "updated_at": "2026-11-09T17:01:53.298785Z"
+}

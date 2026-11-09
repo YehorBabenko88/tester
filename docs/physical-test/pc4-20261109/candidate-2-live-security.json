@@ -1,0 +1,9 @@
+{
+  "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "actual_foreign_origin_with_valid_capability": 403,
+  "anonymous_completed_summary": 401,
+  "jobs_before": 1,
+  "jobs_after": 1,
+  "no_foreign_network_connection": "Origin is a header sent only to owned loopback API",
+  "tokens_not_exported": true
+}

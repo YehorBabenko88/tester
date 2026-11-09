@@ -232,5 +232,7 @@
     "historical_certificate_issued": false,
     "evidence": "docs/coordination/evidence/b70a3-foundation-pg-pass.json"
   },
-  "automation_status": "PAUSED_OBSERVED_PRESERVED_NO_AUTO_RESUME"
+  "automation_status": "PAUSED_OBSERVED_PRESERVED_NO_AUTO_RESUME",
+  "active_pc4_physical_checkpoint": "docs/physical-test/pc4-20261109/CHECKPOINT.json",
+  "nov7_record_preserved_as_history": true
 }

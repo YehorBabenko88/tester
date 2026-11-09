@@ -1,0 +1,48 @@
+name: PC4 qualified snapshot PostgreSQL
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  snapshot-roundtrip:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_snapshots_ci
+          POSTGRES_USER: tester_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['55473:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_ci -d tester_research_snapshots_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_QUALIFIED_SNAPSHOT_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55473/tester_research_snapshots_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Exact candidate source
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git rev-parse HEAD
+          git rev-parse 'HEAD^{tree}'
+      - name: Pure admission and actual PostgreSQL fixture readback into F
+        run: >-
+          python -m pytest -v tests/platform/test_qualified_snapshot.py
+          tests/platform/test_snapshot_repository.py tests/platform/test_terminal_snapshot.py
+          --junitxml=qualified-snapshot.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qualified-snapshot-results
+          path: qualified-snapshot.xml

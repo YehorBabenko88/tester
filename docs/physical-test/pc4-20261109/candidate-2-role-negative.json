@@ -1,0 +1,30 @@
+{
+  "at": "2026-11-09T18:07:18.059963+00:00",
+  "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "root": "C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\files-pasted-by-the-user-master\\work\\pc4-physical-20261109\\labs\\research-95012633c22841c0a36edeb227536a18",
+  "negative_unexpected_schema_CREATE_refused": true,
+  "revoke_then_limited_guard_passed": true,
+  "probe_schema_retained": true,
+  "operator_secret_unchanged": true,
+  "roles": [
+    {
+      "rolname": "research_owner",
+      "rolsuper": false,
+      "rolcreatedb": false,
+      "rolcreaterole": false,
+      "rolreplication": false,
+      "rolbypassrls": false,
+      "rolcanlogin": true
+    },
+    {
+      "rolname": "tester_pc4_bootstrap",
+      "rolsuper": true,
+      "rolcreatedb": true,
+      "rolcreaterole": true,
+      "rolreplication": true,
+      "rolbypassrls": true,
+      "rolcanlogin": false
+    }
+  ],
+  "native_service": false
+}

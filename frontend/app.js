@@ -1031,4 +1031,6 @@ loadInstruments();
 loadSources();
 refreshJobs();
 
-mountStrategyWorkspace(document.querySelector("#strategy-panels"));
+mountStrategyWorkspace(document.querySelector("#strategy-panels"), {
+  getSelection: () => ({ ...query(), catalog_revision: state.revision }),
+});

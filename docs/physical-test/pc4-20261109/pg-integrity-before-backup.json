@@ -1,0 +1,297 @@
+{
+  "status": "PASS_INTEGRITY_NOT_HISTORICAL_COVERAGE",
+  "raw_unique_records": 145,
+  "immutable_raw_rows_sha256": "8731313589ff846e667209d6ffa609b0e85dbada36d5f71ff7209f4c04aa9165",
+  "acknowledged_record_hashes_checked": 144,
+  "original_http_receipts_verified": 72,
+  "counts": [
+    [
+      "0GUSDT",
+      "1",
+      10
+    ],
+    [
+      "ADAUSDT",
+      "1",
+      10
+    ],
+    [
+      "AVAXUSDT",
+      "1",
+      10
+    ],
+    [
+      "BTCUSDT",
+      "1",
+      14
+    ],
+    [
+      "BTCUSDT",
+      "120",
+      3
+    ],
+    [
+      "BTCUSDT",
+      "15",
+      3
+    ],
+    [
+      "BTCUSDT",
+      "240",
+      3
+    ],
+    [
+      "BTCUSDT",
+      "3",
+      3
+    ],
+    [
+      "BTCUSDT",
+      "30",
+      3
+    ],
+    [
+      "BTCUSDT",
+      "360",
+      3
+    ],
+    [
+      "BTCUSDT",
+      "5",
+      3
+    ],
+    [
+      "BTCUSDT",
+      "60",
+      3
+    ],
+    [
+      "BTCUSDT",
+      "720",
+      2
+    ],
+    [
+      "BTCUSDT",
+      "D",
+      1
+    ],
+    [
+      "BTCUSDT",
+      "M",
+      2
+    ],
+    [
+      "BTCUSDT",
+      "W",
+      2
+    ],
+    [
+      "DOGEUSDT",
+      "1",
+      10
+    ],
+    [
+      "DOTUSDT",
+      "1",
+      10
+    ],
+    [
+      "ETHUSDT",
+      "1",
+      10
+    ],
+    [
+      "LINKUSDT",
+      "1",
+      10
+    ],
+    [
+      "LTCUSDT",
+      "1",
+      10
+    ],
+    [
+      "SOLUSDT",
+      "1",
+      10
+    ],
+    [
+      "XRPUSDT",
+      "1",
+      10
+    ]
+  ],
+  "numeric_grid_checks": [
+    {
+      "symbol": "BTCUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "SOLUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "DOGEUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "ADAUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "LINKUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "DOTUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "LTCUSDT",
+      "interval": "1",
+      "observed": 10,
+      "requested_grid": 10,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "1",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "3",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "5",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "15",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "30",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "60",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "120",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "240",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "360",
+      "observed": 3,
+      "requested_grid": 3,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "interval": "720",
+      "observed": 2,
+      "requested_grid": 2,
+      "missing": 0,
+      "interpretation": "grid consistency only; no historical visibility certificate"
+    }
+  ],
+  "database_bytes": 14415551,
+  "provenance_columns": [],
+  "all_quality": "UNKNOWN"
+}

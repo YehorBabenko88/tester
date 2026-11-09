@@ -90,7 +90,10 @@ def export_trust(root):
     )
 
 
-def config_for(source, root, dsn):
+def config_for(source, root, dsn, source_profile="candles"):
+    if source_profile not in {"candles", "reference-prices/1.1"}:
+        raise ValueError("Unrecognized owned market source profile")
+    module = "catalog_market" if source_profile == "candles" else "reference_prices"
     return dict(
         database_url=dsn,
         market_catalog_database_url=dsn,
@@ -99,8 +102,8 @@ def config_for(source, root, dsn):
         frontend_dir=str(source / "frontend"),
         host="127.0.0.1",
         port=18767,
-        provider_factory="src.integration.catalog_market:create_reader",
-        handler_factory="src.integration.catalog_market:create_handler",
+        provider_factory=f"src.integration.{module}:create_reader",
+        handler_factory=f"src.integration.{module}:create_handler",
         max_pending=100,
         max_running=1,
         min_free_bytes=256 * 1024**2,
@@ -108,7 +111,9 @@ def config_for(source, root, dsn):
     )
 
 
-def seed(root, lab_sha, application_sha):
+def seed(root, lab_sha, application_sha, *, source_profile="candles"):
+    if source_profile not in {"candles", "reference-prices/1.1"}:
+        raise ValueError("Unrecognized owned market source profile")
     from src.api.catalog_store import migrate_catalog
     from src.api.db import migrate
     from src.storage.migrations import migrate as migrate_storage
@@ -142,7 +147,7 @@ def seed(root, lab_sha, application_sha):
     export_trust(root)
     plain(root / "runtime").mkdir()
     path = plain(root / "market-config.json")
-    _save(path, config_for(source, root, dsn), new=True)
+    _save(path, config_for(source, root, dsn, source_profile), new=True)
     receipt = dict(
         schema="tester-market-seed/1",
         status="OWNED_MARKET_LAB_SEEDED",
@@ -157,6 +162,8 @@ def seed(root, lab_sha, application_sha):
         coverage="UNKNOWN",
         seeded_market_records=0,
     )
+    if source_profile != "candles":
+        receipt["source_profile"] = source_profile
     _save(root / "market-seed.json", receipt, new=True)
     return receipt
 
@@ -175,7 +182,7 @@ def settings_for(source, root, dsn, lab_sha, application_sha):
     ):
         raise ValueError("Pinned seed/config identity differs")
     config = json.loads(path.read_text(encoding="utf-8"))
-    if config != config_for(source, root, dsn):
+    if config != config_for(source, root, dsn, receipt.get("source_profile", "candles")):
         raise ValueError("Owned market configuration differs")
     return Settings(**config)
 
@@ -350,15 +357,22 @@ def assert_worker_process(root, application_sha, source, lab_sha):
     return dict(pid=process.pid, binding="OS image/birth/cwd/fixed-worker-module/config-path")
 
 
+def seed_price_sources(root, lab_sha, application_sha):
+    return seed(root, lab_sha, application_sha, source_profile="reference-prices/1.1")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("seed", "serve", "verify"))
+    parser.add_argument("action", choices=("seed", "seed-price-sources", "serve", "verify"))
     parser.add_argument("--root", required=True, type=Path)
     parser.add_argument("--lab-source-sha", required=True)
     parser.add_argument("--application-source-sha", required=True)
     args = parser.parse_args()
     try:
-        result = globals()[args.action](args.root, args.lab_source_sha, args.application_source_sha)
+        action = (
+            seed_price_sources if args.action == "seed-price-sources" else globals()[args.action]
+        )
+        result = action(args.root, args.lab_source_sha, args.application_source_sha)
         if result is not None:
             print(json.dumps(result))
     except Exception as exc:

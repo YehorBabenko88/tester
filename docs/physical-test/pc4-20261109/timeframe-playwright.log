@@ -1,0 +1,21 @@
+
+Running 13 tests using 1 worker
+
+
+
+
+
+[1A[2K[1/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 1
+[1A[2K[2/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 3
+[1A[2K[3/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 5
+[1A[2K[4/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 15
+[1A[2K[5/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 30
+[1A[2K[6/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 60
+[1A[2K[7/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 120
+[1A[2K[8/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 240
+[1A[2K[9/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 360
+[1A[2K[10/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe 720
+[1A[2K[11/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe D
+[1A[2K[12/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe W
+[1A[2K[13/13] tests\pc4-owned-timeframes.e2e.js:145:3 › PC4 actual BTCUSDT timeframe M
+[1A[2K  13 passed (53.6s)

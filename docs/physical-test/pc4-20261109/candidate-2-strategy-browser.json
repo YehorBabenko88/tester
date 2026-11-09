@@ -1,0 +1,335 @@
+{
+  "classification": "ROOT_ONLY_AUTHENTICATED_NO_ROUTE_MOCK",
+  "application_source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "harness_source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "source_identity": "operator supplied release pins; process/PG provenance verified separately by root",
+  "actor": "pc4-synthetic:95012633c22841c0a36edeb227536a18",
+  "input_digest": "20856edffc56292beb59e62fef6da73c93ebfc46c085ed4efd67fa38e5886b95",
+  "selection": {
+    "symbol": "BTCUSDT",
+    "category": "linear",
+    "interval": "1",
+    "start_ms": 1700000040000,
+    "end_ms": 1700000280000
+  },
+  "page_errors": [],
+  "console_errors": [
+    {
+      "message_sha256": "64f183c5cccfc676f92081dfa3dd278fa8f26bc02ac4acaca1748bfa9393cfaf"
+    },
+    {
+      "message_sha256": "377ab8b4b5e86078109682c970bd4bbb24606becc5d12a775b80b84e922bbad6"
+    },
+    {
+      "message_sha256": "377ab8b4b5e86078109682c970bd4bbb24606becc5d12a775b80b84e922bbad6"
+    },
+    {
+      "message_sha256": "377ab8b4b5e86078109682c970bd4bbb24606becc5d12a775b80b84e922bbad6"
+    },
+    {
+      "message_sha256": "377ab8b4b5e86078109682c970bd4bbb24606becc5d12a775b80b84e922bbad6"
+    },
+    {
+      "message_sha256": "377ab8b4b5e86078109682c970bd4bbb24606becc5d12a775b80b84e922bbad6"
+    },
+    {
+      "message_sha256": "38ae154bfd5213d25ac2b9abd4998485afaa74c53ca2e7ac6eb5d2e037dcc650"
+    },
+    {
+      "message_sha256": "38ae154bfd5213d25ac2b9abd4998485afaa74c53ca2e7ac6eb5d2e037dcc650"
+    },
+    {
+      "message_sha256": "377ab8b4b5e86078109682c970bd4bbb24606becc5d12a775b80b84e922bbad6"
+    },
+    {
+      "message_sha256": "377ab8b4b5e86078109682c970bd4bbb24606becc5d12a775b80b84e922bbad6"
+    },
+    {
+      "message_sha256": "38ae154bfd5213d25ac2b9abd4998485afaa74c53ca2e7ac6eb5d2e037dcc650"
+    },
+    {
+      "message_sha256": "2dab3b3c098b940436be243827bea41a08b26ae85d473d0d24e77c3ce5af9718"
+    },
+    {
+      "message_sha256": "95cebf5d6334b1c0366ea3a06ab7c29ec05f164e4ff70cee5187446f8bfd28f9"
+    }
+  ],
+  "api": [
+    {
+      "path": "/api/sources",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/api/sources",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/api/market-catalog/linear",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/api/footprint",
+      "status": 422,
+      "method": "GET"
+    },
+    {
+      "path": "/api/analytics",
+      "status": 404,
+      "method": "GET"
+    },
+    {
+      "path": "/api/analytics",
+      "status": 404,
+      "method": "GET"
+    },
+    {
+      "path": "/api/analytics",
+      "status": 404,
+      "method": "GET"
+    },
+    {
+      "path": "/api/analytics",
+      "status": 404,
+      "method": "GET"
+    },
+    {
+      "path": "/api/analytics",
+      "status": 404,
+      "method": "GET"
+    },
+    {
+      "path": "/api/funding",
+      "status": 503,
+      "method": "GET"
+    },
+    {
+      "path": "/api/open-interest",
+      "status": 503,
+      "method": "GET"
+    },
+    {
+      "path": "/api/analytics",
+      "status": 404,
+      "method": "GET"
+    },
+    {
+      "path": "/api/analytics",
+      "status": 404,
+      "method": "GET"
+    },
+    {
+      "path": "/api/candles",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/api/coverage",
+      "status": 503,
+      "method": "GET"
+    },
+    {
+      "path": "/api/control/research-executions",
+      "status": 401,
+      "method": "POST"
+    },
+    {
+      "path": "/api/control/research-executions",
+      "status": 403,
+      "method": "POST"
+    },
+    {
+      "path": "/api/control/research-executions",
+      "status": 202,
+      "method": "POST"
+    },
+    {
+      "path": "/api/control/research-executions/056d074f-ddb5-4467-8456-80f1ad1e1aa4",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/api/control/research-executions/056d074f-ddb5-4467-8456-80f1ad1e1aa4",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/api/control/research",
+      "status": 202,
+      "method": "POST"
+    },
+    {
+      "path": "/api/control/research/fda3a6e1-655c-4a47-8e87-cb0a45d86441",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/api/control/research/fda3a6e1-655c-4a47-8e87-cb0a45d86441",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "path": "/api/control/research/fda3a6e1-655c-4a47-8e87-cb0a45d86441/ack",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "path": "/api/control/research-executions/056d074f-ddb5-4467-8456-80f1ad1e1aa4/summary",
+      "status": 200,
+      "method": "GET"
+    }
+  ],
+  "negative_checks": [
+    {
+      "case": "wrong_category",
+      "status": "NOT_RUN",
+      "reason": "Root must separately test a mismatched approved fixture; this harness enforces the accepted artifact category equals actual selected case category."
+    },
+    {
+      "case": "wrong_token",
+      "status": 401,
+      "accepted_execution": false
+    },
+    {
+      "case": "unregistered_or_ungranted_pair",
+      "status": 403,
+      "accepted_execution": false,
+      "scope": "not real/UNKNOWN coverage proof"
+    }
+  ],
+  "coverage_gate": {
+    "real_or_UNKNOWN_registration": "NOT_RUN: private case contains only an admitted synthetic pair; root must independently prove registration rejection and unchanged F/job ledger"
+  },
+  "started_utc": "2026-11-09T18:08:06.484Z",
+  "execution_job_id": "056d074f-ddb5-4467-8456-80f1ad1e1aa4",
+  "artifact_digest": "d185bf3b72202987b2691a6e02a84d04d9e70fe76e54a05335ac2fd2260a501e",
+  "summary_digest": "c8d5f9e160be3bc44f07d93b3f0bf5540c41aa1bc411a8c223ab5cd64585b1f8",
+  "run_id": "b7f6010dccdac86a57fa537e6258ffa57539da15d44e21bdd28cb17b43c7ca59",
+  "metrics": {
+    "confidence": {
+      "method": "not_estimated",
+      "reason": "dependent, selected historical trades; no IID confidence claim"
+    },
+    "expectancy": "9.78000",
+    "exposure": "0.75",
+    "fees": "0.32000",
+    "funding_costs": "0.0100",
+    "max_drawdown": "0.00010893461942205232822991146586385153201687496286320",
+    "net_realized_pnl": "9.78000",
+    "profit_factor": null,
+    "trade_count": 1,
+    "win_rate": "1"
+  },
+  "trades": [
+    {
+      "entry_fill_id": "f1",
+      "entry_price": "100",
+      "entry_timestamp_ms": 1700000100000,
+      "exit_fill_id": "f2",
+      "exit_price": "110.00",
+      "exit_timestamp_ms": 1700000219999,
+      "fees": "0.21000",
+      "funding_costs": "0.0100",
+      "gross_pnl": "10.00",
+      "id": "t1",
+      "net_pnl": "9.78000",
+      "quantity": "1",
+      "reason": "take_profit",
+      "side": "long",
+      "stop_loss": "95.00",
+      "take_profit": "110.00"
+    }
+  ],
+  "equity_curve": [
+    {
+      "cash": "1000",
+      "equity": "1000",
+      "margin": "0",
+      "timestamp_ms": 1700000040000
+    },
+    {
+      "cash": "1000",
+      "equity": "1000",
+      "margin": "0",
+      "timestamp_ms": 1700000100000
+    },
+    {
+      "cash": "999.900",
+      "equity": "999.900",
+      "margin": "100",
+      "timestamp_ms": 1700000160000
+    },
+    {
+      "cash": "1009.78000",
+      "equity": "1009.78000",
+      "margin": "0",
+      "timestamp_ms": 1700000220000
+    },
+    {
+      "cash": "1009.67000",
+      "equity": "1009.67000",
+      "margin": "110",
+      "timestamp_ms": 1700000280000
+    }
+  ],
+  "brackets": [
+    {
+      "entry_fill_id": "f1",
+      "stop_loss": "95.00",
+      "take_profit": "110.00",
+      "timestamp_ms": 1700000160000,
+      "trailing_stop": null
+    },
+    {
+      "entry_fill_id": "f3",
+      "stop_loss": "104.50",
+      "take_profit": "121.00",
+      "timestamp_ms": 1700000280000,
+      "trailing_stop": null
+    }
+  ],
+  "levels": [
+    {
+      "entry_fill_id": "f1",
+      "kind": "sl",
+      "price": "95.00",
+      "start_ms": 1700000100000,
+      "end_ms": 1700000160000,
+      "known_at_ms": 1700000100000
+    },
+    {
+      "entry_fill_id": "f1",
+      "kind": "tp",
+      "price": "110.00",
+      "start_ms": 1700000100000,
+      "end_ms": 1700000160000,
+      "known_at_ms": 1700000100000
+    }
+  ],
+  "rendered_levels": [
+    {
+      "entry_fill_id": "f1",
+      "kind": "sl",
+      "price": "95.00",
+      "start_x": 370,
+      "end_x": 732,
+      "y": 386
+    },
+    {
+      "entry_fill_id": "f1",
+      "kind": "tp",
+      "price": "110.00",
+      "start_x": 370,
+      "end_x": 732,
+      "y": 33.5
+    }
+  ],
+  "accepted_execution_jobs": [
+    "056d074f-ddb5-4467-8456-80f1ad1e1aa4"
+  ],
+  "source_sha": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+  "assertions_completed": true,
+  "finished_utc": "2026-11-09T18:08:08.772Z"
+}

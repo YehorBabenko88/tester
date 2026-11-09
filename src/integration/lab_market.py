@@ -301,6 +301,19 @@ class LabHandler:
         self.settings = settings
         self.validator = validator or validate_download
 
+    def _acquisition_kind(self, request):
+        return "kline"
+
+    def _originals(self, bundle):
+        return {
+            normalize(item["storage_record"])["record_key"]: item["contract_record"]
+            for item in bundle["records"]
+            if item["contract_kind"] == "candle" and not item["projection_errors"]
+        }
+
+    def _verify_batch(self, store, connection, batch):
+        return verify_published_batch(store, connection, batch)
+
     def run(self, request, checkpoint, report, stop, commit):
         self.validator(request)
         from src.ingest.journal import Journal
@@ -315,7 +328,9 @@ class LabHandler:
             deadline = time.monotonic() + 90
             prior = copy.deepcopy(checkpoint.get("telemetry", {}))
             prior = prior if prior.get("schema_version") == 1 else {}
-            session = HttpMeter(verified_session(self.settings.data_dir.parent), evidence_dir=directory)
+            session = HttpMeter(
+                verified_session(self.settings.data_dir.parent), evidence_dir=directory
+            )
             api = API(
                 Transport(
                     session=session,
@@ -325,12 +340,18 @@ class LabHandler:
                 )
             )
             metadata = acquire_instruments(
-                api, journal, request.category, max_pages=1, limit=1, max_rows=10, symbol=request.symbol
+                api,
+                journal,
+                request.category,
+                max_pages=1,
+                limit=1,
+                max_rows=10,
+                symbol=request.symbol,
             )
             result = Backfill(api, journal).run(
                 request.category,
                 request.symbol,
-                "kline",
+                self._acquisition_kind(request),
                 request.interval,
                 request.start_ms,
                 request.end_ms,
@@ -344,11 +365,7 @@ class LabHandler:
                 raise InterruptedError("cancelled")
             journal.export(directory / "handoff.json")
             bundle = json.loads((directory / "handoff.json").read_text(encoding="utf-8"))
-            originals = {
-                normalize(item["storage_record"])["record_key"]: item["contract_record"]
-                for item in bundle["records"]
-                if item["contract_kind"] == "candle" and not item["projection_errors"]
-            }
+            originals = self._originals(bundle)
             if not originals:
                 raise ProviderUnavailable("No closed source candles")
             current = copy.deepcopy(prior)
@@ -386,7 +403,7 @@ class LabHandler:
                             "INSERT INTO tester_lab.projections(record_key,record) VALUES(%s,%s) ON CONFLICT DO NOTHING",
                             (key, Jsonb(original)),
                         )
-                    verified = verify_published_batch(store, connection, batch)
+                    verified = self._verify_batch(store, connection, batch)
                     published["telemetry"] = acknowledgment(
                         current,
                         verified,

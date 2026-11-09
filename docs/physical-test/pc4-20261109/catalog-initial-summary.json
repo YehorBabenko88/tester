@@ -1,0 +1,169 @@
+{
+  "linear": {
+    "rows": 1995,
+    "revision": "7aed854d5c2d6c0ebc9de443328f5b238ff3163394532d3df847b36f0a6a6940",
+    "catalog": {
+      "loaded": 1995,
+      "expected_total": null,
+      "completeness": "EXHAUSTED",
+      "state": "CURRENT",
+      "last_success": 1794243498.4134681,
+      "last_error": null,
+      "source": {
+        "state": "OBSERVED",
+        "source": "https://api.bybit.com/v5/market/instruments-info",
+        "last_error": null,
+        "observed_at": 1794243498.4134681,
+        "last_success": 1794243498.4134681,
+        "source_time_ms": 1794243494210
+      },
+      "scope": "current_statuses",
+      "status_coverage": {
+        "Closed": {
+          "pages": 2,
+          "loaded": 1058,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=linear&status=Closed&limit=1000&cursor=first%253D10000000AIDOGEUSDT%2526last%253DXRPUSDT-05JUN26",
+          "observed_at": 1794243498.4130292,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243496120,
+          "observed_statuses": {
+            "Closed": 1053,
+            "PendingOpen": 5
+          }
+        },
+        "Trading": {
+          "pages": 1,
+          "loaded": 930,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=linear&status=Trading&limit=1000",
+          "observed_at": 1794243496.8465292,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243494210,
+          "observed_statuses": {
+            "Trading": 930
+          }
+        },
+        "PreLaunch": {
+          "pages": 1,
+          "loaded": 7,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=linear&status=PreLaunch&limit=1000",
+          "observed_at": 1794243497.137835,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243494845,
+          "observed_statuses": {
+            "PreLaunch": 7
+          }
+        },
+        "Delivering": {
+          "pages": 1,
+          "loaded": 0,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=linear&status=Delivering&limit=1000",
+          "observed_at": 1794243497.7333972,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243495442,
+          "observed_statuses": {}
+        },
+        "PendingOpen": {
+          "pages": 1,
+          "loaded": 0,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=linear&status=PendingOpen&limit=1000",
+          "observed_at": 1794243497.437004,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243495145,
+          "observed_statuses": {}
+        }
+      },
+      "historical_listing_coverage": "UNKNOWN",
+      "next_refresh_at": 1794243804.2994313,
+      "next_refresh_at_ms": 1794243804299,
+      "refresh_interval_seconds": 300,
+      "refresh_pending": false
+    },
+    "status_counts": {
+      "Trading": 930,
+      "Closed": 1053,
+      "PendingOpen": 5,
+      "PreLaunch": 7
+    }
+  },
+  "inverse": {
+    "rows": 76,
+    "revision": "edd2da2b2199c62ff9bdc265817a652da02f57bfdffa1e18d1cc083880dfd354",
+    "catalog": {
+      "loaded": 76,
+      "expected_total": null,
+      "completeness": "EXHAUSTED",
+      "state": "CURRENT",
+      "last_success": 1794243500.9687703,
+      "last_error": null,
+      "source": {
+        "state": "OBSERVED",
+        "source": "https://api.bybit.com/v5/market/instruments-info",
+        "last_error": null,
+        "observed_at": 1794243500.9687703,
+        "last_success": 1794243500.9687703,
+        "source_time_ms": 1794243497483
+      },
+      "scope": "current_statuses",
+      "status_coverage": {
+        "Closed": {
+          "pages": 1,
+          "loaded": 50,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=inverse&status=Closed&limit=1000",
+          "observed_at": 1794243500.9686947,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243498677,
+          "observed_statuses": {
+            "Closed": 50
+          }
+        },
+        "Trading": {
+          "pages": 1,
+          "loaded": 26,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=inverse&status=Trading&limit=1000",
+          "observed_at": 1794243499.7750573,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243497483,
+          "observed_statuses": {
+            "Trading": 26
+          }
+        },
+        "PreLaunch": {
+          "pages": 1,
+          "loaded": 0,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=inverse&status=PreLaunch&limit=1000",
+          "observed_at": 1794243500.0638027,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243497772,
+          "observed_statuses": {}
+        },
+        "Delivering": {
+          "pages": 1,
+          "loaded": 0,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=inverse&status=Delivering&limit=1000",
+          "observed_at": 1794243500.6599321,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243498369,
+          "observed_statuses": {}
+        },
+        "PendingOpen": {
+          "pages": 1,
+          "loaded": 0,
+          "source": "https://api.bybit.com/v5/market/instruments-info?category=inverse&status=PendingOpen&limit=1000",
+          "observed_at": 1794243500.3712513,
+          "completeness": "EXHAUSTED",
+          "source_time_ms": 1794243498079,
+          "observed_statuses": {}
+        }
+      },
+      "historical_listing_coverage": "UNKNOWN",
+      "next_refresh_at": 1794243810.1716957,
+      "next_refresh_at_ms": 1794243810171,
+      "refresh_interval_seconds": 300,
+      "refresh_pending": false
+    },
+    "status_counts": {
+      "Trading": 26,
+      "Closed": 50
+    }
+  }
+}

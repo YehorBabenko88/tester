@@ -1,0 +1,8 @@
+{
+  "raw_sha256": "86f82cd3396da20b46408fde192355c2d2a502576f563c2f5006001648d26514",
+  "raw_bytes": 1509644,
+  "gzip_sha256": "e6d4a1700fccc670cd09bb0121649b65508c8e7d6f2517a646a7f85c1ed647d3",
+  "gzip_bytes": 58346,
+  "gzip_file": "timeframe-browser-evidence.json.gz",
+  "compression": "gzip,mtime0; original JSON retained locally; no report fields removed"
+}

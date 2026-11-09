@@ -1,0 +1,82 @@
+[
+  {
+    "symbol": "BTCUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2121
+  },
+  {
+    "symbol": "ETHUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2111
+  },
+  {
+    "symbol": "SOLUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2017
+  },
+  {
+    "symbol": "XRPUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2096
+  },
+  {
+    "symbol": "DOGEUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2109
+  },
+  {
+    "symbol": "ADAUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2048
+  },
+  {
+    "symbol": "AVAXUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2039
+  },
+  {
+    "symbol": "LINKUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2050
+  },
+  {
+    "symbol": "DOTUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 2056
+  },
+  {
+    "symbol": "LTCUSDT",
+    "state": "completed",
+    "error": null,
+    "records": 10,
+    "coverage": "UNKNOWN",
+    "bytes": 1982
+  }
+]

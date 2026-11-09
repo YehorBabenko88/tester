@@ -824,5 +824,7 @@
   },
   "active_continuation_checkpoint": "docs/coordination/nov9/CHECKPOINT.json",
   "latest_direct_user_continuation_at": "2026-11-09T16:09:11.117886+00:00",
-  "historical_cycle_note": "Existing Nov7 cycle/agents/physical fields retained as history. Current Nov9 status is in active_continuation_checkpoint; do not infer an ADMINIT or PC4 installed service from source reports."
+  "historical_cycle_note": "Existing Nov7 cycle/agents/physical fields retained as history. Current Nov9 status is in active_continuation_checkpoint; do not infer an ADMINIT or PC4 installed service from source reports.",
+  "active_pc4_physical_checkpoint": "docs/physical-test/pc4-20261109/CHECKPOINT.json",
+  "pc4_authorization": "Nov9 user explicitly permits isolated portable physical tests on PC4; UAC/SCM remains separately scoped; originalPG5432/ADMINIT/main untouched"
 }

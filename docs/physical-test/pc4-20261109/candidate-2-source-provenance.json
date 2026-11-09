@@ -1,0 +1,12 @@
+{
+  "at": "2026-11-09T18:25:43.358191+00:00",
+  "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "original_http_receipts_rehashed": 30,
+  "decoded_body_bytes": 58266,
+  "actual_pg_source_links_independently_renormalized": 620,
+  "raw_hash_identity_source_and_timestamp_precision_all_match": true,
+  "symbols": 10,
+  "observed_local_rows_per_symbol": 60,
+  "observed_internal_1minute_gaps": 0,
+  "coverage": "UNKNOWN, local contiguity NOT a historical completeness or visibility certificate"
+}

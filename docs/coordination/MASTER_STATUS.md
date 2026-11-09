@@ -1,3 +1,15 @@
+# PC4 current portable physical checkpoint — 2026-11-09
+
+Installed immutable application `6a24e50d51f4d65783c4436b94fe87cc883acbeb`, tree `9488dc721a8b462ac346cbf845b55dee6505e840`, archive SHA256 `d16aedfeca91d91efff30667c625a09676adf9a6ba5540f7535f8b0ae9833112`; 905 extracted-archive source files rehashed unchanged. OwnedAPI18767/worker/PG55471 active, limitedrole/OSidentity verified. ExistingPG5432 andADMINIT untouched. Full current checkpoint: docs/physical-test/pc4-20261109/CHECKPOINT.json.
+
+Actual syntheticPG→F→authorizedG/E→D chartACK/statistics/SLTP/journal PASS atDPR1/DPR2. Newly downloaded10instruments×60closedcandles=600rawrows; all hashes matchPG; boundedserialworkermax1,17.26seconds,peak453672960RSSbytes—not10parallel/hardcaps/sustainedstress. RealUNKNOWNinput+registerrefused,noFjobchanges. Pause/resume+same-inputdedup PASS. Newownedbackup/restore matchedraw/snapshot/artifact/execution/ACK asof18:10UTC;laterjobsnotinthatbackup.
+
+HistoricalEAbaseline separately verified fullcatalog1995linear/76inverse,11sourcepages,32globalsorts,2scheduledrefreshes,13timeframesDPR1 and145rowrestore. NewDPR2test scope is1timeframe+1strategy, notall13. ExpectedunsupportedpanelHTTP/consoleerrorsremainUNAVAILABLE;pageerrorszero.
+
+EXPERIMENTAL_PORTABLE / NO_GO fullacceptance. CIqueued. Same-rootrestartNOT_READY/DESIGN_ONLY Draft67; no markerdeletion/adoption/retroenrollment. A source-only boundedmark/indexprofile ACTIVE; DHiDPI Draft66 complete andphysicallytested. Realhistoricalvisibility/coverage,missinganalytics/TI,nativeSCM/crash/reboot/hardcaps remain gated. No installedhotfix/UAC/service/mainmerge/trading/deletion. Allrecordsbelowarehistorical.
+
+---
+
 # Nov9 â€” PC4 readonly continuation / pinned candidate / NO_GO
 
 Current direct-user continuation runs on **PC4, not ADMINIT**, Windows 11 Pro build26200, nonadmin. No tester SCM service or lab listener. Existing user PostgreSQL5432 was not changed; readonly database listing needs authentication, so names remain NOT_ENUMERATED. No local app/PG/browser/server launch, installation, service restart, office connection, firewall change or main merge in this cycle. Historical Nov7 and ADMINIT evidence below does not identify a current installation.

@@ -1,0 +1,72 @@
+[
+  {
+    "kind": "mark",
+    "http_status": 200,
+    "ret_code": 0,
+    "source_url": "https://api.bybit.com/v5/market/mark-price-kline?category=linear&symbol=BTCUSDT&interval=1&start=1794245040000&end=1794245639999&limit=20",
+    "source_time_ms": 1794245948343,
+    "sha256": "744496b603223338971059708f5d0125cc2730adb6d840c70a750744f597ec1a",
+    "bytes": 716,
+    "rows": 10,
+    "next_cursor": null,
+    "coverage": "UNKNOWN",
+    "pipeline": "SOURCE_OBSERVED_NOT_INGESTED_OR_INTEGRATED",
+    "trader_attribution": "NOT_APPLICABLE"
+  },
+  {
+    "kind": "index",
+    "http_status": 200,
+    "ret_code": 0,
+    "source_url": "https://api.bybit.com/v5/market/index-price-kline?category=linear&symbol=BTCUSDT&interval=1&start=1794245040000&end=1794245639999&limit=20",
+    "source_time_ms": 1794245949022,
+    "sha256": "14d5c029421a480363e4ae138b17c82313b5f1d71392fca9eece4e7ed321a46d",
+    "bytes": 743,
+    "rows": 10,
+    "next_cursor": null,
+    "coverage": "UNKNOWN",
+    "pipeline": "SOURCE_OBSERVED_NOT_INGESTED_OR_INTEGRATED",
+    "trader_attribution": "NOT_APPLICABLE"
+  },
+  {
+    "kind": "funding",
+    "http_status": 200,
+    "ret_code": 0,
+    "source_url": "https://api.bybit.com/v5/market/funding/history?category=linear&symbol=BTCUSDT&startTime=1794073148093&endTime=1794245948093&limit=20",
+    "source_time_ms": 1794245949705,
+    "sha256": "4ec5c46053df42c88d411643c01f8be16f31aae38e3ab0cc5b587c34006db4e7",
+    "bytes": 618,
+    "rows": 6,
+    "next_cursor": null,
+    "coverage": "UNKNOWN",
+    "pipeline": "SOURCE_OBSERVED_NOT_INGESTED_OR_INTEGRATED",
+    "trader_attribution": "NOT_APPLICABLE"
+  },
+  {
+    "kind": "open_interest",
+    "http_status": 200,
+    "ret_code": 0,
+    "source_url": "https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=5min&startTime=1794242348093&endTime=1794245948093&limit=50",
+    "source_time_ms": 1794245950388,
+    "sha256": "e85070da907cb5de4375d518445a2f6ba54b0f6793845783579fcf56590d1e85",
+    "bytes": 1283,
+    "rows": 12,
+    "next_cursor": "",
+    "coverage": "UNKNOWN",
+    "pipeline": "SOURCE_OBSERVED_NOT_INGESTED_OR_INTEGRATED",
+    "trader_attribution": "NOT_APPLICABLE"
+  },
+  {
+    "kind": "anonymous_recent_trades",
+    "http_status": 200,
+    "ret_code": 0,
+    "source_url": "https://api.bybit.com/v5/market/recent-trade?category=linear&symbol=BTCUSDT&limit=20",
+    "source_time_ms": 1794245951066,
+    "sha256": "6a81ad79232960d9872f0a50af128822a8040a993a031d735725f26cafc18a01",
+    "bytes": 4122,
+    "rows": 20,
+    "next_cursor": null,
+    "coverage": "UNKNOWN",
+    "pipeline": "SOURCE_OBSERVED_NOT_INGESTED_OR_INTEGRATED",
+    "trader_attribution": "ANONYMOUS_MARKET_ONLY"
+  }
+]

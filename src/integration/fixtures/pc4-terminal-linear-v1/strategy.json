@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "id": "pc4-terminal-linear-synthetic",
+  "version": "1",
+  "entry": {
+    "long": {
+      "op": "gt",
+      "left": {
+        "field": "close"
+      },
+      "right": {
+        "value": "99"
+      }
+    }
+  },
+  "exit": {
+    "op": "lt",
+    "left": {
+      "field": "close"
+    },
+    "right": {
+      "value": "80"
+    }
+  },
+  "order": {
+    "type": "market",
+    "latency_bars": 1
+  },
+  "risk": {
+    "stop_loss": "0.05",
+    "take_profit": "0.10",
+    "trailing_stop": "0",
+    "size": {
+      "mode": "units",
+      "value": "1"
+    },
+    "leverage": "1",
+    "maintenance_margin": "0.005"
+  },
+  "costs": {
+    "fee_rate": "0.001",
+    "slippage_bps": "0",
+    "spread_bps": "0",
+    "funding_policy": "required"
+  },
+  "data_policy": {
+    "partial": "reject",
+    "gaps": "reject"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "source_sha": "ea4d9b2cbfc15e1af54ea6bf73a530b68763873e",
+  "tree_sha": "4c3ae8380d74c0e4d55d614c6e1053a59ea0171c",
+  "source_zip_sha256": "431b994d24eb18f5ae88c461cba22ff49a52aee7def8b635596d811b975b139f",
+  "all_tracked_files_verified_after_physical_tests": 821,
+  "hotfixes_in_installed_source": false,
+  "dependencies": "Separate private venv; requirements-platform.lock exactly installed; npmci from published package-lock; private Playwright1194",
+  "source_lock_sha256": "09f8c7930b8331f5e84e03cfdc20b3c8191335877e5438456528eec3a786ac32"
+}

@@ -56,3 +56,27 @@
     height: 300px;
   }
 }
+
+.strategy-execution {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+#strategy-execution-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+#strategy-execution-form label {
+  display: grid;
+  gap: 4px;
+}
+#strategy-execution-status,
+#strategy-binding {
+  overflow-wrap: anywhere;
+}
+#research-fills tr {
+  cursor: pointer;
+}
+#research-fills tr:focus {
+  outline: 2px solid var(--accent, #51c7aa);
+}

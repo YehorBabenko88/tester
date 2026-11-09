@@ -1,0 +1,44 @@
+{
+  "at": "2026-11-09T18:10:22.669653+00:00",
+  "source_sha": "6a24e50d51f4d65783c4436b94fe87cc883acbeb",
+  "live_job_id": "b7d7f6da-e74a-449d-9f42-cd56839c902a",
+  "actual_pg_rows": 10,
+  "limited_role_ingest_and_record_hashes_match": true,
+  "real_snapshot": {
+    "mode": "REAL",
+    "admitted": false,
+    "f_input": null,
+    "reasons": [
+      "coverage_unknown",
+      "historical_visibility_not_proven",
+      "real_source_not_admitted"
+    ]
+  },
+  "refusals": [
+    {
+      "boundary": "prepare_input",
+      "refused": true,
+      "reason": "only admitted immutable synthetic snapshots supported"
+    },
+    {
+      "boundary": "register",
+      "refused": true,
+      "reason": "invalid_qualified_snapshot_id"
+    }
+  ],
+  "before": {
+    "execution_inputs": 1,
+    "execution_jobs": 1,
+    "artifacts": 1,
+    "jobs": 1,
+    "acknowledgments": 1
+  },
+  "after": {
+    "execution_inputs": 1,
+    "execution_jobs": 1,
+    "artifacts": 1,
+    "jobs": 1,
+    "acknowledgments": 1
+  },
+  "no_research_ledger_effects": true
+}
