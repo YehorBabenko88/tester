@@ -94,7 +94,8 @@
   "reviewed_source_inputs": {
     "baseline_candidate": "e3adfe9ea5960bbe29d5093d2e90538c821449b3",
     "synthetic_browser_pr56": "bb69eb97f28674329c8cf2e0a3a07290ab9f318f",
-    "sort_pr57": "edcd738b566e066009f81f5678f5ed037b15116f"
+    "sort_pr57": "4135593157b48656c09b7582446799a55f3b139f",
+    "catalog_pr54": "fccc3d2f10f2b18fb28839334213fccd327e680a"
   },
   "candidate_head_resolution": "Resolve git HEAD/tree for the commit containing this checkpoint; exact post-publication SHA/tree/archive checksum recorded in PR55 and external release-manifest.json. Prior e3adfe9 release remains immutable historical source evidence.",
   "combined_validation": {
@@ -120,5 +121,13 @@
     "job_id": 129284653161,
     "job_state": "QUEUED",
     "validation": "JOB_CREATED; runtime NOT_RUN"
-  }
+  },
+  "format_gate": {
+    "ruff_version": "0.17.4 (matches requirements-platform.lock)",
+    "check": "ruff check src/api tests/platform scripts: PASS",
+    "format": "ruff format --check src/api tests/platform scripts:107files PASS",
+    "additional_tests": "44 root in-process regressions PASS after format-only changes",
+    "defect": "I001 sort-test imports and3unformatted new files corrected in same producer PR54/57; no domain/security weakening"
+  },
+  "source_identity_model": "This versioned file cannot embed its own commit SHA. Resolve owning Git HEAD/tree and external release-manifest.json; exact post-publication identity recorded in PR55. Earlier reviewed/release SHAs are immutable historical evidence."
 }

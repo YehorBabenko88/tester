@@ -3,9 +3,9 @@
 from copy import deepcopy
 
 import pytest
+from test_market_catalog import Source
 
 from src.api.market_catalog import CatalogService
-from test_market_catalog import Source
 
 
 def catalog():
@@ -35,8 +35,11 @@ def catalog():
             source=source,
             source_time_ms=stamp,
             reason=(
-                "ticker_refresh_failed" if state == "STALE"
-                else "source_time_missing" if state == "UNKNOWN" else None
+                "ticker_refresh_failed"
+                if state == "STALE"
+                else "source_time_missing"
+                if state == "UNKNOWN"
+                else None
             ),
         )
         rows.append(row)
@@ -57,12 +60,15 @@ def test_render_unavailable_values_sort_after_observed_and_stale(direction, expe
     result = service.query("linear", sort="price", direction=direction, limit=50)
     assert [row["symbol"] for row in result["rows"][:3]] == expected
     assert [row["symbol"] for row in result["rows"][3:]] == [
-        "A_UNKNOWN_HIGH", "B_UNKNOWN_LOW", "C_NO_SOURCE", "D_EXPONENT",
-        "E_TOO_LONG", "F_FLOAT", "G_BLANK_SOURCE",
+        "A_UNKNOWN_HIGH",
+        "B_UNKNOWN_LOW",
+        "C_NO_SOURCE",
+        "D_EXPONENT",
+        "E_TOO_LONG",
+        "F_FLOAT",
+        "G_BLANK_SOURCE",
     ]
-    assert result["rows"][0]["metrics"]["price"]["value"] == (
-        "0.5" if direction == "asc" else "2"
-    )
+    assert result["rows"][0]["metrics"]["price"]["value"] == ("0.5" if direction == "asc" else "2")
     stale = next(row for row in result["rows"] if row["symbol"] == "VALID_STALE")
     assert stale["metrics"]["price"]["state"] == "STALE"
     assert service._snapshots["linear"] == original
@@ -77,7 +83,10 @@ def test_metric_qualification_happens_before_global_page_slice():
     assert pages[0]["total"] == pages[1]["total"] == 10
     assert pages[0]["revision"] == pages[1]["revision"]
     assert [row["symbol"] for page in pages for row in page["rows"]] == [
-        "VALID_STALE", "VALID_MID", "VALID_LOW", "A_UNKNOWN_HIGH",
+        "VALID_STALE",
+        "VALID_MID",
+        "VALID_LOW",
+        "A_UNKNOWN_HIGH",
     ]
 
 
