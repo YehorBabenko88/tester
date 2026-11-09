@@ -1,0 +1,73 @@
+name: Pinned research PostgreSQL integration
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pinned-research-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  research-composition:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_combined_ci
+          POSTGRES_USER: tester_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['55472:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_ci -d tester_research_combined_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Exact source identity
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          git rev-parse HEAD
+          git rev-parse 'HEAD^{tree}'
+          mkdir -p candidate-evidence
+          git archive --format=zip HEAD > candidate-evidence/tester-source.zip
+          python - <<'PY'
+          import hashlib, json, pathlib, subprocess, zipfile
+          root = pathlib.Path('candidate-evidence')
+          archive = root / 'tester-source.zip'
+          with zipfile.ZipFile(archive) as source:
+              files = [{'path': i.filename, 'size': i.file_size,
+                        'sha256': hashlib.sha256(source.read(i)).hexdigest()}
+                       for i in source.infolist() if not i.is_dir()]
+          manifest = {
+              'repository': 'YehorBabenko88/tester',
+              'head': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+              'tree': subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
+              'sha256': hashlib.sha256(archive.read_bytes()).hexdigest(),
+              'artifact': archive.name, 'files': files,
+              'installation': 'NOT_INSTALLED', 'acceptance': 'NOT_ACCEPTED',
+          }
+          (root / 'release-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+          PY
+      - name: Genuine synthetic F, PostgreSQL, authorized G HTTP, render acknowledgement
+        run: >-
+          python -m pytest tests/platform/test_research_postgres.py
+          tests/platform/test_combined_routes.py -v --junitxml=research-results.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pinned-research-results
+          path: |
+            research-results.xml
+            candidate-evidence/

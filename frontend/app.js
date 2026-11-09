@@ -1,15 +1,14 @@
+import {
+  CATALOG_METRICS,
+  catalogMetric,
+  nextSort,
+  jobsForRow,
+} from "./catalog-ui.js";
 import { mountStrategyWorkspace } from "./strategy.js";
 import { shiftRange } from "./time.js";
 import { adaptSeries, sourceText } from "./series.js";
 import { request } from "./api.js";
-import {
-  metric,
-  compareDecimal,
-  progress,
-  connectionNotice,
-  validateSeries,
-  PANELS,
-} from "./model.js";
+import { progress, connectionNotice, validateSeries, PANELS } from "./model.js";
 import { PanelChart } from "./charts.js";
 const $ = (s) => document.querySelector(s);
 const el = (tag, text, className) => {
@@ -45,14 +44,21 @@ const save = (k, v) => {
   }
 };
 const state = {
-  selected: new Set(readStore("bybit-watchlist", [])),
+  selected: new Set(
+    readStore("bybit-selected", readStore("bybit-watchlist", [])),
+  ),
   saved: new Set(readStore("bybit-watchlist", [])),
   rows: [],
-  cursor: null,
   active: null,
   jobs: new Map(),
+  jobRequests: readStore("bybit-job-requests", {}),
   ids: new Set(readStore("bybit-jobs", [])),
-  direction: -1,
+  direction: "none",
+  sort: "symbol",
+  offset: 0,
+  total: 0,
+  revision: null,
+  catalog: {},
   charts: new Map(),
   chartAbort: null,
   instrumentAbort: null,
@@ -65,18 +71,7 @@ state.ids = new Set(
 const jobVersions = new Map(),
   jobControls = new Set();
 let polling = false;
-const METRICS = [
-  ["price", "Price"],
-  ["volatility", "Volatility"],
-  ["change_1h", "Price change 1h"],
-  ["change_24h", "Price change 24h"],
-  ["volume", "Volume"],
-  ["turnover", "Turnover"],
-  ["open_interest", "Open Interest"],
-  ["oi_change_1h", "OI change 1h"],
-  ["oi_change_24h", "OI change 24h"],
-  ["market_cap", "Market capitalization"],
-];
+const METRICS = CATALOG_METRICS;
 const iso = (t) =>
   Number.isSafeInteger(t) ? new Date(t).toISOString() : "Unknown";
 const utcInput = (t) => new Date(t).toISOString().slice(0, 16);
@@ -104,6 +99,7 @@ function query() {
   };
 }
 function selection() {
+  save("bybit-selected", [...state.selected]);
   $("#selection-count").textContent = `${state.selected.size} selected`;
   $("#download").disabled = !state.selected.size;
 }
@@ -111,29 +107,16 @@ function sourceTitle(m) {
   return `${m.availability} · ${m.source || "Source unknown"} · observed ${iso(m.as_of)} · ${m.unit || "unit unknown"}${m.reason ? " · " + m.reason : ""}${m.formula ? " · " + m.formula : ""}`;
 }
 function renderRows() {
-  const filtered = state.rows.filter(
-    (r) =>
-      !$("#watchlist").checked || state.saved.has(`${r.category}:${r.symbol}`),
+  const filtered = state.rows;
+  const body = $("#rows");
+  const focus = body.contains(document.activeElement)
+    ? document.activeElement.getAttribute("aria-label")
+    : null;
+  const expanded = new Set(
+    [...body.querySelectorAll("details[open]")].map((d) => d.dataset.jobId),
   );
-  const scroll = $("#table-scroll"),
-    rowHeight = 48,
-    first = Math.min(
-      Math.max(0, filtered.length - 1),
-      Math.max(0, Math.floor((scroll.scrollTop - 35) / rowHeight) - 3),
-    ),
-    last = Math.min(filtered.length, first + 20),
-    body = $("#rows");
   body.replaceChildren();
-  const spacer = (h) => {
-    const tr = el("tr");
-    const td = el("td");
-    td.colSpan = 12;
-    td.style.cssText = `height:${h}px;padding:0;border:0`;
-    tr.append(td);
-    return tr;
-  };
-  if (first) body.append(spacer(first * rowHeight));
-  for (const r of filtered.slice(first, last)) {
+  for (const r of filtered) {
     const key = `${r.category}:${r.symbol}`,
       tr = el("tr");
     tr.dataset.row = key;
@@ -162,13 +145,15 @@ function renderRows() {
     );
     tr.append(name);
     for (const [key, label] of METRICS) {
-      const m = metric(r.metrics?.[key]),
+      const m = catalogMetric(r.metrics?.[key]),
         cell = el(
           "td",
-          m.value == null ? "—" : `${m.value}${m.unit === "%" ? "%" : ""}`,
+          m.value == null
+            ? "UNAVAILABLE"
+            : `${m.value}${m.unit === "%" ? "%" : ""}`,
           m.value == null
             ? "unavailable"
-            : m.availability === "PARTIAL"
+            : ["PARTIAL", "STALE"].includes(m.availability)
               ? "partial"
               : "",
         );
@@ -179,108 +164,254 @@ function renderRows() {
       );
       tr.append(cell);
     }
+    for (const field of [
+      "category",
+      "status",
+      "contract_kind",
+      "contract_type",
+      "settle_coin",
+    ])
+      tr.append(el("td", r[field] || "UNAVAILABLE"));
+    const action = el("td", null, "inline-download"),
+      download = el("button", "Download");
+    download.setAttribute("aria-label", `Download ${r.symbol}`);
+    download.onclick = () => submitDownloads([key]);
+    action.append(download);
+    for (const j of jobsForRow([...state.jobs.values()], key)) {
+      const p = jobProgress(j),
+        detail = el("details"),
+        summary = el(
+          "summary",
+          `Download ${jobState(j)} | Coverage ${p.coverage} | ${p.bytes_received ?? "unknown"} bytes | ${p.records_ingested ?? "unknown"} records | ${p.bytes_per_second ?? "unknown"} B/s`,
+        ),
+        bar = el("progress");
+      detail.dataset.jobId = j.id;
+      detail.open = expanded.has(j.id);
+      bar.max = 100;
+      if (p.percent != null) bar.value = p.percent;
+      bar.setAttribute("aria-label", `Inline progress ${j.id}`);
+      detail.append(
+        summary,
+        el(
+          "small",
+          `${j.id} | ${j.request?.source || p.source} | ${j.request?.interval || "unknown"} | ${iso(j.request?.start_ms)} | ${iso(j.request?.end_ms)}`,
+        ),
+        el(
+          "small",
+          `${p.bytes_received ?? "unknown"} bytes | ${p.records_ingested ?? "unknown"} records | ${p.bytes_per_second ?? "unknown"} B/s`,
+        ),
+      );
+      action.append(bar, detail);
+    }
+    tr.append(action);
     body.append(tr);
   }
-  if (last < filtered.length)
-    body.append(spacer((filtered.length - last) * rowHeight));
+  if (focus)
+    [...body.querySelectorAll("[aria-label]")]
+      .find((n) => n.getAttribute("aria-label") === focus)
+      ?.focus({ preventScroll: true });
   selection();
 }
+const FILTERS = [
+  "search",
+  "category",
+  "contract-kind",
+  "market-status",
+  "watchlist",
+];
+const persisted = readStore("bybit-catalog-view", {});
+for (const id of FILTERS)
+  if (Object.hasOwn(persisted, id)) {
+    if (id === "watchlist") $("#" + id).checked = persisted[id] === true;
+    else $("#" + id).value = persisted[id];
+  }
+state.sort = persisted.sort || "symbol";
+state.direction = persisted.direction || "none";
+function persistView() {
+  const values = Object.fromEntries(
+    FILTERS.map((id) => [
+      id,
+      id === "watchlist" ? $("#" + id).checked : $("#" + id).value,
+    ]),
+  );
+  save("bybit-catalog-view", {
+    ...values,
+    sort: state.sort,
+    direction: state.direction,
+  });
+}
+const HEADERS = [
+  ["symbol", "Instrument"],
+  ...METRICS,
+  ["category", "Category"],
+  ["status", "Status"],
+  ["contract_kind", "Contract"],
+  ["contract_type", "Contract type"],
+  ["settle_coin", "Settle coin"],
+];
+function renderHeaders() {
+  const head = $("#catalog-head");
+  head.replaceChildren(el("th", "Select"));
+  for (const [key, label] of HEADERS) {
+    const th = el("th"),
+      button = el(
+        "button",
+        label +
+          (state.sort === key
+            ? { asc: " ASC", desc: " DESC", none: "" }[state.direction] || ""
+            : ""),
+      );
+    th.scope = "col";
+    th.setAttribute(
+      "aria-sort",
+      state.sort === key
+        ? { asc: "ascending", desc: "descending", none: "none" }[
+            state.direction
+          ] || "none"
+        : "none",
+    );
+    button.setAttribute("aria-label", `Sort ${label}`);
+    button.onclick = () => {
+      Object.assign(state, nextSort(state.sort, state.direction, key));
+      persistView();
+      renderHeaders();
+      loadInstruments();
+    };
+    th.append(button);
+    head.append(th);
+  }
+  head.append(el("th", "Downloads / coverage"));
+}
+function epoch(value) {
+  return typeof value === "number" ? iso(Math.round(value * 1000)) : "Unknown";
+}
 let searchTimer;
-async function loadInstruments(cursor = null) {
+async function loadInstruments(
+  offset = 0,
+  cached = false,
+  pinned = false,
+  conflictRecovered = false,
+) {
   state.instrumentAbort?.abort();
   const abort = new AbortController();
   state.instrumentAbort = abort;
-  $("#screener-status").textContent = "Loading instruments…";
-  $("#next").disabled = true;
-  if (!cursor) {
-    state.rows = [];
-    $("#table-scroll").scrollTop = 0;
-    renderRows();
-  }
+  if (!cached)
+    $("#screener-status").textContent = "Reading shared catalog snapshot?";
+  persistView();
   try {
+    const emptySaved = $("#watchlist").checked && !state.saved.size;
     const p = await request(
-      "/api/instruments",
+      `/api/market-catalog/${$("#category").value}`,
       {
-        category: $("#category").value,
-        search: $("#search").value.toUpperCase(),
-        sort: $("#sort").value,
-        direction: state.direction === -1 ? "desc" : "asc",
-        limit: 1000,
-        cursor,
+        search: $("#search").value,
+        sort: state.sort,
+        direction: state.direction,
+        status: $("#market-status").value,
+        contract_kind: $("#contract-kind").value || null,
+        watchlist: $("#watchlist").checked ? [...state.saved] : null,
+        offset,
+        limit: 50,
+        revision: pinned || (cached && offset > 0) ? state.revision : null,
       },
       { signal: abort.signal },
     );
-    const rows = Array.isArray(p.data) ? p.data : p.data.instruments;
-    if (!Array.isArray(rows) || rows.length > 1000)
-      throw Error("Corrupt instrument page");
+    if (abort.signal.aborted) return;
+    const d = p.data;
     if (
-      rows.some(
+      !Array.isArray(d.rows) ||
+      d.rows.length > 50 ||
+      !Number.isSafeInteger(d.total)
+    )
+      throw Error("Corrupt catalog page");
+    if (
+      d.rows.some(
         (r) =>
           !r ||
-          typeof r.symbol !== "string" ||
-          !/^[A-Z0-9_-]{1,40}$/.test(r.symbol) ||
-          !["linear", "spot", "inverse", null, undefined].includes(r.category),
+          !/^[-A-Z0-9_]{1,40}$/.test(r.symbol) ||
+          !["linear", "inverse"].includes(r.category),
       )
     )
-      throw Error("Corrupt instrument identity");
-    // Local order is only within the bounded page until the provider implements global sorting.
-    const normalized = rows
-      .map((r) => ({ ...r, category: r.category || $("#category").value }))
-      .filter((r) => r.symbol.includes($("#search").value.toUpperCase()));
-    const key = $("#sort").value;
-    normalized.sort((a, b) =>
-      key === "symbol"
-        ? a.symbol.localeCompare(b.symbol) * state.direction
-        : compareDecimal(
-            metric(a.metrics?.[key]).value,
-            metric(b.metrics?.[key]).value,
-            state.direction,
-          ),
-    );
-    state.rows = normalized;
-    state.cursor = p.next_cursor || null;
-    $("#table-scroll").scrollTop = 0;
-    $("#screener-status").textContent = normalized.length
-      ? `${normalized.length} instruments · bounded page · sorting applies to this page unless provider supports global sorting`
-      : "No instruments match. No data has been fabricated.";
-    $("#next").disabled = !state.cursor;
+      throw Error("Corrupt catalog identity");
+    state.rows = emptySaved ? [] : d.rows;
+    state.total = emptySaved ? 0 : d.total;
+    state.offset = offset;
+    state.revision = d.revision;
+    state.catalog = d.catalog || {};
+    if (!cached) $("#table-scroll").scrollTop = 0;
+    const c = state.catalog,
+      a = d.attempt || {};
+    $("#screener-status").textContent =
+      `${conflictRecovered ? "Snapshot changed; restarted at the first page. Filters and selection retained. " : ""}Loaded ${c.loaded ?? "unknown"} | expected ${c.expected_total ?? "unknown"} | catalog ${c.completeness || "UNKNOWN"} | attempt ${a.completeness || "UNKNOWN"} | ${c.state || "UNAVAILABLE"} | last success ${epoch(c.last_success)} | last error ${c.last_error || a.last_error || "none"}`;
+    $("#page-info").textContent =
+      `${state.total ? offset + 1 : 0}-${Math.min(offset + state.rows.length, state.total)} of ${state.total} matches | global sorting | unavailable last | revision ${d.revision?.slice(0, 8) || "none"}`;
+    $("#previous").disabled = offset === 0;
+    $("#next").disabled = offset + 50 >= state.total;
     renderRows();
   } catch (e) {
-    if (e.name === "AbortError") return;
-    state.rows = [];
-    state.cursor = null;
-    renderRows();
-    $("#screener-status").textContent = e.message;
+    if (e.name === "AbortError" || abort.signal.aborted) return;
+    if (e.status === 409 && !conflictRecovered) {
+      state.offset = 0;
+      state.revision = null;
+      await loadInstruments(0, false, false, true);
+      return;
+    }
+    if (conflictRecovered) {
+      $("#next").disabled = true;
+      $("#previous").disabled = true;
+    }
+    $("#screener-status").textContent =
+      `${e.status === 409 ? "Snapshot changed again; automatic retry stopped. Retry manually. " : ""}${e.message}${state.rows.length ? " | retained rows are STALE; retry to verify" : ""}`;
   }
 }
-$("#table-scroll").addEventListener("scroll", renderRows);
 $("#search").addEventListener("input", () => {
+  persistView();
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => loadInstruments(), 180);
 });
-for (const id of ["category", "sort"])
+for (const id of FILTERS.filter((id) => id !== "search"))
   $("#" + id).addEventListener("change", () => loadInstruments());
 $("#category").addEventListener("change", loadSources);
-$("#direction").onclick = () => {
-  state.direction *= -1;
-  $("#direction").textContent = state.direction === -1 ? "↓ Desc" : "↑ Asc";
-  loadInstruments();
+$("#refresh").onclick = async () => {
+  const category = $("#category").value;
+  $("#refresh").disabled = true;
+  try {
+    await request(
+      `/api/market-catalog/${category}/refresh`,
+      {},
+      { method: "POST" },
+    );
+    $("#screener-status").textContent =
+      "Shared refresh queued; cached snapshot remains visible.";
+    await loadInstruments(state.offset, true);
+  } catch (e) {
+    $("#screener-status").textContent = e.message;
+  } finally {
+    $("#refresh").disabled = false;
+  }
 };
-$("#refresh").onclick = () => loadInstruments();
-$("#next").onclick = () => loadInstruments(state.cursor);
-$("#watchlist").onchange = () => {
-  $("#table-scroll").scrollTop = 0;
-  renderRows();
-};
+$("#next").onclick = () => loadInstruments(state.offset + 50, false, true);
+$("#previous").onclick = () =>
+  loadInstruments(Math.max(0, state.offset - 50), false, true);
 $("#clear").onclick = () => {
   state.selected.clear();
   renderRows();
 };
 $("#save").onclick = () => {
   state.saved = new Set(state.selected);
-  save("bybit-watchlist", [...state.selected]);
-  $("#screener-status").textContent = "Watchlist saved on this device.";
+  save("bybit-watchlist", [...state.saved]);
+  if ($("#watchlist").checked) loadInstruments();
 };
+renderHeaders();
+setInterval(() => {
+  if (!document.hidden) loadInstruments(state.offset, true);
+}, 30000);
+setInterval(() => {
+  const at = state.catalog.next_refresh_at;
+  $("#refresh-countdown").textContent =
+    typeof at === "number"
+      ? `Shared refresh in ${Math.max(0, Math.ceil(at - Date.now() / 1000))}s`
+      : `Shared refresh schedule unknown`;
+}, 1000);
 async function loadSources() {
   try {
     const p = await request("/api/sources", {
@@ -421,7 +552,10 @@ function renderJobs() {
             {},
             { method: "POST" },
           );
-          state.jobs.set(j.id, p.data);
+          state.jobs.set(j.id, {
+            ...p.data,
+            request: p.data.request || state.jobRequests[j.id] || j.request,
+          });
           renderJobs();
         } catch (e) {
           $("#download-status").textContent = e.message;
@@ -436,6 +570,7 @@ function renderJobs() {
     box.append(controls);
     jobs.append(box);
   }
+  renderRows();
   $("#overall").textContent = all.length
     ? `${complete}/${all.length} downloads complete - dataset coverage is reported separately on each download`
     : "";
@@ -460,9 +595,12 @@ async function refreshJobs(force = false) {
             version = jobVersions.get(id) || 0;
           try {
             const p = await request("/api/downloads/" + encodeURIComponent(id));
-            if (!p.data?.id) throw Error("Corrupt job");
+            if (p.data?.id !== id) throw Error("Corrupt job identity");
             if ((jobVersions.get(id) || 0) === version)
-              state.jobs.set(id, p.data);
+              state.jobs.set(id, {
+                ...p.data,
+                request: p.data.request || state.jobRequests[id],
+              });
           } catch (e) {
             $("#download-status").textContent = `Job ${id}: ${e.message}`;
           }
@@ -475,13 +613,14 @@ async function refreshJobs(force = false) {
   }
 }
 $("#refresh-jobs").onclick = () => refreshJobs(true);
-$("#download").onclick = async () => {
+async function submitDownloads(keys) {
   const button = $("#download");
   button.disabled = true;
   try {
     const [start_ms, end_ms] = range(),
       source = $("#source").value,
-      kind = $("#kind").value;
+      kind = $("#kind").value,
+      interval = $("#interval").value;
     if (!source)
       throw Error(
         "DATA_UNAVAILABLE: no connected source. Retry source discovery.",
@@ -491,10 +630,10 @@ $("#download").onclick = async () => {
     );
     if (!kinds.includes(kind))
       throw Error("Selected source does not support " + kind);
-    if (state.selected.size > 100)
+    if (keys.length > 100)
       throw Error("Choose at most 100 instruments per batch.");
     const errors = [];
-    for (const key of [...state.selected]) {
+    for (const key of keys) {
       const [category, symbol] = key.split(":");
       try {
         if (state.ids.size >= 100) {
@@ -509,6 +648,7 @@ $("#download").onclick = async () => {
             );
           state.ids.delete(old);
           state.jobs.delete(old);
+          delete state.jobRequests[old];
         }
         const p = await request(
           "/api/downloads",
@@ -520,13 +660,23 @@ $("#download").onclick = async () => {
               symbol,
               source,
               kind,
-              interval: $("#interval").value,
+              interval,
               start_ms,
               end_ms,
             },
           },
         );
         if (!p.data?.id) throw Error("Corrupt job response");
+        state.jobRequests[p.data.id] = {
+          category,
+          symbol,
+          source,
+          kind,
+          interval,
+          start_ms,
+          end_ms,
+        };
+        save("bybit-job-requests", state.jobRequests);
         state.ids.add(p.data.id);
         if (state.ids.size > 100) {
           const oldest = [...state.ids].find((id) =>
@@ -537,10 +687,14 @@ $("#download").onclick = async () => {
           if (oldest) {
             state.ids.delete(oldest);
             state.jobs.delete(oldest);
+            delete state.jobRequests[oldest];
           }
         }
         save("bybit-jobs", [...state.ids]);
-        state.jobs.set(p.data.id, p.data);
+        state.jobs.set(p.data.id, {
+          ...p.data,
+          request: p.data.request || state.jobRequests[p.data.id],
+        });
         renderJobs();
       } catch (e) {
         errors.push(symbol + ": " + e.message);
@@ -554,7 +708,8 @@ $("#download").onclick = async () => {
   } finally {
     selection();
   }
-};
+}
+$("#download").onclick = () => submitDownloads([...state.selected]);
 // No raw-trade endpoint is ever requested by charts.
 function panelEndpoint(kind) {
   return (

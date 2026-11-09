@@ -16,7 +16,7 @@ dev = ["setuptools==84.1.0", "pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.11,<1",
 include = ["src.api*", "src.control*", "src.ingest*", "src.storage*", "src.analytics*", "src.quality*", "src.integration*", "src.backtest*", "src.strategy*", "contracts*"]
 
 [tool.setuptools.package-data]
-"src.api" = ["migrations/*.sql", "research_migrations/*.sql"]
+"src.api" = ["migrations/*.sql", "research_migrations/*.sql", "catalog_migrations/*.sql"]
 "src.control" = ["G_SOURCE_PIN.json"]
 "src.storage" = ["migrations/*.sql"]
 "contracts.v1" = ["market.schema.json"]

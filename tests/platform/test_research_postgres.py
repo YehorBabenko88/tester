@@ -169,7 +169,8 @@ def test_g_research_binding_rejects_foreign_transport():
 
 
 @pytest.mark.integration
-def test_actual_g_http_postgres_roundtrip(persistent):
+@pytest.mark.parametrize("combined", [False, True], ids=["research", "combined-market"])
+def test_actual_g_http_postgres_roundtrip(persistent, combined, tmp_path):
     import http.client
     import json
     import socket
@@ -187,6 +188,15 @@ def test_actual_g_http_postgres_roundtrip(persistent):
     actor = "http:" + uuid4().hex
     token = persistent.issue_credential(actor, [digest], ttl_seconds=300)
     app = create_persistent_control_app(persistent.dsn)
+    if combined:
+        from src.api.config import Settings
+        from src.api.main import create_app
+        from src.integration.combined_routes import compose_research
+
+        # Real market routes and frontend catch-all, real PostgreSQL research
+        # ledger, real G HTTP transport. Catalog acquisition remains disabled:
+        # this test is not full-catalog/download/browser acceptance.
+        app = compose_research(create_app(Settings(data_dir=tmp_path)), app)
     command = Command.model_validate(
         {
             **{
@@ -266,6 +276,7 @@ def test_actual_g_http_postgres_roundtrip(persistent):
         server.should_exit = True
         thread.join(timeout=5)
         sock.close()
+        assert not thread.is_alive(), "Research HTTP server failed bounded shutdown"
 
 
 def test_connection_pins_validated_numeric_host_over_environment(monkeypatch):

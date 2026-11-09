@@ -1,0 +1,214 @@
+{
+  "observed_at": "2026-11-08T21:24:13.984246+00:00",
+  "transport": "curl.exe Schannel verified TLS; independent of production source",
+  "endpoint": "https://api.bybit.com/v5/market/instruments-info",
+  "categories": {
+    "linear": {
+      "Trading": {
+        "completeness": "EXHAUSTED",
+        "loaded": 930,
+        "unique_symbols": 930,
+        "contract_types": {
+          "LinearPerpetual": 890,
+          "LinearFutures": 40
+        },
+        "statuses": {
+          "Trading": 930
+        },
+        "pages": [
+          {
+            "number": 1,
+            "count": 500,
+            "source_time_ms": 1794173053730,
+            "cursor_continues": true
+          },
+          {
+            "number": 2,
+            "count": 430,
+            "source_time_ms": 1794173054185,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "46c9d80a535fda6dbbe97eba87d8fa14bdf278feda86809ab9c24744998ec0f2"
+      },
+      "PreLaunch": {
+        "completeness": "EXHAUSTED",
+        "loaded": 7,
+        "unique_symbols": 7,
+        "contract_types": {
+          "LinearPerpetual": 7
+        },
+        "statuses": {
+          "PreLaunch": 7
+        },
+        "pages": [
+          {
+            "number": 1,
+            "count": 7,
+            "source_time_ms": 1794173054491,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "c621c377d40eabae629e98bb7809cfb6ef96148b35b010b0eff662c6854e2532"
+      },
+      "PendingOpen": {
+        "completeness": "EXHAUSTED",
+        "loaded": 0,
+        "unique_symbols": 0,
+        "contract_types": {},
+        "statuses": {},
+        "pages": [
+          {
+            "number": 1,
+            "count": 0,
+            "source_time_ms": 1794173054778,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "Delivering": {
+        "completeness": "EXHAUSTED",
+        "loaded": 0,
+        "unique_symbols": 0,
+        "contract_types": {},
+        "statuses": {},
+        "pages": [
+          {
+            "number": 1,
+            "count": 0,
+            "source_time_ms": 1794173055035,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "Closed": {
+        "completeness": "EXHAUSTED",
+        "loaded": 1058,
+        "unique_symbols": 1058,
+        "contract_types": {
+          "LinearPerpetual": 335,
+          "LinearFutures": 723
+        },
+        "statuses": {
+          "Closed": 1053,
+          "PendingOpen": 5
+        },
+        "pages": [
+          {
+            "number": 1,
+            "count": 500,
+            "source_time_ms": 1794173055314,
+            "cursor_continues": true
+          },
+          {
+            "number": 2,
+            "count": 500,
+            "source_time_ms": 1794173055624,
+            "cursor_continues": true
+          },
+          {
+            "number": 3,
+            "count": 58,
+            "source_time_ms": 1794173056732,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "3235adb7644cf0244c443623b0b52158417b82ef4be2137f9b6d2004de70dd1f"
+      }
+    },
+    "inverse": {
+      "Trading": {
+        "completeness": "EXHAUSTED",
+        "loaded": 26,
+        "unique_symbols": 26,
+        "contract_types": {
+          "InversePerpetual": 22,
+          "InverseFutures": 4
+        },
+        "statuses": {
+          "Trading": 26
+        },
+        "pages": [
+          {
+            "number": 1,
+            "count": 26,
+            "source_time_ms": 1794173057327,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "507a195575a671f7650174f57f2ee7d1eb51719529927d0ffd1a17440cb11065"
+      },
+      "PreLaunch": {
+        "completeness": "EXHAUSTED",
+        "loaded": 0,
+        "unique_symbols": 0,
+        "contract_types": {},
+        "statuses": {},
+        "pages": [
+          {
+            "number": 1,
+            "count": 0,
+            "source_time_ms": 1794173057766,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "PendingOpen": {
+        "completeness": "EXHAUSTED",
+        "loaded": 0,
+        "unique_symbols": 0,
+        "contract_types": {},
+        "statuses": {},
+        "pages": [
+          {
+            "number": 1,
+            "count": 0,
+            "source_time_ms": 1794173058034,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "Delivering": {
+        "completeness": "EXHAUSTED",
+        "loaded": 0,
+        "unique_symbols": 0,
+        "contract_types": {},
+        "statuses": {},
+        "pages": [
+          {
+            "number": 1,
+            "count": 0,
+            "source_time_ms": 1794173058292,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "Closed": {
+        "completeness": "EXHAUSTED",
+        "loaded": 50,
+        "unique_symbols": 50,
+        "contract_types": {
+          "InversePerpetual": 6,
+          "InverseFutures": 44
+        },
+        "statuses": {
+          "Closed": 50
+        },
+        "pages": [
+          {
+            "number": 1,
+            "count": 50,
+            "source_time_ms": 1794173058889,
+            "cursor_continues": false
+          }
+        ],
+        "identity_sha256": "a3f261ff6cdbdb33aa4ecfb824a0fd2969db1374f126421bc2d5c0d5a9341e6f"
+      }
+    }
+  }
+}

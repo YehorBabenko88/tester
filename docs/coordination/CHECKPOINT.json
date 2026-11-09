@@ -821,5 +821,8 @@
         "latest_turn_status": "completed"
       }
     }
-  }
+  },
+  "active_continuation_checkpoint": "docs/coordination/nov9/CHECKPOINT.json",
+  "latest_direct_user_continuation_at": "2026-11-09T16:09:11.117886+00:00",
+  "historical_cycle_note": "Existing Nov7 cycle/agents/physical fields retained as history. Current Nov9 status is in active_continuation_checkpoint; do not infer an ADMINIT or PC4 installed service from source reports."
 }
