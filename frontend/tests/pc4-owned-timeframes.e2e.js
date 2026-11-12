@@ -105,6 +105,12 @@ async function panels(page) {
       message: n.querySelector(".panel-message").textContent,
       message_hidden: n.querySelector(".panel-message").hidden,
       canvas_hidden: n.querySelector(".canvas-wrap").hidden,
+      canvas_dimensions: {
+        width: n.querySelector("canvas").width,
+        height: n.querySelector("canvas").height,
+        css_width: n.querySelector("canvas").clientWidth,
+        css_height: n.querySelector("canvas").clientHeight,
+      },
       evidence: n.querySelector(".panel-evidence pre").textContent,
       page: n.querySelector(".panel-paging").textContent,
       exact_rows: n.querySelectorAll("details:not(.panel-evidence) table tr")
@@ -148,6 +154,9 @@ for (const c of suite.cases)
     const report = {
       classification: "ROOT_ONLY_ACTUAL_BACKEND_NO_ROUTE_MOCK",
       application_source_sha: suite.source_sha,
+      expected_device_scale_factor: Number(
+        process.env.TESTER_PC4_DEVICE_SCALE_FACTOR ?? "1",
+      ),
       harness_source_sha: process.env.TESTER_PC4_HARNESS_SHA,
       source_identity:
         "operator supplied immutable release pin; this harness does not attest process identity",
@@ -221,6 +230,12 @@ for (const c of suite.cases)
     });
     try {
       await page.goto("/");
+      report.device_pixel_ratio = await page.evaluate(
+        () => window.devicePixelRatio,
+      );
+      expect(report.device_pixel_ratio).toBe(
+        report.expected_device_scale_factor,
+      );
       await expect(page.locator("[data-row]").first()).toBeVisible();
       const sortResponse = page.waitForResponse((r) => {
         const u = new URL(r.url());
@@ -316,6 +331,16 @@ for (const c of suite.cases)
       }
       report.candle_canvas = await painted(page, "candles");
       report.volume_canvas = await painted(page, "volume");
+      for (const dimensions of [report.candle_canvas, report.volume_canvas]) {
+        expect(dimensions.css_width).toBeGreaterThan(0);
+        expect(dimensions.css_height).toBeGreaterThan(0);
+        expect(dimensions.width).toBe(
+          dimensions.css_width * report.device_pixel_ratio,
+        );
+        expect(dimensions.height).toBe(
+          dimensions.css_height * report.device_pixel_ratio,
+        );
+      }
       expect(report.candle_canvas.market_pixels).toBeGreaterThan(0);
       expect(report.volume_canvas.market_pixels).toBeGreaterThan(0);
       await page.locator("#download-options").evaluate((n) => (n.open = false));
@@ -386,6 +411,23 @@ for (const c of suite.cases)
       );
       await apply(page, c);
       report.restored_panels = await panels(page);
+      for (const snapshot of [
+        report.panels,
+        report.restored_panels,
+        ...report.gestures.map((g) => g.panels),
+      ])
+        for (const panel of snapshot)
+          if (!panel.canvas_hidden) {
+            const dimensions = panel.canvas_dimensions;
+            expect(dimensions.css_width).toBeGreaterThan(0);
+            expect(dimensions.css_height).toBeGreaterThan(0);
+            expect(dimensions.width).toBe(
+              dimensions.css_width * report.device_pixel_ratio,
+            );
+            expect(dimensions.height).toBe(
+              dimensions.css_height * report.device_pixel_ratio,
+            );
+          }
       expect(report.page_errors).toEqual([]);
       expect(report.request_failures).toEqual([]);
       assertionsCompleted = true;

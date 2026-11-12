@@ -8,6 +8,10 @@ if (
   throw Error(
     "Explicit pc4-owned opt-in, case file and exact application/harness SHAs required",
   );
+const rawScale = process.env.TESTER_PC4_DEVICE_SCALE_FACTOR ?? "1";
+if (!["1", "2"].includes(rawScale))
+  throw Error("TESTER_PC4_DEVICE_SCALE_FACTOR must be 1 or 2");
+const deviceScaleFactor = Number(rawScale);
 const channel = process.env.TESTER_PC4_BROWSER_CHANNEL;
 if (channel && !["chrome", "msedge"].includes(channel))
   throw Error(
@@ -30,7 +34,7 @@ export default defineConfig({
     headless: true,
     ...(channel ? { channel } : {}),
     viewport: { width: 1600, height: 1000 },
-    deviceScaleFactor: 1,
+    deviceScaleFactor,
     serviceWorkers: "block",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",

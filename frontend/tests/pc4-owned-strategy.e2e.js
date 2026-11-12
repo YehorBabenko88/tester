@@ -81,6 +81,9 @@ test("PC4 actual registered F execution to digest-bound summary, SLTP canvas and
   const report = {
     classification: "ROOT_ONLY_AUTHENTICATED_NO_ROUTE_MOCK",
     application_source_sha: c.source_sha,
+    expected_device_scale_factor: Number(
+      process.env.TESTER_PC4_DEVICE_SCALE_FACTOR ?? "1",
+    ),
     harness_source_sha: process.env.TESTER_PC4_HARNESS_SHA,
     source_identity:
       "operator supplied release pins; process/PG provenance verified separately by root",
@@ -147,6 +150,10 @@ test("PC4 actual registered F execution to digest-bound summary, SLTP canvas and
   });
   try {
     await page.goto("/");
+    report.device_pixel_ratio = await page.evaluate(
+      () => window.devicePixelRatio,
+    );
+    expect(report.device_pixel_ratio).toBe(report.expected_device_scale_factor);
     await page.locator("#category").selectOption(c.category);
     await page.getByLabel("Search symbols").fill(c.symbol);
     await expect(
@@ -319,6 +326,20 @@ test("PC4 actual registered F execution to digest-bound summary, SLTP canvas and
     expect(
       JSON.parse(await canvas.getAttribute("data-rendered-levels")),
     ).toHaveLength(envelope.summary.levels.length);
+    report.canvas_dimensions = await canvas.evaluate((node) => ({
+      width: node.width,
+      height: node.height,
+      css_width: node.clientWidth,
+      css_height: node.clientHeight,
+    }));
+    expect(report.canvas_dimensions.css_width).toBeGreaterThan(0);
+    expect(report.canvas_dimensions.css_height).toBeGreaterThan(0);
+    expect(report.canvas_dimensions.width).toBe(
+      report.canvas_dimensions.css_width * report.device_pixel_ratio,
+    );
+    expect(report.canvas_dimensions.height).toBe(
+      report.canvas_dimensions.css_height * report.device_pixel_ratio,
+    );
     await passwordCleared(page);
     await page.locator(".strategy-execution").screenshot({
       path: testInfo.outputPath("authenticated-synthetic-summary.png"),
