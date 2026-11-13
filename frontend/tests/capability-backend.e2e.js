@@ -20,12 +20,16 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
     } });
   });
 
-  const pageErrors = [], serverErrors = [], forbiddenRequests = [];
+  const pageErrors = [], consoleErrors = [], serverErrors = [], forbiddenRequests = [];
   const unsupported = new Set([
     "/api/analytics", "/api/footprint", "/api/open-interest",
     "/api/funding", "/api/candles", "/api/coverage",
   ]);
   page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error" && /Uncaught|TypeError|ReferenceError|SyntaxError/.test(message.text()))
+      consoleErrors.push(message.text());
+  });
   page.on("response", response => {
     const url = new URL(response.url());
     if (url.pathname.startsWith("/api/") &&
@@ -70,6 +74,7 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
   }
   expect(verified).toEqual(intervals);
   expect(pageErrors).toEqual([]);
+  expect(consoleErrors).toEqual([]);
   expect(serverErrors).toEqual([]);
   expect(forbiddenRequests).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("capability-13-tf.png"), fullPage: true });
