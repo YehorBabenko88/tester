@@ -11,6 +11,7 @@ on:
       - 'src/storage/models.py'
       - 'tests/test_execution_contract_bridge.py'
       - 'tests/test_execution_contract_postgres.py'
+      - 'tests/test_composed_data_research_postgres.py'
       - '.github/workflows/public-auxiliary-data.yml'
   workflow_dispatch:
 permissions:
@@ -21,6 +22,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -50,9 +53,53 @@ jobs:
       TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: python -m pip install -r requirements-dev.txt
       - name: Isolated PostgreSQL DATA roundtrip
         run: python -m unittest tests.test_public_auxiliary_postgres tests.test_execution_contract_postgres -v
+  research-composed-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_ci
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Pin DATA exact tested HEAD
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/checkout@v4
+        with:
+          repository: YehorBabenko88/tester
+          ref: ba82b02f0e2eec7b6f1ef1c6276cdc30e736a7ad
+          path: .ci-research-pin
+      - name: Test-only exact RESEARCH composition (never committed)
+        run: |
+          test "$(git -C .ci-research-pin rev-parse HEAD)" = "ba82b02f0e2eec7b6f1ef1c6276cdc30e736a7ad"
+          test ! -e src/integration/data_research_adapter.py
+          test ! -e src/analytics/research_metrics.py
+          cp .ci-research-pin/src/integration/data_research_adapter.py src/integration/data_research_adapter.py
+          cp .ci-research-pin/src/analytics/research_metrics.py src/analytics/research_metrics.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Bounded original HTTP → PostgreSQL → RESEARCH metrics
+        run: python -m unittest tests.test_composed_data_research_postgres -v
