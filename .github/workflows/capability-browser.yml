@@ -50,7 +50,19 @@ jobs:
           done
           cat capability-backend.log
           exit 1
+      - name: Verify exact source checkout
+        shell: bash
+        env:
+          TESTER_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual="$(git rev-parse HEAD)"
+          if [ "$actual" != "$TESTER_TESTED_HEAD_SHA" ]; then
+            echo "Mismatch: actual checkout is not the requested PR HEAD"
+            exit 1
+          fi
       - name: Chromium against real FastAPI and 13 timeframes
+        env:
+          TESTER_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: npx playwright test --config playwright.capability.config.js
         working-directory: frontend
       - name: Store browser screenshot, traces and backend log
