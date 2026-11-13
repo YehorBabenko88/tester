@@ -116,5 +116,76 @@ class ComposedDataResearchPostgresTests(unittest.TestCase):
         self.assertEqual(count, 1)
 
 
+    def test_unknown_side_is_persisted_and_unqualified_in_research(self):
+        from src.integration.data_research_adapter import (
+            read_data_metrics, require_strategy_lab_f_input,
+        )
+        from src.ingest.execution_contract import read_execution_events, read_research_trades
+        with psycopg.connect(DSN) as connection:
+            migrate(connection)
+
+        symbol = "ETHUSDT"
+        row = {
+            "symbol": symbol, "execId": "data72-unknown-composed-v1",
+            "time": str(STAMP), "price": "2500.125000",
+            "size": "0.00005000", "side": "Unknown",
+        }
+        result = {"list": [row]}
+        params = {"category": "linear", "symbol": symbol, "limit": 1000}
+        url = "https://api.bybit.com/v5/market/recent-trade?" + urlencode(params)
+        body = json.dumps({"retCode": 0, "result": result}).encode()
+        class Source:
+            last_response = {
+                "url": url, "status_code": 200,
+                "hash_scope": "original_http_body",
+                "sha256": hashlib.sha256(body).hexdigest(),
+                "bytes_base64": base64.b64encode(body).decode(),
+            }
+            def call(self, path, request_params):
+                if path != "/recent-trade" or request_params != params:
+                    raise AssertionError("unexpected Bybit public request")
+                return result, url
+
+        store = Store(DSN)
+        request = dict(kind="trades", category="linear", symbol=symbol,
+                       run_id="data72-unknown-composed-run-v1",
+                       job_key="data72-unknown-composed-job-v1",
+                       observed_at=datetime(2026, 11, 13, 20, tzinfo=timezone.utc))
+        for _ in range(2):
+            receipt = fetch_and_ingest(store, Source(), **request)
+            self.assertEqual(receipt["count"], 1)
+            self.assertFalse(receipt["verified"])
+        reopened = Store(DSN)
+        scope = dict(category="linear", symbol=symbol,
+                     start_ms=STAMP - 1, end_ms=STAMP + 1, limit=10)
+        events = read_execution_events(reopened, **scope)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["taker_side"], "Unknown")
+        self.assertEqual(events[0]["quantity"], "0.00005")
+        self.assertIsNone(events[0]["publication_ms"])
+        self.assertEqual(events[0]["source_coverage"]["status"], "UNKNOWN")
+        canonical = read_research_trades(reopened, **scope)
+        self.assertEqual(canonical[0]["taker_side"], "Unknown")
+        preview = read_data_metrics(reopened, **scope, interval_ms=2,
+                                    tick_size="0.000001")
+        self.assertEqual(preview["status"], "OBSERVED_UNVERIFIED")
+        self.assertEqual(preview["coverage"], "UNKNOWN")
+        self.assertEqual(preview["source_verification"],
+                         "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS")
+        self.assertIsNone(preview["persisted_dataset_revision"])
+        self.assertIsNone(preview["historical_known_at_ms"])
+        self.assertFalse(preview["admitted_to_f"])
+        with self.assertRaisesRegex(ValueError, "real_historical_visibility_unknown_f_denied"):
+            require_strategy_lab_f_input(preview)
+        bar = preview["metrics"]["bars"][0]
+        self.assertEqual(bar["trade_count"], 1)
+        self.assertEqual(bar["unknown_side_volume"], "0.00005")
+        self.assertEqual(bar["buy_volume"], "0")
+        self.assertEqual(bar["sell_volume"], "0")
+        self.assertEqual(bar["delta_known"], "0")
+        self.assertFalse(bar["side_classification_complete"])
+        self.assertFalse(bar["delta_complete"])
+
+
 if __name__ == "__main__":
     unittest.main()
