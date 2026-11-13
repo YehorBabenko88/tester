@@ -29,6 +29,8 @@ jobs:
           python -m unittest discover -s tests/platform -p 'test_ops_pg_claim.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_disposable_lifecycle.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_pg_isolation.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_dual_lifecycle.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_resource_metrics.py' -v
   portable-pg:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -59,3 +61,12 @@ jobs:
         run: |
           python -m unittest discover -s tests/platform -p 'test_ops_pg_real.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_pg_lifecycle_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_dual_real.py' -v
+      - name: Publish disposable PG queue/WAL/process evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-dual-pg-evidence
+          path: ops-dual-pg-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
