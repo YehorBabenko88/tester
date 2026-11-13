@@ -58,7 +58,11 @@ def guarded_resume(
     completed = {key for key, value in durable_states.items() if value == "completed"}
     candidates = resume_plan(body, completed)
     # A failed job requires explicit retry authorization; never auto-requeue it.
-    # Never reclaim a live lease. The caller must prove lease expiry in the DB.\n    running = {key for key in candidates if durable_states[key] == "running"}\n    if not running.issubset(expired_running):\n        raise LifecycleRefusal("Running lease not proven expired")\n    selected = [key for key in candidates if durable_states[key] == "queued" or key in running]
+    # Never reclaim a live lease. The caller must prove lease expiry in the DB.
+    running = {key for key in candidates if durable_states[key] == "running"}
+    if not running.issubset(expired_running):
+        raise LifecycleRefusal("Running lease not proven expired")
+    selected = [key for key in candidates if durable_states[key] == "queued" or key in running]
     claimed = []
     for key in selected:
         if claim_job(key):
