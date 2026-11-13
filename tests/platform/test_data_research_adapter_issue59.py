@@ -146,7 +146,7 @@ def test_source_order_does_not_change_metrics():
 @pytest.mark.parametrize("mutation,reason", [
     (lambda p: p["evidence"][0]["evidence"].pop("http_bytes_base64"), "missing_or_oversized_http_body"),
     (lambda p: p["evidence"][0]["evidence"].__setitem__("http_sha256", "0" * 64), "http_body_sha256_mismatch"),
-    (lambda p: p["observations"][0]["source"].__setitem__("sha256", "0" * 64), "source_envelope_readback_mismatch"),
+    (lambda p: p["observations"][0]["source"].__setitem__("sha256", "0" * 64), "wrong_provenance_source_kind"),
     (lambda p: p["rows"][0]["payload"].__setitem__("unit", "inverse_contracts"), "source_envelope_readback_mismatch"),
     (lambda p: p["rows"][0]["payload"].__setitem__("publication_timestamp_ms", 1), "source_envelope_readback_mismatch"),
     (lambda p: p.__setitem__("page_exhausted", False), "missing_source_records_or_more_pages"),
@@ -206,3 +206,25 @@ def test_missing_unit_cannot_be_guessed():
     page, _, _ = make_page(quantity_unit="contracts_unknown")
     with pytest.raises(ValueError, match="unknown_or_incompatible_quantity_unit"):
         project(page)
+
+
+def test_actual_data72_decoder_when_composed():
+    """Runs on MASTER's combined DATA+RESEARCH candidate; otherwise explicit SKIP."""
+    import importlib.util
+    from datetime import datetime
+
+    if importlib.util.find_spec("src.ingest.public_auxiliary") is None:
+        pytest.skip("PR #72 module not yet composed into this independent PR")
+    from src.ingest.public_auxiliary import decode
+
+    page, raw_envelopes, receipt = make_page()
+    row = source_row()
+    expected = decode(
+        "trades", "linear", "BTCUSDT",
+        {"retCode": 0, "result": {"list": [row]}},
+        fetched_at=datetime.fromisoformat(OBSERVED),
+        url=receipt["source_url"], ingestion_run=receipt["ingestion_run"],
+        evidence_ref=page["observations"][0]["source"]["evidence_refs"][0],
+    )
+    assert expected == raw_envelopes
+    assert project(page)["admitted_to_f"] is False
