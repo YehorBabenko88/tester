@@ -8,10 +8,20 @@ const STATES = new Set(["AVAILABLE", "PARTIAL", "UNAVAILABLE", "UNVERIFIED"]);
 const ROUTES = Object.freeze({
   candles: "/api/candles", volume: "/api/candles",
   footprint: "/api/footprint", open_interest: "/api/open-interest",
-  funding: "/api/funding", mark: "/api/candles", index: "/api/candles",
+  funding: "/api/funding", mark: "/api/price-candles", index: "/api/price-candles",
 });
 
 const REASON = /^[a-z][a-z0-9_]{0,79}$/;
+function validSourceRef(value) {
+  if (typeof value !== "string" || value.length > 512) return false;
+  if (/^[a-zA-Z0-9_.:/-]{1,256}$/.test(value)) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" &&
+      ["api.bybit.com", "public.bybit.com"].includes(url.hostname) &&
+      !url.username && !url.password && !url.port && !url.hash;
+  } catch { return false; }
+}
 
 export function classifyPanelCapability(panel, record) {
   if (!SUPPORTED.has(panel)) throw new TypeError("Unknown panel");
@@ -35,15 +45,22 @@ export function classifyPanelCapability(panel, record) {
     record.resource.startsWith("//") ||
     typeof record.revision !== "string" ||
     !/^[a-zA-Z0-9_.:-]{1,128}$/.test(record.revision) ||
-    typeof record.source_ref !== "string" ||
-    !/^[a-zA-Z0-9_.:/-]{1,256}$/.test(record.source_ref)
+    !validSourceRef(record.source_ref)
   ) return unavailable("unverified_capability_binding");
   if (record.resource !== ROUTES[panel])
     return unavailable("unsupported_panel_resource");
+  const priceOnly = panel === "mark" || panel === "index";
+  if (priceOnly && (record.schema_version !== "1.1" ||
+      record.candle_kind !== (panel === "mark" ? "official_mark" : "official_index")))
+    return unavailable("price_contract_not_verified");
+  if (!priceOnly && record.schema_version !== "1.0")
+    return unavailable("api_schema_not_verified");
   return {
     panel, requestAllowed: true, state: record.status,
     reason: record.reason, resource: record.resource,
     revision: record.revision, source_ref: record.source_ref,
+    schema_version: record.schema_version,
+    ...(priceOnly ? { candle_kind: record.candle_kind } : {}),
   };
 }
 
