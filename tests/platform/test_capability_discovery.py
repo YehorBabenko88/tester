@@ -1,4 +1,5 @@
 """Bounded real source capability discovery through the production FastAPI route."""
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -7,21 +8,35 @@ from src.api.main import create_app
 from src.api.providers import ProviderUnavailable, UnavailableReader
 from src.integration.reference_prices import ReferencePriceReader
 
-INTERVALS = ("1", "3", "5", "15", "30", "60", "120", "240",
-             "360", "720", "D", "W", "M")
-PANELS = ("candles", "volume", "footprint", "delta", "cvd", "profile",
-          "poc", "vwap", "open_interest", "funding", "mark", "index")
-PARAMS = dict(category="linear", symbol="BTCUSDT", interval="1",
-              start_ms=0, end_ms=60000)
+INTERVALS = ("1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M")
+PANELS = (
+    "candles",
+    "volume",
+    "footprint",
+    "delta",
+    "cvd",
+    "profile",
+    "poc",
+    "vwap",
+    "open_interest",
+    "funding",
+    "mark",
+    "index",
+)
+PARAMS = dict(category="linear", symbol="BTCUSDT", interval="1", start_ms=0, end_ms=60000)
 
 
 def client(reader, *, reference=False):
     return TestClient(
-        create_app(Settings(
-            market_catalog_enabled=False,
-            provider_factory=("src.integration.reference_prices:create_reader"
-                              if reference else None),
-        ), provider=reader),
+        create_app(
+            Settings(
+                market_catalog_enabled=False,
+                provider_factory=(
+                    "src.integration.reference_prices:create_reader" if reference else None
+                ),
+            ),
+            provider=reader,
+        ),
         base_url="http://127.0.0.1:8765",
     )
 
@@ -41,8 +56,15 @@ def test_unconnected_discovery_returns_200_without_probing_unsupported_routes():
 def test_unconfigured_reader_claims_cannot_authorize_a_source():
     class Liar:
         def capabilities(self, query):
-            return {"mark": {"status": "AVAILABLE", "resource": "/api/candles",
-                             "source_ref": "fake", "revision": "fake"}}
+            return {
+                "mark": {
+                    "status": "AVAILABLE",
+                    "resource": "/api/candles",
+                    "source_ref": "fake",
+                    "revision": "fake",
+                }
+            }
+
         def read(self, resource, query):
             raise AssertionError("unconfigured source must never be probed")
 
@@ -55,20 +77,37 @@ def test_unconfigured_reader_claims_cannot_authorize_a_source():
 
 def reference_row(kind, *, source_override=None):
     endpoint = "mark-price-kline" if kind == "official_mark" else "index-price-kline"
-    provenance = [dict(
-        source_kind="bybit_rest",
-        source_ref=source_override or (
-            "https://api.bybit.com/v5/market/" + endpoint +
-            "?category=linear&symbol=BTCUSDT&interval=1"),
-        source_hash="a" * 64,
-        ingestion_run="verified-fixture-run",
-        timestamp_precision="ms", source_timestamp="0",
-    )]
+    provenance = [
+        dict(
+            source_kind="bybit_rest",
+            source_ref=source_override
+            or (
+                "https://api.bybit.com/v5/market/"
+                + endpoint
+                + "?category=linear&symbol=BTCUSDT&interval=1"
+            ),
+            source_hash="a" * 64,
+            ingestion_run="verified-fixture-run",
+            timestamp_precision="ms",
+            source_timestamp="0",
+        )
+    ]
     row = dict(
-        schema_version="1.1", venue="bybit", category="linear", symbol="BTCUSDT",
-        timestamp_ms=0, start_ms=0, end_ms=60000, interval="1",
-        kind=kind, open="100", high="101", low="99", close="100.5",
-        is_closed=True, provenance=provenance,
+        schema_version="1.1",
+        venue="bybit",
+        category="linear",
+        symbol="BTCUSDT",
+        timestamp_ms=0,
+        start_ms=0,
+        end_ms=60000,
+        interval="1",
+        kind=kind,
+        open="100",
+        high="101",
+        low="99",
+        close="100.5",
+        is_closed=True,
+        provenance=provenance,
         availability={"status": "PARTIAL", "reason": "Observed closed price; history unknown"},
         coverage={"status": "UNKNOWN", "start_ms": 0, "end_ms": 60000, "evidence_refs": []},
     )
@@ -86,18 +125,27 @@ class PriceReader(ReferencePriceReader):
             raise ProviderUnavailable("Source profile does not provide other series")
         if query.interval != "1" or (query.start_ms, query.end_ms) != (0, 60000):
             return dict(
-                schema_version="1.1", data=[], next_cursor=None,
+                schema_version="1.1",
+                data=[],
+                next_cursor=None,
                 availability={"status": "UNAVAILABLE", "reason": "No observed prices"},
-                coverage={"status": "UNKNOWN", "start_ms": query.start_ms,
-                          "end_ms": query.end_ms, "evidence_refs": []},
+                coverage={
+                    "status": "UNKNOWN",
+                    "start_ms": query.start_ms,
+                    "end_ms": query.end_ms,
+                    "evidence_refs": [],
+                },
                 provenance=[],
             )
         source = "https://evil.example/fake" if self.corrupt else None
         row = reference_row(query.candle_kind, source_override=source)
         return dict(
-            schema_version="1.1", data=[row], next_cursor=None,
+            schema_version="1.1",
+            data=[row],
+            next_cursor=None,
             availability={"status": "PARTIAL", "reason": "Observed only"},
-            coverage=row["coverage"], provenance=row["provenance"],
+            coverage=row["coverage"],
+            provenance=row["provenance"],
         )
 
 
@@ -116,10 +164,15 @@ def test_real_price_only_route_is_qualified_from_validated_records():
             assert item["candle_kind"] == "official_" + panel
             assert item["revision"].startswith("page:")
             assert item["source_ref"].startswith("https://api.bybit.com/")
-            response = c.get("/api/price-candles", params={
-                **PARAMS, "candle_kind": item["candle_kind"],
-                "schema_version": "1.1", "limit": 1000,
-            })
+            response = c.get(
+                "/api/price-candles",
+                params={
+                    **PARAMS,
+                    "candle_kind": item["candle_kind"],
+                    "schema_version": "1.1",
+                    "limit": 1000,
+                },
+            )
             assert response.status_code == 200, response.text
             assert response.json()["schema_version"] == "1.1"
             assert response.json()["data"][0]["kind"] == item["candle_kind"]
@@ -158,8 +211,7 @@ def test_invalid_range_is_rejected_and_untrusted_host_is_denied():
     with client(UnavailableReader()) as c:
         invalid = c.get("/api/capabilities", params={**PARAMS, "end_ms": 0})
         assert invalid.status_code == 422
-        denied = c.get("/api/capabilities", params=PARAMS,
-                       headers={"Host": "evil.example"})
+        denied = c.get("/api/capabilities", params=PARAMS, headers={"Host": "evil.example"})
         assert denied.status_code == 400
 
 
@@ -169,18 +221,18 @@ def test_oi_discovery_uses_selected_source_interval_not_default():
     class SpyReader:
         def read(self, resource, query):
             if resource == "open-interest":
-                seen.append((query.interval, query.source_interval,
-                             query.viewport_interval))
+                seen.append((query.interval, query.source_interval, query.viewport_interval))
             raise ProviderUnavailable("Not connected")
 
     app = create_app(
-        Settings(provider_factory="src.integration.lab_market:create_reader",
-                 market_catalog_enabled=False),
+        Settings(
+            provider_factory="src.integration.lab_market:create_reader",
+            market_catalog_enabled=False,
+        ),
         provider=SpyReader(),
     )
     with TestClient(app, base_url="http://127.0.0.1:8765") as c:
-        response = c.get("/api/capabilities",
-                         params={**PARAMS, "source_interval": "1h"})
+        response = c.get("/api/capabilities", params={**PARAMS, "source_interval": "1h"})
     assert response.status_code == 200
     assert seen == [("1h", "1h", "1")]
     assert response.json()["data"]["panels"]["open_interest"]["status"] == "UNVERIFIED"
@@ -191,12 +243,7 @@ def test_optional_routes_are_not_advertised_when_backend_not_configured():
         response = c.get("/api/capabilities")
         assert response.status_code == 200
         features = response.json()["data"]["features"]
-        assert features["market_catalog"] == {
-            "enabled": False, "reason": "catalog_not_configured"
-        }
+        assert features["market_catalog"] == {"enabled": False, "reason": "catalog_not_configured"}
         assert features["sources"]["enabled"] is False
         assert features["sources"]["reason"] == "catalog_and_provider_required"
-        assert not any(
-            route.path.startswith("/api/market-catalog")
-            for route in c.app.routes
-        )
+        assert not any(route.path.startswith("/api/market-catalog") for route in c.app.routes)
