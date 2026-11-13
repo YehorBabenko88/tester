@@ -247,3 +247,21 @@ def test_optional_routes_are_not_advertised_when_backend_not_configured():
         assert features["sources"]["enabled"] is False
         assert features["sources"]["reason"] == "catalog_and_provider_required"
         assert not any(route.path.startswith("/api/market-catalog") for route in c.app.routes)
+
+
+def test_price_only_source_timestamp_must_match_original_closed_bar():
+    class WrongTimestampReader(PriceReader):
+        def read(self, resource, query):
+            payload = super().read(resource, query)
+            if resource == "price-candles" and payload["data"]:
+                payload["provenance"][0]["source_timestamp"] = "123"
+            return payload
+
+    with client(WrongTimestampReader(), reference=True) as c:
+        response = c.get("/api/capabilities", params=PARAMS)
+    assert response.status_code == 200
+    panels = response.json()["data"]["panels"]
+    for panel in ("mark", "index"):
+        assert panels[panel]["status"] == "UNVERIFIED"
+        assert panels[panel]["reason"] == "price_source_timestamp_mismatch"
+        assert "resource" not in panels[panel]
