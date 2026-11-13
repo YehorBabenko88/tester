@@ -133,6 +133,23 @@ export function adaptSeries(payload, kind, q) {
   let rows = Array.isArray(data) ? data : data?.rows;
   if (!meta || !Array.isArray(rows) || rows.length > 1000)
     throw Error("Corrupt series envelope");
+  const priceOnly = kind === "mark" || kind === "index";
+  if (priceOnly) {
+    if (payload.schema_version !== "1.1")
+      throw Error("Price-only API v1.1 required");
+    const expectedKind = kind === "mark" ? "official_mark" : "official_index";
+    for (const row of rows) {
+      if (row.kind !== expectedKind || row.is_closed !== true ||
+          row.schema_version !== "1.1" ||
+          row.category !== q.category || row.symbol !== q.symbol ||
+          row.interval !== q.interval || row.start_ms !== row.timestamp_ms ||
+          !Number.isSafeInteger(row.start_ms) ||
+          !Number.isSafeInteger(row.end_ms) ||
+          row.start_ms < q.start_ms || row.end_ms > q.end_ms ||
+          row.start_ms >= row.end_ms)
+        throw Error("Price-only source identity, closure or UTC interval mismatch");
+    }
+  }
   const evidence = quality([payload, meta, ...rows], rows.length > 0);
   const completeness = weakestCoverage(
     evidence,
