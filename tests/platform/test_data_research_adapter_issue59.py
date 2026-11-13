@@ -228,3 +228,40 @@ def test_actual_data72_decoder_when_composed():
     )
     assert expected == raw_envelopes
     assert project(page)["admitted_to_f"] is False
+
+
+@pytest.mark.integration
+def test_disposable_postgres_data_provenance_roundtrip():
+    """Actual B Store transaction, reopen, idempotent DATA-shaped replay.
+
+    Never connects to a default/production database: only explicit CI DSN.
+    """
+    import os
+
+    dsn = os.environ.get("TESTER_RESEARCH_DATA_TEST_DSN")
+    if not dsn:
+        pytest.skip("dedicated TESTER_RESEARCH_DATA_TEST_DSN not configured")
+    if "tester_research_data_disposable" not in dsn:
+        raise ValueError("test requires specifically named disposable database")
+    import psycopg
+    from src.storage.migrations import migrate
+    from src.storage.store import Store as PostgresStore
+
+    with psycopg.connect(dsn) as conn:
+        migrate(conn)
+    _, source_envelopes, receipt = make_page()
+    store = PostgresStore(dsn)
+    for _ in range(2):
+        store.ingest(source_envelopes, receipt,
+                     "ci-public-research-job", run_id="ci-public-research-run")
+    # A fresh read verifies durable linkage instead of trusting the producer's return.
+    reopened = PostgresStore(dsn)
+    result = read_data_metrics(reopened, category="linear", symbol="BTCUSDT",
+                               start_ms=START, end_ms=END,
+                               interval_ms=60000, tick_size="0.5")
+    assert result["metrics"]["observed_execution_count"] == 1
+    assert result["metrics"]["bars"][0]["vwap"] == "100"
+    assert result["metrics"]["bars"][0]["delta_known"] == "2"
+    assert result["admitted_to_f"] is False
+    assert result["f_input"] is None
+    assert result["status"] == "OBSERVED_UNVERIFIED"
