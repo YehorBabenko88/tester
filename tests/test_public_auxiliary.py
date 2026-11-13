@@ -1,6 +1,8 @@
 """Offline source-contract regression tests. No network or PC4 access."""
 import base64
 import hashlib
+import json
+from urllib.parse import urlencode
 import unittest
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
@@ -30,7 +32,7 @@ class PublicAuxiliaryTests(unittest.TestCase):
     def test_oi_exact_decimal_and_observation_time(self):
         rows = decode("open_interest", "linear", "BTCUSDT",
                       response({"openInterest": "123456789.000001",
-                                "timestamp": "1794560000000"}), **BASE)
+                                "timestamp": "1794560000000"}), interval="5min", **BASE)
         self.assertEqual(rows[0]["payload"]["value"], "123456789.000001")
         self.assertEqual(rows[0]["payload"]["observation_timestamp_ms"], 1794560000000)
 
