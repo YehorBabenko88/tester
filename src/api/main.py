@@ -327,6 +327,26 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             operation_id="read_" + resource,
         )
 
+    @app.get("/api/capabilities", response_model=Envelope[dict], operation_id="read_capabilities")
+    def capabilities(query: Annotated[Query, Depends(validated_query)]):
+        """Fail-closed panel discovery: route existence is not data availability.
+
+        The current reader protocol has no verified per-source revision/coverage
+        discovery method. Never turn a configured provider into AVAILABLE based
+        solely on its presence or on the existence of an HTTP route.
+        """
+        panels = {}
+        for panel in (
+            "candles", "volume", "footprint", "delta", "cvd", "profile",
+            "poc", "vwap", "open_interest", "funding", "mark", "index",
+        ):
+            panels[panel] = {
+                "panel": panel,
+                "status": "UNVERIFIED",
+                "reason": "source_revision_not_verified",
+            }
+        return Envelope(data={"panels": panels})
+
     @app.post("/api/downloads", response_model=Envelope[Job], status_code=202)
     def downloads(body: DownloadRequest):
         storage = storage_status(settings)
