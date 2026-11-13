@@ -25,7 +25,7 @@ STAMP = 1600000000000
 class ComposedDataResearchPostgresTests(unittest.TestCase):
     def test_http_postgres_readback_research_metrics(self):
         # Import must fail if exact pinned RESEARCH code was not composed.
-        from src.integration.data_research_adapter import read_data_metrics
+        from src.integration.data_research_adapter import (read_data_metrics, require_strategy_lab_f_input)
 
         with psycopg.connect(DSN) as connection:
             migrate(connection)
@@ -80,6 +80,11 @@ class ComposedDataResearchPostgresTests(unittest.TestCase):
         self.assertEqual(preview["source_verification"],
                          "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS")
         self.assertEqual(preview["coverage"], "UNKNOWN")
+        self.assertIsNone(preview["persisted_dataset_revision"])
+        self.assertIsNone(preview["historical_known_at_ms"])
+        self.assertEqual(len(preview["observed_sample_fingerprint"]), 64)
+        with self.assertRaisesRegex(ValueError, "real_historical_visibility_unknown_f_denied"):
+            require_strategy_lab_f_input(preview)
         self.assertEqual(preview["publication_time"], "UNKNOWN")
         self.assertEqual(preview["status"], "OBSERVED_UNVERIFIED")
         self.assertIs(preview["admitted_to_f"], False)
