@@ -210,5 +210,66 @@ class AuxiliaryPostgresTests(unittest.TestCase):
         self.assertEqual(persisted[0]["trade_id"], "data72-exec-conflict-v1")
 
 
+    def test_unknown_public_taker_side_survives_pg16_without_inventing_delta(self):
+        from src.ingest.execution_contract import read_execution_events, read_research_trades
+        symbol = "LTCUSDT"
+        timestamp = "1600000000000"
+
+        class UnknownSidePublicSource:
+            def call(self, path, params):
+                self.result = {"list": [{
+                    "symbol": symbol, "execId": "data72-unknown-side-pg-v1",
+                    "time": timestamp, "price": "123.4500",
+                    "size": "0.007500", "side": "Unknown",
+                }]}
+                url = "https://api.bybit.com/v5/market" + path + "?" + urlencode(params)
+                body = json.dumps({"retCode": 0, "result": self.result}).encode()
+                self.last_response = {
+                    "url": url, "status_code": 200,
+                    "hash_scope": "original_http_body",
+                    "sha256": hashlib.sha256(body).hexdigest(),
+                    "bytes_base64": base64.b64encode(body).decode(),
+                }
+                return self.result, url
+
+        store = Store(DSN)
+        params = dict(kind="trades", category="linear", symbol=symbol,
+                      run_id="data72-unknown-side-run-v1",
+                      job_key="data72-unknown-side-job-v1")
+        receipt = fetch_and_ingest(store, UnknownSidePublicSource(), **params)
+        self.assertEqual(receipt["count"], 1)
+        self.assertFalse(receipt["verified"])
+        reopened = Store(DSN)
+        scope = dict(category="linear", symbol=symbol,
+                     start_ms=int(timestamp) - 1, end_ms=int(timestamp) + 1,
+                     limit=10)
+        events = read_execution_events(reopened, **scope)
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["taker_side"], "Unknown")
+        self.assertEqual(events[0]["quantity"], "0.0075")
+        self.assertEqual(events[0]["price"], "123.45")
+        self.assertEqual(events[0]["source_coverage"]["status"], "UNKNOWN")
+        self.assertIsNone(events[0]["publication_ms"])
+        self.assertTrue(events[0]["source_receipts"][0]["http_sha256"])
+        research = read_research_trades(reopened, **scope)
+        self.assertEqual(research[0]["taker_side"], "Unknown")
+        self.assertEqual(research[0]["coverage"]["status"], "UNKNOWN")
+        from src.analytics.research_metrics import calculate
+        metrics = calculate(research, start_ms=int(timestamp) - 1,
+                            end_ms=int(timestamp) + 1, interval_ms=2, tick_size="0.01")
+        bar = metrics["bars"][0]
+        self.assertEqual(bar["unknown_side_volume"], "0.0075")
+        self.assertEqual(bar["buy_volume"], "0")
+        self.assertEqual(bar["sell_volume"], "0")
+        self.assertEqual(bar["delta_known"], "0")
+        self.assertFalse(bar["side_classification_complete"])
+        self.assertFalse(bar["delta_complete"])
+        self.assertFalse(metrics["admitted_to_f"])
+        # Replayed original receipt must remain immutable and read back once.
+        receipt2 = fetch_and_ingest(store, UnknownSidePublicSource(), **params)
+        self.assertEqual(receipt2["count"], 1)
+        self.assertEqual(len(read_execution_events(Store(DSN), **scope)), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
