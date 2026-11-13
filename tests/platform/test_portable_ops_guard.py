@@ -71,6 +71,14 @@ class GuardTests(unittest.TestCase):
                 guarded_resume(cp, self.owner, self.witness, "python", ("-m","worker"),
                                {"a":"queued"}, lambda _: True)
 
+    def test_claim_wrong_job_identity_refused(self):
+        with TemporaryDirectory() as td:
+            cp = Path(td) / "cp.json"
+            write_checkpoint(cp, self.owner, [{"id":"a","state":"queued"}], 0)
+            with self.assertRaises(LifecycleRefusal):
+                guarded_resume(cp, self.owner, self.witness, "python", ("-m","worker"),
+                               {"a":"queued"}, lambda _: SimpleNamespace(id="foreign", lease_token="token"))
+
     def test_wrong_image_refuses(self):
         with TemporaryDirectory() as td:
             cp = Path(td) / "cp.json"

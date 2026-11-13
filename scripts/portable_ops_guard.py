@@ -64,12 +64,13 @@ def guarded_resume(
     if not running.issubset(expired_running):
         raise LifecycleRefusal("Running lease not proven expired")
     selected = [key for key in candidates if durable_states[key] == "queued" or key in running]
+    # All preflight checks above run before any mutating claim callback.
     claimed = []
     for key in selected:
         lease = claim_job(key)
         if lease is not None:
-            if not getattr(lease, "lease_token", None):
-                raise LifecycleRefusal("Claim returned no fencing token")
+            if not getattr(lease, "lease_token", None) or str(getattr(lease, "id", "")) != key:
+                raise LifecycleRefusal("Claim returned wrong identity or missing fencing token")
             claimed.append(lease)
     return claimed
 
