@@ -66,6 +66,8 @@ const state = {
   capabilities: null,
   capabilityKey: null,
   capabilityError: null,
+  marketCatalogEnabled: null,
+  sourceListEnabled: null,
 };
 state.ids = new Set(
   [...state.ids]
@@ -296,6 +298,11 @@ async function loadInstruments(
   pinned = false,
   conflictRecovered = false,
 ) {
+  if (state.marketCatalogEnabled === false) {
+    $("#screener-status").textContent =
+      "DATA_UNAVAILABLE · market_catalog_not_configured · Direct source symbol selection remains available for verified price data.";
+    return;
+  }
   state.instrumentAbort?.abort();
   const abort = new AbortController();
   state.instrumentAbort = abort;
@@ -1123,8 +1130,58 @@ setInterval(
   1000,
 );
 selection();
-loadInstruments();
-loadSources();
+async function initializeOptionalRoutes() {
+  try {
+    // No instrument is required for route feature discovery. This endpoint
+    // must be registered even without a market catalog or connected provider.
+    const payload = await request("/api/capabilities");
+    const features = payload.data?.features;
+    if (features?.market_catalog?.enabled === false)
+      state.marketCatalogEnabled = false;
+    else if (features?.market_catalog?.enabled === true)
+      state.marketCatalogEnabled = true;
+    if (features?.sources?.enabled === false)
+      state.sourceListEnabled = false;
+    else if (features?.sources?.enabled === true)
+      state.sourceListEnabled = true;
+  } catch (error) {
+    // Older servers may not have route capability discovery. Keep the existing
+    // catalog UI behavior but report the failed feature negotiation.
+    $("#screener-status").textContent =
+      "DATA_UNAVAILABLE · optional_route_discovery_failed · " + error.message;
+  }
+  if (state.marketCatalogEnabled === false) {
+    $("#refresh").disabled = true;
+    $("#next").disabled = true;
+    $("#previous").disabled = true;
+  } else {
+    await loadInstruments();
+  }
+  if (state.sourceListEnabled === false) {
+    const option = el("option", "Source downloads not configured");
+    option.value = "";
+    $("#source").replaceChildren(option);
+    $("#download-status").textContent =
+      "DATA_UNAVAILABLE · source_downloads_not_configured · Chart inspection is read-only.";
+  } else {
+    await loadSources();
+  }
+}
+
+$("#open-manual").addEventListener("click", () => {
+  const symbol = $("#manual-symbol").value.trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{1,40}$/.test(symbol)) {
+    $("#chart-status").textContent =
+      "DATA_UNAVAILABLE · Invalid source symbol. Use 1–40 uppercase letters, digits, _ or -.";
+    return;
+  }
+  state.active = { category: $("#category").value, symbol };
+  $("#active-symbol").textContent =
+    symbol + " · " + state.active.category + " · awaiting source verification";
+  loadCharts();
+});
+
+initializeOptionalRoutes();
 refreshJobs();
 
 mountStrategyWorkspace(document.querySelector("#strategy-panels"), {
