@@ -20,7 +20,9 @@ def isolated_dsn(value):
     if not value:
         raise ValueError("explicit disposable PostgreSQL DSN required")
     parsed = conninfo_to_dict(value)
-    if set(parsed) != {"host", "port", "dbname", "user", "password"}:\n        raise ValueError("unexpected PostgreSQL connection parameters")\n    if parsed.get("host") != "127.0.0.1":
+    if set(parsed) != {"host", "port", "dbname", "user", "password"}:
+        raise ValueError("unexpected PostgreSQL connection parameters")
+    if parsed.get("host") != "127.0.0.1":
         raise ValueError("only loopback PostgreSQL allowed")
     port = int(parsed.get("port", "5432"))
     if port in (5432, 55471) or not 1024 <= port <= 65535:
