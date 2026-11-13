@@ -29,6 +29,9 @@ Executable subprocess tests against exact committed blobs:
   queued recovery, attempt count 2, distinct lease tokens, old-token refusal,
   final completed state, and unchanged PostgreSQL system identifier and
   postmaster birth time. This integrated DB test is authored, NOT_RUN here.
+- SKIP 3/3 local PostgreSQL DSN isolation tests (psycopg not installed).
+  They enforce an exact parameter set and reject hostaddr, service, options,
+  PGHOSTADDR/PGSERVICE/PGOPTIONS environment overrides and port 5432.
 - GitHub Actions result for new HEAD: NOT_RUN/UNKNOWN until run concludes.
 - Windows native process/role/worker acceptance: NOT_RUN.
 - Actual PC4 portable same-root restart: NOT_RUN; not implemented by this helper.
@@ -70,3 +73,20 @@ worker stop/drain, persistent externally witnessed process identity,
 authenticated API-worker ownership, explicit job checkpoint/lease bridge,
 read-only preflight and real disposable PG integration + Windows acceptance.
 Rollback for this PR is to discard the opt-in branch; no runtime action needed.
+
+## Latest isolated PostgreSQL scenario and release scope
+
+- New executable CI case `test_ops_pg_lifecycle_real.py` enrolls two real
+  Python child processes in the same disposable root against host port **55479**.
+  The first process claims, checkpoints and cooperatively releases an in-flight
+  job; the second acquires a *different* lease token, observes the preserved
+  checkpoint and completes the job. The test checks two attempts, stale-token
+  inactivity, PostgreSQL system identifier and postmaster birth-time stability.
+  This is authored and locally **SKIP**, *not* an observed database PASS.
+- The exact `ops_pg_isolation.require_isolated_dsn` gate rejects all extra
+  libpq connection fields and PG-prefixed environment overrides. Test credentials
+  are disposable CI-only literals, not user accounts or production credentials.
+- Local summary for the newly reviewed suite: real subprocess **PASS 14/14**;
+  PostgreSQL/psycopg-dependent **SKIP 7/7**; full branch unit/CI **NOT_RUN**.
+- Actual existing PC4 binary/service, native Windows process identity, ten-
+  symbol sustained load and hard caps remain **NOT_RUN** / **NO_GO**.
