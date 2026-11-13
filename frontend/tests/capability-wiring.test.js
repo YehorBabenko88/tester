@@ -33,3 +33,11 @@ test("no speculative analytics or footprint requests on missing discovery", () =
     assert.equal(classifyPanelCapability(panel, {}).requestAllowed, false);
   }
 });
+
+test("mark and index request distinct official candle kinds", () => {
+  assert.match(app, /kind === "mark" \? \{ candle_kind: "official_mark" \}/);
+  assert.match(app, /kind === "index" \? \{ candle_kind: "official_index" \}/);
+  const series = readFileSync(new URL("../series.js", import.meta.url), "utf8");
+  assert.match(series, /\["mark", "index"\]\.includes\(kind\)/);
+  assert.match(series, /\{ value: r\.close \}/);
+});
