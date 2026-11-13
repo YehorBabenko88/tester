@@ -4,7 +4,7 @@ import hashlib
 import importlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urlencode
 from unittest.mock import Mock
 
@@ -227,7 +227,7 @@ def test_disposable_postgres_actual_data72_source_to_research():
             store, SourceReplay(), kind="trades", category="linear",
             symbol="BTCUSDT", run_id="research-data72-pg-run-v1",
             job_key="research-data72-pg-job-v1",
-            observed_at=datetime(2026, 11, 13, 20, tzinfo=timezone.utc)
+            observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC)
         )
     reopened = Store(dsn)
     stamp = 1600000000000
@@ -288,8 +288,8 @@ def test_all_thirteen_utc_exchange_interval_boundaries(interval):
     start, end = interval_bounds(1794560000000, interval)
     assert start <= 1794560000000 < end
     if interval == "W":
-        assert datetime.fromtimestamp(start // 1000, timezone.utc).weekday() == 0
+        assert datetime.fromtimestamp(start // 1000, UTC).weekday() == 0
     if interval == "M":
-        assert datetime.fromtimestamp(start // 1000, timezone.utc).day == 1
+        assert datetime.fromtimestamp(start // 1000, UTC).day == 1
     if interval.isdigit():
         assert end - start == int(interval) * 60000
