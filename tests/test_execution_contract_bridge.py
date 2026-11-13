@@ -112,6 +112,7 @@ class ContractTests(unittest.TestCase):
         observation["source"]["fetched_at"] = observed
         observation["source"]["observed_at_utc"] = observed
         observation["evidence"]["observed_at_utc"] = observed
+        observation["evidence_id"] = sha(_canonical([observation["job_key"], observation["evidence"]]))
         event = self.project(r)
         self.assertGreater(event["observed_ms"], event["event_ms"])
         self.assertIsNone(event["publication_ms"])
@@ -125,6 +126,7 @@ class ContractTests(unittest.TestCase):
         observation["source"]["fetched_at"] = earlier
         observation["source"]["observed_at_utc"] = earlier
         observation["evidence"]["observed_at_utc"] = earlier
+        observation["evidence_id"] = sha(_canonical([observation["job_key"], observation["evidence"]]))
         with self.assertRaises(ExecutionContractError):
             self.project(r)
 
