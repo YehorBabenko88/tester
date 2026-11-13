@@ -198,7 +198,9 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
         raise ValueError("original HTTP response proof required")
     if not isinstance(http.get("sha256"), str) or len(http["sha256"]) != 64:
         raise ValueError("missing original HTTP SHA256")
-    if http.get("url") != url or http.get("status_code") != 200:\n        raise ValueError("HTTP receipt request/status mismatch")\n    if not isinstance(http.get("bytes_base64"), str):
+    if http.get("url") != url or http.get("status_code") != 200:
+        raise ValueError("HTTP receipt request/status mismatch")
+    if not isinstance(http.get("bytes_base64"), str):
         raise ValueError("original HTTP body missing")
     import base64
     body = base64.b64decode(http["bytes_base64"], validate=True)
