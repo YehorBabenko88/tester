@@ -80,3 +80,26 @@ def test_discovery_for_each_timeframe_fails_closed(interval):
     panels = response.json()["data"]["panels"]
     assert len(panels) == 12
     assert all(p["status"] == "UNVERIFIED" for p in panels.values())
+
+def test_spot_does_not_advertise_derivative_only_sources():
+    class Reader:
+        def capabilities(self, query):
+            return {
+                panel: {
+                    "status": "AVAILABLE", "resource": resource,
+                    "revision": "snapshot:1", "source_ref": "fixture:1",
+                }
+                for panel, resource in {
+                    "mark": "/api/candles", "index": "/api/candles",
+                    "open_interest": "/api/open-interest",
+                    "funding": "/api/funding",
+                }.items()
+            }
+
+    response = client(Reader()).get(
+        "/api/capabilities", params={**PARAMS, "category": "spot"}
+    )
+    assert response.status_code == 200
+    panels = response.json()["data"]["panels"]
+    for panel in ("mark", "index", "open_interest", "funding"):
+        assert panels[panel]["status"] == "UNVERIFIED"
