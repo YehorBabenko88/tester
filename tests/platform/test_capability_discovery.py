@@ -1,10 +1,6 @@
 """Fail-closed capability discovery contract, no external provider or DB needed."""
-from fastapi.testclient import TestClient
 from src.api.main import create_app
-from src.api.providers import UnavailableReader
-from src.api.config import Settings
 import inspect
-import pytest
 
 def test_capability_route_is_registered():
     # Verify the production factory actually registers the route.
