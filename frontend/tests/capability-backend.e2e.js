@@ -6,19 +6,8 @@ const intervals = ["1", "3", "5", "15", "30", "60", "120", "240",
 test("real FastAPI capabilities and price-only routes across 13 UTC timeframes", async ({
   page,
 }, testInfo) => {
-  // Only the independent catalog is mocked; capabilities and price records
-  // always come from the actual FastAPI application running on loopback.
-  await page.route("**/api/market-catalog/**", async route => {
-    await route.fulfill({ json: {
-      schema_version: "1.0", next_cursor: null,
-      data: {
-        rows: [{ category: "linear", symbol: "BTCUSDT",
-                 status: "Trading", metrics: {} }],
-        total: 1, revision: "ci-fixture-rev",
-        catalog: { loaded: 1, completeness: "UNKNOWN", state: "FIXTURE" },
-      },
-    } });
-  });
+  // No catalog interception: validate real API feature negotiation so an
+  // optional, absent /api/market-catalog route cannot produce 404.
 
   const pageErrors = [], consoleErrors = [], serverErrors = [], forbiddenRequests = [];
   const unsupported = new Set([
@@ -42,10 +31,14 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
   });
 
   await page.goto("/");
+  await expect(page.locator("#screener-status")).toContainText(
+    "market_catalog_not_configured",
+  );
   await page.locator("#download-options").evaluate(node => { node.open = true; });
   await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
   await page.getByLabel("Range end UTC").fill("2024-04-01T00:00");
-  await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
+  await page.getByLabel("Direct source symbol").fill("BTCUSDT");
+  await page.getByRole("button", { name: "Open source symbol" }).click();
 
   const mark = page.locator('[data-panel="mark"]');
   const index = page.locator('[data-panel="index"]');
@@ -70,6 +63,17 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
     await expect(index.locator(".panel-meta")).toContainText("PARTIAL");
     await expect(mark.locator(".panel-evidence")).toContainText("mark-price-kline");
     await expect(index.locator(".panel-evidence")).toContainText("index-price-kline");
+    for (const panel of ["footprint", "delta", "cvd", "open_interest", "funding"]) {
+      const unavailable = page.locator(`[data-panel="${panel}"]`);
+      await expect(unavailable).toContainText("DATA_UNAVAILABLE");
+      await expect(unavailable.locator("canvas")).toBeHidden();
+    }
+    await expect(page.locator('[data-panel="delta"]')).toContainText(
+      "endpoint_contract_not_supported",
+    );
+    await expect(page.locator('[data-panel="open_interest"]')).toContainText(
+      "source_not_connected",
+    );
     verified.push(interval);
   }
   expect(verified).toEqual(intervals);
