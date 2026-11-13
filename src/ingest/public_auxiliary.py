@@ -193,6 +193,8 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     Original HTTP body proof is included when the transport supplies it.
     """
     from src.storage.models import digest
+    if kind != "trades" and (start_ms is None or end_ms is None):
+        raise ValueError("funding/OI require explicit bounded time window before network")
     path, params = request(kind, category, symbol, start_ms=start_ms,
                            end_ms=end_ms, interval=interval, limit=limit)
     if cursor_in is not None:
@@ -216,9 +218,7 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     if http.get("url") != url or http.get("status_code") != 200:
         raise ValueError("HTTP receipt request/status mismatch")
     if not isinstance(http.get("bytes_base64"), str) or len(http["bytes_base64"]) > 4 * 1024 * 1024:
-        raise ValueError("original HTTP body exceeds bounded evidence budget")
-    if not isinstance(http.get("bytes_base64"), str):
-        raise ValueError("original HTTP body missing")
+        raise ValueError("original HTTP body missing or exceeds bounded evidence budget")
     import base64
     body = base64.b64decode(http["bytes_base64"], validate=True)
     if len(body) > 3 * 1024 * 1024:
