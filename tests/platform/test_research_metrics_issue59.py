@@ -1,4 +1,7 @@
 """Deterministic arithmetic and fail-closed research metrics."""
+from decimal import Decimal, localcontext
+from fractions import Fraction
+
 import pytest
 
 from src.analytics.core import normalize_trade
@@ -28,7 +31,12 @@ def test_exact_vwap_delta_cvd_and_poc_tie():
              trade(2, "101", "0.2", "Sell", "b"),
              trade(60001, "100", "0.3", "Buy", "c")])
     x, y = a["bars"]
-    assert x["vwap"] == "100." + "6" * 47 + "7"
+    with localcontext() as context:
+        context.prec = 50
+        assert Decimal(x["vwap"]) == Decimal(302) / Decimal(3)
+    assert len(Decimal(x["vwap"]).as_tuple().digits) == 50
+    # Compare independently to the exact rational rather than counting digits.
+    assert abs(Fraction(Decimal(x["vwap"])) - Fraction(302, 3)) < Fraction(1, 10**46)
     assert x["delta_known"] == "-0.1"
     assert x["cvd_known"] == "-0.1"
     assert x["poc"] == "101"
@@ -116,3 +124,31 @@ def test_cvd_is_window_anchored_not_full_market_history():
     assert result["cvd_prior_history_known"] is False
     assert result["bars"][0]["cvd_known"] == "1"
     assert result["admitted_to_f"] is False
+
+
+def test_repeating_one_third_decimal_uses_fifty_significant_digits():
+    rows = [
+        trade(1, "1", "2", "Buy", "one-third-a"),
+        trade(2, "2", "1", "Sell", "one-third-b"),
+    ]
+    bar = run(rows)["bars"][0]
+    assert bar["delta_known"] == "1"
+    assert bar["volume"] == "3"
+    assert bar["poc"] == "1"
+    with localcontext() as context:
+        context.prec = 50
+        assert Decimal(bar["vwap"]) == Decimal(4) / Decimal(3)
+    assert len(Decimal(bar["vwap"]).as_tuple().digits) == 50
+    assert abs(Fraction(Decimal(bar["vwap"])) - Fraction(4, 3)) < Fraction(1, 10**48)
+
+
+def test_poc_tie_break_is_lower_price_independent_of_order():
+    a = trade(2, "101", "1", "Sell", "tie-b")
+    b = trade(1, "100", "1", "Buy", "tie-a")
+    for rows in ([a, b], [b, a]):
+        bar = run(rows)["bars"][0]
+        assert bar["poc"] == "100"
+        assert bar["delta_known"] == "0"
+        assert bar["cvd_known"] == "0"
+        assert bar["vwap"] == "100.5"
+        assert [level["price"] for level in bar["footprint"]] == ["100", "101"]
