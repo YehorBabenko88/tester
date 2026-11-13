@@ -108,11 +108,11 @@ class ComposedDataResearchPostgresTests(unittest.TestCase):
             read_data_metrics(reopened, **{**scope, "limit": 1})
         with reopened.connect() as connection:
             count = connection.execute(
-                "SELECT count(*) FROM tester_storage.raw_records "
+                "SELECT count(*) AS record_count FROM tester_storage.raw_records "
                 "WHERE venue='bybit' AND category='linear' "
                 "AND symbol=%s AND dataset='trades' AND trade_id=%s",
                 (symbol, exchange_id),
-            ).fetchone()[0]
+            ).fetchone()["record_count"]
         self.assertEqual(count, 1)
 
 
