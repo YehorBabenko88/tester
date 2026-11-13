@@ -81,3 +81,16 @@ def test_empty_dataset_refuses_admission():
     a = run([])
     assert a["status"] == "NO_DATA"
     assert a["admitted_to_f"] is False
+
+
+def test_known_side_sample_does_not_certify_complete_delta():
+    bar = run([trade(1, "100", "1", "Buy", "a")])["bars"][0]
+    assert bar["side_classification_complete"] is True
+    assert bar["delta_complete"] is False
+    assert bar["coverage_certified"] is False
+
+
+def test_bounded_bar_window():
+    with pytest.raises(ValueError, match="bar limit exceeded"):
+        calculate([], start_ms=0, end_ms=1001 * 60000,
+                  interval_ms=60000, tick_size="0.5")
