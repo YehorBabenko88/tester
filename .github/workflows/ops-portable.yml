@@ -5,9 +5,11 @@ on:
       - "scripts/portable_ops*.py"
       - "scripts/ops_load_receipt.py"
       - "scripts/ops_pg_snapshot.py"
+      - "scripts/ops_pg_claim.py"
       - "tests/platform/test_portable_ops*.py"
       - "tests/platform/test_ops_load_receipt.py"
       - "tests/platform/test_ops_pg_snapshot.py"
+      - "tests/platform/test_ops_pg_claim.py"
       - ".github/workflows/ops-portable.yml"
   workflow_dispatch:
 permissions:
@@ -28,3 +30,4 @@ jobs:
           python -m unittest discover -s tests/platform -p 'test_portable_ops*.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_load_receipt.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_pg_snapshot.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_claim.py' -v
