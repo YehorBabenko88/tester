@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from unittest.mock import Mock
 
-from src.ingest.public_auxiliary import decode, fetch_and_ingest, fetch_open_interest_pages, ingest_page, request
+from src.ingest.public_auxiliary import decode, fetch_and_ingest, fetch_open_interest_pages, fetch_funding_pages, ingest_page, request
 
 NOW = datetime(2026, 11, 13, 12, tzinfo=timezone.utc)
 BASE = dict(fetched_at=NOW, url="https://api.bybit.com/v5/market/recent-trade",
@@ -152,6 +152,38 @@ class PublicAuxiliaryTests(unittest.TestCase):
         self.assertEqual(first_evidence["status"], "PARTIAL")
         self.assertEqual(second_evidence["cursor_in"], "next")
         self.assertEqual(second_evidence["coverage_status"], "UNKNOWN")
+
+    def test_funding_reverse_time_uses_exclusive_window(self):
+        path, params = request("funding", "linear", "BTCUSDT",
+                               start_ms=100, end_ms=201)
+        self.assertEqual(params["endTime"], 200)
+        store = Mock()
+        store.ingest.return_value = {"verified": False}
+        api = Mock()
+        timestamps = [1794560000000, 1794559999999]
+        def call(path, params):
+            index = 0 if params["endTime"] >= timestamps[0] else 1
+            result = {"list": [{"symbol": "BTCUSDT", "fundingRate": "0.0001",
+                                "fundingRateTimestamp": str(timestamps[index])}]}
+            url = "https://api.bybit.com/v5/market/funding/history"
+            original = json.dumps({"retCode": 0, "result": result}).encode()
+            api.last_response = {"url": url, "status_code": 200,
+                                 "hash_scope": "original_http_body",
+                                 "sha256": hashlib.sha256(original).hexdigest(),
+                                 "bytes_base64": base64.b64encode(original).decode()}
+            return result, url
+        api.call.side_effect = call
+        result = fetch_funding_pages(
+            store, api, category="linear", symbol="BTCUSDT",
+            run_id="funding-run", job_prefix="funding-pages",
+            start_ms=1794559999998, end_ms=1794560000001,
+            limit=1, max_pages=2,
+        )
+        self.assertEqual(result["status"], "PAGE_BUDGET_EXHAUSTED")
+        self.assertEqual(result["coverage"], "UNKNOWN")
+        self.assertEqual(store.ingest.call_count, 2)
+        self.assertEqual(api.call.call_args_list[1].args[1]["endTime"],
+                         timestamps[0] - 1)
 
     def test_reject_out_of_window_before_pg(self):
         store = Mock()
