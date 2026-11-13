@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from unittest.mock import Mock
 
-from src.ingest.public_auxiliary import decode, fetch_and_ingest, ingest_page, request
+from src.ingest.public_auxiliary import decode, fetch_and_ingest, fetch_open_interest_pages, ingest_page, request
 
 NOW = datetime(2026, 11, 13, 12, tzinfo=timezone.utc)
 BASE = dict(fetched_at=NOW, url="https://api.bybit.com/v5/market/recent-trade",
@@ -114,6 +114,44 @@ class PublicAuxiliaryTests(unittest.TestCase):
                              symbol="BTCUSDT", run_id="run-test", job_key="bad-job",
                              start_ms=1794559999999, end_ms=1794560000001,
                              observed_at=NOW)
+
+    def test_bounded_oi_cursor_pages_preserve_unknown(self):
+        store = Mock()
+        store.ingest.return_value = {"verified": False}
+        api = Mock()
+        pages = [
+            {"list": [{"symbol": "BTCUSDT", "openInterest": "12.50",
+                       "timestamp": "1794560000000"}], "nextPageCursor": "next"},
+            {"list": [{"symbol": "BTCUSDT", "openInterest": "12.00",
+                       "timestamp": "1794559700000"}]},
+        ]
+        def call(path, params):
+            result = pages[1 if params.get("cursor") == "next" else 0]
+            url = "https://api.bybit.com/v5/market/open-interest"
+            original = json.dumps({"retCode": 0, "result": result}).encode()
+            api.last_response = {
+                "hash_scope": "original_http_body", "url": url,
+                "status_code": 200, "sha256": hashlib.sha256(original).hexdigest(),
+                "bytes_base64": base64.b64encode(original).decode(),
+            }
+            return result, url
+        api.call.side_effect = call
+        result = fetch_open_interest_pages(
+            store, api, category="linear", symbol="BTCUSDT",
+            run_id="run-test", job_prefix="oi-pages",
+            start_ms=1794559600000, end_ms=1794560000001,
+            max_pages=2,
+        )
+        self.assertEqual(result["status"], "OBSERVED")
+        self.assertEqual(result["coverage"], "UNKNOWN")
+        self.assertEqual(len(result["pages"]), 2)
+        self.assertEqual(store.ingest.call_count, 2)
+        self.assertEqual(api.call.call_args.args[1]["cursor"], "next")
+        first_evidence = store.ingest.call_args_list[0].args[1]
+        second_evidence = store.ingest.call_args_list[1].args[1]
+        self.assertEqual(first_evidence["status"], "PARTIAL")
+        self.assertEqual(second_evidence["cursor_in"], "next")
+        self.assertEqual(second_evidence["coverage_status"], "UNKNOWN")
 
     def test_reject_out_of_window_before_pg(self):
         store = Mock()
