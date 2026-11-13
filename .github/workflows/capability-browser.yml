@@ -9,6 +9,7 @@ on:
       - 'scripts/capability_fixture_server.py'
       - 'scripts/verify_ui_source_contracts.py'
       - 'src/api/capability_source_contracts.py'
+      - 'src/api/capability_data_bridge.py'
       - 'docs/ui-capability-protocol-v1.schema.json'
       - '.github/workflows/capability-browser.yml'
   workflow_dispatch:
@@ -54,7 +55,7 @@ jobs:
             --research .ci-source-research71/src/integration/data_research_adapter.py \
             --metrics .ci-source-research71/src/analytics/research_metrics.py
       - name: Exercise real FastAPI capability discovery
-        run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py -q
+        run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py tests/platform/test_capability_data_bridge.py -q
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
