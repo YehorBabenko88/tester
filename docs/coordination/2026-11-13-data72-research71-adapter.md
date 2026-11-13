@@ -84,3 +84,21 @@ DATA #72 owns producer/receipt and native quantity semantics. RESEARCH #71 owns
 the deterministic observed-sample metrics and fail-closed projection. MASTER
 owns exact combined SHA selection, disposable PG/browser acceptance and release
 decision. Do not merge drafts or modify PC4/main. No Codex.
+
+## Follow-up validation gates (2026-11-13)
+
+The RESEARCH consumer now rejects a DATA event read containing **exactly the
+requested row limit** (`data_event_page_limit_requires_pagination`). DATA's
+bounded `Store.read` does not return an end-of-stream witness for that query,
+so a full page is a potentially truncated observed sample. The request should
+be narrowed or DATA should provide a separately verified paginated interface.
+A **zero-row** read carries `source_verification=NO_EXECUTION_EVIDENCE`; it is
+not an authenticated proof of an empty market. Duplicate receipt tuples are
+rejected, and reported nonempty/empty bar counts are explicitly sample
+activity, never historic source completeness. These guards have focused unit
+tests in `tests/platform/test_data_research_adapter_issue59.py`.
+
+The independent local container cannot resolve GitHub DNS, so local pytest is
+**NOT_RUN**; pushed GitHub Actions are in **QUEUED/PENDING** state, not PASS.
+The separate PostgreSQL16 workflow is disposable CI only and does not touch
+PC4, ADMINIT, PostgreSQL5432 on user hardware or `main`.
