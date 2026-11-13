@@ -140,7 +140,7 @@ def _verified_page(reader, panel, query):
     ), None
 
 
-def discover(reader, query: Query):
+def discover(reader, query: Query, *, authorized=False, price_route_enabled=False):
     """Never promote a source based on an unverified reader advertisement."""
     result = {}
     for panel in PANELS:
@@ -152,6 +152,10 @@ def discover(reader, query: Query):
             result[panel] = _unavailable(panel, "UNAVAILABLE", "not_applicable_to_spot")
         elif panel not in READABLE:
             result[panel] = _unavailable(panel, "UNAVAILABLE", "endpoint_contract_not_supported")
+        elif not authorized:
+            result[panel] = _unavailable(panel, "UNVERIFIED", "source_not_authorized")
+        elif panel in ("mark", "index") and not price_route_enabled:
+            result[panel] = _unavailable(panel, "UNVERIFIED", "reference_price_route_not_enabled")
         elif isinstance(reader, UnavailableReader):
             result[panel] = _unavailable(panel, "UNVERIFIED", "provider_not_connected")
         else:
