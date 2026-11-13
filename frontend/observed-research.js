@@ -7,6 +7,7 @@ const PREVIEW_VERSION = "tester.data-research-preview/2";
 const DATA_VERSION = "tester-public-execution/1";
 const PANELS = new Set(["footprint", "delta", "cvd", "vwap", "poc"]);
 const DECIMAL = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
+const SHA256 = /^[a-f0-9]{64}$/;
 
 function exact(value, signed = false) {
   return typeof value === "string" && value.length <= 128 &&
@@ -47,6 +48,10 @@ export function projectObservedResearch(preview, panel, query) {
     return unavailable(panel, "research_scope_or_visibility_unverified");
   if (preview.source_verification !== "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS")
     return unavailable(panel, "data72_original_http_receipts_not_verified");
+  if (![preview.data_source_receipts_digest, preview.observed_sample_fingerprint,
+       preview.data_execution_digest, preview.metrics_digest]
+      .every(v => typeof v === "string" && SHA256.test(v)))
+    return unavailable(panel, "data72_receipt_or_revision_digest_missing");
   if (preview.status !== "OBSERVED_UNVERIFIED")
     return unavailable(panel, "no_verified_executions_in_window");
   const m = preview.metrics;
