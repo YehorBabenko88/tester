@@ -1,6 +1,6 @@
 """Offline source-contract regression tests. No network or PC4 access."""
 import base64\nimport hashlib\nimport unittest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from unittest.mock import Mock
 
@@ -41,6 +41,17 @@ class PublicAuxiliaryTests(unittest.TestCase):
         self.assertEqual(a["trade_id"], "trade-123")
         self.assertTrue(a["payload"]["anonymous_public_execution"])
         self.assertEqual(a["payload"]["price"], "80000.00000001")
+
+    def test_replay_content_identity_independent_of_fetch_clock(self):
+        row = {"symbol": "BTCUSDT", "execId": "trade-123",
+               "time": "1794560000000", "price": "80000.01",
+               "size": "0.001", "side": "Buy"}
+        first = decode("trades", "linear", "BTCUSDT", response(row), **BASE)[0]
+        later = decode("trades", "linear", "BTCUSDT", response(row),
+                       **{**BASE, "fetched_at": NOW + timedelta(minutes=5)})[0]
+        self.assertEqual(first["content_hash"], later["content_hash"])
+        self.assertEqual(first["record_key"], later["record_key"])
+        self.assertNotEqual(first["source"]["fetched_at"], later["source"]["fetched_at"])
 
     def test_reject_bad_source_identity_and_side(self):
         row = {"symbol": "ETHUSDT", "execId": "a", "time": "1794560000000",
