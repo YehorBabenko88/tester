@@ -60,13 +60,14 @@ jobs:
       - name: Checkout reviewed DATA #72 at exact immutable HEAD
         uses: actions/checkout@v4
         with:
-          ref: 91c5541a9af8f4390d38d69ae1a61b6cd766de1f
+          ref: 3b6ae0886d2af2c3ff8230c8ad5e076879f06a1d
           path: data72-reviewed
       - name: Test-only composition, no git commit or merge
         run: |
           cp data72-reviewed/src/ingest/execution_contract.py src/ingest/execution_contract.py
           cp data72-reviewed/src/ingest/public_auxiliary.py src/ingest/public_auxiliary.py
           cp data72-reviewed/src/storage/models.py src/storage/models.py
+          cp data72-reviewed/src/storage/migrations/008_public_unknown_taker_side.sql src/storage/migrations/008_public_unknown_taker_side.sql
           cp data72-reviewed/tests/test_execution_contract_bridge.py tests/test_execution_contract_bridge.py
       - name: Install isolated test dependencies
         run: python -m pip install "pytest>=8,<10" "psycopg[binary]>=3.2,<4"
