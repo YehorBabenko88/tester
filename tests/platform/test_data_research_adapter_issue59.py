@@ -156,6 +156,7 @@ def test_source_order_does_not_change_metrics():
     (lambda p: p["evidence"][0]["evidence"]["pages"][0].__setitem__("next_cursor", "more"), "unproven_pagination_chain"),
     (lambda p: p["observations"].clear(), "missing_trade_observations"),
     (lambda p: p["coverage"].pop("start_ms"), "missing_requested_coverage_bounds"),
+    (lambda p: p["coverage"].__setitem__("complete", True), "unexpected_recent_trade_history_certification"),
 ])
 def test_source_tampering_refused(mutation, reason):
     page, _, _ = make_page()
@@ -269,3 +270,14 @@ def test_disposable_postgres_data_provenance_roundtrip():
     assert result["admitted_to_f"] is False
     assert result["f_input"] is None
     assert result["status"] == "OBSERVED_UNVERIFIED"
+
+
+def test_missing_and_forged_time_roles_are_refused():
+    page, _, _ = make_page()
+    page["observations"][0]["raw_envelope"]["payload"].pop("publication_timestamp_ms")
+    with pytest.raises(ValueError):
+        project(page)
+    page, _, _ = make_page()
+    page["observations"][0]["source"]["source_timestamp"] = "0"
+    with pytest.raises(ValueError, match="wrong_provenance_source_kind"):
+        project(page)
