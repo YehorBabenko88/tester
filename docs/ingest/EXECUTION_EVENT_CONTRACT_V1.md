@@ -12,7 +12,7 @@ Source review: MASTER comment [#72 / 6857982132](https://github.com/YehorBabenko
 - `taker_side` is **Buy**, **Sell**, or **Unknown**. It is *not* reconstructed Bid/Ask or maker identity.
 - `price` and `quantity` are exact positive canonical Decimal strings. Original source `size` is retained in the immutable payload, never processed through a float.
 - `quantity_unit` is `source_native_linear_size` or `source_native_inverse_contract`. The inverse/native conversion is not certified; RESEARCH projection rejects inverse.
-- `event_ms` is original exchange `time` in milliseconds, `observed_ms` is the real UTC HTTP retrieval instant in milliseconds, and `publication_ms` is **null**. The latter is not inferred from the former.
+- `event_ms` is original exchange `time` in milliseconds, `observed_ms` is the real UTC HTTP retrieval instant in milliseconds, and `publication_ms` is **null**. The latter is not inferred from the former. A persisted observation whose `observed_ms < event_ms` fails closed: no future event is presented as already known.
 - `source_receipts[]` binds `original HTTP SHA256`, canonical `page SHA256`, canonical `row SHA256`, durable `evidence_id` and `page_ref`. The bridge rehashes the stored original HTTP bytes, checks the original row inside the page, validates the Bybit endpoint and query parameters, and rejects modified immutable `record_key`/`content_hash`.
 - `utc_interval = {start_ms, end_ms}` uses half-open UTC epoch milliseconds; `source_coverage.status = UNKNOWN` always, `availability.status = UNVERIFIED` always. A recent-trade page never proves completeness or source publication/visibility at a historical trading decision.
 
