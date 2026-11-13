@@ -257,17 +257,12 @@ class AuxiliaryPostgresTests(unittest.TestCase):
         from src.analytics.core import footprint
         observed_footprint = footprint(research, interval="1", price_step="0.01")
         self.assertEqual(observed_footprint[0]["unknown_side_volume"], "0.0075")
-        from src.analytics.research_metrics import calculate
-        metrics = calculate(research, start_ms=int(timestamp) - 1,
-                            end_ms=int(timestamp) + 1, interval_ms=2, tick_size="0.01")
-        bar = metrics["bars"][0]
-        self.assertEqual(bar["unknown_side_volume"], "0.0075")
-        self.assertEqual(bar["buy_volume"], "0")
-        self.assertEqual(bar["sell_volume"], "0")
-        self.assertEqual(bar["delta_known"], "0")
-        self.assertFalse(bar["side_classification_complete"])
-        self.assertFalse(bar["delta_complete"])
-        self.assertFalse(metrics["admitted_to_f"])
+        aggregate = observed_footprint[0]
+        self.assertEqual(aggregate["buy_volume"], "0")
+        self.assertEqual(aggregate["sell_volume"], "0")
+        self.assertEqual(aggregate["unknown_side_volume"], "0.0075")
+        self.assertIsNone(aggregate["delta"])
+        self.assertEqual(aggregate["coverage"]["status"], "UNKNOWN")
         # Replayed original receipt must remain immutable and read back once.
         receipt2 = fetch_and_ingest(store, UnknownSidePublicSource(), **params)
         self.assertEqual(receipt2["count"], 1)
