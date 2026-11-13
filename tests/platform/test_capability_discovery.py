@@ -1,5 +1,6 @@
-import pytest
 """API capability discovery: explicit provenance and fail-closed defaults."""
+
+import pytest
 from fastapi.testclient import TestClient
 
 from src.api.config import Settings
