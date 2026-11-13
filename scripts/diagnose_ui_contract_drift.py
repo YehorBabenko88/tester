@@ -46,7 +46,7 @@ def diagnose():
         "no_contract_regeneration": True,
         "checks": [
             _check("contracts/v1/openapi.json", openapi),
-            _check("requests/v1/financial-query.schema.json", financial),
+            _check("contracts/requests/v1/financial-query.schema.json", financial),
         ],
     }
 
