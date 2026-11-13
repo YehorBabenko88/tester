@@ -448,6 +448,27 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
         assert str(persisted["price"]) == "101"
         assert str(persisted["size"]) == "0.25"
         assert persisted["trade_id"] == "research-pg-side-unknown-v2"
+        # Negative SQL proof on the disposable database. Nested transactions
+        # roll back each rejected UPDATE; immutable originals stay untouched.
+        for assignment in (
+            "payload = jsonb_set(payload, '{side}', '\"Other\"'::jsonb)",
+            "payload = jsonb_set(payload, '{size}', '\"0\"'::jsonb)",
+            "trade_id = NULL",
+        ):
+            with pytest.raises(psycopg.errors.CheckViolation):
+                with connection.transaction():
+                    connection.execute(
+                        "UPDATE tester_storage.raw_records SET " + assignment
+                        + " WHERE trade_id = 'research-pg-side-unknown-v2'"
+                    )
+        original = connection.execute(
+            "SELECT payload->>'side' AS side, size, trade_id "
+            "FROM tester_storage.raw_records "
+            "WHERE trade_id = 'research-pg-side-unknown-v2'"
+        ).fetchone()
+        assert original["side"] == "Unknown"
+        assert str(original["size"]) == "0.25"
+        assert original["trade_id"] == "research-pg-side-unknown-v2"
     actual = read_data_metrics(
         reopened, category="linear", symbol="BTCUSDT",
         start_ms=start, end_ms=start + 60000,
