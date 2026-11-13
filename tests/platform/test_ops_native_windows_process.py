@@ -23,8 +23,10 @@ while not stop.exists():
     if time.monotonic()>deadline:raise SystemExit(97)
     time.sleep(.02)
 with out.open('x',encoding='utf-8') as stream:
-    json.dump({'role':os.environ['OPS_ROLE'],'generation':os.environ['OPS_GENERATION'],
-               'owner':os.environ['OPS_OWNER_MARKER']},stream)
+    json.dump({'schema':'ops-native-drain/1', 'role':os.environ['OPS_ROLE'],
+               'generation':int(os.environ['OPS_GENERATION']),
+               'owner_marker':os.environ['OPS_OWNER_MARKER'],
+               'config_sha256':os.environ['OPS_CONFIG_SHA256'], 'drained':True},stream)
     stream.flush()
     os.fsync(stream.fileno())
 """
@@ -102,12 +104,13 @@ class OriginalWin32ProcessTests(unittest.TestCase):
                 with path.open('x', encoding='ascii') as handle:
                     handle.write('owned cooperative stop\n')
             witness.request_stop(stop_for_role=stop)
-            receipt = witness.seal_exits(timeout=6)
+            receipt = witness.seal_exits(checkpoint_paths={"api": api_checkpoint,
+                                                         "worker": worker_checkpoint}, timeout=6)
             witness.require_restart_allowed(receipt)
             self.assertEqual((ah.poll(), wh.poll()), (0,0))
             self.assertTrue(api_checkpoint.exists())
             self.assertTrue(worker_checkpoint.exists())
-            self.assertEqual(json.loads(api_checkpoint.read_text())['generation'], str(generation))
+            self.assertEqual(json.loads(api_checkpoint.read_text())['generation'], generation)
 
     def test_stale_birth_refuses_before_stop(self):
         import psutil

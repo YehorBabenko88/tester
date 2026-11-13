@@ -33,3 +33,20 @@ API/worker, durable native startup reservation, independent source
 attestation, owned PG incarnation and checkpoint/recovery across
 controller crash, and PC4 physical E2E. Existing PC4 process records
 must never be removed to bypass a refusal. Release remains NO_GO.
+
+## Required drain receipts before sealing
+
+Both API and worker must create their own generation-scoped checkpoint after
+cooperative stop. The native witness now refuses to emit its final closure
+without TWO separately validated JSON receipts:
+
+`schema=ops-native-drain/1`, exact `role`, exact `generation`,
+`owner_marker`, `config_sha256`, and `drained=true`. It verifies the
+readable file is within the owned root, is not a symlink, is bounded to 1 MiB,
+and binds its SHA-256 into the external closure. The file is never deleted or
+reused. A zero process exit alone cannot satisfy the gate.
+
+This acknowledges process drain only. It is NOT proof that all actual PC4
+jobs were checkpointed into PostgreSQL; a future native admission must also
+validate DB lease fences and transactional recovery against the pinned
+PostgreSQL incarnation before authorizing work.

@@ -41,6 +41,15 @@ class NativeWitnessTests(unittest.TestCase):
         self.api_handle = FakeHandle(121)
         self.worker_handle = FakeHandle(122)
         self.observed = {'api': self.api, 'worker': self.worker}
+        self.checkpoints = {}
+        for birth in (self.api, self.worker):
+            path = self.root / f"{birth.role}.checkpoint.json"
+            path.write_text(json.dumps({
+                "schema": "ops-native-drain/1", "role": birth.role,
+                "generation": birth.generation, "owner_marker": birth.owner_marker,
+                "config_sha256": birth.config_sha256, "drained": True,
+            }), encoding="utf-8")
+            self.checkpoints[birth.role] = path
         self.witness = NativeExitWitness(
             generation=0, api=self.api, worker=self.worker,
             api_handle=self.api_handle, worker_handle=self.worker_handle,
@@ -50,7 +59,7 @@ class NativeWitnessTests(unittest.TestCase):
         calls = []
         self.witness.request_stop(stop_for_role=lambda birth: calls.append(birth.role))
         self.assertEqual(calls, ['api','worker'])
-        receipt = self.witness.seal_exits()
+        receipt = self.witness.seal_exits(checkpoint_paths=self.checkpoints)
         self.assertEqual((receipt['api']['exit_code'],receipt['worker']['exit_code']), (0,0))
         self.witness.require_restart_allowed(receipt)
         with self.assertRaises(NativeRestartBlocked):
@@ -58,7 +67,7 @@ class NativeWitnessTests(unittest.TestCase):
 
     def test_live_old_process_refuses_restart(self):
         with self.assertRaises(NativeRestartBlocked):
-            self.witness.seal_exits()
+            self.witness.seal_exits(checkpoint_paths=self.checkpoints)
         self.assertFalse((self.root/'native-generation-0000-closed.json').exists())
 
     def test_foreign_worker_owner_refuses_before_any_stop(self):
@@ -81,14 +90,14 @@ class NativeWitnessTests(unittest.TestCase):
         self.worker_handle.exit_code = 5
         self.witness.request_stop(stop_for_role=lambda birth: None)
         with self.assertRaises(NativeRestartBlocked):
-            self.witness.seal_exits()
+            self.witness.seal_exits(checkpoint_paths=self.checkpoints)
         self.assertFalse((self.root/'native-generation-0000-closed.json').exists())
 
     def test_worker_timeout_never_force_stopped(self):
         self.worker_handle.timeout = True
         self.witness.request_stop(stop_for_role=lambda birth: None)
         with self.assertRaises(NativeRestartBlocked):
-            self.witness.seal_exits(timeout=.01)
+            self.witness.seal_exits(checkpoint_paths=self.checkpoints, timeout=.01)
         self.assertFalse(self.worker_handle.stopped)
         self.assertFalse((self.root/'native-generation-0000-closed.json').exists())
 
@@ -99,7 +108,7 @@ class NativeWitnessTests(unittest.TestCase):
 
     def test_tampered_retained_closure_refuses(self):
         self.witness.request_stop(stop_for_role=lambda birth: None)
-        receipt = self.witness.seal_exits()
+        receipt = self.witness.seal_exits(checkpoint_paths=self.checkpoints)
         path = self.root/'native-generation-0000-closed.json'
         saved = json.loads(path.read_text())
         saved['worker']['exit_code'] = 99
@@ -132,6 +141,23 @@ class NativeWitnessTests(unittest.TestCase):
         self.assertEqual(observe_psutil(self.api,self.api_handle,lambda pid:FakeProc()),self.api)
         with self.assertRaises(NativeRestartBlocked):
             observe_psutil(self.api,self.api_handle,lambda pid:None)
+
+    def test_missing_worker_checkpoint_refuses_closed(self):
+        self.checkpoints["worker"].unlink()
+        self.witness.request_stop(stop_for_role=lambda birth: None)
+        with self.assertRaises(NativeRestartBlocked):
+            self.witness.seal_exits(checkpoint_paths=self.checkpoints)
+        self.assertFalse((self.root/'native-generation-0000-closed.json').exists())
+
+    def test_tampered_drain_marker_refuses_closed(self):
+        path = self.checkpoints["worker"]
+        receipt = json.loads(path.read_text())
+        receipt["owner_marker"] = "foreign"
+        path.write_text(json.dumps(receipt))
+        self.witness.request_stop(stop_for_role=lambda birth: None)
+        with self.assertRaises(NativeRestartBlocked):
+            self.witness.seal_exits(checkpoint_paths=self.checkpoints)
+        self.assertFalse((self.root/'native-generation-0000-closed.json').exists())
 
 
 if __name__ == '__main__':

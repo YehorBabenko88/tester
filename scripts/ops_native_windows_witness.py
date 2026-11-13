@@ -107,7 +107,9 @@ class NativeExitWitness:
                 or api.config_sha256 != worker.config_sha256):
             raise NativeRestartBlocked("Inconsistent pair identity")
         self.generation = generation
-        self.root = root
+        if root.is_symlink() or not root.is_dir():
+            raise NativeRestartBlocked("Native evidence root must be a real directory")
+        self.root = root.resolve(strict=True)
         self.items = ((api, api_handle), (worker, worker_handle))
         self.observe = observe
         self._stop_requested = False
@@ -127,9 +129,12 @@ class NativeExitWitness:
             stop_for_role(birth)
         self._stop_requested = True
 
-    def seal_exits(self, *, timeout: float = 45.0) -> dict:
+    def seal_exits(self, *, checkpoint_paths: dict[str, Path],
+                   timeout: float = 45.0) -> dict:
         if not self._stop_requested or self._sealed or timeout <= 0:
             raise NativeRestartBlocked("No valid stop request")
+        if set(checkpoint_paths) != {"api", "worker"}:
+            raise NativeRestartBlocked("Both checkpoint witnesses required")
         # Handles must be the exact original ones; no pid-based substitute.
         import subprocess
         exits = {}
@@ -140,8 +145,31 @@ class NativeExitWitness:
                 raise NativeRestartBlocked("Drain timeout; no force kill") from exc
             if code != 0 or handle.poll() != 0:
                 raise NativeRestartBlocked("Nonzero or unconfirmed clean exit")
+            checkpoint = checkpoint_paths[birth.role]
+            if checkpoint.is_symlink() or not checkpoint.is_file():
+                raise NativeRestartBlocked("Missing generation-scoped checkpoint")
+            # No foreign checkpoint outside the owner-controlled native root.
+            try:
+                actual_path = checkpoint.resolve(strict=True)
+                if not actual_path.is_relative_to(self.root) or actual_path.stat().st_size > 1_048_576:
+                    raise NativeRestartBlocked("Unsafe or oversized checkpoint")
+                content = actual_path.read_bytes()
+                payload = json.loads(content)
+            except (OSError, ValueError, TypeError) as exc:
+                raise NativeRestartBlocked("Unreadable checkpoint") from exc
+            if (not isinstance(payload, dict)
+                    or payload != {
+                        "schema": "ops-native-drain/1",
+                        "role": birth.role,
+                        "generation": self.generation,
+                        "owner_marker": birth.owner_marker,
+                        "config_sha256": birth.config_sha256,
+                        "drained": True,
+                    }):
+                raise NativeRestartBlocked("Wrong or incomplete drain receipt")
             exits[birth.role] = {"pid": birth.pid, "created": birth.created,
-                                 "birth_sha256": sha256(vars(birth)), "exit_code": code}
+                                 "birth_sha256": sha256(vars(birth)), "exit_code": code,
+                                 "checkpoint_sha256": hashlib.sha256(content).hexdigest()}
         receipt = {
             "schema": "ops-native-win-exit/1", "generation": self.generation,
             "root": str(self.root), "api": exits["api"], "worker": exits["worker"],
