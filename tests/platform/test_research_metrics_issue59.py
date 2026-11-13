@@ -108,3 +108,11 @@ def test_observed_sample_counts_are_not_completeness_proofs():
     assert a["empty_bar_count"] == 1
     assert a["unknown_side_bar_count"] == 1
     assert a["admitted_to_f"] is False
+
+
+def test_cvd_is_window_anchored_not_full_market_history():
+    result = run([trade(1, "100", "1", "Buy", "a")])
+    assert result["cvd_anchor_start_ms"] == 0
+    assert result["cvd_prior_history_known"] is False
+    assert result["bars"][0]["cvd_known"] == "1"
+    assert result["admitted_to_f"] is False
