@@ -331,7 +331,7 @@ test("unqualified footprint cannot paginate or request its financial endpoint", 
   await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
   await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
   const panel = page.locator('[data-panel="footprint"]');
-  await expect(panel).toContainText("source_revision_not_verified");
+  await expect(panel).toContainText("endpoint_contract_not_supported");
   await expect(panel.locator("canvas")).toBeHidden();
   await expect(panel.getByRole("button", { name: "Next data page" })).toBeDisabled();
   expect(requests).toEqual([]);
