@@ -6,6 +6,7 @@ Feed the resulting envelopes and evidence to Store.ingest in one transaction.
 import hashlib
 import json
 from datetime import datetime, timezone
+from urllib.parse import parse_qs, urlsplit
 from decimal import Decimal, InvalidOperation
 
 from src.storage.models import normalize
@@ -197,6 +198,12 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
             raise ValueError("cursor supported only for bounded OI pages")
         params["cursor"] = cursor_in
     result, url = api.call(path, params)
+    parsed_url = urlsplit(url)
+    actual_params = parse_qs(parsed_url.query, keep_blank_values=True)
+    if (parsed_url.scheme != "https" or parsed_url.netloc != "api.bybit.com"
+            or parsed_url.path != "/v5/market" + path or parsed_url.fragment
+            or actual_params != {key: [str(value)] for key, value in params.items()}):
+        raise ValueError("public source endpoint/request binding mismatch")
     response = {"retCode": 0, "result": result}
     observed_at = observed_at or datetime.now(timezone.utc)
     http = getattr(api, "last_response", None)
