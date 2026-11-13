@@ -138,6 +138,8 @@ def project_storage_execution(row, *, category, symbol, start_ms, end_ms):
         evidence_id = observation.get("evidence_id")
         if any(not isinstance(v, str) or not v for v in (run, job, evidence_id)) or source.get("ingestion_run") != run or evidence.get("ingestion_run") != run:
             _fail("source run/evidence identity mismatch")
+        if evidence_id != _sha(_canonical([job, evidence])):
+            _fail("durable evidence ID/content checksum mismatch")
         if any(evidence.get(k) != v for k, v in (
             ("venue", "bybit"), ("category", category), ("symbol", symbol),
             ("dataset", "trades"), ("interval", ""),
@@ -170,8 +172,11 @@ def project_storage_execution(row, *, category, symbol, start_ms, end_ms):
         if _sha(_canonical(page)) != page_hash or fields not in page["list"]:
             _fail("HTTP page/row chain mismatch")
         pages = evidence.get("pages")
-        if not isinstance(pages, list) or len(pages) != 1 or pages[0].get("count") != len(page["list"]):
-            _fail("missing exact page receipt")
+        if (not isinstance(pages, list) or len(pages) != 1
+                or pages[0].get("count") != len(page["list"])
+                or pages[0].get("cursor") is not None
+                or pages[0].get("next_cursor") is not None):
+            _fail("missing terminal exact recent-trade page receipt")
         url = source.get("url")
         if not isinstance(url, str):
             _fail("missing source URL")
