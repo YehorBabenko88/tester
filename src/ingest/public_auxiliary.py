@@ -175,3 +175,59 @@ def ingest_page(store, *, kind, category, symbol, response, fetched_at,
         "evidence_ref": evidence_ref,
     }
     return store.ingest(records, evidence, job_key, run_id=run_id)
+
+
+def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
+                     start_ms=None, end_ms=None, interval=None, limit=None,
+                     observed_at=None):
+    """One bounded official public REST page, never an implied full backfill.
+
+    api is src.ingest.rest.API (or a contract-compatible replay adapter).
+    Original HTTP body proof is included when the transport supplies it.
+    """
+    from src.storage.models import digest
+    path, params = request(kind, category, symbol, start_ms=start_ms,
+                           end_ms=end_ms, interval=interval, limit=limit)
+    result, url = api.call(path, params)
+    response = {"retCode": 0, "result": result}
+    observed_at = observed_at or datetime.now(timezone.utc)
+    http = getattr(api, "last_response", None)
+    if not isinstance(http, dict) or http.get("hash_scope") != "original_http_body":
+        raise ValueError("original HTTP response proof required")
+    if not isinstance(http.get("sha256"), str) or len(http["sha256"]) != 64:
+        raise ValueError("missing original HTTP SHA256")
+    if not isinstance(http.get("bytes_base64"), str):
+        raise ValueError("original HTTP body missing")
+    import base64
+    body = base64.b64decode(http["bytes_base64"], validate=True)
+    if hashlib.sha256(body).hexdigest() != http["sha256"]:
+        raise ValueError("HTTP evidence hash mismatch")
+    evidence_ref = digest([run_id, job_key, url, http["sha256"]])
+    rows = decode(kind, category, symbol, response, fetched_at=observed_at,
+                  url=url, ingestion_run=run_id, evidence_ref=evidence_ref,
+                  interval=interval)
+    if start_ms is None or end_ms is None:
+        if kind != "trades":
+            raise ValueError("funding/OI require explicit bounded time window")
+        if not rows:
+            raise ValueError("empty recent-trade response cannot establish time bounds")
+        start_ms = min(row["timestamp_ms"] for row in rows)
+        end_ms = max(row["timestamp_ms"] for row in rows) + 1
+    if any(not start_ms <= row["timestamp_ms"] < end_ms for row in rows):
+        raise ValueError("source returned data outside requested time window")
+    cursor = result.get("nextPageCursor")
+    if cursor is not None and (not isinstance(cursor, str) or not cursor):
+        raise ValueError("invalid pagination cursor")
+    evidence = {
+        "venue": "bybit", "category": category, "symbol": symbol,
+        "dataset": kind, "interval": interval if kind == "open_interest" else "",
+        "start_ms": start_ms, "end_ms": end_ms,
+        "status": "PARTIAL" if cursor else "UNVERIFIED",
+        "coverage_status": "UNKNOWN", "ingestion_run": run_id,
+        "source_url": url, "observed_at_utc": _utc(observed_at),
+        "http_sha256": http["sha256"], "http_hash_scope": "original_http_body",
+        "http_bytes_base64": http["bytes_base64"],
+        "pages": [{"params": params, "cursor": None, "next_cursor": cursor,
+                   "count": len(rows), "http_sha256": http["sha256"]}],
+    }
+    return store.ingest(rows, evidence, job_key, run_id=run_id)
