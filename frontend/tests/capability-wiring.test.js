@@ -85,3 +85,13 @@ test("OI source cadence is scoped by capability discovery and cache key", () => 
   assert.match(app, /q\.end_ms, cadence/);
   assert.match(app, /source_interval: cadence/);
 });
+
+test("frontend negotiates optional routes before catalog queries", () => {
+  assert.match(app, /async function initializeOptionalRoutes\(\)/);
+  assert.match(app, /state\.marketCatalogEnabled === false/);
+  assert.match(app, /state\.sourceListEnabled === false/);
+  assert.match(app, /initializeOptionalRoutes\(\)/);
+  assert.match(html, /id="manual-symbol"/);
+  assert.match(html, /id="open-manual"/);
+  assert.match(app, /\^\[A-Z0-9_-\]\{1,40\}\$/);
+});
