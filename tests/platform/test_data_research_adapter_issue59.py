@@ -14,6 +14,7 @@ from src.integration.data_research_adapter import (
     DATA_CONTRACT_VERSION,
     project_events,
     read_data_metrics,
+    require_strategy_lab_f_input,
 )
 
 START = 1704067200000
@@ -332,3 +333,28 @@ def test_empty_data_read_does_not_claim_proof(monkeypatch):
     assert result["status"] == "NO_DATA"
     assert result["source_verification"] == "NO_EXECUTION_EVIDENCE"
     assert result["f_input"] is None
+
+
+def test_strategy_lab_f_denies_unverified_real_samples():
+    preview = project_events(
+        [event()], category="linear", symbol="BTCUSDT",
+        start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+    )
+    with pytest.raises(ValueError, match="real_historical_visibility_unknown_f_denied"):
+        require_strategy_lab_f_input(preview)
+    assert preview["f_input"] is None
+    assert preview["g_e_result"] is None
+
+
+def test_strategy_lab_f_rejects_forged_complete_coverage():
+    preview = project_events(
+        [event()], category="linear", symbol="BTCUSDT",
+        start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+    )
+    preview["coverage"] = "COMPLETE"
+    with pytest.raises(ValueError, match="research_preview_claims_unreviewed_f_admission"):
+        require_strategy_lab_f_input(preview)
+    preview["coverage"] = "UNKNOWN"
+    preview["observed_window"]["complete_market_history"] = True
+    with pytest.raises(ValueError, match="research_history_completeness_not_demonstrated"):
+        require_strategy_lab_f_input(preview)
