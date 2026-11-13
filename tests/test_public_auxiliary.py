@@ -1,5 +1,7 @@
 """Offline source-contract regression tests. No network or PC4 access."""
-import base64\nimport hashlib\nimport unittest
+import base64
+import hashlib
+import unittest
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from unittest.mock import Mock
@@ -97,7 +99,8 @@ class PublicAuxiliaryTests(unittest.TestCase):
                                             "fundingRateTimestamp": "1794560000000"}]},
                                  "https://api.bybit.com/v5/market/funding/history")
         original = json.dumps({"retCode": 0, "result": api.call.return_value[0]}).encode()
-        api.last_response = {"hash_scope": "original_http_body",\n                             "url": api.call.return_value[1], "status_code": 200,
+        api.last_response = {"hash_scope": "original_http_body",
+                             "url": api.call.return_value[1], "status_code": 200,
                              "sha256": hashlib.sha256(original).hexdigest(),
                              "bytes_base64": base64.b64encode(original).decode()}
         fetch_and_ingest(store, api, kind="funding", category="linear",
