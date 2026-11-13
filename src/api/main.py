@@ -327,7 +327,12 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             operation_id="read_" + resource,
         )
 
-    @app.get("/api/capabilities", response_model=Envelope[dict], operation_id="read_capabilities")
+    @app.get(
+        "/api/capabilities",
+        response_model=Envelope[dict],
+        operation_id="read_capabilities",
+        include_in_schema=False,  # Additive preview; preserve pinned public v1 OpenAPI.
+    )
     def capabilities(query: Annotated[Query, Depends(validated_query)]):
         # Reader-owned endpoint announcements alone are not sufficient.
         # The bounded discovery path validates real source records, their
