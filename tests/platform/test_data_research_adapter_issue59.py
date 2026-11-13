@@ -99,6 +99,8 @@ def test_reordered_events_produce_identical_metrics():
     (lambda e: e.__setitem__("taker_side", "bid"), "invalid_or_inferred_taker_side"),
     (lambda e: e["source_receipts"].clear(), "original_http_page_row_receipts_required"),
     (lambda e: e["source_receipts"][0].__setitem__("page_sha256", "not-a-sha"), "unqualified_source_sha256"),
+    (lambda e: e["provenance"][0]["parent_refs"].clear(), "source_receipt_provenance_mismatch"),
+    (lambda e: e["source_receipts"][0].__setitem__("row_sha256", "d" * 64), "source_receipt_provenance_mismatch"),
     (lambda e: e.__setitem__("event_ms", float(START + 1)), "invalid_event_or_observation_time"),
 ])
 def test_unqualified_event_refused(edit, reason):
@@ -240,3 +242,34 @@ def test_disposable_postgres_actual_data72_source_to_research():
     assert outcome["coverage"] == "UNKNOWN"
     assert outcome["admitted_to_f"] is False
     assert outcome["f_input"] is None
+
+
+def test_missing_data72_module_fails_closed(monkeypatch):
+    import src.integration.data_research_adapter as adapter
+
+    def missing(name):
+        raise ModuleNotFoundError("not composed", name=name)
+
+    monkeypatch.setattr(adapter.importlib, "import_module", missing)
+    store = Mock()
+    with pytest.raises(ValueError, match="data72_versioned_contract_not_composed"):
+        read_data_metrics(
+            store, category="linear", symbol="BTCUSDT",
+            start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+        )
+    store.read.assert_not_called()
+
+
+def test_data72_version_skew_refused_before_read(monkeypatch):
+    import src.integration.data_research_adapter as adapter
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(adapter.importlib, "import_module",
+                        lambda name: SimpleNamespace(VERSION="tester-public-execution/2"))
+    store = Mock()
+    with pytest.raises(ValueError, match="data_execution_contract_version_skew"):
+        read_data_metrics(
+            store, category="linear", symbol="BTCUSDT",
+            start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+        )
+    store.read.assert_not_called()
