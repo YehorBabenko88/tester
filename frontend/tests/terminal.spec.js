@@ -1143,3 +1143,33 @@ test("every catalog metric and text header requests global server sort", async (
     )
     .toBe("inverse");
 });
+
+test("capability denial suppresses unsupported chart requests for all 13 intervals", async ({ page }) => {
+  const failures = [];
+  page.on("pageerror", error => failures.push(error.message));
+  const denied = Object.fromEntries(
+    ["candles","volume","footprint","delta","cvd","profile","poc","vwap",
+     "open_interest","funding","mark","index"].map(panel => [
+      panel, { panel, status: "UNVERIFIED", reason: "source_revision_not_verified" }
+    ])
+  );
+  await setup(page, { capabilities: denied });
+  const chartRequests = [];
+  page.on("request", req => {
+    const path = new URL(req.url()).pathname;
+    if (["/api/candles","/api/footprint","/api/analytics",
+         "/api/open-interest","/api/funding","/api/coverage"].includes(path))
+      chartRequests.push(path);
+  });
+  await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
+  await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
+  await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
+  for (const interval of ["1","3","5","15","30","60","120","240",
+                          "360","720","D","W","M"]) {
+    await page.locator("#interval").selectOption(interval);
+    await expect(page.locator('[data-panel="mark"]')).toContainText("source_revision_not_verified");
+    await expect(page.locator('[data-panel="index"]')).toContainText("source_revision_not_verified");
+  }
+  expect(chartRequests).toEqual([]);
+  expect(failures).toEqual([]);
+});
