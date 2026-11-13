@@ -54,7 +54,8 @@ export async function request(path, params = {}, options = {}) {
     failure.code = e.code || "API_ERROR";
     throw failure;
   }
-  if (payload.schema_version !== "1.0" || !Object.hasOwn(payload, "data"))
+  const schemaVersion = options.schemaVersion || "1.0";
+  if (payload.schema_version !== schemaVersion || !Object.hasOwn(payload, "data"))
     throw Error("Unsupported API schema");
   return payload;
 }
