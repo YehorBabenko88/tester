@@ -72,6 +72,8 @@ def request(kind, category, symbol, *, start_ms=None, end_ms=None, interval=None
     elif start_ms is not None or end_ms is not None:
         if start_ms is None or end_ms is None or _ms(start_ms, "start") >= _ms(end_ms, "end"):
             raise ValueError("invalid requested range")
+        if end_ms - start_ms > 7 * 86400000:
+            raise ValueError("public metric window exceeds seven-day budget")
         params.update(startTime=start_ms, endTime=end_ms - 1)
     return PATHS[kind], params
 
