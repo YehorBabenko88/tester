@@ -105,6 +105,8 @@ def project_data_page(page, *, category, symbol, start_ms, end_ms, as_of_ms=None
     if (not isinstance(coverage, dict) or coverage.get("start_ms") != start_ms
             or coverage.get("end_ms") != end_ms):
         raise ValueError("missing_requested_coverage_bounds")
+    if coverage.get("complete") is not False or coverage.get("state") != "UNKNOWN":
+        raise ValueError("unexpected_recent_trade_history_certification")
     rows = page.get("rows")
     observations = page.get("observations")
     evidences = page.get("evidence")
