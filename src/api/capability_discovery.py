@@ -209,10 +209,11 @@ def _verified_page(reader, panel, query):
             history_complete=False,
             publication_known=False,
             admitted_to_f=False,
-            source_contract_version=(
-                "tester.price-candle/1.1"
+            source_contract_version="1.1" if resource == "price-candles" else "1.0",
+            source_contract_ref=(
+                "contracts/v1_1/price_candle.schema.json"
                 if resource == "price-candles"
-                else "tester.market/1.0"
+                else "contracts/v1/market.schema.json"
             ),
             **({"candle_kind": source_query.candle_kind} if panel in ("mark", "index") else {}),
         ),
