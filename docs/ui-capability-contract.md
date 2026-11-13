@@ -259,3 +259,32 @@ sample remains dependent on MASTER composing an approved DATA/RESEARCH
 read endpoint with source identity, versioning, provenance and authorization.
 Funding and OI require a separate source-native auxiliary read contract
 and must never enter execution-only VWAP/Delta calculations.
+
+### DATA #72 auxiliary OI / Funding observed-value projection
+
+`frontend/observed-auxiliary.js` is the second, separate **pure/no-fetch**
+UI adapter. It projects DATA's actual canonical `normalize()` record shape
+for public V5 `open_interest` and `funding` into exact native
+`{ts,value}` observations. It requires the correct `payload.unit`:
+`contracts_source_native` (OI) or `fraction_per_funding_event` (Funding).
+Funding may be negative; OI may not. OI's native source cadence
+(`5min,15min,30min,1h,4h,1d`) is **not** silently replaced with the
+terminal's display timeframe, and Funding retains its event cadence.
+
+The adapter checks the source's Bybit HTTPS URL, category, symbol and native
+cadence, canonical SHA256 hashes and immutable record identity, original
+millisecond source timestamp, aware observation time, half-open requested UTC
+scope and optional knowledge cutoff. It preserves Decimal strings without
+floating-point conversion, and emits no inferred volume or OHLC. Duplicate
+observations, unverified publication, late-known data and wrong source
+provenance fail closed. Its state is `OBSERVED_UNVERIFIED` and explicitly
+`original_http_attested=false` because a normalized row hash is **not** an
+independent proof of the original HTTP/page bytes.
+
+`frontend/tests/observed-auxiliary.test.js` covers both datasets over all
+13 **display** timeframes and the negative source/known-at cases. The
+adapter does not add any browser request or qualify the existing OI/Funding
+API routes by its existence. Activation requires the DATA owner to expose
+an audited original-HTTP-proven, read-only, versioned auxiliary endpoint
+and for MASTER to run exact combined FastAPI/Chromium with disposable PG.
+No source completeness or production availability is claimed.
