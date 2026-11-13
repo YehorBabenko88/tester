@@ -193,7 +193,6 @@ def test_disposable_postgres_actual_data72_source_to_research():
         raise ValueError("refusing non-disposable PostgreSQL database")
     _composed_data()
     import psycopg
-
     from src.ingest.public_auxiliary import fetch_and_ingest
     from src.storage.migrations import migrate
     from src.storage.store import Store
@@ -375,7 +374,6 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
         raise ValueError("protected: dedicated disposable database required")
     _composed_data()
     import psycopg
-
     from src.ingest.public_auxiliary import fetch_and_ingest
     from src.storage.migrations import migrate
     from src.storage.store import Store
@@ -473,7 +471,6 @@ def test_disposable_pg_gapped_observation_window_stays_unknown():
         raise ValueError("protected: disposable PG DB only")
     _composed_data()
     import psycopg
-
     from src.ingest.public_auxiliary import fetch_and_ingest
     from src.storage.migrations import migrate
     from src.storage.store import Store
