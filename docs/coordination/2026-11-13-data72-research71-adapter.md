@@ -104,29 +104,32 @@ The separate PostgreSQL16 workflow is disposable CI only and does not touch
 PC4, ADMINIT, PostgreSQL5432 on user hardware or `main`.
 
 
-## MASTER 17:51 gate — DATA #72 exact head 6eca8a9bfaf5c6eb0bac162fa737a1dbb64ae31a
+## MASTER 2026-11-13 subsequent exact-head verification
 
-- The revised DATA `tester-public-execution/1` contract refuses an
-  observed timestamp preceding the original execution; version/side/unit
-  semantics remain the same.
-- `read_data_metrics` calls DATA's own verified `read_execution_events`,
-  then checks exact `to_research_trade` equality. Its `observed_sample_fingerprint`
-  binds observed event bytes, receipt hashes, and source scope. Both
-  `persisted_dataset_revision` and `historical_known_at_ms` remain **null**:
-  DATA's legacy `Store.read` cannot provide a qualified cross-dataset,
-  single-transaction B revision/visibility attestation. Neither the fingerprint
-  nor the HTTP integrity chain is a completeness or official publication proof.
-- `require_strategy_lab_f_input` is an explicit non-mutating F preparation
-  gate: it rejects unknown coverage and forged COMPLETE labels. Existing pinned
-  synthetic F acceptance remains a separate independently authorized path.
-- Dedicated PostgreSQL16 CI test cases cover: original HTTP replay; duplicate
-  replay with unchanged count; missing/tampered HTTP SHA refusal; source-side
-  UNKNOWN volume; capped read refusal; observed empty minute in a gapped
-  source sample; deterministic VWAP/POC/Delta/CVD; absence of F inputs and
-  real fills. Pure tests separately exercise inverse units, version skew,
-  malformed receipts, wrong scope, reordered events, zero quantity and
-  fraudulent knowledge/publication timestamps.
-- **Environment limitation:** local runtime has no PostgreSQL server, Python
-  `psycopg` or direct GitHub DNS. The remote PR Actions remain QUEUED/PENDING.
-  Therefore the above are **authored assertions, not demonstrated PASS**.
-  No full real historical SOURCE→B→RESEARCH→F acceptance is claimed.
+- DATA reviewed branch HEAD `91c5541a9af8f4390d38d69ae1a61b6cd766de1f`;
+  schema `tester-public-execution/1`. The literal `REVIEWED_DATA_HEAD`
+  in `data_research_adapter.py` is **informational**, not a runtime SHA
+  attestation. The disposable CI job is pinned to the exact DATA commit and
+  checks the version. Independent runtime composition uses the module contract
+  and refuses version mismatch, but cannot infer the Git commit at runtime.
+- Prior RESEARCH workflow at `4e2c4a4d96659ab53c7c5efd5510515cc6095226`
+  finished: `research-disposable-postgres` **PASS** with DATA unit
+  10/10 and composed RESEARCH PostgreSQL 2/2; independent
+  `research-metrics` **FAIL** 65 pass / 1 fail / 4 skip because one
+  50-significant-digit repeating VWAP expectation had three extra digits.
+  The expected string was corrected. Windows platform acceptance **FAIL**:
+  local imports in `tests/platform/test_data_research_adapter_issue59.py`
+  violated Ruff I001; fixed by grouping imports.
+- Other global workflow failure: `Pinned research PostgreSQL integration`
+  failed a separately existing `hostaddr` environment source test. This
+  is **not** equivalent to a RESEARCH DATA→metrics failure and has not been
+  repaired by modifying unrelated storage/security code.
+- Added negative tests for exact-full page, empty evidence, duplicated receipt,
+  wrong version, unknown taker direction, inverse quantity refusal, late
+  source observation, and OI/Funding/price inputs barred from execution-only
+  metrics.
+- Source-only code remains **Draft**. DATA `Store.read` and B
+  candle `Store.read_page` do **not** share a qualified atomic snapshot,
+  common revision or historical known-at. No real F Strategy Lab execution
+  is authorized. Latest workflows for the current exact RESEARCH HEAD must
+  be separately inspected; prior PASS is not transferred to new commits.
