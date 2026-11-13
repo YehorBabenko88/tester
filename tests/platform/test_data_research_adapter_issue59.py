@@ -188,10 +188,11 @@ def test_disposable_postgres_actual_data72_source_to_research():
     if "tester_research_data_disposable" not in dsn:
         raise ValueError("refusing non-disposable PostgreSQL database")
     _composed_data()
+    import psycopg
+
     from src.ingest.public_auxiliary import fetch_and_ingest
     from src.storage.migrations import migrate
     from src.storage.store import Store
-    import psycopg
 
     with psycopg.connect(dsn) as connection:
         migrate(connection)
@@ -261,8 +262,9 @@ def test_missing_data72_module_fails_closed(monkeypatch):
 
 
 def test_data72_version_skew_refused_before_read(monkeypatch):
-    import src.integration.data_research_adapter as adapter
     from types import SimpleNamespace
+
+    import src.integration.data_research_adapter as adapter
 
     monkeypatch.setattr(adapter.importlib, "import_module",
                         lambda name: SimpleNamespace(VERSION="tester-public-execution/2"))
