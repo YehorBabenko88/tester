@@ -79,7 +79,8 @@ def _timestamp(value):
         raise ValueError("source_observation_time_invalid") from exc
     if dt.tzinfo is None or dt.utcoffset() is None:
         raise ValueError("source_observation_time_naive")
-    return int(dt.astimezone(timezone.utc).timestamp() * 1000)
+    delta = dt.astimezone(timezone.utc) - datetime(1970, 1, 1, tzinfo=timezone.utc)
+    return delta.days * 86400000 + delta.seconds * 1000 + delta.microseconds // 1000
 
 
 def project_data_page(page, *, category, symbol, start_ms, end_ms, as_of_ms=None):
@@ -100,6 +101,10 @@ def project_data_page(page, *, category, symbol, start_ms, end_ms, as_of_ms=None
         raise ValueError("data_page_unavailable_or_wrong_scope")
     if page.get("page_exhausted") is not True or page.get("next_cursor") is not None:
         raise ValueError("missing_source_records_or_more_pages")
+    coverage = page.get("coverage")
+    if (not isinstance(coverage, dict) or coverage.get("start_ms") != start_ms
+            or coverage.get("end_ms") != end_ms):
+        raise ValueError("missing_requested_coverage_bounds")
     rows = page.get("rows")
     observations = page.get("observations")
     evidences = page.get("evidence")
@@ -176,8 +181,10 @@ def project_data_page(page, *, category, symbol, start_ms, end_ms, as_of_ms=None
         p = row.get("payload")
         if not isinstance(p, dict) or p.get("unit") != "source_native_quantity":
             raise ValueError("unknown_or_incompatible_quantity_unit")
-        if p.get("publication_timestamp_ms") is not None:
-            raise ValueError("fabricated_publication_time")
+        if "publication_timestamp_ms" not in p or p["publication_timestamp_ms"] is not None:
+            raise ValueError("missing_or_fabricated_publication_time")
+        if p.get("anonymous_public_execution") is not True:
+            raise ValueError("nonanonymous_or_invalid_public_execution")
         if p.get("event_timestamp_ms") != row["timestamp_ms"] or row.get("timestamp_precision") != "ms" or row.get("timestamp_ns") is not None:
             raise ValueError("event_time_precision_mismatch")
         if row.get("id_origin") != "exchange" or row.get("trade_id") != p.get("trade_id"):
@@ -187,7 +194,9 @@ def project_data_page(page, *, category, symbol, start_ms, end_ms, as_of_ms=None
         original = p.get("source_fields")
         if not isinstance(original, dict) or original.get("side") != p["side"] or original.get("execId") != p["trade_id"] or original.get("symbol") != symbol:
             raise ValueError("source_fields_mismatch")
-        if str(original.get("time")) != str(row["timestamp_ms"]) or original.get("price") != p.get("price") or original.get("size") != p.get("size"):
+        if (str(original.get("time")) != str(row["timestamp_ms"])
+                or source.get("source_timestamp") != str(row["timestamp_ms"])
+                or original.get("price") != p.get("price") or original.get("size") != p.get("size")):
             raise ValueError("source_execution_economics_mismatch")
         raw_row = canonical(original).encode("utf-8")
         if hashlib.sha256(raw_row).hexdigest() != source.get("sha256"):
@@ -237,6 +246,14 @@ def project_data_page(page, *, category, symbol, start_ms, end_ms, as_of_ms=None
         "certification": "UNVERIFIED", "coverage": "UNKNOWN",
         "quantity_unit": "source_native_quantity", "publication_time": "UNKNOWN",
         "admitted_to_f": False,
+        "observed_window": {
+            "requested_start_ms": start_ms, "requested_end_ms": end_ms,
+            "first_event_ms": min(t["timestamp_ms"] for t in trades),
+            "last_event_ms": max(t["timestamp_ms"] for t in trades),
+            "observed_unique_trades": len(trades),
+            "source_pages_checked": len(by_evidence),
+            "complete_market_history": False,
+        },
         "trades": [{k: v for k, v in trade.items() if k != "_observations"} for trade in trades],
         "evidence_digest": digest({"scope": scope, "rows": rows, "observations": observations,
                                   "evidence": evidences}),
