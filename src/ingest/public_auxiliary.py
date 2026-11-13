@@ -202,7 +202,7 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     body = base64.b64decode(http["bytes_base64"], validate=True)
     if hashlib.sha256(body).hexdigest() != http["sha256"]:
         raise ValueError("HTTP evidence hash mismatch")
-    evidence_ref = digest([run_id, job_key, url, http["sha256"]])
+    try:\n        original_response = json.loads(body)\n    except (ValueError, UnicodeDecodeError) as exc:\n        raise ValueError("invalid original HTTP JSON") from exc\n    if original_response.get("retCode") != 0 or original_response.get("result") != result:\n        raise ValueError("HTTP body/result mismatch")\n    evidence_ref = digest([run_id, job_key, url, http["sha256"]])
     rows = decode(kind, category, symbol, response, fetched_at=observed_at,
                   url=url, ingestion_run=run_id, evidence_ref=evidence_ref,
                   interval=interval)
