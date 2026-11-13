@@ -163,7 +163,7 @@ def test_actual_data72_versioned_event_projection_on_composed_branch():
     data = _composed_data()
     if data.VERSION != DATA_CONTRACT_VERSION:
         pytest.fail("DATA #72 version skew")
-    from tests.test_execution_contract_bridge import fixture, MS
+    from tests.test_execution_contract_bridge import MS, fixture
 
     window = (MS // 60000) * 60000
     store = Mock()
@@ -194,6 +194,7 @@ def test_disposable_postgres_actual_data72_source_to_research():
     _composed_data()
     import psycopg
     from src.ingest.public_auxiliary import fetch_and_ingest
+
     from src.storage.migrations import migrate
     from src.storage.store import Store
 
@@ -375,6 +376,7 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     _composed_data()
     import psycopg
     from src.ingest.public_auxiliary import fetch_and_ingest
+
     from src.storage.migrations import migrate
     from src.storage.store import Store
 
@@ -472,6 +474,7 @@ def test_disposable_pg_gapped_observation_window_stays_unknown():
     _composed_data()
     import psycopg
     from src.ingest.public_auxiliary import fetch_and_ingest
+
     from src.storage.migrations import migrate
     from src.storage.store import Store
 
