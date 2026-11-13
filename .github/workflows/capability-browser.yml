@@ -7,6 +7,9 @@ on:
       - 'frontend/**'
       - 'tests/platform/test_capability_discovery.py'
       - 'scripts/capability_fixture_server.py'
+      - 'scripts/verify_ui_source_contracts.py'
+      - 'src/api/capability_source_contracts.py'
+      - 'docs/ui-capability-protocol-v1.schema.json'
       - '.github/workflows/capability-browser.yml'
   workflow_dispatch:
 permissions:
@@ -18,14 +21,40 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Pin reviewed DATA #72 original-execution contract
+        uses: actions/checkout@v4
+        with:
+          ref: d08418fc51c890d3390ee5853cf2f9dba6073a80
+          path: .ci-source-data72
+          sparse-checkout: |
+            src/ingest/execution_contract.py
+          sparse-checkout-cone-mode: false
+      - name: Pin reviewed RESEARCH #71 observed-metrics contracts
+        uses: actions/checkout@v4
+        with:
+          ref: aecba8f9bdd8ec193f7d2ee36a5dbc64b5366a43
+          path: .ci-source-research71
+          sparse-checkout: |
+            src/integration/data_research_adapter.py
+            src/analytics/research_metrics.py
+          sparse-checkout-cone-mode: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
       - run: python -m pip install 'pip>=26.2,<27'
       - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Verify exact independently pinned DATA/RESEARCH source interfaces
+        shell: bash
+        run: |
+          test "$(git -C .ci-source-data72 rev-parse HEAD)" = "d08418fc51c890d3390ee5853cf2f9dba6073a80"
+          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "aecba8f9bdd8ec193f7d2ee36a5dbc64b5366a43"
+          python scripts/verify_ui_source_contracts.py \
+            --data .ci-source-data72/src/ingest/execution_contract.py \
+            --research .ci-source-research71/src/integration/data_research_adapter.py \
+            --metrics .ci-source-research71/src/analytics/research_metrics.py
       - name: Exercise real FastAPI capability discovery
-        run: python -m pytest tests/platform/test_capability_discovery.py -q
+        run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py -q
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
