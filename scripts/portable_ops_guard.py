@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import json
-import os
 from typing import Callable, Mapping
 
 from scripts.portable_ops import Ownership, OwnershipError, CheckpointError, load_checkpoint, resume_plan
@@ -40,6 +38,7 @@ def guarded_resume(
     expected_argv: tuple[str, ...],
     durable_states: Mapping[str, str],
     claim_job: Callable[[str], bool],
+    expired_running: frozenset[str] = frozenset(),
 ) -> list[str]:
     """Reconcile only with a transactional, single-winner durable claim callback.
 
@@ -50,7 +49,7 @@ def guarded_resume(
     body = load_checkpoint(checkpoint, expected_owner.instance_id)
     if body["owner"] != vars(expected_owner):
         raise OwnershipError("Checkpoint owner changed")
-    valid = {"queued", "running", "completed", "failed"}
+    valid = {"queued", "running", "completed", "failed", "paused"}
     if any(state not in valid for state in durable_states.values()):
         raise CheckpointError("Unrecognized durable state")
     checkpoint_ids = {job["id"] for job in body["jobs"]}
@@ -59,7 +58,7 @@ def guarded_resume(
     completed = {key for key, value in durable_states.items() if value == "completed"}
     candidates = resume_plan(body, completed)
     # A failed job requires explicit retry authorization; never auto-requeue it.
-    selected = [key for key in candidates if durable_states[key] in ("queued", "running")]
+    # Never reclaim a live lease. The caller must prove lease expiry in the DB.\n    running = {key for key in candidates if durable_states[key] == "running"}\n    if not running.issubset(expired_running):\n        raise LifecycleRefusal("Running lease not proven expired")\n    selected = [key for key in candidates if durable_states[key] == "queued" or key in running]
     claimed = []
     for key in selected:
         if claim_job(key):

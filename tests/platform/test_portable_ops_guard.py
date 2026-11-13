@@ -22,7 +22,7 @@ class GuardTests(unittest.TestCase):
                 leases.add(job)
                 return True
             args = (cp, self.owner, self.witness, "python", ("-m", "worker"),
-                    {"a":"running","b":"queued","c":"completed"}, claim)
+                    {"a":"running","b":"queued","c":"completed"}, claim, frozenset({"a"}))
             self.assertEqual(guarded_resume(*args), ["a","b"])
             self.assertEqual(guarded_resume(*args), [])
 
@@ -45,7 +45,7 @@ class GuardTests(unittest.TestCase):
                                    {"a":"queued"},lambda x:calls.append(x))
             self.assertEqual(calls,[])
 
-    def test_wrong_image_refuses(self):
+    def test_unexpired_running_lease_refuses_before_claim(self):\n        with TemporaryDirectory() as td:\n            cp = Path(td) / "cp.json"\n            write_checkpoint(cp, self.owner, [{"id":"a","state":"running"}], 0)\n            calls = []\n            with self.assertRaises(LifecycleRefusal):\n                guarded_resume(cp, self.owner, self.witness, "python", ("-m","worker"),\n                               {"a":"running"}, lambda x:calls.append(x))\n            self.assertEqual(calls, [])\n\n    def test_paused_job_not_automatically_resumed(self):\n        with TemporaryDirectory() as td:\n            cp = Path(td) / "cp.json"\n            write_checkpoint(cp, self.owner, [{"id":"a","state":"queued"}], 0)\n            self.assertEqual(guarded_resume(cp, self.owner, self.witness, "python",\n                             ("-m","worker"), {"a":"paused"}, lambda _:True), [])\n\n    def test_wrong_image_refuses(self):
         with TemporaryDirectory() as td:
             cp = Path(td) / "cp.json"
             write_checkpoint(cp,self.owner,[],0)
