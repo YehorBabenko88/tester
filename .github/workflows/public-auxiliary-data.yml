@@ -34,6 +34,8 @@ jobs:
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Compile all DATA integration test sources
+        run: python -m compileall -q src/ingest/execution_contract.py tests/test_execution_contract_bridge.py tests/test_execution_contract_postgres.py tests/test_composed_data_research_postgres.py tests/test_live_public_bybit_postgres.py
       - name: Offline DATA contracts
         run: python -m unittest tests.test_public_auxiliary tests.test_public_auxiliary_runner tests.test_execution_contract_bridge -v
   postgres-contract:
