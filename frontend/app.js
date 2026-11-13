@@ -714,6 +714,29 @@ async function submitDownloads(keys) {
   }
 }
 $("#download").onclick = () => submitDownloads([...state.selected]);
+const PANEL_REASON_TEXT = Object.freeze({
+  instrument_required: "Select an instrument before requesting data",
+  timeframe_not_supported: "The source does not support this timeframe",
+  not_applicable_to_spot: "This indicator is derivatives-only",
+  endpoint_contract_not_supported: "No compatible analytics endpoint is implemented",
+  provider_not_connected: "No qualified data provider is connected",
+  source_not_connected: "This source is not connected",
+  reference_price_source_not_connected: "The price-only Bybit source is not connected",
+  no_verified_observations_in_range: "No verified source observations exist in the chosen range",
+  source_availability_not_qualified: "Source availability was not verified",
+  row_availability_not_qualified: "Individual observations are unavailable or unverified",
+  source_provenance_not_qualified: "Original source provenance is insufficient",
+  source_contract_not_verified: "The source did not satisfy its API contract",
+  source_probe_unavailable: "The source could not be checked",
+  bounded_observations_only: "Observed data only; complete history is not certified",
+  capability_not_advertised: "This panel was not advertised",
+  unverified_capability_binding: "Source revision or provenance is missing",
+  price_contract_not_verified: "A verified price-only v1.1 contract is required",
+  unsupported_panel_resource: "No supported endpoint exists for this panel",
+});
+function panelReason(reason) {
+  return PANEL_REASON_TEXT[reason] || "Source unavailable or not verified";
+}
 // Capability discovery is scoped to the selected instrument and interval.
 // A failed or absent discovery response never authorizes speculative API calls.
 async function discoverCapabilities(q, signal) {
@@ -897,7 +920,9 @@ async function loadCharts(options = {}) {
         if (!capability.requestAllowed) {
           unavailable++;
           p.originBadge.textContent = "not verified";
-          p.message.textContent = `DATA_UNAVAILABLE · ${capability.reason === "capability_not_advertised" ? (state.capabilityError || capability.reason) : capability.reason}`;
+          const reason = capability.reason === "capability_not_advertised"
+            ? (state.capabilityError || capability.reason) : capability.reason;
+          p.message.textContent = `DATA_UNAVAILABLE · ${capability.state} · ${panelReason(reason)} (${reason})`;
           p.meta.textContent = `${capability.state} · ${capability.reason} · no request sent`;
           p.proof.textContent = JSON.stringify({ capability, discovery: state.capabilityError || null }, null, 2);
           return;
@@ -912,12 +937,12 @@ async function loadCharts(options = {}) {
               : {}),
             ...(p.page.cursor ? { cursor: p.page.cursor } : {}),
             ...(path === "/api/analytics" ? { metric: kind } : {}),
-            ...(kind === "mark" ? { candle_kind: "official_mark" } : {}),
-            ...(kind === "index" ? { candle_kind: "official_index" } : {}),
+            ...(capability.candle_kind ? { candle_kind: capability.candle_kind } : {}),
+            ...(capability.schema_version === "1.1" ? { schema_version: "1.1" } : {}),
           },
           cacheKey = path + JSON.stringify(params);
         if (!cache.has(cacheKey))
-          cache.set(cacheKey, request(path, params, { signal: abort.signal }));
+          cache.set(cacheKey, request(path, params, { signal: abort.signal, schemaVersion: capability.schema_version }));
         const payload = await cache.get(cacheKey);
         if (abort.signal.aborted) return;
         if (
@@ -929,6 +954,11 @@ async function loadCharts(options = {}) {
         // The backend may change between discovery and read. Never display
         // an unrelated dataset under a qualified panel's identity.
         const series = adaptSeries(payload, kind, q);
+        if (capability.state === "PARTIAL" && series.availability === "AVAILABLE") {
+          series.availability = "PARTIAL";
+          series.completeness = "PARTIAL";
+          series.reason = [series.reason, panelReason(capability.reason)].filter(Boolean).join(" · ");
+        }
         if (["mark", "index"].includes(kind)) {
           const expectedKind = kind === "mark" ? "official_mark" : "official_index";
           const matchesSource = series.provenance.some((p) =>
@@ -1000,14 +1030,11 @@ async function loadCharts(options = {}) {
   if (!abort.signal.aborted) {
     $("#chart-status").textContent =
       `${PANELS.length - unavailable}/${PANELS.length} panels have records. Consult each panel for coverage and verification.`;
-    if (PANELS.some(([kind]) =>
-      classifyPanelCapability(kind, capabilities[kind]).requestAllowed
-    )) {
-      loadQuality(q, abort.signal);
-    } else {
-      $("#quality-data").textContent =
-        "UNVERIFIED · No qualified source for this selection; coverage was not requested.";
-    }
+    // Aggregate /api/coverage has no independent discovery contract.
+    // Per-panel response envelopes carry their own source coverage evidence.
+    // Do not issue a speculative /api/coverage request (which may return 503).
+    $("#quality-data").textContent =
+      "Coverage evidence is shown inside each panel. Aggregate coverage endpoint is not qualified; no request sent.";
   }
 }
 async function loadQuality(q, signal) {
