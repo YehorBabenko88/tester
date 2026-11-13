@@ -188,6 +188,29 @@ class PublicAuxiliaryTests(unittest.TestCase):
         self.assertEqual(api.call.call_args_list[1].args[1]["endTime"],
                          timestamps[0] - 1)
 
+    def test_reject_source_page_above_limit_before_storage(self):
+        store = Mock()
+        api = Mock()
+        result = {"list": [
+            {"symbol": "BTCUSDT", "fundingRate": "0.01",
+             "fundingRateTimestamp": "1794560000000"},
+            {"symbol": "BTCUSDT", "fundingRate": "0.02",
+             "fundingRateTimestamp": "1794559999999"},
+        ]}
+        url = "https://api.bybit.com/v5/market/funding/history"
+        original = json.dumps({"retCode": 0, "result": result}).encode()
+        api.call.return_value = (result, url)
+        api.last_response = {"url": url, "status_code": 200,
+                             "hash_scope": "original_http_body",
+                             "sha256": hashlib.sha256(original).hexdigest(),
+                             "bytes_base64": base64.b64encode(original).decode()}
+        with self.assertRaises(ValueError):
+            fetch_and_ingest(store, api, kind="funding", category="linear",
+                             symbol="BTCUSDT", run_id="run-test", job_key="oversize",
+                             start_ms=1794559999998, end_ms=1794560000001,
+                             limit=1, observed_at=NOW)
+        store.ingest.assert_not_called()
+
     def test_reject_out_of_window_before_pg(self):
         store = Mock()
         with self.assertRaises(ValueError):
