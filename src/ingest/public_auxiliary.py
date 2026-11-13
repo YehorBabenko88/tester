@@ -131,7 +131,7 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
         source = {"url": url, "fetched_at": observed,
                   "sha256": hashlib.sha256(raw).hexdigest(),
                   "hash_scope": "canonical_row_json",
-                  "source_kind": "bybit_public_rest",
+                  "source_kind": "rest",
                   "source_timestamp": str(timestamp),
                   "ingestion_run": ingestion_run,
                   "evidence_refs": [evidence_ref]}
@@ -139,7 +139,7 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
             source["record_key"] = hashlib.sha256(raw).hexdigest()
         records.append(normalize({"schema_version": "1.0", "venue": "bybit",
                                   "category": category, "symbol": symbol,
-                                  "dataset": kind, "interval": "",
+                                  "dataset": kind, "interval": request_params.get("intervalTime", "") if kind == "open_interest" else "",
                                   "timestamp_ms": timestamp,
                                   "timestamp_precision": "ms", "timestamp_ns": None,
                                   "payload": payload, "source": source}))
@@ -164,7 +164,7 @@ def ingest_page(store, *, kind, category, symbol, response, fetched_at,
         raise ValueError("invalid pagination cursor")
     evidence = {
         "venue": "bybit", "category": category, "symbol": symbol,
-        "dataset": kind, "interval": "", "start_ms": start_ms, "end_ms": end_ms,
+        "dataset": kind, "interval": request_params.get("intervalTime", "") if kind == "open_interest" else "", "start_ms": start_ms, "end_ms": end_ms,
         "status": "PARTIAL" if cursor_out else "UNVERIFIED",
         "pages": [{"params": request_params, "cursor": cursor_in,
                    "next_cursor": cursor_out, "count": len(records)}],
