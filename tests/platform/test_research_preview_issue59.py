@@ -23,7 +23,8 @@ def test_preview_refuses_f_and_binds_digests(monkeypatch):
     assert result["g_e_result"] is None
     assert result["snapshot_admitted"] is False
     assert result["status"] == "UNVERIFIED"
-    assert result["proof"]["dataset_revision"] == "abc"\n    assert result["proof"]["execution_input_digest"] == bridge.digest([])
+    assert result["proof"]["dataset_revision"] == "abc"
+    assert result["proof"]["execution_input_digest"] == bridge.digest([])
 
 
 def test_cross_market_rejected(monkeypatch):
@@ -39,4 +40,8 @@ def test_cross_market_rejected(monkeypatch):
 def test_wrong_request_type_rejected():
     with pytest.raises(ValueError, match="typed_snapshot_request_required"):
         bridge.research_preview(object(), {}, [], tick_size="0.5")
-\n\ndef test_execution_input_must_be_canonical_list():\n    with pytest.raises(ValueError, match="canonical_execution_list_required"):\n        bridge.research_preview(object(), request(), (), tick_size="0.5")\n
+
+
+def test_execution_input_must_be_canonical_list():
+    with pytest.raises(ValueError, match="canonical_execution_list_required"):
+        bridge.research_preview(object(), request(), (), tick_size="0.5")
