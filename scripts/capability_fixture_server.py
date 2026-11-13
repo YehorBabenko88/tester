@@ -64,7 +64,7 @@ class CiReferenceReader(ReferencePriceReader):
                     open="100.00",
                     high="102.00",
                     low="99.00",
-                    close="101.25",
+                    close="101.250000000000000000000001",
                     is_closed=True,
                     availability=dict(status="PARTIAL", reason="CI synthetic observations only"),
                     coverage=dict(
