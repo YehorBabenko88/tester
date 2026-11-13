@@ -424,6 +424,7 @@ setInterval(() => {
       : `Shared refresh schedule unknown`;
 }, 1000);
 async function loadSources() {
+  if (state.sourceListEnabled === false) return;
   try {
     const p = await request("/api/sources", {
       category: $("#category").value,
@@ -1131,6 +1132,7 @@ setInterval(
 );
 selection();
 async function initializeOptionalRoutes() {
+  $("#refresh").disabled = true;
   try {
     // No instrument is required for route feature discovery. This endpoint
     // must be registered even without a market catalog or connected provider.
@@ -1155,6 +1157,7 @@ async function initializeOptionalRoutes() {
     $("#next").disabled = true;
     $("#previous").disabled = true;
   } else {
+    $("#refresh").disabled = false;
     await loadInstruments();
   }
   if (state.sourceListEnabled === false) {
