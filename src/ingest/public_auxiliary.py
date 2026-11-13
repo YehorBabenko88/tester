@@ -121,14 +121,15 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
         else:
             timestamp = _ms(row.get("time"), "time")
             side = row.get("side")
-            if side not in ("Buy", "Sell"):
-                raise ValueError("unknown taker side")
+            if side not in ("Buy", "Sell", "Unknown", None):
+                raise ValueError("invalid source taker-side field")
+            side = side or "Unknown"
             if not isinstance(row.get("execId"), str) or not row["execId"]:
                 raise ValueError("public execution requires exchange execId")
             payload = {"price": _exact(row.get("price"), "price", positive=True),
                        "size": _exact(row.get("size"), "size", positive=True),
                        "side": side, "trade_id": row.get("execId"),
-                       "unit": "source_native_quantity",
+                       "unit": "source_native_linear_size" if category == "linear" else "source_native_inverse_contract",
                        "event_timestamp_ms": timestamp,
                        "publication_timestamp_ms": None,
                        "anonymous_public_execution": True,
@@ -258,7 +259,10 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
         "status": "PARTIAL" if cursor else "UNVERIFIED",
         "coverage_status": "UNKNOWN", "ingestion_run": run_id,
         "source_url": url, "observed_at_utc": _utc(observed_at),
-        "http_sha256": http["sha256"], "http_hash_scope": "original_http_body",
+        "http_sha256": http["sha256"],
+        "page_sha256": hashlib.sha256(json.dumps(result, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest(),
+        "evidence_ref": evidence_ref,
+        "http_hash_scope": "original_http_body",
         "http_bytes_base64": http["bytes_base64"],
         "cursor_in": cursor_in,
         "pages": [{"params": params, "cursor": None, "next_cursor": cursor,
