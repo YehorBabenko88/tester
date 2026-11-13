@@ -7,6 +7,10 @@ on:
       - 'tests/test_public_auxiliary.py'
       - 'tests/test_public_auxiliary_runner.py'
       - 'tests/test_public_auxiliary_postgres.py'
+      - 'src/ingest/execution_contract.py'
+      - 'src/storage/models.py'
+      - 'tests/test_execution_contract_bridge.py'
+      - 'tests/test_execution_contract_postgres.py'
       - '.github/workflows/public-auxiliary-data.yml'
   workflow_dispatch:
 permissions:
@@ -27,7 +31,7 @@ jobs:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Offline DATA contracts
-        run: python -m unittest tests.test_public_auxiliary tests.test_public_auxiliary_runner -v
+        run: python -m unittest tests.test_public_auxiliary tests.test_public_auxiliary_runner tests.test_execution_contract_bridge -v
   postgres-contract:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
@@ -51,4 +55,4 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install -r requirements-dev.txt
       - name: Isolated PostgreSQL DATA roundtrip
-        run: python -m unittest tests.test_public_auxiliary_postgres -v
+        run: python -m unittest tests.test_public_auxiliary_postgres tests.test_execution_contract_postgres -v
