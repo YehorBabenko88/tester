@@ -125,6 +125,12 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
     .toBe("tester.execution-metrics/1");
   expect(contract.source_contracts.public_auxiliary.readback_state)
     .toBe("NOT_BOUND_TO_UI_ROUTE");
+  expect(contract.execution_source_evidence.status).toBe("UNVERIFIED");
+  expect(contract.execution_source_evidence.contract_version)
+    .toBe("tester-public-execution/1");
+  expect(contract.execution_source_evidence.historical_coverage).toBe("UNKNOWN");
+  expect(contract.execution_source_evidence.admitted_to_f).toBe(false);
+  expect(contract.execution_source_evidence.evidence_revision).toBeUndefined();
   expect(contract.observed_page_revision.historical_dataset_revision)
     .toBe("UNPINNED");
   expect(contract.observed_page_revision.supports_f_admission).toBe(false);
@@ -175,6 +181,7 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
         research: contract.source_contracts.observed_execution_metrics.contract_version,
         public_auxiliary: contract.source_contracts.public_auxiliary.contract_version,
       },
+      execution_source_evidence: contract.execution_source_evidence,
       history_complete: contract.observed_page_revision.history_complete,
       historical_dataset_revision:
         contract.observed_page_revision.historical_dataset_revision,
