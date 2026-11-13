@@ -432,7 +432,7 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     assert bar["buy_volume"] == "0.5"
     assert bar["delta_known"] == "0.5"
     assert bar["cvd_known"] == "0.5"
-    assert bar["vwap"] == "100.33333333333333333333333333333333333333333333333333"
+    assert bar["vwap"] == "100.33333333333333333333333333333333333333333333333"
     assert bar["poc"] == "100"
     assert bar["coverage_certified"] is False
     assert actual["admitted_to_f"] is False
