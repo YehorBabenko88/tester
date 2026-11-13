@@ -51,6 +51,19 @@ class PortableOpsTests(unittest.TestCase):
         request_cooperative_stop(self.owner, self.owner, lambda: calls.append(1))
         self.assertEqual(calls, [1])
 
+    def test_checkpoint_rejects_unexpected_job_payload(self):
+        with TemporaryDirectory() as td:
+            with self.assertRaises(CheckpointError):
+                write_checkpoint(Path(td) / "cp", self.owner,
+                                 [{"id": "a", "state": "queued", "command": "unexpected"}], 0)
+
+    def test_malformed_checkpoint_fails_closed(self):
+        with TemporaryDirectory() as td:
+            cp = Path(td) / "cp"
+            cp.write_text("{broken")
+            with self.assertRaises(CheckpointError):
+                load_checkpoint(cp, "disposable-1")
+
     def test_resource_sample(self):
         proc = SimpleNamespace(memory_info=lambda: SimpleNamespace(rss=4096),
                                cpu_percent=lambda interval=None: 2.5, num_threads=lambda: 3)
