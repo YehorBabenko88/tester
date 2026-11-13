@@ -742,7 +742,8 @@ function panelReason(reason) {
 // Capability discovery is scoped to the selected instrument and interval.
 // A failed or absent discovery response never authorizes speculative API calls.
 async function discoverCapabilities(q, signal) {
-  const key = JSON.stringify([q.category, q.symbol, q.interval, q.start_ms, q.end_ms]);
+  const cadence = $("#oi-source-interval").value;
+  const key = JSON.stringify([q.category, q.symbol, q.interval, q.start_ms, q.end_ms, cadence]);
   if (state.capabilityKey === key && state.capabilities) return state.capabilities;
   state.capabilities = null;
   state.capabilityKey = null;
@@ -751,6 +752,7 @@ async function discoverCapabilities(q, signal) {
     const payload = await request("/api/capabilities", {
       category: q.category, symbol: q.symbol, interval: q.interval,
       start_ms: q.start_ms, end_ms: q.end_ms,
+      source_interval: cadence,
     }, { signal });
     if (!payload.data || typeof payload.data !== "object" ||
         Array.isArray(payload.data)) throw Error("Invalid capability envelope");
