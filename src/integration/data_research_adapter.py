@@ -168,10 +168,15 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
         raise ValueError("data72_versioned_contract_not_composed") from exc
     if data.VERSION != DATA_CONTRACT_VERSION:
         raise ValueError("data_execution_contract_version_skew")
+    # The DATA bounded read returns at most `limit` rows. Exactly hitting the
+    # cap is ambiguous: another page may exist and the observed sample would
+    # otherwise silently omit it. Refuse to label capped results as sourced.
     events = data.read_execution_events(
         store, category=category, symbol=symbol,
         start_ms=start_ms, end_ms=end_ms, limit=limit
     )
+    if len(events) >= limit:
+        raise ValueError("data_event_page_limit_requires_pagination")
     # DATA verifies the original HTTP bytes/page/row, storage hashes, B
     # source/evidence linkage and run identity. Independently confirm the
     # projected analytics shape, never invent source availability.
@@ -185,7 +190,9 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
                        start_ms=start_ms, end_ms=end_ms, as_of_ms=as_of_ms)
         if data.to_research_trade(event) != trade:
             raise ValueError("data_research_projection_contract_mismatch")
-    preview["source_verification"] = "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
+    preview["source_verification"] = (
+        "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS" if events else "NO_EXECUTION_EVIDENCE"
+    )
     preview["data_source_receipts_digest"] = digest([
         event["source_receipts"] for event in sorted(
             events, key=lambda e: (e["event_ms"], e["exec_id"])
