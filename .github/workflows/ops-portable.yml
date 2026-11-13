@@ -31,6 +31,7 @@ jobs:
           python -m unittest discover -s tests/platform -p 'test_ops_pg_isolation.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_dual_lifecycle.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_resource_metrics.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_windows_witness.py' -v
   portable-pg:
     runs-on: ubuntu-latest
     timeout-minutes: 10
