@@ -19,7 +19,7 @@ class GuardTests(unittest.TestCase):
                         {"id":"b","state":"queued"}, {"id":"c","state":"completed"}], 0)
             leases = set()
             def claim(job):
-                if job in leases: return False
+                if job in leases: return None
                 leases.add(job)
                 return SimpleNamespace(id=job, lease_token="token-"+job)
             args = (cp, self.owner, self.witness, "python", ("-m", "worker"),

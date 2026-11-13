@@ -39,7 +39,7 @@ def guarded_resume(
     durable_states: Mapping[str, str],
     claim_job: Callable[[str], object | None],
     expired_running: frozenset[str] = frozenset(),
-) -> list[str]:
+) -> list[object]:
     """Reconcile only with a transactional, single-winner durable claim callback.
 
     claim_job must atomically lease the named job from the authoritative database,
