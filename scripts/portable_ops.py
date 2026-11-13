@@ -47,11 +47,9 @@ class Ownership:
 
 def write_checkpoint(path: Path, owner: Ownership, jobs: Iterable[dict], generation: int) -> None:
     """Persist durable job identities; never serialize arbitrary executable commands."""
-    if not isinstance(generation, int) or isinstance(generation, bool) or generation < 0:
+    if generation < 0:
         raise CheckpointError("Negative generation")
     rows = list(jobs)
-    if any(not isinstance(row, dict) or set(row) != {"id", "state"} for row in rows):
-        raise CheckpointError("Only job id and state may be persisted")
     ids = [row.get("id") for row in rows]
     if any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids):
         raise CheckpointError("Job IDs must be unique nonempty strings")
@@ -62,26 +60,8 @@ def write_checkpoint(path: Path, owner: Ownership, jobs: Iterable[dict], generat
     _atomic_json(path, {"body": body, "sha256": hashlib.sha256(_canonical(body)).hexdigest()})
 
 def load_checkpoint(path: Path, expected_instance_id: str) -> dict:
-    try:
-        envelope = json.loads(path.read_bytes())
-        if not isinstance(envelope, dict) or set(envelope) != {"body", "sha256"}:
-            raise CheckpointError("Invalid checkpoint envelope")
-        body = envelope["body"]
-        if not isinstance(body, dict) or set(body) != {"schema", "owner", "generation", "saved_utc", "jobs"}:
-            raise CheckpointError("Invalid checkpoint body")
-        if not isinstance(body["jobs"], list) or len(body["jobs"]) > 100000:
-            raise CheckpointError("Invalid job count")
-        if any(not isinstance(row, dict) or set(row) != {"id", "state"} or
-               not isinstance(row["id"], str) or not row["id"] or
-               row["state"] not in ("queued", "running", "completed", "failed")
-               for row in body["jobs"]):
-            raise CheckpointError("Invalid checkpoint job")
-        if not isinstance(body["generation"], int) or isinstance(body["generation"], bool):
-            raise CheckpointError("Invalid generation")
-        if not isinstance(body["owner"], dict) or set(body["owner"]) != {"instance_id", "pid", "start_token", "root"}:
-            raise CheckpointError("Invalid checkpoint owner")
-    except (ValueError, TypeError, KeyError, UnicodeError) as exc:
-        raise CheckpointError("Malformed checkpoint") from exc
+    envelope = json.loads(path.read_bytes())
+    body = envelope["body"]
     if hashlib.sha256(_canonical(body)).hexdigest() != envelope["sha256"]:
         raise CheckpointError("Checkpoint digest mismatch")
     if body["schema"] != 1 or body["owner"]["instance_id"] != expected_instance_id:
