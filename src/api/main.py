@@ -365,6 +365,8 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             }
             if isinstance(offered, dict):
                 for panel, route in allowed_routes.items():
+                    if panel in ("mark", "index", "open_interest", "funding") and query.category == "spot":
+                        continue
                     record = offered.get(panel)
                     if not isinstance(record, dict):
                         continue
