@@ -342,10 +342,25 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         price_router_enabled = (
             settings.provider_factory == "src.integration.reference_prices:create_reader"
         )
-        return Envelope(data=discover(
+        availability = discover(
             reader, query, authorized=bool(settings.provider_factory),
             price_route_enabled=price_router_enabled,
-        ))
+        )
+        # Advertise optional, separately registered UI routes even when no
+        # instrument was selected. Never force the browser to probe an absent
+        # catalog router or a disconnected source list (404/503).
+        availability["features"] = {
+            "market_catalog": {
+                "enabled": catalog is not None,
+                "reason": "configured" if catalog is not None else "catalog_not_configured",
+            },
+            "sources": {
+                "enabled": not isinstance(reader, UnavailableReader),
+                "reason": "provider_configured" if not isinstance(reader, UnavailableReader)
+                else "provider_not_connected",
+            },
+        }
+        return Envelope(data=availability)
 
     @app.post("/api/downloads", response_model=Envelope[Job], status_code=202)
     def downloads(body: DownloadRequest):
