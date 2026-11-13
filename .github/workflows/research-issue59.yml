@@ -60,7 +60,7 @@ jobs:
       - name: Checkout reviewed DATA #72 at exact immutable HEAD
         uses: actions/checkout@v4
         with:
-          ref: 9193622249a5c659d53b9848c13fd363a86f3b4a
+          ref: 285f337100d8af7126cf1edd29276d2d429cb020
           path: data72-reviewed
       - name: Test-only composition, no git commit or merge
         run: |
