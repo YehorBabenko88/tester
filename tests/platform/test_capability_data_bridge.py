@@ -7,8 +7,7 @@ from src.api.models import Query
 
 
 def query(**update):
-    values = dict(category="linear", symbol="BTCUSDT", interval="1",
-                  start_ms=0, end_ms=60000)
+    values = dict(category="linear", symbol="BTCUSDT", interval="1", start_ms=0, end_ms=60000)
     values.update(update)
     return Query(**values)
 
@@ -31,16 +30,24 @@ def event(**update):
         source_coverage=dict(status="UNKNOWN", start_ms=0, end_ms=60000),
         availability=dict(status="UNVERIFIED", reason="Historical visibility unknown"),
         source_receipts=[
-            dict(evidence_id="ledger-1", page_ref="page:1",
-                 http_sha256="a" * 64, page_sha256="b" * 64,
-                 row_sha256="c" * 64)
+            dict(
+                evidence_id="ledger-1",
+                page_ref="page:1",
+                http_sha256="a" * 64,
+                page_sha256="b" * 64,
+                row_sha256="c" * 64,
+            )
         ],
         provenance=[
-            dict(source_kind="bybit_rest",
-                 source_ref="https://api.bybit.com/v5/market/recent-trade?"
-                            "category=linear&symbol=BTCUSDT&limit=100",
-                 source_hash="c" * 64, timestamp_precision="ms",
-                 source_timestamp="1000", ingestion_run="receipt-run")
+            dict(
+                source_kind="bybit_rest",
+                source_ref="https://api.bybit.com/v5/market/recent-trade?"
+                "category=linear&symbol=BTCUSDT&limit=100",
+                source_hash="c" * 64,
+                timestamp_precision="ms",
+                source_timestamp="1000",
+                ingestion_run="receipt-run",
+            )
         ],
     )
     values.update(update)
@@ -58,8 +65,9 @@ def test_bounded_verified_data_event_stays_unverified_for_history():
 
     def read_events(store, **scope):
         assert store is reader.store
-        assert scope == dict(category="linear", symbol="BTCUSDT",
-                             start_ms=0, end_ms=60000, limit=100)
+        assert scope == dict(
+            category="linear", symbol="BTCUSDT", start_ms=0, end_ms=60000, limit=100
+        )
         return [event()]
 
     result = observed_execution_evidence(reader, query(), read_events=read_events)
@@ -83,7 +91,8 @@ def test_full_page_or_late_observation_never_claims_complete_history():
     assert "evidence_revision" not in result
 
     late = observed_execution_evidence(
-        reader, query(information_cutoff_ms=4000),
+        reader,
+        query(information_cutoff_ms=4000),
         read_events=lambda *a, **kw: [event()],
     )
     assert late["reason"] == "data72_late_source_knowledge"
@@ -95,11 +104,17 @@ def test_invalid_units_unknown_publication_and_missing_hashes_fail_closed():
         event(quantity_unit="source_native_inverse_contract"),
         event(publication_ms=123),
         event(source_receipts=[]),
-        event(source_receipts=[
-            dict(evidence_id="ledger-1", page_ref="page:1",
-                 http_sha256="not-a-hash", page_sha256="b" * 64,
-                 row_sha256="c" * 64)
-        ]),
+        event(
+            source_receipts=[
+                dict(
+                    evidence_id="ledger-1",
+                    page_ref="page:1",
+                    http_sha256="not-a-hash",
+                    page_sha256="b" * 64,
+                    row_sha256="c" * 64,
+                )
+            ]
+        ),
     ):
         result = observed_execution_evidence(
             reader, query(), read_events=lambda *a, **kw: [invalid]
@@ -108,20 +123,25 @@ def test_invalid_units_unknown_publication_and_missing_hashes_fail_closed():
         assert "evidence_revision" not in result
 
 
-
 def test_wrong_scope_source_hash_or_decimal_cannot_gain_a_revision():
     reader = SimpleNamespace(store=object())
     cases = [
         event(utc_interval=dict(start_ms=1, end_ms=60000)),
         event(price=100.0),
         event(quantity="1e-5"),
-        event(provenance=[dict(
-            source_kind="bybit_rest",
-            source_ref="https://api.bybit.com/v5/market/recent-trade?"
-                       "category=linear&symbol=BTCUSDT",
-            source_hash="d" * 64, timestamp_precision="ms",
-            source_timestamp="1000", ingestion_run="receipt-run",
-        )]),
+        event(
+            provenance=[
+                dict(
+                    source_kind="bybit_rest",
+                    source_ref="https://api.bybit.com/v5/market/recent-trade?"
+                    "category=linear&symbol=BTCUSDT",
+                    source_hash="d" * 64,
+                    timestamp_precision="ms",
+                    source_timestamp="1000",
+                    ingestion_run="receipt-run",
+                )
+            ]
+        ),
     ]
     for invalid in cases:
         result = observed_execution_evidence(
@@ -133,9 +153,7 @@ def test_wrong_scope_source_hash_or_decimal_cannot_gain_a_revision():
 
 def test_no_data_is_not_proof_of_empty_market():
     reader = SimpleNamespace(store=object())
-    result = observed_execution_evidence(
-        reader, query(), read_events=lambda *a, **kw: []
-    )
+    result = observed_execution_evidence(reader, query(), read_events=lambda *a, **kw: [])
     assert result["reason"] == "data72_no_execution_evidence"
     assert result["historical_coverage"] == "UNKNOWN"
     assert "observed_events" not in result

@@ -55,8 +55,12 @@ def observed_execution_evidence(reader, query, *, read_events=None):
             return _unverified("data72_reader_unavailable")
     try:
         rows = read_events(
-            store, category=query.category, symbol=query.symbol,
-            start_ms=query.start_ms, end_ms=query.end_ms, limit=_MAX_EVENTS,
+            store,
+            category=query.category,
+            symbol=query.symbol,
+            start_ms=query.start_ms,
+            end_ms=query.end_ms,
+            limit=_MAX_EVENTS,
         )
     except (ValueError, KeyError, TypeError, AttributeError):
         return _unverified("data72_source_readback_unverified")
@@ -74,8 +78,10 @@ def observed_execution_evidence(reader, query, *, read_events=None):
         if not isinstance(event, dict):
             return _unverified("data72_event_contract_invalid")
         original_scope = {"start_ms": query.start_ms, "end_ms": query.end_ms}
-        if (event.get("utc_interval") != original_scope
-                or event.get("source_coverage") != {"status": "UNKNOWN", **original_scope}):
+        if event.get("utc_interval") != original_scope or event.get("source_coverage") != {
+            "status": "UNKNOWN",
+            **original_scope,
+        }:
             return _unverified("data72_event_scope_mismatch")
         for field in ("price", "quantity"):
             value = event.get(field)
@@ -97,8 +103,11 @@ def observed_execution_evidence(reader, query, *, read_events=None):
             or event.get("symbol") != query.symbol
             or event.get("quantity_unit") != "source_native_linear_size"
             or event.get("taker_side") not in {"Buy", "Sell", "Unknown"}
-            or not isinstance(exec_id, str) or not exec_id or exec_id in seen_ids
-            or type(event_ms) is not int or type(observed_ms) is not int
+            or not isinstance(exec_id, str)
+            or not exec_id
+            or exec_id in seen_ids
+            or type(event_ms) is not int
+            or type(observed_ms) is not int
             or not query.start_ms <= event_ms < query.end_ms
             or observed_ms < event_ms
             or event.get("publication_ms", "MISSING") is not None
@@ -106,8 +115,7 @@ def observed_execution_evidence(reader, query, *, read_events=None):
             or event.get("availability", {}).get("status") != "UNVERIFIED"
         ):
             return _unverified("data72_event_contract_invalid")
-        if (query.information_cutoff_ms is not None
-                and observed_ms > query.information_cutoff_ms):
+        if query.information_cutoff_ms is not None and observed_ms > query.information_cutoff_ms:
             return _unverified("data72_late_source_knowledge")
         receipts = event.get("source_receipts")
         if not isinstance(receipts, list) or not receipts:
@@ -115,12 +123,15 @@ def observed_execution_evidence(reader, query, *, read_events=None):
         for receipt in receipts:
             if not isinstance(receipt, dict):
                 return _unverified("data72_receipt_missing")
-            if any(not isinstance(receipt.get(k), str) or not receipt[k]
-                   for k in ("evidence_id", "page_ref")):
+            if any(
+                not isinstance(receipt.get(k), str) or not receipt[k]
+                for k in ("evidence_id", "page_ref")
+            ):
                 return _unverified("data72_receipt_missing")
-            if any(not isinstance(receipt.get(k), str)
-                   or not _SHA256.fullmatch(receipt[k])
-                   for k in ("http_sha256", "page_sha256", "row_sha256")):
+            if any(
+                not isinstance(receipt.get(k), str) or not _SHA256.fullmatch(receipt[k])
+                for k in ("http_sha256", "page_sha256", "row_sha256")
+            ):
                 return _unverified("data72_receipt_missing")
         source_rows = event.get("provenance")
         receipt_hashes = {receipt["row_sha256"] for receipt in receipts}
@@ -142,8 +153,7 @@ def observed_execution_evidence(reader, query, *, read_events=None):
         seen_ids.add(exec_id)
         observed_times.append(observed_ms)
     evidence_revision = hashlib.sha256(
-        json.dumps(rows, sort_keys=True, separators=(",", ":"), allow_nan=False)
-        .encode("utf-8")
+        json.dumps(rows, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
     ).hexdigest()
     return {
         **_unverified("data72_observed_sample_not_historical_visibility"),

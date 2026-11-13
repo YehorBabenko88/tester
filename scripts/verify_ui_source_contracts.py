@@ -15,24 +15,22 @@ from src.api.capability_source_contracts import (
 )
 
 DATA_FUNCTIONS = {
-    "read_execution_events": {
-        "category", "symbol", "start_ms", "end_ms", "limit"
-    },
-    "read_research_trades": {
-        "category", "symbol", "start_ms", "end_ms", "limit"
-    },
+    "read_execution_events": {"category", "symbol", "start_ms", "end_ms", "limit"},
+    "read_research_trades": {"category", "symbol", "start_ms", "end_ms", "limit"},
 }
 RESEARCH_FUNCTIONS = {
     "read_data_metrics": {
-        "category", "symbol", "start_ms", "end_ms", "interval_ms",
-        "tick_size", "as_of_ms", "limit"
+        "category",
+        "symbol",
+        "start_ms",
+        "end_ms",
+        "interval_ms",
+        "tick_size",
+        "as_of_ms",
+        "limit",
     },
 }
-CALCULATION_FUNCTIONS = {
-    "calculate": {
-        "start_ms", "end_ms", "interval_ms", "tick_size"
-    }
-}
+CALCULATION_FUNCTIONS = {"calculate": {"start_ms", "end_ms", "interval_ms", "tick_size"}}
 
 
 def _parse(file):
@@ -42,16 +40,18 @@ def _parse(file):
 def _constant(tree, name):
     for node in tree.body:
         if isinstance(node, ast.Assign):
-            if any(isinstance(target, ast.Name) and target.id == name
-                   for target in node.targets):
+            if any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
                 return ast.literal_eval(node.value)
     raise ValueError("required_source_constant_missing:" + name)
 
 
 def _signature(tree, name, required):
     fn = next(
-        (node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-         and node.name == name),
+        (
+            node
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name
+        ),
         None,
     )
     if fn is None:
@@ -93,16 +93,26 @@ def verify_paths(data, research, metrics):
     for name, scope in CALCULATION_FUNCTIONS.items():
         _signature(calculator, name, scope)
     required_event_fields = {
-        "exec_id", "quantity_unit", "event_ms", "observed_ms",
-        "publication_ms", "source_receipts", "source_coverage",
-        "source_native_linear_size", "source_native_inverse_contract",
+        "exec_id",
+        "quantity_unit",
+        "event_ms",
+        "observed_ms",
+        "publication_ms",
+        "source_receipts",
+        "source_coverage",
+        "source_native_linear_size",
+        "source_native_inverse_contract",
     }
     if not required_event_fields <= _literals(producer):
         raise ValueError("data_provenance_time_or_quantity_semantics_mismatch")
     required_metric_fields = {
-        "unknown_side_volume", "delta_known", "cvd_known",
-        "vwap_volume_coverage_certified", "poc_volume_coverage_certified",
-        "admitted_to_f", "coverage_certified",
+        "unknown_side_volume",
+        "delta_known",
+        "cvd_known",
+        "vwap_volume_coverage_certified",
+        "poc_volume_coverage_certified",
+        "admitted_to_f",
+        "coverage_certified",
     }
     if not required_metric_fields <= _literals(calculator):
         raise ValueError("research_metric_uncertainty_semantics_mismatch")

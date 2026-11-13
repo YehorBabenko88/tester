@@ -352,9 +352,7 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         from .capability_source_contracts import manifest
 
         availability.update(manifest())
-        availability["execution_source_evidence"] = observed_execution_evidence(
-            reader, query
-        )
+        availability["execution_source_evidence"] = observed_execution_evidence(reader, query)
         # Advertise optional, separately registered UI routes even when no
         # instrument was selected. Never force the browser to probe an absent
         # catalog router or a disconnected source list (404/503).

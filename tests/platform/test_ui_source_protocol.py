@@ -17,8 +17,9 @@ from src.api.config import Settings
 from src.api.main import create_app
 
 SCHEMA = json.loads(
-    (Path(__file__).resolve().parents[2] / "docs/ui-capability-protocol-v1.schema.json")
-    .read_text(encoding="utf-8")
+    (Path(__file__).resolve().parents[2] / "docs/ui-capability-protocol-v1.schema.json").read_text(
+        encoding="utf-8"
+    )
 )
 INTERVALS = ("1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M")
 
@@ -84,10 +85,14 @@ def test_dependencies_cannot_grant_a_nonexistent_analytics_route():
     app = create_app(Settings(market_catalog_enabled=False))
     with TestClient(app, base_url="http://127.0.0.1:8765") as client:
         response = client.get(
-            "/api/capabilities", params={
-                "category": "linear", "symbol": "BTCUSDT",
-                "interval": "1", "start_ms": 0, "end_ms": 60000,
-            }
+            "/api/capabilities",
+            params={
+                "category": "linear",
+                "symbol": "BTCUSDT",
+                "interval": "1",
+                "start_ms": 0,
+                "end_ms": 60000,
+            },
         )
     assert response.status_code == 200
     panels = response.json()["data"]["panels"]

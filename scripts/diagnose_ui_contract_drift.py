@@ -18,8 +18,11 @@ def _check(path, proposed):
     after = proposed.splitlines()
     change = list(
         difflib.unified_diff(
-            before, after, fromfile="pinned/" + path,
-            tofile="current-runtime/" + path, lineterm="",
+            before,
+            after,
+            fromfile="pinned/" + path,
+            tofile="current-runtime/" + path,
+            lineterm="",
         )
     )
     return {
@@ -33,9 +36,7 @@ def _check(path, proposed):
 
 
 def diagnose():
-    openapi = json.dumps(
-        create_app(Settings()).openapi(), indent=2, sort_keys=True
-    ) + "\n"
+    openapi = json.dumps(create_app(Settings()).openapi(), indent=2, sort_keys=True) + "\n"
     request = FinancialRequest.model_json_schema()
     request["$id"] = "urn:tester:requests:financial-query:1.0"
     request["$schema"] = "https://json-schema.org/draft/2020-12/schema"
