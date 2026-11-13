@@ -354,13 +354,10 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         availability["features"] = {
             "market_catalog": {
                 "enabled": catalog is not None,
-                "reason": (
-                    "configured" if catalog is not None else "catalog_not_configured"
-                ),
+                "reason": ("configured" if catalog is not None else "catalog_not_configured"),
             },
             "sources": {
-                "enabled": catalog is not None
-                and not isinstance(reader, UnavailableReader),
+                "enabled": catalog is not None and not isinstance(reader, UnavailableReader),
                 "reason": (
                     "catalog_and_provider_required"
                     if catalog is None or isinstance(reader, UnavailableReader)
