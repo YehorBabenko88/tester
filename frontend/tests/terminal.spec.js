@@ -162,7 +162,7 @@ async function setup(page, options = {}) {
     if (u.pathname === "/api/capabilities") {
       const routes = {
         candles: "/api/candles", volume: "/api/candles",
-        footprint: "/api/footprint", open_interest: "/api/open-interest",
+        open_interest: "/api/open-interest",
         funding: "/api/funding", mark: "/api/price-candles", index: "/api/price-candles",
       };
       const panels = Object.fromEntries(
@@ -314,61 +314,26 @@ test("multi-selection survives search and reload, saves exact identities", async
   await page.reload();
   await expect(page.getByTestId("selection-count")).toHaveText("2 selected");
 });
-test("bounded opaque cursor pages preserve equal timestamp footprint levels beyond 1000", async ({
+test("unqualified footprint cannot paginate or request its financial endpoint", async ({
   page,
 }) => {
-  const calls = [];
-  await setup(page, {
-    pagePayload: (u) => {
-      if (u.pathname !== "/api/footprint") return null;
-      calls.push(u);
-      const cursor = u.searchParams.get("cursor");
-      return {
-        schema_version: "1.0",
-        next_cursor: cursor ? null : "opaque:1000:same-time",
-        data: cursor
-          ? [
-              {
-                timestamp_ms: start + 999 * 60000,
-                price: "101",
-                buy_volume: "2",
-                sell_volume: "1",
-                provenance: "fixture://levels",
-              },
-            ]
-          : Array.from({ length: 1000 }, (_, i) => ({
-              timestamp_ms: start + i * 60000,
-              price: "100",
-              buy_volume: "1",
-              sell_volume: "0",
-              provenance: "fixture://levels",
-            })),
-      };
-    },
+  const requests = [];
+  page.on("request", req => {
+    const path = new URL(req.url()).pathname;
+    if (path === "/api/footprint" || path === "/api/analytics")
+      requests.push(path);
   });
+  await setup(page);
   await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
-  await page.getByLabel("Range end UTC").fill("2025-01-01T00:00");
+  await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
   await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
   const panel = page.locator('[data-panel="footprint"]');
-  await expect(
-    panel.getByRole("button", { name: "Next data page" }),
-  ).toBeEnabled();
-  expect(calls.length).toBe(1);
-  await panel.getByRole("button", { name: "Next data page" }).click();
-  await expect(panel).toContainText("Page 2");
-  await expect(panel.locator("details:not(.panel-evidence)")).toContainText(
-    "101",
-  );
-  expect(calls[1].searchParams.get("cursor")).toBe("opaque:1000:same-time");
-  expect(
-    calls.every((u) => u.searchParams.get("limit") === "1000"),
-  ).toBeTruthy();
-  expect(calls[0].searchParams.get("start_ms")).toBe(
-    calls[1].searchParams.get("start_ms"),
-  );
-  await panel.getByRole("button", { name: "Previous data page" }).click();
-  await expect(panel).toContainText("Page 1");
+  await expect(panel).toContainText("source_revision_not_verified");
+  await expect(panel.locator("canvas")).toBeHidden();
+  await expect(panel.getByRole("button", { name: "Next data page" })).toBeDisabled();
+  expect(requests).toEqual([]);
 });
+
 for (const status of ["UNAVAILABLE", "UNVERIFIED"])
   test(`full loadCharts suppresses canonical ${status} and retains evidence`, async ({
     page,
@@ -592,50 +557,32 @@ test("download creates per-instrument jobs with exclusive UTC range", async ({
     bodies.every((b) => b.start_ms === start && b.end_ms === start + 86400000),
   ).toBeTruthy();
 });
-test("all derived panels render server strings, profile accepts many prices at one time", async ({
+test("unimplemented analytics are explicit and no browser request is sent", async ({
   page,
 }) => {
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await setup(page, {
-    footprint: [
-      {
-        timestamp_ms: start,
-        price: "2",
-        buy_volume: "3",
-        sell_volume: "1",
-        provenance: "C from verified trades",
-      },
-    ],
-    analytics: (kind) => ({
-      availability: "PARTIAL",
-      source: "C",
-      reason: "Coverage partial",
-      rows:
-        kind === "profile"
-          ? [
-              { ts: start, price: "1", volume: "3", is_poc: true },
-              { ts: start, price: "2", volume: "2" },
-            ]
-          : [{ ts: start, value: "1.00000000000000000001" }],
-    }),
+  const errors = [], paths = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("request", request => {
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/analytics" || path === "/api/footprint")
+      paths.push(path);
   });
+  await setup(page);
   await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
   await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
   await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
-  for (const kind of [
-    "footprint",
-    "delta",
-    "cvd",
-    "profile",
-    "poc",
-    "vwap",
-    "mark",
-    "index",
-  ])
-    await expect(page.locator(`[data-panel="${kind}"] canvas`)).toBeVisible();
+  for (const kind of ["footprint", "delta", "cvd", "profile", "poc", "vwap"]) {
+    const panel = page.locator(`[data-panel="${kind}"]`);
+    await expect(panel).toContainText("DATA_UNAVAILABLE");
+    await expect(panel.locator("canvas")).toBeHidden();
+  }
+  await expect(page.locator('[data-panel="delta"]')).toContainText(
+    "endpoint_contract_not_supported",
+  );
+  expect(paths).toEqual([]);
   expect(errors).toEqual([]);
 });
+
 test("sort is requested on server and unavailable panels explain why", async ({
   page,
 }) => {
@@ -654,7 +601,7 @@ test("sort is requested on server and unavailable panels explain why", async ({
     "DATA_UNAVAILABLE",
   );
   await expect(page.locator('[data-panel="footprint"]')).toContainText(
-    "Historical trades not ingested",
+    "source_revision_not_verified",
   );
 });
 test("API outage is visible and retry works without fake rows", async ({
