@@ -97,7 +97,7 @@ class PublicAuxiliaryTests(unittest.TestCase):
         api.call.return_value = ({"list": [{"symbol": "BTCUSDT",
                                             "fundingRate": "0.00001",
                                             "fundingRateTimestamp": "1794560000000"}]},
-                                 "https://api.bybit.com/v5/market/funding/history")
+                                 "https://api.bybit.com/v5/market/funding/history?" + urlencode({"category": "linear", "symbol": "BTCUSDT", "limit": 200, "startTime": 1794559999999, "endTime": 1794560000000}))
         original = json.dumps({"retCode": 0, "result": api.call.return_value[0]}).encode()
         api.last_response = {"hash_scope": "original_http_body",
                              "url": api.call.return_value[1], "status_code": 200,
@@ -130,7 +130,7 @@ class PublicAuxiliaryTests(unittest.TestCase):
         ]
         def call(path, params):
             result = pages[1 if params.get("cursor") == "next" else 0]
-            url = "https://api.bybit.com/v5/market/open-interest"
+            url = "https://api.bybit.com/v5/market/open-interest?" + urlencode(params)
             original = json.dumps({"retCode": 0, "result": result}).encode()
             api.last_response = {
                 "hash_scope": "original_http_body", "url": url,
@@ -168,7 +168,7 @@ class PublicAuxiliaryTests(unittest.TestCase):
             index = 0 if params["endTime"] >= timestamps[0] else 1
             result = {"list": [{"symbol": "BTCUSDT", "fundingRate": "0.0001",
                                 "fundingRateTimestamp": str(timestamps[index])}]}
-            url = "https://api.bybit.com/v5/market/funding/history"
+            url = "https://api.bybit.com/v5/market/funding/history?" + urlencode(params)
             original = json.dumps({"retCode": 0, "result": result}).encode()
             api.last_response = {"url": url, "status_code": 200,
                                  "hash_scope": "original_http_body",
@@ -197,7 +197,7 @@ class PublicAuxiliaryTests(unittest.TestCase):
             {"symbol": "BTCUSDT", "fundingRate": "0.02",
              "fundingRateTimestamp": "1794559999999"},
         ]}
-        url = "https://api.bybit.com/v5/market/funding/history"
+        url = "https://api.bybit.com/v5/market/funding/history?" + urlencode({"category": "linear", "symbol": "BTCUSDT", "limit": 1, "startTime": 1794559999998, "endTime": 1794560000000})
         original = json.dumps({"retCode": 0, "result": result}).encode()
         api.call.return_value = (result, url)
         api.last_response = {"url": url, "status_code": 200,
