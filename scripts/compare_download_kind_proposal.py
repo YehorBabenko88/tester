@@ -31,15 +31,19 @@ def compare_contracts(pinned=None, proposal=None, runtime=None):
     assert current == proposal["legacy_kinds"]
     assert proposal["proposed_kinds"] == [*current, "mark", "index"]
     candidate = deepcopy(pinned)
-    candidate["components"]["schemas"]["DownloadRequest"]["properties"]["kind"]["enum"] = (
-        proposal["proposed_kinds"]
-    )
+    candidate["components"]["schemas"]["DownloadRequest"]["properties"]["kind"]["enum"] = proposal[
+        "proposed_kinds"
+    ]
     # The sole drift allowed by this diagnosis is the expanded Kind enum.
     return {
-        "legacy_v1_unchanged": pinned["components"]["schemas"]["DownloadRequest"]["properties"]["kind"]["enum"]
+        "legacy_v1_unchanged": pinned["components"]["schemas"]["DownloadRequest"]["properties"][
+            "kind"
+        ]["enum"]
         == proposal["legacy_kinds"],
         "runtime_equals_single_enum_delta": runtime == candidate,
-        "runtime_kind_enum": runtime["components"]["schemas"]["DownloadRequest"]["properties"]["kind"]["enum"],
+        "runtime_kind_enum": runtime["components"]["schemas"]["DownloadRequest"]["properties"][
+            "kind"
+        ]["enum"],
         "pinned_kind_enum": current,
         "new_v1_1_endpoint_activated": False,
         "approval_required": True,
