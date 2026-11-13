@@ -75,3 +75,43 @@ A browser result is **NOT_RUN** until the hosted workflow or an approved
 isolated local execution actually finishes. Even a fixture-browser PASS
 would not prove physical PC4 acceptance or authentic historical coverage.
 Do not merge the Draft PR pending verified CI and independent review.
+
+## Optional UI routes and direct instrument input
+
+The same always-registered `GET /api/capabilities` endpoint can be queried
+without an instrument to discover `data.features.market_catalog` and
+`data.features.sources`. These flags describe actual mounted optional routes,
+not historical data availability. The frontend negotiates these features
+**before** attempting `/api/market-catalog/{category}` or `/api/sources`.
+When the catalog is not configured the screener is explicitly disabled rather
+than generating a speculative HTTP 404. When the source list cannot be safely
+used the download source selector reports `source_downloads_not_configured`
+and avoids speculative provider 503.
+
+A separate `Direct source symbol` input allows the user to type a validated
+symbol such as BTCUSDT and request qualified price data without depending on
+the optional catalog. This input is not an instrument listing and does not
+assert that the typed symbol actually exists. All selected panels still pass
+the same server-side source/interval/price-only capability validation.
+
+The hosted Playwright FastAPI test does not mock the market-catalog HTTP route:
+it checks that a disabled catalog is detected, direct instrument selection
+can render independently verified **synthetic CI-only** Mark/Index fixtures,
+and no unsupported API route responds with 404/422/503. It separately checks
+all 13 intervals and records console errors.
+
+### Local execution limitations for the 2026-11-13 verification session
+
+Native Node 22 executed `frontend/tests/capabilities.test.js` on a
+locally reproduced, connector-verified snapshot: **6/6 PASS**. An isolated
+Chromium `page.set_content` smoke test of that module also passed
+4/4 guards with zero console exceptions. These results do **not** certify
+the full repository or browser integration.
+
+The full repository cannot be cloned in the execution container:
+`git ls-remote` reports `Could not resolve host: github.com`.
+A loopback Chromium navigation to an isolated HTTP server is blocked by
+`net::ERR_BLOCKED_BY_ADMINISTRATOR`. Consequently full FastAPI and
+Playwright integration is **NOT_RUN** locally; the hosted CI jobs remain
+the required independent execution gate. No live historical PostgreSQL or
+PC4 hardware was touched.
