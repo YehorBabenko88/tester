@@ -9,6 +9,7 @@ import hashlib
 import importlib
 import json
 import re
+from decimal import Decimal, InvalidOperation
 
 from .capability_source_contracts import DATA_EXECUTION_VERSION
 
@@ -72,6 +73,21 @@ def observed_execution_evidence(reader, query, *, read_events=None):
     for event in rows:
         if not isinstance(event, dict):
             return _unverified("data72_event_contract_invalid")
+        original_scope = {"start_ms": query.start_ms, "end_ms": query.end_ms}
+        if (event.get("utc_interval") != original_scope
+                or event.get("source_coverage") != {"status": "UNKNOWN", **original_scope}):
+            return _unverified("data72_event_scope_mismatch")
+        for field in ("price", "quantity"):
+            value = event.get(field)
+            if not isinstance(value, str) or not re.fullmatch(
+                r"(?:0|[1-9][0-9]*)(?:\.[0-9]+)?", value
+            ):
+                return _unverified("data72_decimal_not_canonical")
+            try:
+                if Decimal(value) <= 0:
+                    return _unverified("data72_decimal_not_canonical")
+            except InvalidOperation:
+                return _unverified("data72_decimal_not_canonical")
         event_ms, observed_ms = event.get("event_ms"), event.get("observed_ms")
         exec_id = event.get("exec_id")
         if (
@@ -106,6 +122,23 @@ def observed_execution_evidence(reader, query, *, read_events=None):
                    or not _SHA256.fullmatch(receipt[k])
                    for k in ("http_sha256", "page_sha256", "row_sha256")):
                 return _unverified("data72_receipt_missing")
+        source_rows = event.get("provenance")
+        receipt_hashes = {receipt["row_sha256"] for receipt in receipts}
+        if not isinstance(source_rows, list) or not source_rows:
+            return _unverified("data72_source_provenance_missing")
+        for source in source_rows:
+            if (
+                not isinstance(source, dict)
+                or source.get("source_kind") != "bybit_rest"
+                or source.get("source_hash") not in receipt_hashes
+                or source.get("timestamp_precision") != "ms"
+                or source.get("source_timestamp") != str(event_ms)
+                or not isinstance(source.get("source_ref"), str)
+                or not source["source_ref"].startswith(
+                    "https://api.bybit.com/v5/market/recent-trade?"
+                )
+            ):
+                return _unverified("data72_source_provenance_mismatch")
         seen_ids.add(exec_id)
         observed_times.append(observed_ms)
     evidence_revision = hashlib.sha256(
