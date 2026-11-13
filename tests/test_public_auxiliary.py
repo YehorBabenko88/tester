@@ -1,10 +1,10 @@
 """Offline source-contract regression tests. No network or PC4 access."""
-import unittest
+import base64\nimport hashlib\nimport unittest
 from datetime import datetime, timezone
 from decimal import Decimal
 from unittest.mock import Mock
 
-from src.ingest.public_auxiliary import decode, ingest_page, request
+from src.ingest.public_auxiliary import decode, fetch_and_ingest, ingest_page, request
 
 NOW = datetime(2026, 11, 13, 12, tzinfo=timezone.utc)
 BASE = dict(fetched_at=NOW, url="https://api.bybit.com/v5/market/recent-trade",
@@ -76,6 +76,33 @@ class PublicAuxiliaryTests(unittest.TestCase):
         self.assertEqual(evidence["coverage_status"], "UNKNOWN")
         self.assertEqual(evidence["status"], "UNVERIFIED")
         self.assertEqual(store.ingest.call_args.kwargs["run_id"], "run-test")
+
+    def test_verified_http_body_and_atomic_publication(self):
+        store = Mock()
+        store.ingest.return_value = {"written": 1}
+        api = Mock()
+        api.call.return_value = ({"list": [{"symbol": "BTCUSDT",
+                                            "fundingRate": "0.00001",
+                                            "fundingRateTimestamp": "1794560000000"}]},
+                                 "https://api.bybit.com/v5/market/funding/history")
+        original = b'{"retCode":0,"result":{"list":[]}}'
+        api.last_response = {"hash_scope": "original_http_body",
+                             "sha256": hashlib.sha256(original).hexdigest(),
+                             "bytes_base64": base64.b64encode(original).decode()}
+        fetch_and_ingest(store, api, kind="funding", category="linear",
+                         symbol="BTCUSDT", run_id="run-test", job_key="funding-job",
+                         start_ms=1794559999999, end_ms=1794560000001,
+                         observed_at=NOW)
+        records, evidence, key = store.ingest.call_args.args
+        self.assertEqual(len(records), 1)
+        self.assertEqual(evidence["http_sha256"], hashlib.sha256(original).hexdigest())
+        self.assertEqual(evidence["coverage_status"], "UNKNOWN")
+        api.last_response["sha256"] = "0" * 64
+        with self.assertRaises(ValueError):
+            fetch_and_ingest(store, api, kind="funding", category="linear",
+                             symbol="BTCUSDT", run_id="run-test", job_key="bad-job",
+                             start_ms=1794559999999, end_ms=1794560000001,
+                             observed_at=NOW)
 
     def test_reject_out_of_window_before_pg(self):
         store = Mock()
