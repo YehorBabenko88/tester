@@ -1153,6 +1153,11 @@ async function initializeOptionalRoutes() {
       "DATA_UNAVAILABLE · optional_route_discovery_failed · " + error.message;
   }
   if (state.marketCatalogEnabled === false) {
+    // The disabled branch does not call loadInstruments(), so the status must
+    // be reported here, not exclusively inside the loadInstruments guard.
+    $("#screener-status").textContent =
+      "DATA_UNAVAILABLE · market_catalog_not_configured · " +
+      "Use Direct source symbol to inspect verified price data.";
     $("#refresh").disabled = true;
     $("#next").disabled = true;
     $("#previous").disabled = true;
