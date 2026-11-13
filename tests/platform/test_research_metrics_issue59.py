@@ -94,3 +94,10 @@ def test_bounded_bar_window():
     with pytest.raises(ValueError, match="bar limit exceeded"):
         calculate([], start_ms=0, end_ms=1001 * 60000,
                   interval_ms=60000, tick_size="0.5")
+
+
+def test_unverified_source_hash_is_disclosed():
+    bar = run([trade(1, "100", "1", "Buy", "a")])["bars"][0]
+    assert "source_content_hash_missing" in bar["reasons"]
+    assert bar["vwap_volume_coverage_certified"] is False
+    assert bar["poc_volume_coverage_certified"] is False
