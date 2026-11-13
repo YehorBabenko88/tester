@@ -102,7 +102,7 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
     for row in result["list"]:
         if not isinstance(row, dict):
             raise ValueError("unexpected source row")
-        if row.get("symbol") != symbol:
+        if row.get("symbol") != symbol and not (kind == "open_interest" and "symbol" not in row):
             raise ValueError("source symbol mismatch")
         if kind == "funding":
             timestamp = _ms(row.get("fundingRateTimestamp"), "fundingRateTimestamp")
