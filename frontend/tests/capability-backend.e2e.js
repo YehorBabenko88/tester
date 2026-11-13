@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
 
 const intervals = ["1", "3", "5", "15", "30", "60", "120", "240",
                    "360", "720", "D", "W", "M"];
@@ -10,6 +11,7 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
   // optional, absent /api/market-catalog route cannot produce 404.
 
   const pageErrors = [], consoleErrors = [], serverErrors = [], forbiddenRequests = [];
+  const networkEvidence = [];
   const unsupported = new Set([
     "/api/analytics", "/api/footprint", "/api/open-interest",
     "/api/funding", "/api/candles", "/api/coverage",
@@ -21,9 +23,17 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
   });
   page.on("response", response => {
     const url = new URL(response.url());
-    if (url.pathname.startsWith("/api/") &&
-        [404, 422, 503].includes(response.status()))
-      serverErrors.push({ path: url.pathname, status: response.status() });
+    if (url.pathname.startsWith("/api/")) {
+      networkEvidence.push({
+        path: url.pathname,
+        status: response.status(),
+        interval: url.searchParams.get("interval"),
+        candle_kind: url.searchParams.get("candle_kind"),
+        schema_version: url.searchParams.get("schema_version"),
+      });
+      if ([404, 422, 503].includes(response.status()))
+        serverErrors.push({ path: url.pathname, status: response.status() });
+    }
   });
   page.on("request", request => {
     const path = new URL(request.url()).pathname;
@@ -76,10 +86,45 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
     );
     verified.push(interval);
   }
+  // The API is the actual application route, not a page mock. Check the
+  // typed price-only response independently of canvas's Number geometry.
+  const priceQuery = {
+    category: "linear", symbol: "BTCUSDT", interval: "1",
+    start_ms: String(Date.UTC(2024, 0, 1)),
+    end_ms: String(Date.UTC(2024, 0, 2)),
+    candle_kind: "official_mark", schema_version: "1.1",
+  };
+  const priceResponse = await page.request.get(
+    "/api/price-candles?" + new URLSearchParams(priceQuery),
+  );
+  expect(priceResponse.status()).toBe(200);
+  const priceBody = await priceResponse.json();
+  expect(priceBody.schema_version).toBe("1.1");
+  expect(priceBody.data[0].close).toBe("101.250000000000000000000001");
+  expect(priceBody.data[0].timestamp_ms).toBe(Date.UTC(2024, 0, 1));
+  expect(priceBody.data[0].end_ms).toBe(Date.UTC(2024, 0, 1, 0, 1));
+  expect(priceBody.data[0].volume).toBeUndefined();
+  await expect(mark.locator("details:not(.panel-evidence)")).toContainText(
+    "101.250000000000000000000001",
+  );
   expect(verified).toEqual(intervals);
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
   expect(serverErrors).toEqual([]);
   expect(forbiddenRequests).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath("capability-13-tf.png"), fullPage: true });
+  await writeFile(
+    testInfo.outputPath("capability-network-evidence.json"),
+    JSON.stringify({
+      test_source: "CI_SYNTHETIC_NOT_AUTHENTIC_HISTORY",
+      head_sha: process.env.GITHUB_SHA || null,
+      tested_intervals: verified,
+      network: networkEvidence,
+      page_errors: pageErrors,
+      console_errors: consoleErrors,
+      unexpected_api_statuses: serverErrors,
+      unsupported_requests: forbiddenRequests,
+      exact_decimal_close: priceBody.data[0].close,
+    }, null, 2),
+  );
 });
