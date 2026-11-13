@@ -159,6 +159,29 @@ async function setup(page, options = {}) {
       });
       return;
     }
+    if (u.pathname === "/api/capabilities") {
+      const routes = {
+        candles: "/api/candles", volume: "/api/candles",
+        footprint: "/api/footprint", open_interest: "/api/open-interest",
+        funding: "/api/funding", mark: "/api/candles", index: "/api/candles",
+      };
+      const panels = Object.fromEntries(
+        ["candles", "volume", "footprint", "delta", "cvd", "profile",
+         "poc", "vwap", "open_interest", "funding", "mark", "index"]
+          .map((panel) => [panel, options.capabilities?.[panel] ||
+            (routes[panel] ? {
+              panel, status: "AVAILABLE", reason: "source_qualified",
+              resource: routes[panel], revision: "fixture:1",
+              source_ref: "fixture:market:1",
+            } : {
+              panel, status: "UNVERIFIED", reason: "source_revision_not_verified",
+            })]),
+      );
+      await route.fulfill({
+        json: { schema_version: "1.0", data: { panels } },
+      });
+      return;
+    }
     if (u.pathname === "/api/sources")
       data = [
         {
