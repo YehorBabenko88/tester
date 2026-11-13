@@ -329,71 +329,12 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
 
     @app.get("/api/capabilities", response_model=Envelope[dict], operation_id="read_capabilities")
     def capabilities(query: Annotated[Query, Depends(validated_query)]):
-        """Fail-closed panel discovery: route existence is not data availability.
+        # Reader-owned endpoint announcements alone are not sufficient.
+        # The bounded discovery path validates real source records, their
+        # query scope, canonical provenance and price-only v1.1 distinction.
+        from .capability_discovery import discover
 
-        The current reader protocol has no verified per-source revision/coverage
-        discovery method. Never turn a configured provider into AVAILABLE based
-        solely on its presence or on the existence of an HTTP route.
-        """
-        panels = {}
-        for panel in (
-            "candles", "volume", "footprint", "delta", "cvd", "profile",
-            "poc", "vwap", "open_interest", "funding", "mark", "index",
-        ):
-            panels[panel] = {
-                "panel": panel,
-                "status": "UNVERIFIED",
-                "reason": "source_revision_not_verified",
-            }
-        # Optional reader-owned discovery must provide immutable source bindings.
-        # Only exact known routes are accepted; unsupported analytics never
-        # becomes available merely because a provider is configured.
-        discovery = getattr(reader, "capabilities", None)
-        if callable(discovery):
-            try:
-                offered = discovery(query)
-            except (ProviderUnavailable, ProviderDataUnavailable):
-                offered = None
-            allowed_routes = {
-                "candles": "/api/candles",
-                "volume": "/api/candles",
-                "footprint": "/api/footprint",
-                "open_interest": "/api/open-interest",
-                "funding": "/api/funding",
-                "mark": "/api/candles",
-                "index": "/api/candles",
-            }
-            if isinstance(offered, dict):
-                for panel, route in allowed_routes.items():
-                    if panel in ("mark", "index", "open_interest", "funding") and query.category == "spot":
-                        continue
-                    record = offered.get(panel)
-                    if not isinstance(record, dict):
-                        continue
-                    if record.get("status") not in ("AVAILABLE", "PARTIAL"):
-                        continue
-                    if record.get("resource") != route:
-                        continue
-                    revision = record.get("revision")
-                    source_ref = record.get("source_ref")
-                    if not (
-                        isinstance(revision, str)
-                        and 1 <= len(revision) <= 128
-                        and all(c.isalnum() or c in "_.:-" for c in revision)
-                        and isinstance(source_ref, str)
-                        and 1 <= len(source_ref) <= 256
-                        and all(c.isalnum() or c in "_.:/-" for c in source_ref)
-                    ):
-                        continue
-                    panels[panel] = {
-                        "panel": panel,
-                        "status": record["status"],
-                        "reason": "source_qualified",
-                        "resource": route,
-                        "revision": revision,
-                        "source_ref": source_ref,
-                    }
-        return Envelope(data={"panels": panels})
+        return Envelope(data=discover(reader, query))
 
     @app.post("/api/downloads", response_model=Envelope[Job], status_code=202)
     def downloads(body: DownloadRequest):
