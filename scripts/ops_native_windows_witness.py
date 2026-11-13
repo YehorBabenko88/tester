@@ -169,7 +169,8 @@ class NativeExitWitness:
                 raise NativeRestartBlocked("Wrong or incomplete drain receipt")
             exits[birth.role] = {"pid": birth.pid, "created": birth.created,
                                  "birth_sha256": sha256(vars(birth)), "exit_code": code,
-                                 "checkpoint_sha256": hashlib.sha256(content).hexdigest()}
+                                 "checkpoint_sha256": hashlib.sha256(content).hexdigest(),
+                                 "checkpoint_path": actual_path.relative_to(self.root).as_posix()}
         receipt = {
             "schema": "ops-native-win-exit/1", "generation": self.generation,
             "root": str(self.root), "api": exits["api"], "worker": exits["worker"],
@@ -193,6 +194,28 @@ class NativeExitWitness:
             raise NativeRestartBlocked("Corrupt closure") from exc
         if persisted != receipt or receipt["generation"] != self.generation:
             raise NativeRestartBlocked("External closure differs")
-        for _, handle in self.items:
+        for birth, handle in self.items:
+            proof = receipt.get(birth.role)
+            if (not isinstance(proof, dict)
+                    or proof.get("birth_sha256") != sha256(vars(birth))
+                    or proof.get("exit_code") != 0):
+                raise NativeRestartBlocked("Closure does not bind original owner")
+            relative = proof.get("checkpoint_path")
+            if not isinstance(relative, str) or not relative:
+                raise NativeRestartBlocked("Checkpoint location missing")
+            path = Path(relative)
+            if path.is_absolute() or ".." in path.parts or path == Path("."):
+                raise NativeRestartBlocked("Unsafe retained checkpoint location")
+            full = self.root / path
+            if full.is_symlink() or not full.is_file():
+                raise NativeRestartBlocked("Missing retained checkpoint")
+            try:
+                actual = full.resolve(strict=True)
+                if (not actual.is_relative_to(self.root)
+                        or hashlib.sha256(actual.read_bytes()).hexdigest()
+                           != proof.get("checkpoint_sha256")):
+                    raise NativeRestartBlocked("Checkpoint changed after native exit")
+            except OSError as exc:
+                raise NativeRestartBlocked("Retained checkpoint unreadable") from exc
             if handle.poll() != 0:
                 raise NativeRestartBlocked("Old process still alive or changed")

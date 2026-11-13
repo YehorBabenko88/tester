@@ -50,3 +50,12 @@ This acknowledges process drain only. It is NOT proof that all actual PC4
 jobs were checkpointed into PostgreSQL; a future native admission must also
 validate DB lease fences and transactional recovery against the pinned
 PostgreSQL incarnation before authorizing work.
+
+## Revalidation on every successor admission
+
+The external native closure now binds the **relative path and SHA-256** of
+both API and worker drain receipts. `require_restart_allowed` re-reads the
+retained checkpoint files, refuses absolute/escaping/symlinked paths and
+requires byte-identical hashes. A checkpoint mutated after the clean exit
+cannot authorize a successor. This is source-level validation only: the
+actual PC4 runner remains separate and NOT_READY.

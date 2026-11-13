@@ -160,5 +160,20 @@ class NativeWitnessTests(unittest.TestCase):
         self.assertFalse((self.root/'native-generation-0000-closed.json').exists())
 
 
+    def test_checkpoint_tamper_after_seal_refuses_restart(self):
+        self.witness.request_stop(stop_for_role=lambda birth: None)
+        receipt = self.witness.seal_exits(checkpoint_paths=self.checkpoints)
+        self.checkpoints["worker"].write_text("tampered")
+        with self.assertRaises(NativeRestartBlocked):
+            self.witness.require_restart_allowed(receipt)
+
+    def test_checkpoint_path_escape_refused(self):
+        self.witness.request_stop(stop_for_role=lambda birth: None)
+        receipt = self.witness.seal_exits(checkpoint_paths=self.checkpoints)
+        receipt["worker"]["checkpoint_path"] = "../outside.json"
+        # This also differs from the persisted closure; must fail closed.
+        with self.assertRaises(NativeRestartBlocked):
+            self.witness.require_restart_allowed(receipt)
+
 if __name__ == '__main__':
     unittest.main()
