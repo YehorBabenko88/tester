@@ -3,6 +3,7 @@
 This intentionally does not register an F input, create an execution job or
 upgrade historical visibility. F authorization remains in the reviewed B/F/G path.
 """
+from src.analytics.core import interval_bounds
 from src.analytics.research_metrics import calculate
 from src.integration.qualified_snapshot import (
     QualifiedSnapshot,
@@ -27,6 +28,9 @@ def research_preview(store, request: SnapshotRequest, trades, *, tick_size: str)
         raise ValueError("unexpected_snapshot_mode")
     if request.interval == "M":
         raise ValueError("calendar_month_requires_variable_interval")
+    if (interval_bounds(request.start_ms, request.interval)[0] != request.start_ms
+            or interval_bounds(request.end_ms - 1, request.interval)[1] != request.end_ms):
+        raise ValueError("request_not_aligned_to_exchange_interval")
     interval_ms = {
         "1": 60000, "3": 180000, "5": 300000, "15": 900000,
         "30": 1800000, "60": 3600000, "120": 7200000,
