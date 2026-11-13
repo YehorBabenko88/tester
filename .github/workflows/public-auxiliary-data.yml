@@ -9,6 +9,7 @@ on:
       - 'tests/test_public_auxiliary_postgres.py'
       - 'src/ingest/execution_contract.py'
       - 'src/storage/models.py'
+      - 'src/storage/migrations/**'
       - 'tests/test_execution_contract_bridge.py'
       - 'tests/test_execution_contract_postgres.py'
       - 'tests/test_composed_data_research_postgres.py'
@@ -69,6 +70,40 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install -r requirements-dev.txt
       - name: Isolated PostgreSQL DATA roundtrip
+        run: python -m unittest tests.test_public_auxiliary_postgres tests.test_execution_contract_postgres -v
+  storage-unknown-side-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['14', '18']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_ci
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact DATA HEAD
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Real PostgreSQL compatibility — ${{ matrix.postgres }}
         run: python -m unittest tests.test_public_auxiliary_postgres tests.test_execution_contract_postgres -v
   research-composed-postgres:
     runs-on: ubuntu-24.04
