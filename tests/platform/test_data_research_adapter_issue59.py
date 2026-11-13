@@ -5,8 +5,8 @@ import importlib
 import json
 import os
 from datetime import UTC, datetime
-from urllib.parse import urlencode
 from unittest.mock import Mock
+from urllib.parse import urlencode
 
 import pytest
 
