@@ -182,7 +182,10 @@ async function setup(page, options = {}) {
             })]),
       );
       await route.fulfill({
-        json: { schema_version: "1.0", data: { panels } },
+        json: {
+          schema_version: "1.0",
+          data: { panels, ...(options.routeFeatures ? { features: options.routeFeatures } : {}) },
+        },
       });
       return;
     }
@@ -1153,5 +1156,27 @@ test("mark and index use separate official candle kinds without analytics fallba
   await expect(page.locator('[data-panel="index"]')).not.toContainText("Loading…");
   expect(requested).toContainEqual(["official_mark", "1.1"]);
   expect(requested).toContainEqual(["official_index", "1.1"]);
+  expect(errors).toEqual([]);
+});
+
+test("disabled optional catalog/source routes avoid 404 and allow safe direct symbol", async ({ page }) => {
+  const calls = [], errors = [];
+  page.on("request", req => calls.push(new URL(req.url()).pathname));
+  page.on("pageerror", e => errors.push(e.message));
+  await setup(page, {
+    routeFeatures: {
+      market_catalog: { enabled: false, reason: "catalog_not_configured" },
+      sources: { enabled: false, reason: "catalog_and_provider_required" },
+    },
+  });
+  await expect(page.locator("#screener-status")).toContainText("market_catalog_not_configured");
+  await page.getByLabel("Direct source symbol").fill("BTCUSDT");
+  await page.getByRole("button", { name: "Open source symbol" }).click();
+  await expect(page.locator("#active-symbol")).toContainText("BTCUSDT");
+  expect(calls.filter(p => p.startsWith("/api/market-catalog/"))).toEqual([]);
+  expect(calls.filter(p => p === "/api/sources")).toEqual([]);
+  await page.getByLabel("Direct source symbol").fill("../BTC");
+  await page.getByRole("button", { name: "Open source symbol" }).click();
+  await expect(page.locator("#chart-status")).toContainText("Invalid source symbol");
   expect(errors).toEqual([]);
 });
