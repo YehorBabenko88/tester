@@ -9,17 +9,15 @@ import sys
 import time
 from uuid import UUID
 
-from psycopg.conninfo import conninfo_to_dict
-
+from scripts.ops_pg_isolation import require_isolated_dsn
 from src.api.jobs import JobQueue
 
 
 def main() -> int:
     dsn = os.environ.get("TEST_OPS_ISOLATED_DSN", "")
-    config = conninfo_to_dict(dsn) if dsn else {}
-    if (config.get("host"), config.get("port"), config.get("dbname"), config.get("user")) != (
-        "127.0.0.1", "55479", "ops_isolated", "ops_tester"
-    ):
+    try:
+        require_isolated_dsn(dsn)
+    except RuntimeError:
         return 91
     job_id = UUID(os.environ["OPS_JOB_ID"])
     generation = int(os.environ["OPS_GENERATION"])

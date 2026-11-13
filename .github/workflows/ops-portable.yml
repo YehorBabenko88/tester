@@ -28,6 +28,7 @@ jobs:
           python -m unittest discover -s tests/platform -p 'test_ops_pg_snapshot.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_pg_claim.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_disposable_lifecycle.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_isolation.py' -v
   portable-pg:
     runs-on: ubuntu-latest
     timeout-minutes: 10

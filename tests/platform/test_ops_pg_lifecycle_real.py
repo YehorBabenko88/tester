@@ -15,12 +15,8 @@ DSN = os.environ.get("TEST_OPS_ISOLATED_DSN", "")
 class IsolatedFullRecovery(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from psycopg.conninfo import conninfo_to_dict
-        cfg = conninfo_to_dict(DSN)
-        if (cfg.get("host"), cfg.get("port"), cfg.get("dbname"), cfg.get("user")) != (
-            "127.0.0.1", "55479", "ops_isolated", "ops_tester"
-        ):
-            raise RuntimeError("REFUSED: not the exact isolated PostgreSQL service")
+        from scripts.ops_pg_isolation import require_isolated_dsn
+        require_isolated_dsn(DSN)
         from src.api.db import migrate
         migrate(DSN)
 

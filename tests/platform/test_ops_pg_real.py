@@ -15,12 +15,8 @@ DSN = os.environ.get("TEST_OPS_ISOLATED_DSN", "")
 class IsolatedPostgresLeaseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from psycopg.conninfo import conninfo_to_dict
-        d = conninfo_to_dict(DSN)
-        if (d.get("host"), d.get("port"), d.get("dbname"), d.get("user")) != (
-            "127.0.0.1", "55479", "ops_isolated", "ops_tester"
-        ):
-            raise RuntimeError("REFUSED: unexpected PostgreSQL endpoint")
+        from scripts.ops_pg_isolation import require_isolated_dsn
+        require_isolated_dsn(DSN)
         from src.api.db import migrate
         migrate(DSN)
 
