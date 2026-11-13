@@ -17,6 +17,8 @@ from scripts.ops_native_windows_witness import (
     request_native_scoped_stop, sample_native_resources,
 )
 from scripts.ops_win32_handle import WindowsOriginalHandle
+from scripts.ops_native_windows_rollback import (EnrolledChild, rollback_partial_start,
+                                                  deny_partial_generation_reuse)
 
 CHILD = """import json,os,time,pathlib
 stop=pathlib.Path(os.environ['OPS_STOP_PATH'])
@@ -130,6 +132,21 @@ class OriginalWin32ProcessTests(unittest.TestCase):
                 "installed_pc4": "NOT_RUN",
                 "hard_limits_enforced": False,
             }, indent=2, sort_keys=True), encoding="utf-8")
+
+    def test_partial_native_worker_rollback_is_sealed_and_reuse_blocked(self):
+        import psutil
+        worker, handle, checkpoint = self.launch('worker', 2)
+        receipt = rollback_partial_start(
+            root=self.root, generation=2,
+            children=(EnrolledChild(worker, handle, checkpoint),),
+            observe=lambda b, h: observe_psutil(b, h, psutil.Process),
+        )
+        self.assertEqual(receipt["status"], "SEALED_PARTIAL")
+        self.assertFalse(receipt["restart_permitted"])
+        self.assertEqual(handle.poll(), 0)
+        self.assertTrue(checkpoint.exists())
+        with self.assertRaises(NativeRestartBlocked):
+            deny_partial_generation_reuse(self.root, 2)
 
     def test_stale_birth_refuses_before_stop(self):
         import psutil

@@ -74,3 +74,19 @@ Unavailable platform counters are explicit `null` with `unknown_fields`;
 there are no hard OS resource limits or real PC4 claims. Hosted workflow
 uploads `ops-native-win32-evidence.json` for the new exact HEAD only when
 the Windows test generates it successfully.
+
+## Native partial-launch rollback (opt-in, no PC4 use)
+
+`scripts/ops_native_windows_rollback.py` requires exact original child
+handles and independent birth/owner observation for every enrolled process
+**before** creating a generation-scoped cooperative stop request. Missing or
+foreign birth evidence fails closed without signaling any process. Clean exits
+with matching drain receipts produce a create-only `SEALED_PARTIAL` record;
+unknown process ownership, timeout, nonzero exit or broken checkpoint produce
+`BLOCKED`. **Neither status ever permits reusing that generation.**
+
+The pure regression suite covers clean worker-only rollback, changed owner,
+timeout without forced termination, tampered drain, duplicate rollback and
+second-child foreign identity. The hosted Windows fixture independently tests
+actual rollback of a single original-handle child. It does not install or
+restart the actual PC4 service, and does not authorize native PC4 rollout.
