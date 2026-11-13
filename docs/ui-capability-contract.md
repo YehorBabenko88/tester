@@ -213,3 +213,49 @@ The browser evidence JSON records the exact UI checkout SHA and the
 reviewed DATA/RESEARCH producer SHAs separately. Previous synthetic
 screenshots and source checks are not a proxy for live Bybit historical
 PostgreSQL readback across the three branches.
+
+## Contract-owner Kind v1.1 proposal — no legacy v1 mutation
+
+Contract owner review is requested in [Issue #76](https://github.com/YehorBabenko88/tester/issues/76).
+The original `contracts/v1/openapi.json` explicitly admits only
+`candles,trades,footprint,open_interest,funding` for
+`DownloadRequest.kind`, whereas `src/api/models.py` already allows the
+additional `mark,index` values on the inherited PC4 baseline.
+
+The proposal at `docs/proposals/download-kind-v1_1.json` specifies an
+**inactive** opt-in `/api/v1_1/downloads` version and never silently adds
+values to the pinned v1 enum. This matters because older generated clients
+may treat an unknown enum value as a fatal validation error. The
+`scripts/compare_download_kind_proposal.py` and
+`tests/platform/test_download_kind_proposal.py` verify that the sole
+runtime-versus-pinned OpenAPI delta is the two values, and that neither a
+versioned route nor real Mark/Index downloads have been authorized.
+
+The existing price-only, closed source candles in
+`GET /api/price-candles` schema 1.1 are a distinct verified read interface;
+they neither imply that any bulk download workflow can ingest those prices
+nor provide a historical source-completeness witness. Contract-owner
+approval and new source/storage E2E are required before activating the
+proposed download version. The shared v1 OpenAPI and financial-query schema
+remain unchanged.
+
+## Preparation for genuine observed research plots
+
+The pure `frontend/observed-research.js` adapter understands the reviewed
+DATA #72 / RESEARCH #71 `tester.data-research-preview/2` sample contract.
+It transforms exact Decimal and aligned UTC observation bars into
+Footprint, *known-taker* Delta, *window-anchored known* CVD, VWAP and POC
+chart rows. It requires original DATA72 HTTP/page/row receipt verification
+and valid SHA256 evidence digests. It never reconstructs Bid/Ask, assigns
+UNKNOWN taker side to Buy/Sell, upgrades `UNKNOWN` coverage, or authorizes
+trading. RESEARCH monthly-variable bars are deliberately refused.
+
+This adapter currently issues **no network requests** and is not yet
+mounted into a browser panel: the independent UI branch has no qualified
+RESEARCH HTTP endpoint. `frontend/tests/observed-research.test.js` checks
+precision, unknown side, source version, mismatched UTC boundaries and all
+13 declared intervals (monthly correctly UNAVAILABLE). A real plotted
+sample remains dependent on MASTER composing an approved DATA/RESEARCH
+read endpoint with source identity, versioning, provenance and authorization.
+Funding and OI require a separate source-native auxiliary read contract
+and must never enter execution-only VWAP/Delta calculations.
