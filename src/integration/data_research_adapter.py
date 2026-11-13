@@ -13,7 +13,7 @@ from src.analytics.research_metrics import calculate
 from src.storage.models import digest
 
 DATA_CONTRACT_VERSION = "tester-public-execution/1"
-REVIEWED_DATA_HEAD = "9193622249a5c659d53b9848c13fd363a86f3b4a"
+REVIEWED_DATA_HEAD = "6eca8a9bfaf5c6eb0bac162fa737a1dbb64ae31a"
 MAX_EVENTS = 100
 MAX_WINDOW_MS = 7 * 86400000
 _HEX = re.compile(r"[a-f0-9]{64}\Z")
