@@ -523,3 +523,26 @@ def test_disposable_pg_gapped_observation_window_stays_unknown():
     assert preview["observed_window"]["complete_market_history"] is False
     with pytest.raises(ValueError, match="real_historical_visibility_unknown_f_denied"):
         require_strategy_lab_f_input(preview)
+
+
+@pytest.mark.parametrize("dataset", ["open_interest", "funding", "candles", "mark", "index"])
+def test_non_execution_dataset_never_enters_metrics(dataset, monkeypatch):
+    """Strict DATA execution contract must refuse non-trade stored records."""
+    from types import SimpleNamespace
+
+    import src.integration.data_research_adapter as adapter
+
+    synthetic = event()
+    synthetic["source_coverage"] = {"status": "UNKNOWN", "start_ms": START, "end_ms": END}
+
+    def non_trade(_store, **_kwargs):
+        raise ValueError(f"stored_{dataset}_is_not_execution")
+
+    monkeypatch.setattr(adapter.importlib, "import_module", lambda name: SimpleNamespace(
+        VERSION=DATA_CONTRACT_VERSION, read_execution_events=non_trade
+    ))
+    with pytest.raises(ValueError, match=f"stored_{dataset}_is_not_execution"):
+        read_data_metrics(
+            Mock(), category="linear", symbol="BTCUSDT", start_ms=START,
+            end_ms=END, interval_ms=60000, tick_size="0.5"
+        )
