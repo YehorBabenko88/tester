@@ -250,7 +250,7 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     published = store.ingest(rows, evidence, job_key, run_id=run_id)
     if return_receipt:
         return {"published": published, "next_cursor": cursor, "records": len(rows),
-                "http_sha256": http["sha256"], "coverage": "UNKNOWN"}
+                "http_sha256": http["sha256"], "coverage": "UNKNOWN",\n                "oldest_ms": min((r["timestamp_ms"] for r in rows), default=None)}
     return published
 
 
@@ -285,4 +285,40 @@ def fetch_open_interest_pages(store, api, *, category, symbol, run_id,
         if cursor in seen:
             raise ValueError("repeated pagination cursor")
         seen.add(cursor)
+    return {"status": "PAGE_BUDGET_EXHAUSTED", "pages": receipts, "coverage": "UNKNOWN"}
+
+
+def fetch_funding_pages(store, api, *, category, symbol, run_id, job_prefix,
+                        start_ms, end_ms, max_pages=10, limit=200, stop=None):
+    """Reverse-time bounded funding traversal, never a completeness certificate.
+
+    The exchange funding-history endpoint has no cursor contract. For a full
+    page, retry the strictly older inclusive endTime (oldest timestamp - 1).
+    Empty/short pages are observations, not proof of available history.
+    """
+    if type(max_pages) is not int or not 1 <= max_pages <= 100:
+        raise ValueError("invalid page budget")
+    if type(start_ms) is not int or type(end_ms) is not int or not 0 <= start_ms < end_ms:
+        raise ValueError("invalid funding window")
+    if not isinstance(job_prefix, str) or not job_prefix:
+        raise ValueError("job prefix required")
+    if type(limit) is not int or not 1 <= limit <= LIMITS["funding"]:
+        raise ValueError("invalid funding limit")
+    upper = end_ms
+    receipts = []
+    for index in range(max_pages):
+        if stop is not None and stop():
+            return {"status": "PAUSED", "pages": receipts, "coverage": "UNKNOWN"}
+        page = fetch_and_ingest(
+            store, api, kind="funding", category=category, symbol=symbol,
+            run_id=run_id, job_key=f"{job_prefix}:page:{index}",
+            start_ms=start_ms, end_ms=upper, limit=limit, return_receipt=True,
+        )
+        receipts.append(page)
+        oldest = page["oldest_ms"]
+        if oldest is None or page["records"] < limit or oldest <= start_ms:
+            return {"status": "OBSERVED", "pages": receipts, "coverage": "UNKNOWN"}
+        if oldest >= upper:
+            raise ValueError("funding pagination did not advance")
+        upper = oldest
     return {"status": "PAGE_BUDGET_EXHAUSTED", "pages": receipts, "coverage": "UNKNOWN"}
