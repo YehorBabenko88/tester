@@ -188,6 +188,15 @@ class PublicAuxiliaryTests(unittest.TestCase):
         self.assertEqual(api.call.call_args_list[1].args[1]["endTime"],
                          timestamps[0] - 1)
 
+    def test_reject_wrong_source_url_before_storage(self):
+        store, api = Mock(), Mock()
+        api.call.return_value = ({"list": []},
+                                 "https://api.bybit.com/v5/market/recent-trade?symbol=ETHUSDT")
+        with self.assertRaises(ValueError):
+            fetch_and_ingest(store, api, kind="trades", category="linear",
+                             symbol="BTCUSDT", run_id="run-test", job_key="wrong-url")
+        store.ingest.assert_not_called()
+
     def test_reject_source_page_above_limit_before_storage(self):
         store = Mock()
         api = Mock()
