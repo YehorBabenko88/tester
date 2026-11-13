@@ -25,7 +25,7 @@ jobs:
       - name: Pin reviewed DATA #72 original-execution contract
         uses: actions/checkout@v4
         with:
-          ref: d08418fc51c890d3390ee5853cf2f9dba6073a80
+          ref: 4e57f1665b1e15bc1b42b0f2329a92f8b6942d24
           path: .ci-source-data72
           sparse-checkout: |
             src/ingest/execution_contract.py
@@ -33,7 +33,7 @@ jobs:
       - name: Pin reviewed RESEARCH #71 observed-metrics contracts
         uses: actions/checkout@v4
         with:
-          ref: aecba8f9bdd8ec193f7d2ee36a5dbc64b5366a43
+          ref: 4d215df51726689768f6e7b6085b0e574f24c284
           path: .ci-source-research71
           sparse-checkout: |
             src/integration/data_research_adapter.py
@@ -48,8 +48,8 @@ jobs:
       - name: Verify exact independently pinned DATA/RESEARCH source interfaces
         shell: bash
         run: |
-          test "$(git -C .ci-source-data72 rev-parse HEAD)" = "d08418fc51c890d3390ee5853cf2f9dba6073a80"
-          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "aecba8f9bdd8ec193f7d2ee36a5dbc64b5366a43"
+          test "$(git -C .ci-source-data72 rev-parse HEAD)" = "4e57f1665b1e15bc1b42b0f2329a92f8b6942d24"
+          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "4d215df51726689768f6e7b6085b0e574f24c284"
           python scripts/verify_ui_source_contracts.py \
             --data .ci-source-data72/src/ingest/execution_contract.py \
             --research .ci-source-research71/src/integration/data_research_adapter.py \
@@ -93,6 +93,8 @@ jobs:
       - name: Chromium against real FastAPI and 13 timeframes
         env:
           TESTER_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TESTER_DATA_SOURCE_SHA: 4e57f1665b1e15bc1b42b0f2329a92f8b6942d24
+          TESTER_RESEARCH_SOURCE_SHA: 4d215df51726689768f6e7b6085b0e574f24c284
         run: npx playwright test --config playwright.capability.config.js
         working-directory: frontend
       - name: Store browser screenshot, traces and backend log
