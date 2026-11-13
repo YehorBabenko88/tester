@@ -1,5 +1,6 @@
 """Actual PostgreSQL DATA-to-RESEARCH roundtrip; isolated CI database ONLY."""
 import base64
+import copy
 import hashlib
 import json
 import os
@@ -101,37 +102,47 @@ class ExecutionBridgePostgresTests(unittest.TestCase):
             ).fetchone()["record_count"]
         self.assertEqual(count, 1)
 
-    def test_tampered_persisted_page_receipt_fails_after_reconnect(self):
-        # Uses only the disposable CI database. Restore original evidence even
-        # when the fail-closed assertion itself raises unexpectedly.
+    def test_append_only_postgres_and_detached_tamper_rejection(self):
+        # PostgreSQL must refuse mutation of immutable evidence, not let a
+        # test overwrite history. Application integrity is checked on a
+        # detached copy of an original read after a fresh connection.
         self.test_original_http_to_pg_reconnect_to_research()
         job = "data72-bridge-replay-v1"
-        with psycopg.connect(DSN) as connection:
+        with psycopg.connect(DSN, autocommit=True) as connection:
             original = connection.execute(
                 "SELECT evidence FROM tester_storage.pagination_evidence "
                 "WHERE job_key=%s", (job,),
             ).fetchone()[0]
             damaged = {**original, "http_sha256": "0" * 64}
-            connection.execute(
-                "UPDATE tester_storage.pagination_evidence "
-                "SET evidence=%s WHERE job_key=%s",
-                (Jsonb(damaged), job),
-            )
-        try:
-            reopened = Store(DSN)
-            with self.assertRaisesRegex(ExecutionContractError, "checksum"):
-                read_execution_events(
-                    reopened, category="linear", symbol="BTCUSDT",
-                    start_ms=STAMP - 1, end_ms=STAMP + 1, limit=10,
-                )
-        finally:
-            with psycopg.connect(DSN) as connection:
+            with self.assertRaisesRegex(psycopg.errors.RaiseException, "append-only"):
                 connection.execute(
                     "UPDATE tester_storage.pagination_evidence "
                     "SET evidence=%s WHERE job_key=%s",
-                    (Jsonb(original), job),
+                    (Jsonb(damaged), job),
                 )
 
+        reopened = Store(DSN)
+        records = reopened.read(
+            "trades", "bybit", "linear", "BTCUSDT",
+            STAMP - 1, STAMP + 1, "", limit=10,
+            compact_provenance=False,
+        )
+        self.assertEqual(len(records), 1)
+        detached = copy.deepcopy(records[0])
+        detached["provenance"]["observations"][0]["evidence"]["http_sha256"] = "0" * 64
+        from src.ingest.execution_contract import project_storage_execution
+        with self.assertRaisesRegex(ExecutionContractError, "checksum"):
+            project_storage_execution(
+                detached, category="linear", symbol="BTCUSDT",
+                start_ms=STAMP - 1, end_ms=STAMP + 1,
+            )
+        # The untouched PostgreSQL proof still validates after reconnect.
+        events = read_execution_events(
+            Store(DSN), category="linear", symbol="BTCUSDT",
+            start_ms=STAMP - 1, end_ms=STAMP + 1, limit=10,
+        )
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["source_coverage"]["status"], "UNKNOWN")
 
 
 if __name__ == "__main__":
