@@ -5,7 +5,7 @@ on:
       - "src/analytics/research_metrics.py"
       - "src/integration/research_preview.py"
       - "tests/platform/test_research_metrics_issue59.py"
-      - "tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py"
+      - "tests/platform/test_research_preview_issue59.py"
       - "tests/platform/test_research_preview_adapter_issue59.py"
       - ".github/workflows/research-issue59.yml"
   workflow_dispatch:
