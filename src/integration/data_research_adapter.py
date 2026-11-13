@@ -211,3 +211,25 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
         )
     ])
     return preview
+
+
+def require_strategy_lab_f_input(research_preview):
+    """Explicit REAL-history F gate; never translates UNKNOWN into an F snapshot.
+
+    Synthetic F testing follows its *separate* pinned fixture path via
+    verify_qualified_snapshot. This public DATA preview has no authority to
+    create an F job, even if the caller falsifies a coverage label.
+    """
+    if (not isinstance(research_preview, dict)
+            or research_preview.get("schema_version") != "tester.data-research-preview/2"
+            or research_preview.get("data_contract_version") != DATA_CONTRACT_VERSION):
+        raise ValueError("invalid_research_preview_contract")
+    if (research_preview.get("coverage") != "UNKNOWN"
+            or research_preview.get("admitted_to_f") is not False
+            or research_preview.get("f_input") is not None
+            or research_preview.get("g_e_result") is not None):
+        raise ValueError("research_preview_claims_unreviewed_f_admission")
+    if (research_preview.get("observed_window", {})
+            .get("complete_market_history") is not False):
+        raise ValueError("research_history_completeness_not_demonstrated")
+    raise ValueError("real_historical_visibility_unknown_f_denied")
