@@ -10,6 +10,7 @@ import { adaptSeries, sourceText } from "./series.js";
 import { request } from "./api.js";
 import { progress, connectionNotice, validateSeries, PANELS } from "./model.js";
 import { PanelChart } from "./charts.js";
+import { classifyPanelCapability } from "./capabilities.js";
 const $ = (s) => document.querySelector(s);
 const el = (tag, text, className) => {
   const n = document.createElement(tag);
@@ -62,6 +63,8 @@ const state = {
   charts: new Map(),
   chartAbort: null,
   instrumentAbort: null,
+  capabilities: null,
+  capabilityKey: null,
 };
 state.ids = new Set(
   [...state.ids]
@@ -710,17 +713,34 @@ async function submitDownloads(keys) {
   }
 }
 $("#download").onclick = () => submitDownloads([...state.selected]);
-// No raw-trade endpoint is ever requested by charts.
-function panelEndpoint(kind) {
-  return (
-    {
-      candles: "/api/candles",
-      volume: "/api/candles",
-      footprint: "/api/footprint",
-      open_interest: "/api/open-interest",
-      funding: "/api/funding",
-    }[kind] || "/api/analytics"
-  );
+// Capability discovery is scoped to the selected instrument and interval.
+// A failed or absent discovery response never authorizes speculative API calls.
+async function discoverCapabilities(q, signal) {
+  const key = JSON.stringify([q.category, q.symbol, q.interval, q.start_ms, q.end_ms]);
+  if (state.capabilityKey === key && state.capabilities) return state.capabilities;
+  state.capabilities = null;
+  state.capabilityKey = null;
+  try {
+    const payload = await request("/api/capabilities", {
+      category: q.category, symbol: q.symbol, interval: q.interval,
+      start_ms: q.start_ms, end_ms: q.end_ms,
+    }, { signal });
+    if (!payload.data || typeof payload.data !== "object" ||
+        Array.isArray(payload.data)) throw Error("Invalid capability envelope");
+    state.capabilities = payload.data;
+  } catch (error) {
+    if (signal.aborted) throw error;
+    // Discovery is optional until the backend implements its verified contract.
+    // Suppress repeat 404/503 requests for the same selection.
+    state.capabilities = {};
+    state.capabilityError = error.status === 404
+      ? "capability_discovery_not_implemented"
+      : error.status === 503
+        ? "capability_service_unavailable"
+        : "capability_discovery_failed";
+  }
+  state.capabilityKey = key;
+  return state.capabilities;
 }
 for (const [kind, title, type] of PANELS) {
   const section = el("article", null, "chart-panel");
@@ -821,6 +841,7 @@ async function loadCharts(options = {}) {
     return;
   }
   state.chartAbort?.abort();
+  state.capabilityError = null;
   const abort = new AbortController();
   state.chartAbort = abort;
   let q;
@@ -858,14 +879,27 @@ async function loadCharts(options = {}) {
       el("summary", "Exact source values (first 100 rows)"),
     );
   }
+  const capabilities = await discoverCapabilities(q, abort.signal).catch(() => ({}));
+  if (abort.signal.aborted) return;
   const cache = new Map();
   let unavailable = 0;
   await Promise.allSettled(
     PANELS.map(async ([kind, , type]) => {
       const p = state.charts.get(kind);
       try {
-        const path = panelEndpoint(kind),
-          params = {
+        const capability = classifyPanelCapability(kind, capabilities[kind]);
+        if (!capability.requestAllowed) {
+          unavailable++;
+          p.originBadge.textContent = "not verified";
+          p.message.textContent = `DATA_UNAVAILABLE · ${capability.reason === "capability_not_advertised" ? (state.capabilityError || capability.reason) : capability.reason}`;
+          p.meta.textContent = `${capability.state} · ${capability.reason} · no request sent`;
+          p.proof.textContent = JSON.stringify({ capability, discovery: state.capabilityError || null }, null, 2);
+          return;
+        }
+        const path = capability.resource;
+        if (!/^\\/api\\/[a-zA-Z0-9_/-]+$/.test(path) || path.includes(".."))
+          throw Error("Unsafe capability resource");
+        const params = {
             ...q,
             ...(cadences.get(kind)
               ? { source_interval: cadences.get(kind) }
@@ -895,6 +929,7 @@ async function loadCharts(options = {}) {
           p.meta.textContent += ` · source ${cadences.get(kind)} · display ${q.interval}`;
         p.proof.textContent = JSON.stringify(
           {
+            capability,
             availability: series.availability,
             reason: series.reason,
             coverage: series.coverage,
