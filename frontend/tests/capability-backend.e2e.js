@@ -107,6 +107,49 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
   await expect(mark.locator("details:not(.panel-evidence)")).toContainText(
     "101.250000000000000000000001",
   );
+  // Route discovery remains protocol-qualified even when DATA #72 and
+  // RESEARCH #71 are not composed into this independent UI branch.
+  const discovery = await page.request.get(
+    "/api/capabilities?" + new URLSearchParams({
+      category: "linear", symbol: "BTCUSDT", interval: "1",
+      start_ms: String(Date.UTC(2024, 0, 1)),
+      end_ms: String(Date.UTC(2024, 0, 2)),
+    }),
+  );
+  expect(discovery.status()).toBe(200);
+  const contract = (await discovery.json()).data;
+  expect(contract.protocol_version).toBe("tester.ui-capabilities/1");
+  expect(contract.source_contracts.public_executions.contract_version)
+    .toBe("tester-public-execution/1");
+  expect(contract.source_contracts.observed_execution_metrics.contract_version)
+    .toBe("tester.execution-metrics/1");
+  expect(contract.source_contracts.public_auxiliary.readback_state)
+    .toBe("NOT_BOUND_TO_UI_ROUTE");
+  expect(contract.observed_page_revision.historical_dataset_revision)
+    .toBe("UNPINNED");
+  expect(contract.observed_page_revision.supports_f_admission).toBe(false);
+  for (const panel of ["footprint", "delta", "cvd", "vwap", "poc", "profile"]) {
+    expect(contract.panels[panel].status).toBe("UNAVAILABLE");
+    expect(contract.panels[panel].source_contract_dependencies)
+      .toEqual(["public_executions", "observed_execution_metrics"]);
+    expect(contract.panels[panel].resource).toBeUndefined();
+  }
+  for (const panel of ["open_interest", "funding"]) {
+    expect(contract.panels[panel].source_contract_dependencies)
+      .toEqual(["public_auxiliary"]);
+    expect(contract.panels[panel].resource).toBeUndefined();
+  }
+  for (const panel of ["mark", "index"]) {
+    const source = contract.panels[panel];
+    expect(source.resource).toBe("/api/price-candles");
+    expect(source.schema_version).toBe("1.1");
+    expect(source.revision_kind).toBe("observed_page_digest");
+    expect(source.historical_dataset_revision).toBe("UNPINNED");
+    expect(source.history_complete).toBe(false);
+    expect(source.admitted_to_f).toBe(false);
+  }
+  await expect(page.locator('[data-panel="delta"] .panel-evidence'))
+    .toContainText("tester-public-execution/1");
   expect(verified).toEqual(intervals);
   expect(pageErrors).toEqual([]);
   expect(consoleErrors).toEqual([]);
@@ -126,6 +169,15 @@ test("real FastAPI capabilities and price-only routes across 13 UTC timeframes",
       unexpected_api_statuses: serverErrors,
       unsupported_requests: forbiddenRequests,
       exact_decimal_close: priceBody.data[0].close,
+      capability_protocol: contract.protocol_version,
+      source_contract_versions: {
+        data: contract.source_contracts.public_executions.contract_version,
+        research: contract.source_contracts.observed_execution_metrics.contract_version,
+        public_auxiliary: contract.source_contracts.public_auxiliary.contract_version,
+      },
+      history_complete: contract.observed_page_revision.history_complete,
+      historical_dataset_revision:
+        contract.observed_page_revision.historical_dataset_revision,
     }, null, 2),
   );
 });
