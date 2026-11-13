@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 from src.ingest.execution_contract import (
     ExecutionContractError, VERSION, _canonical, project_storage_execution,
-    read_execution_events, to_research_trade,
+    read_execution_events, read_research_trades, to_research_trade,
 )
 
 MS=1794560000000
@@ -164,6 +164,22 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ExecutionContractError):
             read_execution_events(store,category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=101)
         store.read.assert_called()
+
+    def test_full_page_research_read_refuses_unproven_next_page(self):
+        store = Mock()
+        store.read.return_value = [fixture()]
+        # The event itself is authenticated, but exactly reaching the
+        # requested limit cannot establish that the next page is empty.
+        self.assertEqual(len(read_execution_events(
+            store, category="linear", symbol="BTCUSDT",
+            start_ms=START, end_ms=END, limit=1,
+        )), 1)
+        with self.assertRaisesRegex(ExecutionContractError, "pagination"):
+            read_research_trades(
+                store, category="linear", symbol="BTCUSDT",
+                start_ms=START, end_ms=END, limit=1,
+            )
+        store.ingest.assert_not_called()
 
     def test_duplicate_execid_conflicting_economics(self):
         r=fixture();second=fixture();second['payload']['size']='0.25'
