@@ -8,6 +8,7 @@ on:
       - 'tests/platform/test_capability_discovery.py'
       - 'scripts/capability_fixture_server.py'
       - 'scripts/verify_ui_source_contracts.py'
+      - 'scripts/diagnose_ui_contract_drift.py'
       - 'src/api/capability_source_contracts.py'
       - 'src/api/capability_data_bridge.py'
       - 'docs/ui-capability-protocol-v1.schema.json'
@@ -45,6 +46,8 @@ jobs:
           cache: pip
       - run: python -m pip install 'pip>=26.2,<27'
       - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Diagnose inherited shared-contract drift without mutation
+        run: python scripts/diagnose_ui_contract_drift.py > capability-contract-drift.json
       - name: Verify exact independently pinned DATA/RESEARCH source interfaces
         shell: bash
         run: |
@@ -105,4 +108,5 @@ jobs:
           path: |
             frontend/test-results/
             capability-backend.log
+            capability-contract-drift.json
           if-no-files-found: ignore
