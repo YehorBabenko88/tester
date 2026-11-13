@@ -348,9 +348,13 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             authorized=bool(settings.provider_factory),
             price_route_enabled=price_router_enabled,
         )
+        from .capability_data_bridge import observed_execution_evidence
         from .capability_source_contracts import manifest
 
         availability.update(manifest())
+        availability["execution_source_evidence"] = observed_execution_evidence(
+            reader, query
+        )
         # Advertise optional, separately registered UI routes even when no
         # instrument was selected. Never force the browser to probe an absent
         # catalog router or a disconnected source list (404/503).
