@@ -184,3 +184,18 @@ def test_oi_discovery_uses_selected_source_interval_not_default():
     assert response.status_code == 200
     assert seen == [("1h", "1h", "1")]
     assert response.json()["data"]["panels"]["open_interest"]["status"] == "UNVERIFIED"
+
+
+def test_optional_routes_are_not_advertised_when_backend_not_configured():
+    with client(UnavailableReader()) as c:
+        response = c.get("/api/capabilities")
+        assert response.status_code == 200
+        features = response.json()["data"]["features"]
+        assert features["market_catalog"] == {
+            "enabled": False, "reason": "catalog_not_configured"
+        }
+        assert features["sources"]["enabled"] is False
+        assert features["sources"]["reason"] == "catalog_and_provider_required"
+        assert "/api/market-catalog/linear" not in {
+            route.path for route in c.app.routes
+        }
