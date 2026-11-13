@@ -196,6 +196,7 @@ def test_optional_routes_are_not_advertised_when_backend_not_configured():
         }
         assert features["sources"]["enabled"] is False
         assert features["sources"]["reason"] == "catalog_and_provider_required"
-        assert "/api/market-catalog/linear" not in {
-            route.path for route in c.app.routes
-        }
+        assert not any(
+            route.path.startswith("/api/market-catalog")
+            for route in c.app.routes
+        )
