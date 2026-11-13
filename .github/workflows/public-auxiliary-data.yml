@@ -1,0 +1,27 @@
+name: Public auxiliary DATA contracts
+on:
+  pull_request:
+    paths:
+      - 'src/ingest/public_auxiliary.py'
+      - 'tests/test_public_auxiliary.py'
+      - '.github/workflows/public-auxiliary-data.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install locked project dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Pin tested source
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Offline DATA contracts
+        run: python -m unittest tests.test_public_auxiliary -v
