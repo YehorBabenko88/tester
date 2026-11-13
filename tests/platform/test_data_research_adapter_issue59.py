@@ -426,6 +426,28 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
             start_ms=start, end_ms=start + 60000,
             interval_ms=60000, tick_size="0.5", limit=2,
         )
+    # Inspect the actual migrated database, not just the Python normalizer.
+    # Existing legacy price/size/exchange-ID checks must still be enforced.
+    with reopened.connect() as connection:
+        constraints = dict(connection.execute(
+            """SELECT conname, pg_get_constraintdef(oid)
+               FROM pg_constraint
+               WHERE conrelid = 'tester_storage.raw_records'::regclass
+                 AND conname IN ('raw_records_check2', 'trade_side_required')"""
+        ).fetchall())
+        assert set(constraints) == {"raw_records_check2", "trade_side_required"}
+        assert all("'Unknown'" in clause for clause in constraints.values())
+        persisted = connection.execute(
+            """SELECT payload->>'side' AS side, price, size, trade_id
+               FROM tester_storage.raw_records
+               WHERE venue='bybit' AND category='linear'
+                 AND symbol='BTCUSDT' AND dataset='trades'
+                 AND trade_id='research-pg-side-unknown-v2'"""
+        ).fetchone()
+        assert persisted["side"] == "Unknown"
+        assert str(persisted["price"]) == "101"
+        assert str(persisted["size"]) == "0.25"
+        assert persisted["trade_id"] == "research-pg-side-unknown-v2"
     actual = read_data_metrics(
         reopened, category="linear", symbol="BTCUSDT",
         start_ms=start, end_ms=start + 60000,
