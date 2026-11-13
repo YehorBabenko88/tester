@@ -63,10 +63,13 @@ def _signature(tree, name, required):
 
 
 def _literals(tree):
-    return {
-        node.value for node in ast.walk(tree)
-        if isinstance(node, ast.Constant) and isinstance(node.value, str)
-    }
+    literals = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            literals.add(node.value)
+        if isinstance(node, ast.keyword) and node.arg:
+            literals.add(node.arg)
+    return literals
 
 
 def verify_paths(data, research, metrics):
