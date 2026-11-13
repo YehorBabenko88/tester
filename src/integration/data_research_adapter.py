@@ -5,6 +5,7 @@ bounded PostgreSQL readback. RESEARCH does not re-invent that proof authority.
 Neither a versioned event nor a successful projection certifies full history,
 publication time, Bid/Ask, or admission to F Strategy Lab.
 """
+import importlib
 import re
 
 from src.analytics.core import validate_trade
@@ -145,8 +146,8 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
     """
     _scope(category, symbol, start_ms, end_ms, limit, as_of_ms)
     try:
-        from src.ingest import execution_contract as data
-    except ImportError as exc:
+        data = importlib.import_module("src.ingest.execution_contract")
+    except ModuleNotFoundError as exc:
         if getattr(exc, "name", None) not in ("src.ingest.execution_contract",):
             raise
         raise ValueError("data72_versioned_contract_not_composed") from exc
