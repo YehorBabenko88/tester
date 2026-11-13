@@ -6,11 +6,12 @@ small, bounded page through the configured reader. Never write or download.
 import hashlib
 import json
 import logging
+import re
 from urllib.parse import parse_qs, urlsplit
 
 from contracts.v1.validate import ContractError
 from .models import Query
-from .providers import ProviderUnavailable, ProviderDataUnavailable, UnavailableReader
+from .providers import ProviderUnavailable, UnavailableReader
 from .scope import ScopeError, SourceIntervalError, bound_response, resource_query
 
 PANELS = ("candles", "volume", "footprint", "delta", "cvd", "profile", "poc",
@@ -35,7 +36,7 @@ def _unavailable(panel, status, reason):
 
 
 def _source_ref(provenance, panel, query):
-    """Only authentic Bybit source records qualify, never test/synthetic data."""
+    """Require declared Bybit-origin evidence; reject synthetic source kinds."""
     expected_price_endpoint = {
         "mark": "/v5/market/mark-price-kline",
         "index": "/v5/market/index-price-kline",
@@ -47,6 +48,11 @@ def _source_ref(provenance, panel, query):
         if not isinstance(p, dict) or p.get("source_kind") not in {
             "bybit_rest", "bybit_archive"
         }:
+            return None
+        if (not isinstance(p.get("source_hash"), str)
+                or not re.fullmatch(r"[a-f0-9]{64}", p["source_hash"])
+                or not isinstance(p.get("ingestion_run"), str)
+                or not p["ingestion_run"]):
             return None
         ref = p.get("source_ref")
         if not isinstance(ref, str) or not 1 <= len(ref) <= 512:
@@ -108,7 +114,9 @@ def _verified_page(reader, panel, query):
         if resource == "funding":
             source_query = source_query.model_copy(update={"source_interval": "event"})
         elif resource == "open-interest":
-            source_query = source_query.model_copy(update={"source_interval": "5min"})
+            source_query = source_query.model_copy(
+                update={"source_interval": query.source_interval or "5min"}
+            )
         source_query = resource_query(resource, source_query)
         payload = reader.read(resource, source_query)
         bound_response(resource, record_kind, payload, source_query)
