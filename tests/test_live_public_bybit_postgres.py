@@ -53,10 +53,11 @@ class LiveBybitPostgresTests(unittest.TestCase):
             # Reload from a new database connection and verify original HTTP,
             # row, page and source receipt hashes independently of the fetcher.
             reopened = Store(DSN)
+            observed_now = int(datetime.now(timezone.utc).timestamp() * 1000)
             rows = reopened.read(
                 "trades", "bybit", "linear", symbol,
-                0, 253402300799000, "", limit=100,
-                compact_provenance=True,
+                observed_now - 7 * 86400000, observed_now + 2000,
+                "", limit=100, compact_provenance=True,
             )
             timestamps = [r["timestamp_ms"] for r in rows]
             self.assertTrue(timestamps)
@@ -73,7 +74,7 @@ class LiveBybitPostgresTests(unittest.TestCase):
             self.assertTrue(all(e["source_coverage"]["status"] == "UNKNOWN" for e in events))
             self.assertTrue(all(e["publication_ms"] is None for e in events))
             preview = read_data_metrics(
-                reopened, **read_scope, interval_ms=60000, tick_size="0.5",
+                reopened, **read_scope, interval_ms=60000, tick_size="0.000001",
             )
             self.assertEqual(preview["coverage"], "UNKNOWN")
             self.assertEqual(preview["publication_time"], "UNKNOWN")
