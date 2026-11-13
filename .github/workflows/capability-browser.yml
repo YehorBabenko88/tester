@@ -9,6 +9,9 @@ on:
       - 'scripts/capability_fixture_server.py'
       - 'scripts/verify_ui_source_contracts.py'
       - 'scripts/diagnose_ui_contract_drift.py'
+      - 'scripts/compare_download_kind_proposal.py'
+      - 'docs/proposals/download-kind-v1_1.json'
+      - 'tests/platform/test_download_kind_proposal.py'
       - 'src/api/capability_source_contracts.py'
       - 'src/api/capability_data_bridge.py'
       - 'docs/ui-capability-protocol-v1.schema.json'
@@ -48,6 +51,10 @@ jobs:
       - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
       - name: Diagnose inherited shared-contract drift without mutation
         run: python scripts/diagnose_ui_contract_drift.py > capability-contract-drift.json
+      - name: Validate proposed versioned Kind delta without modifying v1
+        run: |
+          python scripts/compare_download_kind_proposal.py > capability-kind-proposal-evidence.json
+          python -m pytest tests/platform/test_download_kind_proposal.py -q
       - name: Verify exact independently pinned DATA/RESEARCH source interfaces
         shell: bash
         run: |
@@ -109,4 +116,5 @@ jobs:
             frontend/test-results/
             capability-backend.log
             capability-contract-drift.json
+            capability-kind-proposal-evidence.json
           if-no-files-found: ignore
