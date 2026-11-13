@@ -8,9 +8,10 @@ from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 from src.analytics.core import validate_trade
-from src.ingest.execution_contract import read_execution_events, read_research_trades
+from src.ingest.execution_contract import (ExecutionContractError, read_execution_events, read_research_trades)
 from src.ingest.public_auxiliary import fetch_and_ingest
 from src.storage.migrations import migrate
 from src.storage.store import Store
@@ -99,6 +100,38 @@ class ExecutionBridgePostgresTests(unittest.TestCase):
                 "AND trade_id='data72-bridge-disposable-ci-v1'"
             ).fetchone()[0]
         self.assertEqual(count, 1)
+
+    def test_tampered_persisted_page_receipt_fails_after_reconnect(self):
+        # Uses only the disposable CI database. Restore original evidence even
+        # when the fail-closed assertion itself raises unexpectedly.
+        self.test_original_http_to_pg_reconnect_to_research()
+        job = "data72-bridge-replay-v1"
+        with psycopg.connect(DSN) as connection:
+            original = connection.execute(
+                "SELECT evidence FROM tester_storage.pagination_evidence "
+                "WHERE job_key=%s", (job,),
+            ).fetchone()[0]
+            damaged = {**original, "http_sha256": "0" * 64}
+            connection.execute(
+                "UPDATE tester_storage.pagination_evidence "
+                "SET evidence=%s WHERE job_key=%s",
+                (Jsonb(damaged), job),
+            )
+        try:
+            reopened = Store(DSN)
+            with self.assertRaisesRegex(ExecutionContractError, "checksum"):
+                read_execution_events(
+                    reopened, category="linear", symbol="BTCUSDT",
+                    start_ms=STAMP - 1, end_ms=STAMP + 1, limit=10,
+                )
+        finally:
+            with psycopg.connect(DSN) as connection:
+                connection.execute(
+                    "UPDATE tester_storage.pagination_evidence "
+                    "SET evidence=%s WHERE job_key=%s",
+                    (Jsonb(original), job),
+                )
+
 
 
 if __name__ == "__main__":
