@@ -12,8 +12,10 @@ from tempfile import TemporaryDirectory
 import time
 import unittest
 
-from scripts.ops_native_windows_witness import NativeBirth, NativeExitWitness, NativeRestartBlocked, observe_psutil,
-    request_native_scoped_stop, sample_native_resources
+from scripts.ops_native_windows_witness import (
+    NativeBirth, NativeExitWitness, NativeRestartBlocked, observe_psutil,
+    request_native_scoped_stop, sample_native_resources,
+)
 from scripts.ops_win32_handle import WindowsOriginalHandle
 
 CHILD = """import json,os,time,pathlib
