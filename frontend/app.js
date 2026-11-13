@@ -720,6 +720,8 @@ const PANEL_REASON_TEXT = Object.freeze({
   not_applicable_to_spot: "This indicator is derivatives-only",
   endpoint_contract_not_supported: "No compatible analytics endpoint is implemented",
   provider_not_connected: "No qualified data provider is connected",
+  source_not_authorized: "The configured source is not authorized for discovery",
+  reference_price_route_not_enabled: "The price-only API v1.1 route is not enabled",
   source_not_connected: "This source is not connected",
   reference_price_source_not_connected: "The price-only Bybit source is not connected",
   no_verified_observations_in_range: "No verified source observations exist in the chosen range",
@@ -959,7 +961,7 @@ async function loadCharts(options = {}) {
           series.completeness = "PARTIAL";
           series.reason = [series.reason, panelReason(capability.reason)].filter(Boolean).join(" · ");
         }
-        if (["mark", "index"].includes(kind)) {
+        if (["mark", "index"].includes(kind) && series.renderable) {
           const expectedKind = kind === "mark" ? "official_mark" : "official_index";
           const matchesSource = series.provenance.some((p) =>
             p && typeof p === "object" && p.source_ref === capability.source_ref
