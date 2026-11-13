@@ -88,7 +88,11 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
     result = response.get("result")
     if not isinstance(result, dict) or not isinstance(result.get("list"), list):
         raise ValueError("missing result.list")
-    if kind == "open_interest" and interval not in OI_INTERVALS:\n        raise ValueError("OI interval required")\n    if kind != "open_interest" and interval is not None:\n        raise ValueError("unexpected metric interval")\n    observed = _utc(fetched_at)
+    if kind == "open_interest" and interval not in OI_INTERVALS:
+        raise ValueError("OI interval required")
+    if kind != "open_interest" and interval is not None:
+        raise ValueError("unexpected metric interval")
+    observed = _utc(fetched_at)
     if not isinstance(ingestion_run, str) or not ingestion_run or not isinstance(evidence_ref, str) or not evidence_ref:
         raise ValueError("explicit provenance required")
     records = []
@@ -202,7 +206,13 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     body = base64.b64decode(http["bytes_base64"], validate=True)
     if hashlib.sha256(body).hexdigest() != http["sha256"]:
         raise ValueError("HTTP evidence hash mismatch")
-    try:\n        original_response = json.loads(body)\n    except (ValueError, UnicodeDecodeError) as exc:\n        raise ValueError("invalid original HTTP JSON") from exc\n    if original_response.get("retCode") != 0 or original_response.get("result") != result:\n        raise ValueError("HTTP body/result mismatch")\n    evidence_ref = digest([run_id, job_key, url, http["sha256"]])
+    try:
+        original_response = json.loads(body)
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise ValueError("invalid original HTTP JSON") from exc
+    if original_response.get("retCode") != 0 or original_response.get("result") != result:
+        raise ValueError("HTTP body/result mismatch")
+    evidence_ref = digest([run_id, job_key, url, http["sha256"]])
     rows = decode(kind, category, symbol, response, fetched_at=observed_at,
                   url=url, ingestion_run=run_id, evidence_ref=evidence_ref,
                   interval=interval)
