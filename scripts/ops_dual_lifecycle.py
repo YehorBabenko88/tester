@@ -145,7 +145,13 @@ class DisposableApiWorker:
         if (path / "closed.json").exists():
             raise LifecycleBlocked("Pair already closed")
         manifest = _load(path / "manifest.json")
-        if (manifest.get("api") != json.loads(json.dumps(vars(proof.api)))
+        previous = (_digest(_load(self.pair_root / f"{g - 1:04d}" / "closed.json"))
+                    if g else None)
+        if (manifest.get("schema") != "ops-disposable-pair/1"
+                or manifest.get("generation") != g
+                or manifest.get("root") != str(self.root)
+                or manifest.get("previous_closure_sha256") != previous
+                or manifest.get("api") != json.loads(json.dumps(vars(proof.api)))
                 or manifest.get("worker") != json.loads(json.dumps(vars(proof.worker)))):
             raise LifecycleBlocked("Pair manifest ownership changed")
         api_closed = self.api.stop_and_seal(g, expected=proof.api, timeout=timeout)

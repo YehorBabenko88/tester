@@ -12,13 +12,13 @@ Separate Linux disposable temporary root, Python 3.13 and psutil 7.2.2:
 | Suite | Result | What it proves |
 |---|---|---|
 | Existing birth-bound single-process generations | **PASS 14/14** | Cooperative exit and checkpoint, old PID/executable/owner, history integrity, refusal on live/foreign/partial evidence |
-| New disposable API + worker pair | **PASS 10/10** | Both independently owned and externally awaited, exit=0, pair closure, two same-root generations, live-old refusal, foreign controller cannot adopt handles, tampered API/worker witness refusal before new spawn |
+| New disposable API + worker pair | **PASS 11/11** | Both independently owned and externally awaited, exit=0, pair closure, two same-root generations, live-old refusal, foreign controller cannot adopt handles, tampered API/worker or pair-root witness refusal before stop/new spawn |
 | Read-only PostgreSQL metrics with controlled mock rows | **PASS 4/4** | CPU/RAM worker sampling remains independent; SQL is read-only, queue-depth counts, WAL counter and PG incarnation comparison; unknown counters remain null |
 | New real dual-process PostgreSQL integration | **SKIP 1/1 locally** | Exact disposable PG16 endpoint is required and not installed here |
 | Existing isolated PostgreSQL suite | **NOT_RUN locally** | Requires psycopg and disposable PostgreSQL service |
 | GitHub Actions latest exact HEAD | **QUEUED/PENDING until a finished run is available** | Do not infer PASS from queued |
 
-The previous suites were rerun and the new suites executed in the sandbox before publication.
+The previous suites were rerun and the new suites executed in the sandbox before publication.\nOverall local: **PASS 29/29** (14 + 11 + 4), with real PostgreSQL **NOT_RUN**.
 No GitHub Actions/Windows/PC4 PASS is claimed.
 
 ## Separate API + worker lifecycle

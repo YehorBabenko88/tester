@@ -136,3 +136,16 @@ def _test_corrupt_old_api_manifest_refuses_without_worker_spawn(self):
 
 DualProcessTests.test_changed_api_argv_refuses_without_new_worker=_test_changed_api_argv_refuses_without_new_worker
 DualProcessTests.test_corrupt_old_api_manifest_refuses_without_worker_spawn=_test_corrupt_old_api_manifest_refuses_without_worker_spawn
+
+
+def _test_pair_root_change_refuses_both_stop_requests(self):
+    proof=self.ctl.start_pair(self.argv,self.argv)
+    path=self.root/'pair-generations'/'0000'/'manifest.json'
+    manifest=json.loads(path.read_text())
+    manifest['root']='/foreign/root'
+    path.write_text(json.dumps(manifest))
+    with self.assertRaises(LifecycleBlocked): self.ctl.stop_pair_and_seal(proof)
+    for ctl in (self.ctl.api,self.ctl.worker):
+        self.assertFalse((ctl.root/'ops-generations'/'0000'/'stop.request').exists())
+
+DualProcessTests.test_pair_root_change_refuses_both_stop_requests=_test_pair_root_change_refuses_both_stop_requests
