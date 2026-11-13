@@ -45,7 +45,7 @@ def fixture(side='Buy',category='linear'):
                        'event_timestamp_ms':MS,'publication_timestamp_ms':None,'anonymous_public_execution':True,'source_fields':raw},
             'provenance':{'authentic':True,'observations':[{'source_kind':'rest','timestamp_precision':'ms',
                 'authentic_run':True,'source_run_status':'matched','source':source,'evidence':ev,
-                'run_id':run,'job_key':job,'evidence_id':'persisted-evidence-id'}]}}
+                'run_id':run,'job_key':job,'evidence_id':sha(_canonical([job,ev]))}]}}
     r['record_key']=sha(_canonical(['bybit',category,'BTCUSDT','trades','fixture-1']))
     r['content_hash']=sha(_canonical({**{k:r.get(k) for k in ('schema_version','timestamp_ms','timestamp_ns','timestamp_precision','payload','trade_id','id_origin')},'timestamp_us':None}))
     return r
@@ -89,6 +89,8 @@ class ContractTests(unittest.TestCase):
             lambda r: r.__setitem__('symbol','ETHUSDT'),
             lambda r: r['provenance']['observations'][0]['evidence'].pop('start_ms'),
             lambda r: r['provenance']['observations'][0]['evidence'].pop('end_ms'),
+            lambda r: r['provenance']['observations'][0].__setitem__('evidence_id','0'*64),
+            lambda r: r['provenance']['observations'][0]['evidence']['pages'][0].__setitem__('next_cursor','forged'),
         ]
         for i,edit in enumerate(edits):
             with self.subTest(case=i):
