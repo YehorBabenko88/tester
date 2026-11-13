@@ -24,8 +24,6 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
         raise ValueError("integer millisecond bounds required")
     if start_ms < 0 or end_ms <= start_ms or interval_ms <= 0:
         raise ValueError("invalid bounds")
-    if start_ms % interval_ms or end_ms % interval_ms:
-        raise ValueError("window not aligned to UTC interval boundaries")
     if (end_ms - start_ms) % interval_ms:
         raise ValueError("unaligned observation window")
     if (end_ms - start_ms) // interval_ms > MAX_BARS:
