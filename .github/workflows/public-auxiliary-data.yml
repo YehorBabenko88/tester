@@ -15,6 +15,12 @@ on:
       - 'tests/test_live_public_bybit_postgres.py'
       - '.github/workflows/public-auxiliary-data.yml'
   workflow_dispatch:
+    inputs:
+      live_bybit:
+        description: 'Explicitly authorize public Bybit smoke-test (never trading)'
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
 jobs:
@@ -107,7 +113,7 @@ jobs:
       - name: Bounded original HTTP → PostgreSQL → RESEARCH metrics
         run: python -m unittest tests.test_composed_data_research_postgres -v
   live-bybit-postgres:
-    if: github.event_name == 'pull_request' && github.event.pull_request.number == 72
+    if: github.event_name == 'workflow_dispatch' && inputs.live_bybit == true
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     concurrency:
