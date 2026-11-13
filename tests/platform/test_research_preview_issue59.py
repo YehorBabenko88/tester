@@ -45,3 +45,22 @@ def test_wrong_request_type_rejected():
 def test_execution_input_must_be_canonical_list():
     with pytest.raises(ValueError, match="canonical_execution_list_required"):
         bridge.research_preview(object(), request(), (), tick_size="0.5")
+
+
+def test_unaligned_exchange_interval_refused(monkeypatch):
+    monkeypatch.setattr(bridge, "read_canonical_snapshot", lambda *args: QualifiedSnapshot(
+        "REAL", "x", None, "x", False, (), None, "{}"))
+    req = SnapshotRequest("bybit", "linear", "BTCUSDT", "1", 1, 60001)
+    with pytest.raises(ValueError, match="request_not_aligned_to_exchange_interval"):
+        bridge.research_preview(object(), req, [], tick_size="0.5")
+
+
+def test_weekly_interval_uses_monday_utc(monkeypatch):
+    monkeypatch.setattr(bridge, "read_canonical_snapshot", lambda *args: QualifiedSnapshot(
+        "REAL", "x", None, "x", False, (), None, "{}"))
+    # 2024-01-01 00:00 UTC was Monday.
+    start = 1704067200000
+    req = SnapshotRequest("bybit", "linear", "BTCUSDT", "W", start, start + 604800000)
+    result = bridge.research_preview(object(), req, [], tick_size="0.5")
+    assert result["status"] == "UNVERIFIED"
+    assert result["f_input"] is None
