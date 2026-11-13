@@ -62,11 +62,14 @@ jobs:
           python -m unittest discover -s tests/platform -p 'test_ops_pg_real.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_pg_lifecycle_real.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_pg_dual_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_load_real.py' -v
       - name: Publish disposable PG queue/WAL/process evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ops-dual-pg-evidence
-          path: ops-dual-pg-evidence.json
+          path: |
+            ops-dual-pg-evidence.json
+            ops-load-pg-evidence.json
           if-no-files-found: ignore
           retention-days: 14
