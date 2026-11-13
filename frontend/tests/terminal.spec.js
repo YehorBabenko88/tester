@@ -1173,3 +1173,22 @@ test("capability denial suppresses unsupported chart requests for all 13 interva
   expect(chartRequests).toEqual([]);
   expect(failures).toEqual([]);
 });
+
+test("mark and index use separate official candle kinds without analytics fallback", async ({ page }) => {
+  const requested = [];
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await setup(page);
+  page.on("request", req => {
+    const url = new URL(req.url());
+    if (url.pathname === "/api/candles") requested.push(url.searchParams.get("candle_kind"));
+  });
+  await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
+  await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
+  await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
+  await expect(page.locator('[data-panel="mark"]')).not.toContainText("Loading…");
+  await expect(page.locator('[data-panel="index"]')).not.toContainText("Loading…");
+  expect(requested).toContain("official_mark");
+  expect(requested).toContain("official_index");
+  expect(errors).toEqual([]);
+});
