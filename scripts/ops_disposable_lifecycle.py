@@ -116,6 +116,8 @@ class DisposableLifecycle:
                     or manifest.get("root") != str(self.root)
                     or manifest.get("owner") != json.loads(json.dumps(vars(proof)))
                     or manifest.get("argv") != list(proof.argv)
+                    or not isinstance(manifest.get("config_sha256"), str)
+                    or len(manifest["config_sha256"]) != 64
                     or manifest.get("previous_closure_sha256") != previous_sha
                     or checkpoint.get("generation") != index
                     or checkpoint.get("owner_marker") != self.marker
@@ -132,6 +134,12 @@ class DisposableLifecycle:
     def start(self, argv: list[str], *, environment: dict[str, str] | None = None) -> OwnerProof:
         if not argv or not Path(argv[0]).is_absolute():
             raise LifecycleBlocked("Exact absolute executable required")
+        # Bind static caller config, never store the DSN/password itself in receipts.
+        fixed_env = {} if environment is None else {
+            key: environment[key]
+            for key in ("OPS_JOB_ID", "TEST_OPS_ISOLATED_DSN") if key in environment
+        }
+        config_sha256 = _digest(fixed_env)
         generations = self.root / "ops-generations"
         if generations.is_symlink():
             raise LifecycleBlocked("Symlink generation root refused")
@@ -146,8 +154,8 @@ class DisposableLifecycle:
         if numbers:
             self._verify_sealed_history(generations, len(numbers))
             manifest = _load(generations / f"{numbers[-1]:04d}" / "manifest.json")
-            if manifest.get("argv") != argv:
-                raise LifecycleBlocked("Exact executable arguments differ")
+            if manifest.get("argv") != argv or manifest.get("config_sha256") != config_sha256:
+                raise LifecycleBlocked("Exact source or configuration differs")
         generation = len(numbers)
         directory = generations / f"{generation:04d}"
         directory.mkdir(mode=0o700)  # exclusive reservation; never reuse
@@ -179,7 +187,8 @@ class DisposableLifecycle:
         self.proofs[generation] = proof
         manifest = {"schema": "ops-disposable/1", "generation": generation,
                     "root": str(self.root), "owner": vars(proof),
-                    "argv": argv, "previous_closure_sha256": (
+                    "argv": argv, "config_sha256": config_sha256,
+                    "previous_closure_sha256": (
                         _digest(_load(generations / f"{generation-1:04d}" / "closed.json"))
                         if generation else None)}
         _write_new(directory / "manifest.json", manifest)

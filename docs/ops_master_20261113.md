@@ -6,16 +6,17 @@ Target: Draft PR #73 only; no main merge, no PC4/ADMINIT/office/PG5432 changes.
 ## Local isolated verification (Linux, Python 3.13.5)
 
 Executable subprocess tests against exact committed blobs:
-- scripts/ops_disposable_lifecycle.py: 51106fb62779c79facf400e428e11a81923ba0e0
-- tests/platform/test_ops_disposable_lifecycle.py: b480205ecca17c76c240e2abd19aa59b72c216eb
+- scripts/ops_disposable_lifecycle.py: e1cb7fe6cd2d98f4fcf26016f562ce46881c114b
+- tests/platform/test_ops_disposable_lifecycle.py: b128d12499069d6f44a322027890a942cc7e3e50
 
-- PASS 13/13: two real Python child generations in one disposable root, cooperative
+- PASS 14/14: two real Python child generations in one disposable root, cooperative
   stop via create-only request, real process-handle wait exit 0 and checkpoint;
   no restart while live; reject stale/foreign PID, OS birth, executable path,
   owner name and marker; reject reused stop marker, altered previous manifest,
   altered checkpoint, changed exact argv and a timed-out drain without kill.
-  Four additional PASS cover tampering with an older generation, unexpected
-  history files, symlinked evidence, and an unknown manifest schema.
+  Five additional PASS cover tampering with an older generation, unexpected
+  history files, symlinked evidence, unknown manifest schema, and modified
+  fixed environment/DB configuration before restart.
 - PASS 6/6 earlier standalone checkpoint unit tests in local ops_work copy.
   Those six are NOT an exact-SHA run of the current full GitHub branch.
 - SKIP 3/3 previous real PostgreSQL tests plus SKIP 1/1 new integrated
@@ -26,7 +27,8 @@ Executable subprocess tests against exact committed blobs:
   New tests/platform/test_ops_pg_lifecycle_real.py launches two real owner-bound
   Python workers in one disposable directory, verifies checkpoint persistence,
   queued recovery, attempt count 2, distinct lease tokens, old-token refusal,
-  and final completed state. This integrated DB test is authored, NOT_RUN here.
+  final completed state, and unchanged PostgreSQL system identifier and
+  postmaster birth time. This integrated DB test is authored, NOT_RUN here.
 - GitHub Actions result for new HEAD: NOT_RUN/UNKNOWN until run concludes.
 - Windows native process/role/worker acceptance: NOT_RUN.
 - Actual PC4 portable same-root restart: NOT_RUN; not implemented by this helper.
@@ -35,7 +37,7 @@ Executable subprocess tests against exact committed blobs:
 ## Resource observation (one real fixture child, not sustained load)
 
 Read-only psutil measurement on one owned Linux Python process:
-RSS 2,875,392 bytes; CPU 89.8% sampled over 0.1 second; 1 thread;
+RSS 2,813,952 bytes; CPU 89.9% sampled over 0.1 second; 1 thread;
 read_bytes=0, write_bytes=0; cooperative exit=0 and checkpoint present.
 This is a single observation, not an upper bound, capacity result or an
 operational performance claim. Unknown/NOT_RUN: actual PG, Windows process

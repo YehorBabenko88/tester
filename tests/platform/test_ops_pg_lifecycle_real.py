@@ -38,6 +38,10 @@ class IsolatedFullRecovery(unittest.TestCase):
                 job_id, Jsonb(dict(category="linear", symbol="BTCUSDT", source="bybit",
                                    kind="candles", interval="1", start_ms=0, end_ms=60000))
             ))
+        with connect(DSN) as conn:
+            pg_before = conn.execute(
+                "SELECT (pg_control_system()).system_identifier::text,pg_postmaster_start_time()"
+            ).fetchone()
         with tempfile.TemporaryDirectory() as directory:
             runtime = DisposableLifecycle(Path(directory), marker="ci-owned-postgres-lifecycle-123456")
             argv = [str(Path(sys.executable).resolve()), "-m", "scripts.ops_pg_disposable_worker"]
@@ -62,6 +66,11 @@ class IsolatedFullRecovery(unittest.TestCase):
                 self.assertFalse(JobQueue(DSN).active(job_id, previous["lease_token"]))
                 seal2 = runtime.stop_and_seal(1, expected=second)
                 self.assertEqual(seal2["exit_code"], 0)
+                with connect(DSN) as conn:
+                    pg_after = conn.execute(
+                        "SELECT (pg_control_system()).system_identifier::text,pg_postmaster_start_time()"
+                    ).fetchone()
+                self.assertEqual(pg_before, pg_after, "PostgreSQL incarnation changed")
                 final = JobQueue(DSN).get(job_id)
                 self.assertEqual(final.state, "completed")
                 self.assertEqual(final.attempts, 2)

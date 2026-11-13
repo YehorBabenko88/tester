@@ -174,3 +174,15 @@ ExactLifecycleTests.test_ancestor_checkpoint_tamper_blocks_third_generation = _t
 ExactLifecycleTests.test_unknown_history_file_refuses = _test_unknown_history_file_refuses
 ExactLifecycleTests.test_symlinked_checkpoint_refuses = _test_symlinked_checkpoint_refuses
 ExactLifecycleTests.test_unknown_manifest_schema_refuses_stop = _test_unknown_manifest_schema_refuses_stop
+
+
+def _test_changed_config_refuses_restart(self):
+    fixed = {"OPS_JOB_ID": "fixture-one", "TEST_OPS_ISOLATED_DSN": "disposable-only"}
+    owner = self.ctl.start(self.argv, environment=fixed)
+    self.started.append(self.ctl.handles[0])
+    self.ctl.stop_and_seal(0, expected=owner)
+    wrong = dict(fixed, OPS_JOB_ID="foreign-job")
+    with self.assertRaises(LifecycleBlocked): self.ctl.start(self.argv, environment=wrong)
+    self.assertFalse((Path(self.tmp.name)/'ops-generations'/'0001').exists())
+
+ExactLifecycleTests.test_changed_config_refuses_restart = _test_changed_config_refuses_restart
