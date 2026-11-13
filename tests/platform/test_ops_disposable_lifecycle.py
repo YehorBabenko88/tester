@@ -126,3 +126,51 @@ ExactLifecycleTests.test_tampered_manifest_refuses_stop=_test_tampered_manifest_
 ExactLifecycleTests.test_tampered_checkpoint_refuses_restart=_test_tampered_checkpoint_refuses_restart
 ExactLifecycleTests.test_source_change_refuses_restart=_test_source_change_refuses_restart
 ExactLifecycleTests.test_stop_timeout_does_not_kill=_test_stop_timeout_does_not_kill
+
+
+def _test_ancestor_checkpoint_tamper_blocks_third_generation(self):
+    self.launch()
+    self.ctl.stop_and_seal(0)
+    self.launch()
+    self.ctl.stop_and_seal(1)
+    root=Path(self.tmp.name)/'ops-generations'
+    (root/'0000'/'checkpoint.json').write_text('tampered')
+    with self.assertRaises(LifecycleBlocked): self.ctl.start(self.argv)
+    self.assertFalse((root/'0002').exists())
+
+
+def _test_unknown_history_file_refuses(self):
+    self.launch()
+    self.ctl.stop_and_seal(0)
+    root=Path(self.tmp.name)/'ops-generations'
+    (root/'0000'/'foreign.marker').write_text('unowned')
+    with self.assertRaises(LifecycleBlocked): self.ctl.start(self.argv)
+    self.assertFalse((root/'0001').exists())
+
+
+def _test_symlinked_checkpoint_refuses(self):
+    self.launch()
+    self.ctl.stop_and_seal(0)
+    root=Path(self.tmp.name)/'ops-generations'
+    evidence=root/'0000'/'checkpoint.json'
+    original=root/'original.json'
+    evidence.rename(original)
+    evidence.symlink_to(original)
+    with self.assertRaises(LifecycleBlocked): self.ctl.start(self.argv)
+    self.assertFalse((root/'0001').exists())
+
+
+def _test_unknown_manifest_schema_refuses_stop(self):
+    self.launch()
+    root=Path(self.tmp.name)/'ops-generations'
+    manifest=root/'0000'/'manifest.json'
+    value=json.loads(manifest.read_text())
+    value['schema']='unrecognized'
+    manifest.write_text(json.dumps(value))
+    with self.assertRaises(LifecycleBlocked): self.ctl.stop_and_seal(0)
+    self.assertFalse((root/'0000'/'stop.request').exists())
+
+ExactLifecycleTests.test_ancestor_checkpoint_tamper_blocks_third_generation = _test_ancestor_checkpoint_tamper_blocks_third_generation
+ExactLifecycleTests.test_unknown_history_file_refuses = _test_unknown_history_file_refuses
+ExactLifecycleTests.test_symlinked_checkpoint_refuses = _test_symlinked_checkpoint_refuses
+ExactLifecycleTests.test_unknown_manifest_schema_refuses_stop = _test_unknown_manifest_schema_refuses_stop

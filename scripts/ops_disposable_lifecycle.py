@@ -33,7 +33,12 @@ def _write_new(path: Path, data: dict) -> None:
 
 def _load(path: Path) -> dict:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 1_048_576:
+            raise LifecycleBlocked("Unsafe evidence file")
+        value = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(value, dict):
+            raise LifecycleBlocked("Evidence object required")
+        return value
     except (OSError, ValueError) as exc:
         raise LifecycleBlocked("Missing or invalid generation evidence") from exc
 
@@ -81,6 +86,49 @@ class DisposableLifecycle:
         self.handles: dict[int, subprocess.Popen] = {}
         self.proofs: dict[int, OwnerProof] = {}
 
+    def _verify_sealed_history(self, generations: Path, count: int) -> None:
+        """Verify the *entire* hash chain, not just the previous generation.
+
+        Controller handles are required for every ancestor: records alone never
+        authorize an unattended restart after the controller is lost.
+        """
+        previous_sha = None
+        for index in range(count):
+            directory = generations / f"{index:04d}"
+            if directory.is_symlink() or not directory.is_dir():
+                raise LifecycleBlocked("Unsafe generation directory")
+            permitted = {"manifest.json", "checkpoint.json", "closed.json", "stop.request"}
+            if {item.name for item in directory.iterdir()} != permitted:
+                raise LifecycleBlocked("Partial or unexpected generation files")
+            if any(item.is_symlink() or not item.is_file() for item in directory.iterdir()):
+                raise LifecycleBlocked("Symlink or non-file evidence refused")
+            manifest = _load(directory / "manifest.json")
+            closure = _load(directory / "closed.json")
+            checkpoint_path = directory / "checkpoint.json"
+            checkpoint = _load(checkpoint_path)
+            request = _load(directory / "stop.request")
+            handle = self.handles.get(index)
+            proof = self.proofs.get(index)
+            if handle is None or proof is None or handle.pid != proof.pid or handle.poll() != 0:
+                raise LifecycleBlocked("Missing birth-bound clean exit handle")
+            if (manifest.get("schema") != "ops-disposable/1"
+                    or manifest.get("generation") != index
+                    or manifest.get("root") != str(self.root)
+                    or manifest.get("owner") != json.loads(json.dumps(vars(proof)))
+                    or manifest.get("argv") != list(proof.argv)
+                    or manifest.get("previous_closure_sha256") != previous_sha
+                    or checkpoint.get("generation") != index
+                    or checkpoint.get("owner_marker") != self.marker
+                    or request != {"kind": "cooperative", "generation": index}
+                    or closure.get("schema") != "ops-closure/1"
+                    or closure.get("generation") != index
+                    or closure.get("manifest_sha256") != _digest(manifest)
+                    or closure.get("checkpoint_sha256") != hashlib.sha256(checkpoint_path.read_bytes()).hexdigest()
+                    or closure.get("exit_code") != 0
+                    or closure.get("drained") is not True):
+                raise LifecycleBlocked("Generation evidence chain invalid")
+            previous_sha = _digest(closure)
+
     def start(self, argv: list[str], *, environment: dict[str, str] | None = None) -> OwnerProof:
         if not argv or not Path(argv[0]).is_absolute():
             raise LifecycleBlocked("Exact absolute executable required")
@@ -96,23 +144,10 @@ class DisposableLifecycle:
         if numbers != list(range(len(numbers))) or len(numbers) >= 32:
             raise LifecycleBlocked("Generation gap or limit reached")
         if numbers:
-            previous = generations / f"{numbers[-1]:04d}"
-            manifest = _load(previous / "manifest.json")
-            closure = _load(previous / "closed.json")
-            prior = numbers[-1]
-            if prior not in self.proofs:
-                raise LifecycleBlocked("Prior controller owner proof unavailable")
-            if (manifest.get("owner") != json.loads(json.dumps(vars(self.proofs.get(prior))))
-                    or manifest.get("root") != str(self.root)
-                    or manifest.get("argv") != argv):
-                raise LifecycleBlocked("Prior source, owner or executable identity differs")
-            checkpoint_path = previous / "checkpoint.json"
-            if (closure.get("manifest_sha256") != _digest(manifest)
-                    or closure.get("checkpoint_sha256") != hashlib.sha256(checkpoint_path.read_bytes()).hexdigest()
-                    or closure.get("exit_code") != 0 or closure.get("drained") is not True):
-                raise LifecycleBlocked("Prior generation not certified closed")
-            if prior not in self.handles or self.handles[prior].poll() != 0:
-                raise LifecycleBlocked("Prior birth-bound process handle unavailable")
+            self._verify_sealed_history(generations, len(numbers))
+            manifest = _load(generations / f"{numbers[-1]:04d}" / "manifest.json")
+            if manifest.get("argv") != argv:
+                raise LifecycleBlocked("Exact executable arguments differ")
         generation = len(numbers)
         directory = generations / f"{generation:04d}"
         directory.mkdir(mode=0o700)  # exclusive reservation; never reuse
@@ -161,7 +196,9 @@ class DisposableLifecycle:
         observe_owned(handle, owner)
         directory = self.root / "ops-generations" / f"{generation:04d}"
         manifest = _load(directory / "manifest.json")
-        if (manifest.get("owner") != json.loads(json.dumps(vars(owner)))
+        if (manifest.get("schema") != "ops-disposable/1"
+                or manifest.get("generation") != generation
+                or manifest.get("owner") != json.loads(json.dumps(vars(owner)))
                 or manifest.get("root") != str(self.root)
                 or manifest.get("argv") != list(owner.argv)):
             raise LifecycleBlocked("Manifest ownership mismatch")
@@ -176,7 +213,9 @@ class DisposableLifecycle:
             raise LifecycleBlocked("Nonzero exit; generation remains unsealed")
         checkpoint_path = directory / "checkpoint.json"
         checkpoint = _load(checkpoint_path)
-        if checkpoint.get("generation") != generation or checkpoint.get("owner_marker") != self.marker:
+        if (checkpoint.get("generation") != generation
+                or checkpoint.get("owner_marker") != self.marker
+                or not isinstance(checkpoint.get("inflight"), str)):
             raise LifecycleBlocked("Drain checkpoint missing or wrong owner")
         receipt = {"schema": "ops-closure/1", "generation": generation,
                    "exit_code": code, "drained": True,

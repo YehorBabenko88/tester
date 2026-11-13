@@ -6,20 +6,27 @@ Target: Draft PR #73 only; no main merge, no PC4/ADMINIT/office/PG5432 changes.
 ## Local isolated verification (Linux, Python 3.13.5)
 
 Executable subprocess tests against exact committed blobs:
-- scripts/ops_disposable_lifecycle.py: 6f45932d6d21982de0867cc20e29e6e86e046461
-- tests/platform/test_ops_disposable_lifecycle.py: 8ca422096904e447fe1e4c86575c12e693906eac
+- scripts/ops_disposable_lifecycle.py: 51106fb62779c79facf400e428e11a81923ba0e0
+- tests/platform/test_ops_disposable_lifecycle.py: b480205ecca17c76c240e2abd19aa59b72c216eb
 
-- PASS 9/9: two real Python child generations in one disposable root, cooperative
+- PASS 13/13: two real Python child generations in one disposable root, cooperative
   stop via create-only request, real process-handle wait exit 0 and checkpoint;
   no restart while live; reject stale/foreign PID, OS birth, executable path,
   owner name and marker; reject reused stop marker, altered previous manifest,
   altered checkpoint, changed exact argv and a timed-out drain without kill.
+  Four additional PASS cover tampering with an older generation, unexpected
+  history files, symlinked evidence, and an unknown manifest schema.
 - PASS 6/6 earlier standalone checkpoint unit tests in local ops_work copy.
   Those six are NOT an exact-SHA run of the current full GitHub branch.
-- SKIP 3/3: real PostgreSQL tests could not execute in the local sandbox:
+- SKIP 3/3 previous real PostgreSQL tests plus SKIP 1/1 new integrated
+  isolated-PG process/recovery test: PostgreSQL unavailable in local sandbox:
   no postgres/initdb/pg_ctl, Docker/Podman or psycopg module available.
   The new GitHub Actions portable-pg job is provisioned to test a disposable
   postgres:16 service on host port 55479, never a user/office PG5432.
+  New tests/platform/test_ops_pg_lifecycle_real.py launches two real owner-bound
+  Python workers in one disposable directory, verifies checkpoint persistence,
+  queued recovery, attempt count 2, distinct lease tokens, old-token refusal,
+  and final completed state. This integrated DB test is authored, NOT_RUN here.
 - GitHub Actions result for new HEAD: NOT_RUN/UNKNOWN until run concludes.
 - Windows native process/role/worker acceptance: NOT_RUN.
 - Actual PC4 portable same-root restart: NOT_RUN; not implemented by this helper.

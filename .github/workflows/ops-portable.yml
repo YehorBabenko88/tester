@@ -55,4 +55,6 @@ jobs:
       - name: Install isolated tester dependencies
         run: python -m pip install -e . psutil
       - name: Execute real PostgreSQL lease fencing on disposable CI service
-        run: python -m unittest discover -s tests/platform -p 'test_ops_pg_real.py' -v
+        run: |
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_lifecycle_real.py' -v
