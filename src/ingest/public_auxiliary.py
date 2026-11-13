@@ -181,7 +181,7 @@ def ingest_page(store, *, kind, category, symbol, response, fetched_at,
 
 def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
                      start_ms=None, end_ms=None, interval=None, limit=None,
-                     observed_at=None):
+                     observed_at=None, cursor_in=None, return_receipt=False):
     """One bounded official public REST page, never an implied full backfill.
 
     api is src.ingest.rest.API (or a contract-compatible replay adapter).
@@ -190,6 +190,10 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     from src.storage.models import digest
     path, params = request(kind, category, symbol, start_ms=start_ms,
                            end_ms=end_ms, interval=interval, limit=limit)
+    if cursor_in is not None:
+        if kind != "open_interest" or not isinstance(cursor_in, str) or not cursor_in or len(cursor_in) > 4096:
+            raise ValueError("cursor supported only for bounded OI pages")
+        params["cursor"] = cursor_in
     result, url = api.call(path, params)
     response = {"retCode": 0, "result": result}
     observed_at = observed_at or datetime.now(timezone.utc)
@@ -226,7 +230,7 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     if any(not start_ms <= row["timestamp_ms"] < end_ms for row in rows):
         raise ValueError("source returned data outside requested time window")
     cursor = result.get("nextPageCursor")
-    if cursor is not None and (not isinstance(cursor, str) or not cursor):
+    if cursor is not None and (not isinstance(cursor, str) or not cursor or cursor == cursor_in):
         raise ValueError("invalid pagination cursor")
     evidence = {
         "venue": "bybit", "category": category, "symbol": symbol,
@@ -237,7 +241,45 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
         "source_url": url, "observed_at_utc": _utc(observed_at),
         "http_sha256": http["sha256"], "http_hash_scope": "original_http_body",
         "http_bytes_base64": http["bytes_base64"],
-        "pages": [{"params": params, "cursor": None, "next_cursor": cursor,
+        "pages": [{"params": params, "cursor": cursor_in, "next_cursor": cursor,
                    "count": len(rows), "http_sha256": http["sha256"]}],
     }
-    return store.ingest(rows, evidence, job_key, run_id=run_id)
+    published = store.ingest(rows, evidence, job_key, run_id=run_id)
+    if return_receipt:
+        return {"published": published, "next_cursor": cursor, "records": len(rows),
+                "http_sha256": http["sha256"], "coverage": "UNKNOWN"}
+    return published
+
+
+def fetch_open_interest_pages(store, api, *, category, symbol, run_id,
+                              job_prefix, start_ms, end_ms, interval="5min",
+                              max_pages=10, limit=200, stop=None):
+    """Bounded cursor traversal. Each page commits its own immutable receipt.
+
+    A missing cursor is *not* evidence of complete historical availability.
+    Caller supplies an isolated PostgreSQL Store and explicit scope.
+    """
+    if type(max_pages) is not int or not 1 <= max_pages <= 100:
+        raise ValueError("invalid page budget")
+    if not isinstance(job_prefix, str) or not job_prefix:
+        raise ValueError("job prefix required")
+    cursor = None
+    seen = set()
+    receipts = []
+    for index in range(max_pages):
+        if stop is not None and stop():
+            return {"status": "PAUSED", "pages": receipts, "coverage": "UNKNOWN"}
+        page = fetch_and_ingest(
+            store, api, kind="open_interest", category=category, symbol=symbol,
+            run_id=run_id, job_key=f"{job_prefix}:page:{index}",
+            start_ms=start_ms, end_ms=end_ms, interval=interval, limit=limit,
+            cursor_in=cursor, return_receipt=True,
+        )
+        receipts.append(page)
+        cursor = page["next_cursor"]
+        if cursor is None:
+            return {"status": "OBSERVED", "pages": receipts, "coverage": "UNKNOWN"}
+        if cursor in seen:
+            raise ValueError("repeated pagination cursor")
+        seen.add(cursor)
+    return {"status": "PAGE_BUDGET_EXHAUSTED", "pages": receipts, "coverage": "UNKNOWN"}
