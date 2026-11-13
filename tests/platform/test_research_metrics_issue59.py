@@ -101,3 +101,10 @@ def test_unverified_source_hash_is_disclosed():
     assert "source_content_hash_missing" in bar["reasons"]
     assert bar["vwap_volume_coverage_certified"] is False
     assert bar["poc_volume_coverage_certified"] is False
+
+def test_observed_sample_counts_are_not_completeness_proofs():
+    a = run([trade(1, "100", "1", "Unknown", "a")])
+    assert a["observed_execution_count"] == 1
+    assert a["empty_bar_count"] == 1
+    assert a["unknown_side_bar_count"] == 1
+    assert a["admitted_to_f"] is False
