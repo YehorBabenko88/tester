@@ -43,3 +43,19 @@ disposable PostgreSQL test must prove its true PG identifier and active-lease
 refusal. Never mark installed PC4 native restart PASS from these fixtures.
 
 Rollback: discard this opt-in PR branch. No physical installation changed.
+
+## Mandatory typed original-handle proof at reservation seal
+
+The native reservation seal now requires the actual `NativeExitWitness`
+instance plus its retained external exit receipt; the caller can no longer
+pass two bare booleans claiming that handles exited and leases were fenced.
+The admission layer invokes `witness.require_restart_allowed(receipt)`
+again, checks both roles' pinned configuration digest, probes PostgreSQL
+incarnation and verifies every durable lease is non-running before writing
+create-only `closure.json`. Its closure links the SHA-256 of the validated
+external witness, the reservation and the exact PostgreSQL incarnation.
+
+Pure unit tests inject a deliberately limited fake witness and therefore do
+not alone certify Win32. The separate Windows fixture uses the real original
+Win32 handles while the independent PostgreSQL hosted job provides real DB
+proofs. A single combined native Windows+PG E2E remains **NOT_RUN/BLOCKED**.

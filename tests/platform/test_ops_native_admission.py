@@ -2,6 +2,7 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock
+from types import SimpleNamespace
 import json
 import unittest
 
@@ -20,6 +21,13 @@ class NativeAdmissionTests(unittest.TestCase):
                            "pg_postmaster_start": "pg-birth-2026"}
         self.lease = lambda: {"job1": "queued", "job2": "completed"}
         self.exited = lambda generation: True
+        self.witness = SimpleNamespace(
+            generation=0, root=self.root,
+            items=((SimpleNamespace(role="api",config_sha256="b"*64),object()),
+                   (SimpleNamespace(role="worker",config_sha256="b"*64),object())),
+            require_restart_allowed=lambda receipt: None)
+        self.receipt = {"schema":"ops-native-win-exit/1","generation":0}
+
 
     def reserve(self, generation=0, **kwargs):
         return self.admission.reserve(
@@ -46,7 +54,8 @@ class NativeAdmissionTests(unittest.TestCase):
     def test_sealed_generation_requires_external_original_handle(self):
         self.reserve()
         self.admission.seal_reservation(
-            0, original_handle_exit_verified=True, lease_fence_verified=True)
+            0, witness=self.witness, receipt=self.receipt,
+            pg_probe=self.pg, leases_probe=self.lease)
         with self.assertRaises(NativeRestartBlocked):
             self.reserve(1, exit=lambda g: False)
         folder = self.reserve(1)
@@ -55,7 +64,8 @@ class NativeAdmissionTests(unittest.TestCase):
     def test_forged_closure_cannot_override_live_old_process(self):
         self.reserve()
         self.admission.seal_reservation(
-            0, original_handle_exit_verified=True, lease_fence_verified=True)
+            0, witness=self.witness, receipt=self.receipt,
+            pg_probe=self.pg, leases_probe=self.lease)
         new = NativeAdmission(self.root, self.pin)
         validator = Mock(return_value=False)
         with self.assertRaises(NativeRestartBlocked):
@@ -77,7 +87,8 @@ class NativeAdmissionTests(unittest.TestCase):
     def test_tampered_reservation_blocks_future_generation(self):
         self.reserve()
         self.admission.seal_reservation(
-            0, original_handle_exit_verified=True, lease_fence_verified=True)
+            0, witness=self.witness, receipt=self.receipt,
+            pg_probe=self.pg, leases_probe=self.lease)
         path = self.admission.generations/"0000"/"reservation.json"
         data = json.loads(path.read_text())
         data["pin"]["source_sha"] = "f"*40
@@ -97,11 +108,22 @@ class NativeAdmissionTests(unittest.TestCase):
         with self.assertRaises(NativeRestartBlocked):
             self.reserve(1)
 
+    def test_witness_refusal_blocks_native_closure(self):
+        self.reserve()
+        self.witness.require_restart_allowed = lambda receipt: (_ for _ in ()).throw(
+            NativeRestartBlocked("live old original handle"))
+        with self.assertRaises(NativeRestartBlocked):
+            self.admission.seal_reservation(
+                0, witness=self.witness, receipt=self.receipt,
+                pg_probe=self.pg, leases_probe=self.lease)
+        self.assertFalse((self.admission.generations/"0000"/"closure.json").exists())
+
     def test_no_successor_without_lease_fence(self):
         self.reserve()
         with self.assertRaises(NativeRestartBlocked):
             self.admission.seal_reservation(
-                0, original_handle_exit_verified=True, lease_fence_verified=False)
+                0, witness=self.witness, receipt=self.receipt,
+                pg_probe=self.pg, leases_probe=lambda: {"running": "running"})
         self.assertFalse((self.admission.generations/"0000"/"closure.json").exists())
 
 

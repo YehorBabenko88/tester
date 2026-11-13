@@ -150,17 +150,9 @@ class DisposableWin32Launcher:
             checkpoint_paths={"api": pair.api.checkpoint_path,
                               "worker": pair.worker.checkpoint_path},
             timeout=8)
-        witness.require_restart_allowed(receipt)
-        # Revalidate PG incarnation and no live claims before enabling successor.
-        pg = dict(self.pg_probe())
-        pin = self.admission.pin
-        if (pg.get("pg_system_identifier") != pin.pg_system_identifier
-                or pg.get("pg_postmaster_start") != pin.pg_postmaster_start):
-            raise NativeRestartBlocked("PostgreSQL incarnation changed after exit")
-        if any(state not in {"queued", "completed", "failed", "paused"}
-               for state in self.leases_probe().values()):
-            raise NativeRestartBlocked("Unfenced PostgreSQL job after exit")
+        # Only the actual original-handle witness can authorize closure.
+        # PG incarnation + lease probes are rechecked inside the admission gate.
         self.admission.seal_reservation(
-            pair.generation, original_handle_exit_verified=True,
-            lease_fence_verified=True)
+            pair.generation, witness=witness, receipt=receipt,
+            pg_probe=self.pg_probe, leases_probe=self.leases_probe)
         return receipt

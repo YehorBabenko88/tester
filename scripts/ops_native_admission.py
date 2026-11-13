@@ -119,6 +119,10 @@ class NativeAdmission:
                         or closure.get("schema") != "ops-native-closure-link/1"
                         or closure.get("generation") != i
                         or closure.get("reservation_sha256") != _digest(reservation)
+                        or not isinstance(closure.get("native_exit_sha256"), str)
+                        or len(closure["native_exit_sha256"]) != 64
+                        or closure.get("pg_system_identifier") != self.pin.pg_system_identifier
+                        or closure.get("pg_postmaster_start") != self.pin.pg_postmaster_start
                         or closure.get("restart_allowed") is not True
                         or not previous_exit_validator(i)):
                     raise NativeRestartBlocked("Unproven prior native closure")
@@ -155,16 +159,44 @@ class NativeAdmission:
         return folder
 
     def seal_reservation(self, generation: int, *,
-                         original_handle_exit_verified: bool,
-                         lease_fence_verified: bool) -> dict:
+                         witness, receipt: dict,
+                         pg_probe: Callable[[], Mapping],
+                         leases_probe: Callable[[], Mapping[str, str]]) -> dict:
+        """Require the *actual* original-handle witness, not caller booleans.
+
+        This is still an opt-in fixture API. Original process handles are
+        external capabilities which cannot be recreated from saved PID files.
+        """
         folder = self.generations / f"{generation:04d}"
         record = _read_exact(folder / "reservation.json")
-        if (record.get("pin") != vars(self.pin) or record.get("generation") != generation
-                or not original_handle_exit_verified or not lease_fence_verified):
-            raise NativeRestartBlocked("Native exit and durable lease proof required")
+        if (record.get("schema") != "ops-native-reservation/1"
+                or record.get("pin") != vars(self.pin)
+                or record.get("generation") != generation
+                or witness.generation != generation or witness.root != self.root):
+            raise NativeRestartBlocked("Native reservation/witness identity differs")
+        if {birth.role for birth, _ in witness.items} != {"api", "worker"}:
+            raise NativeRestartBlocked("Missing native API/worker proof")
+        if any(birth.config_sha256 != self.pin.config_sha256
+               for birth, _ in witness.items):
+            raise NativeRestartBlocked("Native child configuration differs")
+        # Fail closed if original handles are gone, processes remain live,
+        # or either sealed checkpoint was changed after native exit.
+        witness.require_restart_allowed(receipt)
+        pg = dict(pg_probe())
+        if (pg.get("pg_system_identifier") != self.pin.pg_system_identifier
+                or pg.get("pg_postmaster_start") != self.pin.pg_postmaster_start):
+            raise NativeRestartBlocked("PostgreSQL incarnation changed after native exit")
+        states = dict(leases_probe())
+        if any(state not in {"queued", "completed", "failed", "paused"}
+               for state in states.values()):
+            raise NativeRestartBlocked("Unfenced lease after native exit")
         closure = {
             "schema": "ops-native-closure-link/1", "generation": generation,
-            "reservation_sha256": _digest(record), "restart_allowed": True,
+            "reservation_sha256": _digest(record),
+            "native_exit_sha256": _digest(receipt),
+            "pg_system_identifier": self.pin.pg_system_identifier,
+            "pg_postmaster_start": self.pin.pg_postmaster_start,
+            "restart_allowed": True,
         }
         _new(folder / "closure.json", closure)
         return closure
