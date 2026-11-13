@@ -3,6 +3,7 @@
 A route existing is not evidence of an available dataset. Probe at most one
 small, bounded page through the configured reader. Never write or download.
 """
+
 import hashlib
 import json
 import logging
@@ -29,9 +30,7 @@ PANELS = (
     "mark",
     "index",
 )
-INTERVALS = frozenset(
-    ("1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M")
-)
+INTERVALS = frozenset(("1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M"))
 # Do not list footprint: its financial query requires a separate frozen cutoff
 # and explicit price-step selection. No /api/analytics route is implemented.
 READABLE = {
@@ -93,8 +92,7 @@ def _source_ref(provenance, panel, query):
             ):
                 return None
         elif "://" in ref and not (
-            ref.startswith("https://api.bybit.com/")
-            or ref.startswith("https://public.bybit.com/")
+            ref.startswith("https://api.bybit.com/") or ref.startswith("https://public.bybit.com/")
         ):
             return None
         refs.append(ref)
@@ -155,8 +153,7 @@ def _verified_page(reader, panel, query):
     if payload.get("availability", {}).get("status") not in ("AVAILABLE", "PARTIAL"):
         return None, "source_availability_not_qualified"
     if any(
-        row.get("availability", {}).get("status") not in ("AVAILABLE", "PARTIAL")
-        for row in rows
+        row.get("availability", {}).get("status") not in ("AVAILABLE", "PARTIAL") for row in rows
     ):
         return None, "row_availability_not_qualified"
     provenance = payload.get("provenance", [])
@@ -189,11 +186,7 @@ def _verified_page(reader, panel, query):
             schema_version="1.1" if resource == "price-candles" else "1.0",
             observed_rows=len(rows),
             coverage_status="UNKNOWN",
-            **(
-                {"candle_kind": source_query.candle_kind}
-                if panel in ("mark", "index")
-                else {}
-            ),
+            **({"candle_kind": source_query.candle_kind} if panel in ("mark", "index") else {}),
         ),
         None,
     )
@@ -206,21 +199,15 @@ def discover(reader, query: Query, *, authorized=False, price_route_enabled=Fals
         if not query.symbol:
             result[panel] = _unavailable(panel, "UNVERIFIED", "instrument_required")
         elif query.interval not in INTERVALS:
-            result[panel] = _unavailable(
-                panel, "UNAVAILABLE", "timeframe_not_supported"
-            )
+            result[panel] = _unavailable(panel, "UNAVAILABLE", "timeframe_not_supported")
         elif query.category == "spot" and panel in DERIVATIVES:
             result[panel] = _unavailable(panel, "UNAVAILABLE", "not_applicable_to_spot")
         elif panel not in READABLE:
-            result[panel] = _unavailable(
-                panel, "UNAVAILABLE", "endpoint_contract_not_supported"
-            )
+            result[panel] = _unavailable(panel, "UNAVAILABLE", "endpoint_contract_not_supported")
         elif not authorized:
             result[panel] = _unavailable(panel, "UNVERIFIED", "source_not_authorized")
         elif panel in ("mark", "index") and not price_route_enabled:
-            result[panel] = _unavailable(
-                panel, "UNVERIFIED", "reference_price_route_not_enabled"
-            )
+            result[panel] = _unavailable(panel, "UNVERIFIED", "reference_price_route_not_enabled")
         elif isinstance(reader, UnavailableReader):
             result[panel] = _unavailable(panel, "UNVERIFIED", "provider_not_connected")
         else:
@@ -228,9 +215,7 @@ def discover(reader, query: Query, *, authorized=False, price_route_enabled=Fals
                 qualified, reason = _verified_page(reader, panel, query)
                 result[panel] = qualified or _unavailable(panel, "UNVERIFIED", reason)
             except ProviderUnavailable:
-                result[panel] = _unavailable(
-                    panel, "UNVERIFIED", "source_not_connected"
-                )
+                result[panel] = _unavailable(panel, "UNVERIFIED", "source_not_connected")
             except (
                 ContractError,
                 ScopeError,
@@ -240,15 +225,11 @@ def discover(reader, query: Query, *, authorized=False, price_route_enabled=Fals
                 TypeError,
                 AttributeError,
             ):
-                result[panel] = _unavailable(
-                    panel, "UNVERIFIED", "source_contract_not_verified"
-                )
+                result[panel] = _unavailable(panel, "UNVERIFIED", "source_contract_not_verified")
             except Exception as exc:
                 logging.getLogger("tester.api").warning(
                     "capability_source_probe_failed",
                     extra={"panel": panel, "exception_type": type(exc).__name__},
                 )
-                result[panel] = _unavailable(
-                    panel, "UNVERIFIED", "source_probe_unavailable"
-                )
+                result[panel] = _unavailable(panel, "UNVERIFIED", "source_probe_unavailable")
     return {"panels": result}
