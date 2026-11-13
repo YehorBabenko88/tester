@@ -82,4 +82,4 @@ jobs:
       - name: DATA original-HTTP contract unit tests
         run: python -m unittest tests.test_execution_contract_bridge -v
       - name: DATA↔RESEARCH composed adapter and real disposable PostgreSQL
-        run: python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres"
+        run: python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres or disposable_pg"
