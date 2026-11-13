@@ -190,6 +190,12 @@ class PublicAuxiliaryTests(unittest.TestCase):
         self.assertEqual(api.call.call_args_list[1].args[1]["endTime"],
                          timestamps[0] - 1)
 
+    def test_metric_window_over_budget_refused(self):
+        for kind, interval in (("funding", None), ("open_interest", "5min")):
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                request(kind, "linear", "BTCUSDT", start_ms=1000,
+                        end_ms=1000 + 8 * 86400000, interval=interval)
+
     def test_metric_without_bounds_never_calls_network(self):
         store, api = Mock(), Mock()
         for kind in ("funding", "open_interest"):
