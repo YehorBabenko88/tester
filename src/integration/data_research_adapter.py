@@ -210,6 +210,19 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
             events, key=lambda e: (e["event_ms"], e["exec_id"])
         )
     ])
+    # A deterministic fingerprint of this bounded observation, NOT a persisted
+    # B dataset revision nor historical source visibility proof.
+    preview["observed_sample_fingerprint"] = digest({
+        "scope": {
+            "venue": "bybit", "category": category, "symbol": symbol,
+            "start_ms": start_ms, "end_ms": end_ms,
+            "quantity_unit": "source_native_linear_size",
+        },
+        "events": preview["data_execution_digest"],
+        "receipts": preview["data_source_receipts_digest"],
+    })
+    preview["persisted_dataset_revision"] = None
+    preview["historical_known_at_ms"] = None
     return preview
 
 
@@ -229,7 +242,7 @@ def require_strategy_lab_f_input(research_preview):
             or research_preview.get("f_input") is not None
             or research_preview.get("g_e_result") is not None):
         raise ValueError("research_preview_claims_unreviewed_f_admission")
-    if (research_preview.get("observed_window", {})
-            .get("complete_market_history") is not False):
+    window = research_preview.get("observed_window")
+    if not isinstance(window, dict) or window.get("complete_market_history") is not False:
         raise ValueError("research_history_completeness_not_demonstrated")
     raise ValueError("real_historical_visibility_unknown_f_denied")
