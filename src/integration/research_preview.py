@@ -18,7 +18,7 @@ def research_preview(store, request: SnapshotRequest, trades, *, tick_size: str)
     The caller must supply canonical execution records from a separately
     verified source; this function does not claim a database read of trades.
     """
-    if not isinstance(request, SnapshotRequest):
+    if not isinstance(trades, list):\n        raise ValueError("canonical_execution_list_required")\n    if not isinstance(request, SnapshotRequest):
         raise ValueError("typed_snapshot_request_required")
     snapshot = read_canonical_snapshot(store, request)
     if not isinstance(snapshot, QualifiedSnapshot) or snapshot.mode != "REAL":
@@ -43,7 +43,7 @@ def research_preview(store, request: SnapshotRequest, trades, *, tick_size: str)
         "snapshot_id": snapshot.snapshot_id,
         "dataset_revision": snapshot.dataset_revision,
         "snapshot_evidence_digest": snapshot.evidence_digest,
-        "metrics_digest": digest(result),
+        "metrics_digest": digest(result),\n        "execution_input_digest": digest(trades),
         "requested_scope": request.scope,
         "start_ms": request.start_ms,
         "end_ms": request.end_ms,
