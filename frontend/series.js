@@ -1,4 +1,5 @@
-import { validateSeries } from "./model.js";
+import { compareDecimal, isDecimal, validateSeries } from "./model.js";
+import { bucketStart, nextBoundary } from "./time.js";
 export function sourceText(value) {
   if (typeof value === "string") return value;
   if (Array.isArray(value))
@@ -146,8 +147,17 @@ export function adaptSeries(payload, kind, q) {
           !Number.isSafeInteger(row.start_ms) ||
           !Number.isSafeInteger(row.end_ms) ||
           row.start_ms < q.start_ms || row.end_ms > q.end_ms ||
-          row.start_ms >= row.end_ms)
-        throw Error("Price-only source identity, closure or UTC interval mismatch");
+          row.start_ms >= row.end_ms ||
+          row.start_ms !== bucketStart(row.start_ms, q.interval) ||
+          row.end_ms !== nextBoundary(row.start_ms, q.interval) ||
+          !["open", "high", "low", "close"].every((field) =>
+            isDecimal(row[field])) ||
+          compareDecimal(row.low, row.high) > 0 ||
+          compareDecimal(row.low, row.open) > 0 ||
+          compareDecimal(row.open, row.high) > 0 ||
+          compareDecimal(row.low, row.close) > 0 ||
+          compareDecimal(row.close, row.high) > 0)
+        throw Error("Price-only source identity, closure, Decimal or UTC interval mismatch");
     }
   }
   const evidence = quality([payload, meta, ...rows], rows.length > 0);
