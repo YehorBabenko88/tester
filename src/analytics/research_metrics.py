@@ -24,11 +24,15 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
         raise ValueError("integer millisecond bounds required")
     if start_ms < 0 or end_ms <= start_ms or interval_ms <= 0:
         raise ValueError("invalid bounds")
+    if start_ms % interval_ms or end_ms % interval_ms:
+        raise ValueError("window not aligned to UTC interval boundaries")
     if (end_ms - start_ms) % interval_ms:
         raise ValueError("unaligned observation window")
     if (end_ms - start_ms) // interval_ms > MAX_BARS:
         raise ValueError("bar limit exceeded")
     step = number(tick_size, positive=True)
+    if step.denominator > 10**18 or step.numerator > 10**18:
+        raise ValueError("tick size outside bounded precision")
     if not isinstance(trades, list):
         raise ValueError("canonical_execution_list_required")
     if len(trades) > MAX_TRADES:
