@@ -77,11 +77,11 @@ class LiveBybitPostgresTests(unittest.TestCase):
                 reopened, **read_scope, interval_ms=60000, tick_size="0.000001",
             )
             self.assertEqual(preview["coverage"], "UNKNOWN")
-        self.assertIsNone(preview["persisted_dataset_revision"])
-        self.assertIsNone(preview["historical_known_at_ms"])
-        self.assertEqual(len(preview["observed_sample_fingerprint"]), 64)
-        with self.assertRaisesRegex(ValueError, "real_historical_visibility_unknown_f_denied"):
-            require_strategy_lab_f_input(preview)
+            self.assertIsNone(preview["persisted_dataset_revision"])
+            self.assertIsNone(preview["historical_known_at_ms"])
+            self.assertEqual(len(preview["observed_sample_fingerprint"]), 64)
+            with self.assertRaisesRegex(ValueError, "real_historical_visibility_unknown_f_denied"):
+                require_strategy_lab_f_input(preview)
             self.assertEqual(preview["publication_time"], "UNKNOWN")
             self.assertFalse(preview["admitted_to_f"])
             self.assertIsNone(preview["f_input"])
