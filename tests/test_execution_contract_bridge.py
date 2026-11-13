@@ -103,6 +103,44 @@ class ContractTests(unittest.TestCase):
         with self.assertRaises(ExecutionContractError):
             to_research_trade(event)
 
+    def test_late_observation_does_not_invent_publication(self):
+        r = fixture()
+        observation = r["provenance"]["observations"][0]
+        observed = "2026-11-14T21:00:00+00:00"
+        observation["source"]["fetched_at"] = observed
+        observation["source"]["observed_at_utc"] = observed
+        observation["evidence"]["observed_at_utc"] = observed
+        event = self.project(r)
+        self.assertGreater(event["observed_ms"], event["event_ms"])
+        self.assertIsNone(event["publication_ms"])
+        self.assertEqual(event["availability"]["status"], "UNVERIFIED")
+        self.assertEqual(event["source_coverage"]["status"], "UNKNOWN")
+
+    def test_thirteen_calendar_intervals_are_utc_bounded(self):
+        from src.analytics.core import interval_bounds
+        all_intervals = (
+            "1", "3", "5", "15", "30", "60", "120", "240", "360",
+            "720", "D", "W", "M",
+        )
+        self.assertEqual(len(all_intervals), 13)
+        for interval in all_intervals:
+            with self.subTest(interval=interval):
+                start, end = interval_bounds(MS, interval)
+                self.assertLessEqual(start, MS)
+                self.assertLess(MS, end)
+                if interval.isdigit():
+                    self.assertEqual(end - start, int(interval) * 60000)
+                elif interval == "W":
+                    from datetime import datetime, timezone
+                    self.assertEqual(
+                        datetime.fromtimestamp(start / 1000, timezone.utc).weekday(), 0
+                    )
+                elif interval == "M":
+                    from datetime import datetime, timezone
+                    self.assertEqual(
+                        datetime.fromtimestamp(start / 1000, timezone.utc).day, 1
+                    )
+
     def test_bounded_read_only_store_and_duplicates(self):
         store=Mock();store.read.return_value=[fixture()]
         events=read_execution_events(store,category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2)
