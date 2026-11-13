@@ -51,4 +51,5 @@ test("explicit retry invalidates cached discovery", () => {
 test("mark/index rendering is guarded by matching response provenance", () => {
   assert.match(app, /Mark\/Index response provenance does not match/);
   assert.match(app, /p\.source_ref === capability\.source_ref/);
+  assert.match(app, /const contradictsKind = series\.provenance\.some/);
 });
