@@ -74,3 +74,15 @@ jobs:
             ops-load-pg-evidence.json
           if-no-files-found: ignore
           retention-days: 14
+  windows-native-witness:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Windows observer dependency
+        run: python -m pip install psutil
+      - name: Verify original Win32 child handles and two cooperative generations
+        run: python -m unittest discover -s tests/platform -p "test_ops_native_windows_process.py" -v
