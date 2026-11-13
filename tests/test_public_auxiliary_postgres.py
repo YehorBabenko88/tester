@@ -1,11 +1,16 @@
 """Real disposable PostgreSQL source/provenance roundtrip; CI only."""
 import os
+import base64
+import hashlib
+import json
 import unittest
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 
 import psycopg
 
-from src.ingest.public_auxiliary import ingest_page
+from src.ingest.public_auxiliary import ingest_page, fetch_and_ingest, fetch_open_interest_pages
+from src.storage.store import DataConflict
 from src.storage.migrations import migrate
 from src.storage.store import Store
 
@@ -56,6 +61,153 @@ class AuxiliaryPostgresTests(unittest.TestCase):
                 "SELECT count(*) FROM tester_storage.raw_records WHERE symbol='BTCUSDT'"
             ).fetchone()[0]
             self.assertEqual(count, 3)
+
+
+    def test_two_real_pg_oi_pages_and_reconnect_unknown_coverage(self):
+        """Two original HTTP responses must survive independent PG reconnect."""
+        oldest = 1599999700000
+        newest = 1600000000000
+        pages = [
+            {"list": [{"openInterest": "25.500000", "timestamp": str(newest)}],
+             "nextPageCursor": "continuation-2"},
+            {"list": [{"openInterest": "24.000001", "timestamp": str(oldest)}]},
+        ]
+
+        class OriginalPublicHttp:
+            def call(self, path, params):
+                self.last_response = None
+                self.calls = getattr(self, "calls", 0) + 1
+                result = pages[1 if params.get("cursor") == "continuation-2" else 0]
+                url = "https://api.bybit.com/v5/market" + path + "?" + urlencode(params)
+                original = json.dumps({"retCode": 0, "result": result}).encode("utf-8")
+                self.last_response = {
+                    "url": url, "status_code": 200,
+                    "hash_scope": "original_http_body",
+                    "sha256": hashlib.sha256(original).hexdigest(),
+                    "bytes_base64": base64.b64encode(original).decode("ascii"),
+                }
+                return result, url
+
+        source = OriginalPublicHttp()
+        result = fetch_open_interest_pages(
+            Store(DSN), source, category="linear", symbol="ETHUSDT",
+            run_id="data72-oi-proof-2pages-v1", job_prefix="data72-oi-2pages",
+            start_ms=oldest - 1, end_ms=newest + 1,
+            interval="5min", max_pages=2, limit=2,
+        )
+        self.assertEqual(source.calls, 2)
+        self.assertEqual(result["status"], "OBSERVED")
+        self.assertEqual(result["coverage"], "UNKNOWN")
+
+        reopened = Store(DSN)
+        rows = reopened.read("open_interest", "bybit", "linear", "ETHUSDT",
+                             oldest - 1, newest + 1, "5min",
+                             limit=10, compact_provenance=False)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual([r["payload"]["value"] for r in rows],
+                         ["24.000001", "25.5"])
+        for row in rows:
+            proof = row["provenance"]
+            self.assertTrue(proof["authentic"])
+            self.assertTrue(proof["observations"])
+            for obs in proof["observations"]:
+                evidence = obs["evidence"]
+                self.assertEqual(evidence["coverage_status"], "UNKNOWN")
+                self.assertFalse(obs["verified"])
+                original = base64.b64decode(evidence["http_bytes_base64"])
+                self.assertEqual(hashlib.sha256(original).hexdigest(),
+                                 evidence["http_sha256"])
+                self.assertEqual(evidence["ingestion_run"], obs["run_id"])
+        with reopened.connect() as connection:
+            receipts = connection.execute(
+                "SELECT evidence, verified FROM tester_storage.pagination_evidence "
+                "WHERE job_key LIKE 'data72-oi-2pages:%' ORDER BY job_key"
+            ).fetchall()
+        self.assertEqual(len(receipts), 2)
+        self.assertTrue(all(not r["verified"] for r in receipts))
+        self.assertEqual(receipts[0]["evidence"]["pages"][0]["next_cursor"],
+                         "continuation-2")
+        self.assertEqual(receipts[1]["evidence"]["cursor_in"], "continuation-2")
+
+    def test_one_full_oi_page_never_proves_complete(self):
+        result = {"list": [{"openInterest": "10.00", "timestamp": "1600000000000"}],
+                  "nextPageCursor": "more-data"}
+
+        class OnePage:
+            def call(self, path, params):
+                url = "https://api.bybit.com/v5/market" + path + "?" + urlencode(params)
+                raw = json.dumps({"retCode": 0, "result": result}).encode()
+                self.last_response = {
+                    "url": url, "status_code": 200, "hash_scope": "original_http_body",
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                    "bytes_base64": base64.b64encode(raw).decode(),
+                }
+                return result, url
+
+        observation = fetch_open_interest_pages(
+            Store(DSN), OnePage(), category="linear", symbol="SOLUSDT",
+            run_id="data72-oi-partial-v1", job_prefix="data72-oi-partial",
+            start_ms=1599999999999, end_ms=1600000000001,
+            interval="5min", max_pages=1, limit=1,
+        )
+        self.assertEqual(observation["status"], "PAGE_BUDGET_EXHAUSTED")
+        self.assertEqual(observation["coverage"], "UNKNOWN")
+        reopened = Store(DSN)
+        records = reopened.read("open_interest", "bybit", "linear", "SOLUSDT",
+                                1599999999999, 1600000000001, "5min",
+                                limit=10, compact_provenance=False)
+        self.assertEqual(len(records), 1)
+        evidence = records[0]["provenance"]["observations"][0]["evidence"]
+        self.assertEqual(evidence["status"], "PARTIAL")
+        self.assertEqual(evidence["coverage_status"], "UNKNOWN")
+        from src.ingest.execution_contract import read_execution_events
+        self.assertEqual(read_execution_events(
+            reopened, category="linear", symbol="SOLUSDT",
+            start_ms=1599999999999, end_ms=1600000000001, limit=2,
+        ), [])
+
+    def test_conflicting_exchange_exec_id_does_not_overwrite_economics(self):
+        api_symbol = "XRPUSDT"
+        timestamp = "1600000000000"
+
+        class RecordedSource:
+            def __init__(self, price):
+                self.result = {"list": [{
+                    "symbol": api_symbol, "execId": "data72-exec-conflict-v1",
+                    "time": timestamp, "price": price, "size": "2.0",
+                    "side": "Sell",
+                }]}
+
+            def call(self, path, params):
+                url = "https://api.bybit.com/v5/market" + path + "?" + urlencode(params)
+                original = json.dumps({"retCode": 0, "result": self.result}).encode()
+                self.last_response = {
+                    "url": url, "status_code": 200,
+                    "hash_scope": "original_http_body",
+                    "sha256": hashlib.sha256(original).hexdigest(),
+                    "bytes_base64": base64.b64encode(original).decode(),
+                }
+                return self.result, url
+
+        store = Store(DSN)
+        params = dict(kind="trades", category="linear", symbol=api_symbol)
+        self.assertEqual(fetch_and_ingest(
+            store, RecordedSource("1.250"), run_id="data72-conflict-v1",
+            job_key="data72-conflict-first-v1", **params,
+        )["count"], 1)
+        with self.assertRaises(DataConflict):
+            fetch_and_ingest(
+                store, RecordedSource("1.260"), run_id="data72-conflict-v2",
+                job_key="data72-conflict-second-v1", **params,
+            )
+        persisted = Store(DSN).read(
+            "trades", "bybit", "linear", api_symbol,
+            int(timestamp) - 1, int(timestamp) + 1, "",
+            limit=10, compact_provenance=True,
+        )
+        self.assertEqual(len(persisted), 1)
+        self.assertEqual(persisted[0]["payload"]["price"], "1.25")
+        self.assertEqual(persisted[0]["trade_id"], "data72-exec-conflict-v1")
 
 
 if __name__ == "__main__":
