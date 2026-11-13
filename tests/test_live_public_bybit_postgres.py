@@ -35,7 +35,7 @@ class LiveBybitPostgresTests(unittest.TestCase):
         with psycopg.connect(DSN) as conn:
             migrate(conn)
         cls.store = Store(DSN)
-        cls.api = API(Transport(attempts=2, rate=1))
+        cls.api = API(Transport(attempts=1, rate=1))  # CI smoke: refuse 403 promptly, no 600-second retry
 
     def test_one_then_ten_public_executions_and_research_readback(self):
         from src.integration.data_research_adapter import (read_data_metrics, require_strategy_lab_f_input)
