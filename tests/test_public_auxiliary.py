@@ -190,6 +190,16 @@ class PublicAuxiliaryTests(unittest.TestCase):
         self.assertEqual(api.call.call_args_list[1].args[1]["endTime"],
                          timestamps[0] - 1)
 
+    def test_metric_without_bounds_never_calls_network(self):
+        store, api = Mock(), Mock()
+        for kind in ("funding", "open_interest"):
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                fetch_and_ingest(store, api, kind=kind, category="linear",
+                                 symbol="BTCUSDT", run_id="test-run", job_key="test-job",
+                                 interval="5min" if kind == "open_interest" else None)
+        api.call.assert_not_called()
+        store.ingest.assert_not_called()
+
     def test_reject_wrong_source_url_before_storage(self):
         store, api = Mock(), Mock()
         api.call.return_value = ({"list": []},
