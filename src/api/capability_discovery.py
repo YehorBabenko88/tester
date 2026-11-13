@@ -12,6 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from contracts.v1.validate import ContractError
 
+from .capability_source_contracts import dependencies_for_panel
 from .models import Query
 from .providers import ProviderUnavailable, UnavailableReader
 from .scope import ScopeError, SourceIntervalError, bound_response, resource_query
@@ -45,7 +46,13 @@ DERIVATIVES = frozenset(("open_interest", "funding", "mark", "index"))
 
 
 def _unavailable(panel, status, reason):
-    return dict(panel=panel, status=status, reason=reason)
+    record = dict(panel=panel, status=status, reason=reason)
+    dependencies = dependencies_for_panel(panel)
+    if dependencies:
+        record["source_contract_dependencies"] = dependencies
+        record["historical_coverage"] = "UNKNOWN"
+        record["admitted_to_f"] = False
+    return record
 
 
 def _source_ref(provenance, panel, query):
@@ -198,6 +205,15 @@ def _verified_page(reader, panel, query):
             schema_version="1.1" if resource == "price-candles" else "1.0",
             observed_rows=len(rows),
             coverage_status="UNKNOWN",
+            historical_dataset_revision="UNPINNED",
+            history_complete=False,
+            publication_known=False,
+            admitted_to_f=False,
+            source_contract_version=(
+                "tester.price-candle/1.1"
+                if resource == "price-candles"
+                else "tester.market/1.0"
+            ),
             **({"candle_kind": source_query.candle_kind} if panel in ("mark", "index") else {}),
         ),
         None,
