@@ -981,7 +981,14 @@ async function loadCharts(options = {}) {
   if (!abort.signal.aborted) {
     $("#chart-status").textContent =
       `${PANELS.length - unavailable}/${PANELS.length} panels have records. Consult each panel for coverage and verification.`;
-    loadQuality(q, abort.signal);
+    if (PANELS.some(([kind]) =>
+      classifyPanelCapability(kind, capabilities[kind]).requestAllowed
+    )) {
+      loadQuality(q, abort.signal);
+    } else {
+      $("#quality-data").textContent =
+        "UNVERIFIED · No qualified source for this selection; coverage was not requested.";
+    }
   }
 }
 async function loadQuality(q, signal) {
