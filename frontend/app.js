@@ -926,7 +926,16 @@ async function loadCharts(options = {}) {
             payload.next_cursor.length > 4096)
         )
           throw Error("Corrupt server cursor");
+        // The backend may change between discovery and read. Never display
+        // an unrelated dataset under a qualified panel's identity.
         const series = adaptSeries(payload, kind, q);
+        if (["mark", "index"].includes(kind) &&
+            !series.provenance.some((p) =>
+              p && typeof p === "object" &&
+              (p.candle_kind === (kind === "mark" ? "official_mark" : "official_index") ||
+               p.source_ref === capability.source_ref))) {
+          throw Error("Mark/Index response provenance does not match the qualified source");
+        }
         p.page.next = payload.next_cursor || null;
         p.next.disabled = !p.page.next;
         p.previous.disabled = !p.page.back.length;
