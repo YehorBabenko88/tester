@@ -358,3 +358,87 @@ def test_strategy_lab_f_rejects_forged_complete_coverage():
     preview["observed_window"]["complete_market_history"] = True
     with pytest.raises(ValueError, match="research_history_completeness_not_demonstrated"):
         require_strategy_lab_f_input(preview)
+
+
+@pytest.mark.integration
+def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
+    """Actual PG16: duplicate replay is idempotent; HTTP corruption fails closed."""
+    dsn = os.environ.get("TESTER_RESEARCH_DATA_TEST_DSN")
+    if not dsn:
+        pytest.skip("dedicated disposable PG16 not configured")
+    if "tester_research_data_disposable" not in dsn:
+        raise ValueError("protected: dedicated disposable database required")
+    _composed_data()
+    import psycopg
+
+    from src.ingest.public_auxiliary import fetch_and_ingest
+    from src.storage.migrations import migrate
+    from src.storage.store import Store
+
+    with psycopg.connect(dsn) as connection:
+        migrate(connection)
+    ms = 1600000060000
+    original = [
+        {"symbol": "BTCUSDT", "execId": "research-pg-side-buy-v2",
+         "time": str(ms), "price": "100", "size": "0.5", "side": "Buy"},
+        {"symbol": "BTCUSDT", "execId": "research-pg-side-unknown-v2",
+         "time": str(ms + 1), "price": "101", "size": "0.25", "side": "Unknown"},
+    ]
+    result = {"list": original}
+    params = {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
+    url = "https://api.bybit.com/v5/market/recent-trade?" + urlencode(params)
+    body = json.dumps({"retCode": 0, "result": result}).encode()
+    sha = hashlib.sha256(body).hexdigest()
+
+    class HttpProof:
+        def __init__(self, *, tampered=False):
+            self.last_response = {
+                "url": url, "status_code": 200, "hash_scope": "original_http_body",
+                "sha256": "0" * 64 if tampered else sha,
+                "bytes_base64": base64.b64encode(body).decode(),
+            }
+
+        def call(self, path, got):
+            assert path == "/recent-trade" and got == params
+            return result, url
+
+    kwargs = dict(
+        kind="trades", category="linear", symbol="BTCUSDT",
+        run_id="research-data72-pg-run-v2",
+        job_key="research-data72-pg-job-v2",
+        observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC),
+    )
+    source = Store(dsn)
+    for _ in range(2):
+        fetch_and_ingest(source, HttpProof(), **kwargs)
+    with pytest.raises(ValueError):
+        fetch_and_ingest(source, HttpProof(tampered=True), **kwargs)
+    reopened = Store(dsn)
+    start = ms // 60000 * 60000
+    with pytest.raises(ValueError, match="data_event_page_limit_requires_pagination"):
+        read_data_metrics(
+            reopened, category="linear", symbol="BTCUSDT",
+            start_ms=start, end_ms=start + 60000,
+            interval_ms=60000, tick_size="0.5", limit=2,
+        )
+    actual = read_data_metrics(
+        reopened, category="linear", symbol="BTCUSDT",
+        start_ms=start, end_ms=start + 60000,
+        interval_ms=60000, tick_size="0.5", limit=3,
+    )
+    bar = actual["metrics"]["bars"][0]
+    assert actual["observed_window"]["observed_unique_trades"] == 2
+    assert bar["unknown_side_volume"] == "0.25"
+    assert bar["buy_volume"] == "0.5"
+    assert bar["delta_known"] == "0.5"
+    assert bar["cvd_known"] == "0.5"
+    assert bar["vwap"] == "100.33333333333333333333333333333333333333333333333333"
+    assert bar["poc"] == "100"
+    assert bar["coverage_certified"] is False
+    assert actual["admitted_to_f"] is False
+    assert actual["f_input"] is None
+    assert actual["g_e_result"] is None
+    assert len(reopened.read(
+        "trades", "bybit", "linear", "BTCUSDT",
+        start, start + 60000, "", limit=10,
+    )) == 2
