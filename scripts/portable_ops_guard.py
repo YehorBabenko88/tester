@@ -37,13 +37,14 @@ def guarded_resume(
     expected_image: str,
     expected_argv: tuple[str, ...],
     durable_states: Mapping[str, str],
-    claim_job: Callable[[str], bool],
+    claim_job: Callable[[str], object | None],
     expired_running: frozenset[str] = frozenset(),
 ) -> list[str]:
     """Reconcile only with a transactional, single-winner durable claim callback.
 
     claim_job must atomically lease the named job from the authoritative database,
-    returning False if already claimed/finished. No process is spawned here.
+    returning None if already claimed/finished. Successful claims must carry
+    their lease token; the caller must hand them to a fenced worker. No spawn.
     """
     witness.require_clean_exit(expected_owner, expected_image, expected_argv)
     body = load_checkpoint(checkpoint, expected_owner.instance_id)
@@ -65,8 +66,11 @@ def guarded_resume(
     selected = [key for key in candidates if durable_states[key] == "queued" or key in running]
     claimed = []
     for key in selected:
-        if claim_job(key):
-            claimed.append(key)
+        lease = claim_job(key)
+        if lease is not None:
+            if not getattr(lease, "lease_token", None):
+                raise LifecycleRefusal("Claim returned no fencing token")
+            claimed.append(lease)
     return claimed
 
 @dataclass(frozen=True)

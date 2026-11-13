@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -20,10 +21,10 @@ class GuardTests(unittest.TestCase):
             def claim(job):
                 if job in leases: return False
                 leases.add(job)
-                return True
+                return SimpleNamespace(id=job, lease_token="token-"+job)
             args = (cp, self.owner, self.witness, "python", ("-m", "worker"),
                     {"a":"running","b":"queued","c":"completed"}, claim, frozenset({"a"}))
-            self.assertEqual(guarded_resume(*args), ["a","b"])
+            self.assertEqual([lease.id for lease in guarded_resume(*args)], ["a","b"])
             self.assertEqual(guarded_resume(*args), [])
 
     def test_missing_durable_state_refuses(self):
@@ -60,7 +61,15 @@ class GuardTests(unittest.TestCase):
             cp = Path(td) / "cp.json"
             write_checkpoint(cp, self.owner, [{"id":"a","state":"queued"}], 0)
             self.assertEqual(guarded_resume(cp, self.owner, self.witness, "python",
-                             ("-m","worker"), {"a":"paused"}, lambda _:True), [])
+                             ("-m","worker"), {"a":"paused"}, lambda _:SimpleNamespace(lease_token="token")), [])
+
+    def test_claim_without_fencing_token_refused(self):
+        with TemporaryDirectory() as td:
+            cp = Path(td) / "cp.json"
+            write_checkpoint(cp, self.owner, [{"id":"a","state":"queued"}], 0)
+            with self.assertRaises(LifecycleRefusal):
+                guarded_resume(cp, self.owner, self.witness, "python", ("-m","worker"),
+                               {"a":"queued"}, lambda _: True)
 
     def test_wrong_image_refuses(self):
         with TemporaryDirectory() as td:

@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 from uuid import uuid4
 
 from scripts.ops_pg_claim import claim_existing, ClaimRefusal
@@ -7,7 +8,7 @@ from scripts.ops_pg_claim import claim_existing, ClaimRefusal
 
 class FakeCursor:
     def __init__(self, control, active, claimed):
-        self.results = [control, {"active": active}, {"id": uuid4()} if claimed else None]
+        self.results = [control, {"active": active}, {"id": uuid4(), "lease_token": uuid4()} if claimed else None]
         self.sql = []
     def __enter__(self): return self
     def __exit__(self, *args): return False
@@ -25,17 +26,19 @@ class FakeConnection:
 class ClaimTests(unittest.TestCase):
     def test_claim_uses_atomic_sql_lease_fence(self):
         cur = FakeCursor({"draining": False, "max_running": 2}, 0, True)
-        with patch("scripts.ops_pg_claim.connect", return_value=FakeConnection(cur)):
-            self.assertTrue(claim_existing("disposable", str(uuid4())))
+        with patch("scripts.ops_pg_claim.connect", return_value=FakeConnection(cur)), \
+             patch("scripts.ops_pg_claim.Lease.model_validate", side_effect=lambda row: SimpleNamespace(**row)):
+            lease = claim_existing("disposable", str(uuid4()))
+        self.assertIsNotNone(lease.lease_token)
         update = cur.sql[-1][0]
         self.assertIn("lease_until < now()", update)
         self.assertIn("state='queued'", update)
-        self.assertIn("RETURNING id", update)
+        self.assertIn("RETURNING *", update)
 
     def test_draining_refuses_without_update(self):
         cur = FakeCursor({"draining": True, "max_running": 2}, 0, True)
         with patch("scripts.ops_pg_claim.connect", return_value=FakeConnection(cur)):
-            self.assertFalse(claim_existing("disposable", str(uuid4())))
+            self.assertIsNone(claim_existing("disposable", str(uuid4())))
         self.assertEqual(len(cur.sql), 1)
 
     def test_capacity_refuses_without_update(self):
