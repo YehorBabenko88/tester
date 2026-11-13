@@ -254,6 +254,9 @@ class AuxiliaryPostgresTests(unittest.TestCase):
         research = read_research_trades(reopened, **scope)
         self.assertEqual(research[0]["taker_side"], "Unknown")
         self.assertEqual(research[0]["coverage"]["status"], "UNKNOWN")
+        from src.analytics.core import footprint
+        observed_footprint = footprint(research, interval="1", price_step="0.01")
+        self.assertEqual(observed_footprint[0]["unknown_side_volume"], "0.0075")
         from src.analytics.research_metrics import calculate
         metrics = calculate(research, start_ms=int(timestamp) - 1,
                             end_ms=int(timestamp) + 1, interval_ms=2, tick_size="0.01")
