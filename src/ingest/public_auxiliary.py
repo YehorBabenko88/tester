@@ -241,7 +241,8 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
         "source_url": url, "observed_at_utc": _utc(observed_at),
         "http_sha256": http["sha256"], "http_hash_scope": "original_http_body",
         "http_bytes_base64": http["bytes_base64"],
-        "pages": [{"params": params, "cursor": cursor_in, "next_cursor": cursor,
+        "cursor_in": cursor_in,
+        "pages": [{"params": params, "cursor": None, "next_cursor": cursor,
                    "count": len(rows), "http_sha256": http["sha256"]}],
     }
     published = store.ingest(rows, evidence, job_key, run_id=run_id)
