@@ -67,6 +67,7 @@ const state = {
   capabilityKey: null,
   capabilityError: null,
   capabilitySourceContracts: null,
+  capabilityExecutionEvidence: null,
   capabilityProtocolVersion: null,
   marketCatalogEnabled: null,
   sourceListEnabled: null,
@@ -762,6 +763,7 @@ async function discoverCapabilities(q, signal) {
   state.capabilityKey = null;
   state.capabilityError = null;
   state.capabilitySourceContracts = null;
+  state.capabilityExecutionEvidence = null;
   state.capabilityProtocolVersion = null;
   try {
     const payload = await request("/api/capabilities", {
@@ -776,6 +778,7 @@ async function discoverCapabilities(q, signal) {
       throw Error("Unsupported capability protocol version");
     state.capabilityProtocolVersion = payload.data.protocol_version || null;
     state.capabilitySourceContracts = payload.data.source_contracts || null;
+    state.capabilityExecutionEvidence = payload.data.execution_source_evidence || null;
     state.capabilities = payload.data.panels && typeof payload.data.panels === "object" && !Array.isArray(payload.data.panels)
       ? payload.data.panels : payload.data;
   } catch (error) {
@@ -956,6 +959,7 @@ async function loadCharts(options = {}) {
             capability,
             source_binding: capabilities[kind] || null,
             source_contracts: state.capabilitySourceContracts,
+            execution_source_evidence: state.capabilityExecutionEvidence,
             protocol_version: state.capabilityProtocolVersion,
             discovery: state.capabilityError || null,
           }, null, 2);
@@ -1018,6 +1022,7 @@ async function loadCharts(options = {}) {
           {
             capability,
             source_binding: capabilities[kind] || null,
+            execution_source_evidence: state.capabilityExecutionEvidence,
             protocol_version: state.capabilityProtocolVersion,
             availability: series.availability,
             reason: series.reason,
