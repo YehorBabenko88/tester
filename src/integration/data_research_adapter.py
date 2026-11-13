@@ -70,6 +70,7 @@ def _trade(event, *, category, symbol, start_ms, end_ms, as_of_ms):
     if not isinstance(receipts, list) or not receipts:
         raise ValueError("original_http_page_row_receipts_required")
     evidence_ids = set()
+    receipt_ids = set()
     for receipt in receipts:
         if not isinstance(receipt, dict) or not isinstance(receipt.get("evidence_id"), str) or not receipt["evidence_id"]:
             raise ValueError("invalid_source_receipt")
@@ -78,6 +79,13 @@ def _trade(event, *, category, symbol, start_ms, end_ms, as_of_ms):
         for field in ("http_sha256", "page_sha256", "row_sha256"):
             if not isinstance(receipt.get(field), str) or not _HEX.fullmatch(receipt[field]):
                 raise ValueError("unqualified_source_sha256")
+        receipt_identity = (
+            receipt["evidence_id"], receipt["page_ref"],
+            receipt["http_sha256"], receipt["page_sha256"], receipt["row_sha256"]
+        )
+        if receipt_identity in receipt_ids:
+            raise ValueError("duplicate_source_receipt")
+        receipt_ids.add(receipt_identity)
         evidence_ids.add(receipt["evidence_id"])
     provenance = event.get("provenance")
     if not isinstance(provenance, list) or not provenance:
@@ -130,11 +138,15 @@ def project_events(events, *, category, symbol, start_ms, end_ms,
     trades.sort(key=lambda t: (t["timestamp_ms"], t["trade_id"]))
     metrics = calculate(trades, start_ms=start_ms, end_ms=end_ms,
                         interval_ms=interval_ms, tick_size=tick_size)
+    observed_bins = sum(bool(bar["trade_count"]) for bar in metrics["bars"])
     window = {
         "start_ms": start_ms, "end_ms": end_ms,
         "first_event_ms": trades[0]["timestamp_ms"] if trades else None,
         "last_event_ms": trades[-1]["timestamp_ms"] if trades else None,
         "observed_unique_trades": len(trades),
+        "observed_nonempty_bars": observed_bins,
+        "empty_bars_in_observed_sample": len(metrics["bars"]) - observed_bins,
+        "historical_completeness_state": "UNKNOWN",
         "hit_bounded_event_limit": len(trades) == limit,
         "complete_market_history": False,
     }
