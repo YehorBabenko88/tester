@@ -6,6 +6,7 @@ on:
       - 'src/ingest/public_auxiliary_runner.py'
       - 'tests/test_public_auxiliary.py'
       - 'tests/test_public_auxiliary_runner.py'
+      - 'tests/test_public_auxiliary_postgres.py'
       - '.github/workflows/public-auxiliary-data.yml'
   workflow_dispatch:
 permissions:
