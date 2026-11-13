@@ -24,7 +24,7 @@ class IsolatedFullRecovery(unittest.TestCase):
         from psycopg.types.json import Jsonb
         from src.api.db import connect
         from src.api.jobs import JobQueue
-        from scripts.ops_disposable_lifecycle import DisposableLifecycle
+        from scripts.ops_dual_lifecycle import DisposableApiWorker
 
         job_id = uuid4()
         with connect(DSN) as conn:
@@ -39,29 +39,28 @@ class IsolatedFullRecovery(unittest.TestCase):
                 "SELECT (pg_control_system()).system_identifier::text,pg_postmaster_start_time()"
             ).fetchone()
         with tempfile.TemporaryDirectory() as directory:
-            runtime = DisposableLifecycle(Path(directory), marker="ci-owned-postgres-lifecycle-123456")
-            argv = [str(Path(sys.executable).resolve()), "-m", "scripts.ops_pg_disposable_worker"]
+            runtime = DisposableApiWorker(Path(directory), marker="ci-owned-postgres-lifecycle-123456")
+            executable = str(Path(sys.executable).resolve())
+            api_argv = [executable, "-m", "scripts.ops_disposable_api"]
+            worker_argv = [executable, "-m", "scripts.ops_pg_disposable_worker"]
             repo_root = str(Path(__file__).resolve().parents[2])
             env = dict(os.environ, OPS_JOB_ID=str(job_id),
                        PYTHONPATH=repo_root + os.pathsep + os.environ.get("PYTHONPATH", ""))
-            handles = []
             try:
-                first = runtime.start(argv, environment=env)
-                handles.append(runtime.handles[0])
+                first = runtime.start_pair(api_argv, worker_argv, environment=env)
                 previous = self._await_claim(job_id, 1)
                 self.assertEqual(previous["state"], "running")
-                seal1 = runtime.stop_and_seal(0, expected=first)
-                self.assertEqual(seal1["exit_code"], 0)
+                seal1 = runtime.stop_pair_and_seal(first)
+                self.assertEqual((seal1["api_exit_code"], seal1["worker_exit_code"]), (0, 0))
                 self.assertEqual(JobQueue(DSN).get(job_id).state, "queued")
                 self.assertEqual(JobQueue(DSN).get(job_id).checkpoint, {"generation": 0})
-                second = runtime.start(argv, environment=env)
-                handles.append(runtime.handles[1])
+                second = runtime.start_pair(api_argv, worker_argv, environment=env)
                 current = self._await_claim(job_id, 2)
                 self.assertNotEqual(previous["lease_token"], current["lease_token"])
                 self.assertEqual(JobQueue(DSN).get(job_id).checkpoint, {"generation": 0})
                 self.assertFalse(JobQueue(DSN).active(job_id, previous["lease_token"]))
-                seal2 = runtime.stop_and_seal(1, expected=second)
-                self.assertEqual(seal2["exit_code"], 0)
+                seal2 = runtime.stop_pair_and_seal(second)
+                self.assertEqual((seal2["api_exit_code"], seal2["worker_exit_code"]), (0, 0))
                 with connect(DSN) as conn:
                     pg_after = conn.execute(
                         "SELECT (pg_control_system()).system_identifier::text,pg_postmaster_start_time()"
@@ -72,18 +71,21 @@ class IsolatedFullRecovery(unittest.TestCase):
                 self.assertEqual(final.attempts, 2)
                 self.assertEqual(final.checkpoint, {"generation": 1})
                 for generation in (0, 1):
-                    p = Path(directory)/"ops-generations"/f"{generation:04d}"
-                    self.assertTrue((p/"checkpoint.json").is_file())
-                    self.assertTrue((p/"closed.json").is_file())
+                    for role in ("api", "worker"):
+                        p = Path(directory)/role/"ops-generations"/f"{generation:04d}"
+                        self.assertTrue((p/"checkpoint.json").is_file())
+                        self.assertTrue((p/"closed.json").is_file())
+                    self.assertTrue((Path(directory)/"pair-generations"/f"{generation:04d}"/"closed.json").is_file())
             finally:
                 # Cooperative-only cleanup of exact enrolled children; never kill.
-                for generation, handle in enumerate(handles):
-                    if handle.poll() is None:
-                        stop = Path(directory)/"ops-generations"/f"{generation:04d}"/"stop.request"
-                        try: stop.touch(exist_ok=True)
-                        except OSError: pass
-                        try: handle.wait(timeout=3)
-                        except Exception: pass
+                for role in (runtime.api, runtime.worker):
+                    for generation, handle in role.handles.items():
+                        if handle.poll() is None:
+                            stop = role.root/"ops-generations"/f"{generation:04d}"/"stop.request"
+                            try: stop.touch(exist_ok=True)
+                            except OSError: pass
+                            try: handle.wait(timeout=3)
+                            except Exception: pass
                 with connect(DSN) as conn:
                     conn.execute("DELETE FROM tester_platform.jobs WHERE id=%s", (job_id,))
 
