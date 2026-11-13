@@ -29,6 +29,8 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
     if (end_ms - start_ms) // interval_ms > MAX_BARS:
         raise ValueError("bar limit exceeded")
     step = number(tick_size, positive=True)
+    if not isinstance(trades, list):
+        raise ValueError("canonical_execution_list_required")
     if len(trades) > MAX_TRADES:
         raise ValueError("execution limit exceeded")
     canonical = deduplicate([validate_trade(t) for t in trades])
@@ -88,7 +90,9 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
             "buy_volume": decimal(buy), "sell_volume": decimal(sell),
             "unknown_side_volume": decimal(unknown),
             "delta_known": decimal(delta), "cvd_known": decimal(running),
-            "delta_complete": unknown == 0 and bool(rows),
+            "side_classification_complete": unknown == 0 and bool(rows),
+            "delta_complete": False,  # Cannot certify the full execution stream.
+            "coverage_certified": False,
             "vwap": decimal(pv / volume) if volume else None,
             "poc": decimal(poc) if poc is not None else None,
             "footprint": [
