@@ -908,6 +908,8 @@ async function loadCharts(options = {}) {
               : {}),
             ...(p.page.cursor ? { cursor: p.page.cursor } : {}),
             ...(path === "/api/analytics" ? { metric: kind } : {}),
+            ...(kind === "mark" ? { candle_kind: "official_mark" } : {}),
+            ...(kind === "index" ? { candle_kind: "official_index" } : {}),
           },
           cacheKey = path + JSON.stringify(params);
         if (!cache.has(cacheKey))
