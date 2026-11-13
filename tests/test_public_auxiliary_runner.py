@@ -35,7 +35,17 @@ class AuxiliaryRunnerTests(unittest.TestCase):
             run(dsn=GOOD, symbols=["BTCUSDT"], kind="funding",
                 category="linear", api=Mock(), store=Mock())
 
-    def test_ten_symbol_dispatch_is_bounded(self):\n        symbols = [f"TEST{i}USDT" for i in range(10)]\n        with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest",\n                   return_value={"records": 1, "coverage": "UNKNOWN"}) as acquire:\n            result = run(dsn=GOOD, symbols=symbols, kind="trades",\n                         category="linear", api=Mock(), store=Mock())\n        self.assertEqual(len(result["results"]), 10)\n        self.assertEqual(acquire.call_count, 10)\n        self.assertTrue(all(x["coverage"] == "UNKNOWN" for x in result["results"]))\n\n    def test_explicit_one_symbol_dispatch(self):
+    def test_ten_symbol_dispatch_is_bounded(self):
+        symbols = [f"TEST{i}USDT" for i in range(10)]
+        with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest",
+                   return_value={"records": 1, "coverage": "UNKNOWN"}) as acquire:
+            result = run(dsn=GOOD, symbols=symbols, kind="trades",
+                         category="linear", api=Mock(), store=Mock())
+        self.assertEqual(len(result["results"]), 10)
+        self.assertEqual(acquire.call_count, 10)
+        self.assertTrue(all(x["coverage"] == "UNKNOWN" for x in result["results"]))
+
+    def test_explicit_one_symbol_dispatch(self):
         with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest",
                    return_value={"records": 1, "coverage": "UNKNOWN"}) as acquire:
             receipt = run(dsn=GOOD, symbols=["BTCUSDT"], kind="trades",
