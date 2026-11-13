@@ -5,6 +5,12 @@ const SUPPORTED = new Set([
   "vwap", "open_interest", "funding", "mark", "index",
 ]);
 const STATES = new Set(["AVAILABLE", "PARTIAL", "UNAVAILABLE", "UNVERIFIED"]);
+const ROUTES = Object.freeze({
+  candles: "/api/candles", volume: "/api/candles",
+  footprint: "/api/footprint", open_interest: "/api/open-interest",
+  funding: "/api/funding", mark: "/api/candles", index: "/api/candles",
+});
+
 const REASON = /^[a-z][a-z0-9_]{0,79}$/;
 
 export function classifyPanelCapability(panel, record) {
@@ -32,6 +38,8 @@ export function classifyPanelCapability(panel, record) {
     typeof record.source_ref !== "string" ||
     !/^[a-zA-Z0-9_.:/-]{1,256}$/.test(record.source_ref)
   ) return unavailable("unverified_capability_binding");
+  if (record.resource !== ROUTES[panel])
+    return unavailable("unsupported_panel_resource");
   return {
     panel, requestAllowed: true, state: record.status,
     reason: record.reason, resource: record.resource,
