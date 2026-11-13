@@ -120,8 +120,8 @@ PC4 hardware was touched.
 
 **Reviewed producer heads (pinned by UI CI, not merged):**
 
-- DATA #72: `d08418fc51c890d3390ee5853cf2f9dba6073a80`
-- RESEARCH #71: `aecba8f9bdd8ec193f7d2ee36a5dbc64b5366a43`
+- DATA #72: `4e57f1665b1e15bc1b42b0f2329a92f8b6942d24`
+- RESEARCH #71: `4d215df51726689768f6e7b6085b0e574f24c284`
 - UI branch remains based on PR #70; neither producer is copied into the
   committed UI source tree.
 
@@ -190,3 +190,26 @@ It is **NOT** physical Bybit historical acceptance. New source compatibility
 checks must pass their own exact-head CI, and MASTER must compose the
 independent producer branches and run disposable PostgreSQL source-to-metrics
 tests before any historical real-data release can be considered.
+
+### Producer pin refresh and original-source evidence scope
+
+The DATA and RESEARCH heads above were refreshed after checking a direct
+GitHub ancestry comparison: the changes since the prior pins were restricted
+to their respective workflows and tests, not the DATA execution contract,
+RESEARCH adapter or metrics implementation. Each new pin is independently
+checked out by the UI hosted workflow and tested against
+`scripts/verify_ui_source_contracts.py` without committing those sources.
+
+The optional `data.execution_source_evidence` result is a separately
+scoped read-only call into DATA's versioned execution bridge only when
+`src.ingest.execution_contract` and a suitable `Store` are present.
+It checks original row/page/HTTP receipt hashes, matching provenance,
+canonical Decimal text, source-native linear quantity, the half-open time
+scope and knowledge-time cutoff. Even with successful readback it returns
+`UNVERIFIED` and a bounded `sample:` digest; it does not create or
+authorize `/api/analytics`, nor certify complete history.
+
+The browser evidence JSON records the exact UI checkout SHA and the
+reviewed DATA/RESEARCH producer SHAs separately. Previous synthetic
+screenshots and source checks are not a proxy for live Bybit historical
+PostgreSQL readback across the three branches.
