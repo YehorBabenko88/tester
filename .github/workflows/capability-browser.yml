@@ -1,0 +1,64 @@
+name: UI capability discovery and real FastAPI browser contract
+on:
+  pull_request:
+    paths:
+      - 'src/api/capability_discovery.py'
+      - 'src/api/main.py'
+      - 'frontend/**'
+      - 'tests/platform/test_capability_discovery.py'
+      - 'scripts/capability_fixture_server.py'
+      - '.github/workflows/capability-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capability-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install 'pip>=26.2,<27'
+      - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Exercise real FastAPI capability discovery
+        run: python -m pytest tests/platform/test_capability_discovery.py -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Start isolated loopback FastAPI fixture server
+        shell: bash
+        run: |
+          python scripts/capability_fixture_server.py >capability-backend.log 2>&1 &
+          echo $! >capability-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS 'http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000' >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat capability-backend.log
+          exit 1
+      - name: Chromium against real FastAPI and 13 timeframes
+        run: npx playwright test --config playwright.capability.config.js
+        working-directory: frontend
+      - name: Store browser screenshot, traces and backend log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capability-browser-evidence
+          path: |
+            frontend/test-results/
+            capability-backend.log
+          if-no-files-found: ignore
