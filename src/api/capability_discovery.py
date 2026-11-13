@@ -137,6 +137,18 @@ def _verified_page(reader, panel, query):
                 or row.get("is_closed") is not True
             ):
                 return None, "price_scope_mismatch"
+            row_sources = row.get("provenance")
+            if (
+                not isinstance(row_sources, list)
+                or not row_sources
+                or any(
+                    source not in payload["provenance"]
+                    or source.get("timestamp_precision") != "ms"
+                    or source.get("source_timestamp") != str(row["timestamp_ms"])
+                    for source in row_sources
+                )
+            ):
+                return None, "price_source_timestamp_mismatch"
     else:
         if resource == "funding":
             source_query = source_query.model_copy(update={"source_interval": "event"})
