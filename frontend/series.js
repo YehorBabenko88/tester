@@ -200,6 +200,8 @@ export function adaptSeries(payload, kind, q) {
       ts: r.ts ?? r.timestamp_ms,
       ...(kind === "volume"
         ? { value: r.volume }
+        : ["mark", "index"].includes(kind)
+          ? { value: r.close }
         : kind === "funding"
           ? { value: r.value ?? r.rate }
           : {}),
