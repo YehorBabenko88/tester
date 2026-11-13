@@ -929,12 +929,18 @@ async function loadCharts(options = {}) {
         // The backend may change between discovery and read. Never display
         // an unrelated dataset under a qualified panel's identity.
         const series = adaptSeries(payload, kind, q);
-        if (["mark", "index"].includes(kind) &&
-            !series.provenance.some((p) =>
-              p && typeof p === "object" &&
-              (p.candle_kind === (kind === "mark" ? "official_mark" : "official_index") ||
-               p.source_ref === capability.source_ref))) {
-          throw Error("Mark/Index response provenance does not match the qualified source");
+        if (["mark", "index"].includes(kind)) {
+          const expectedKind = kind === "mark" ? "official_mark" : "official_index";
+          const matchesSource = series.provenance.some((p) =>
+            p && typeof p === "object" && p.source_ref === capability.source_ref
+          );
+          const contradictsKind = series.provenance.some((p) =>
+            p && typeof p === "object" &&
+            typeof p.candle_kind === "string" && p.candle_kind !== expectedKind
+          );
+          if (!matchesSource || contradictsKind) {
+            throw Error("Mark/Index response provenance does not match the qualified source");
+          }
         }
         p.page.next = payload.next_cursor || null;
         p.next.disabled = !p.page.next;
