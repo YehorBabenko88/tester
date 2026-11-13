@@ -178,7 +178,7 @@ async function setup(page, options = {}) {
                 ? { candle_kind: panel === "mark" ? "official_mark" : "official_index" }
                 : {}),
             } : {
-              panel, status: "UNVERIFIED", reason: "source_revision_not_verified",
+              panel, status: "UNAVAILABLE", reason: "endpoint_contract_not_supported",
             })]),
       );
       await route.fulfill({
@@ -604,7 +604,7 @@ test("sort is requested on server and unavailable panels explain why", async ({
     "DATA_UNAVAILABLE",
   );
   await expect(page.locator('[data-panel="footprint"]')).toContainText(
-    "source_revision_not_verified",
+    "endpoint_contract_not_supported",
   );
 });
 test("API outage is visible and retry works without fake rows", async ({
@@ -789,16 +789,15 @@ test("strategy workspace fails closed before validated F outputs exist", async (
   await setup(page);
   for (const name of [
     "Strategy preview",
-    "Stop Loss / Take Profit",
-    "Simulation journal",
-    "Equity",
-    "Drawdown",
-    "Trade overlays",
+    "Trader disclosures and hypotheses",
   ]) {
     const panel = page.getByRole("region", { name, exact: true });
     await expect(panel).toContainText("DATA_UNAVAILABLE");
-    await expect(panel).toContainText("validated simulation");
   }
+  await expect(page.locator("#strategy-run")).toBeDisabled();
+  await expect(page.locator("#strategy-execution-status")).toContainText(
+    "DATA_UNAVAILABLE",
+  );
 });
 test("editing range fields invalidates all old chart cursors before paging", async ({
   page,
