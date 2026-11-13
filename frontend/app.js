@@ -881,6 +881,10 @@ async function loadCharts(options = {}) {
       el("summary", "Exact source values (first 100 rows)"),
     );
   }
+  if (options.refreshCapabilities) {
+    state.capabilityKey = null;
+    state.capabilities = null;
+  }
   const capabilities = await discoverCapabilities(q, abort.signal).catch(() => ({}));
   if (abort.signal.aborted) return;
   const cache = new Map();
@@ -1028,7 +1032,7 @@ async function loadQuality(q, signal) {
       $("#quality-data").textContent = "DATA_UNAVAILABLE · " + e.message;
   }
 }
-$("#apply").onclick = loadCharts;
+$("#apply").onclick = () => loadCharts({ refreshCapabilities: true });
 $("#interval").onchange = () => {
   if (state.active) loadCharts();
 };
