@@ -79,6 +79,8 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
                 reasons.add("execution_availability_not_proven")
             if t["taker_side"] == "Unknown":
                 reasons.add("aggressor_unknown")
+            if any(p["source_hash"] is None for p in t["provenance"]):
+                reasons.add("source_content_hash_missing")
             if t["id_origin"] != "exchange":
                 reasons.add("execution_identity_not_exchange")
         delta = buy - sell
@@ -93,6 +95,8 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
             "side_classification_complete": unknown == 0 and bool(rows),
             "delta_complete": False,  # Cannot certify the full execution stream.
             "coverage_certified": False,
+            "vwap_volume_coverage_certified": False,
+            "poc_volume_coverage_certified": False,
             "vwap": decimal(pv / volume) if volume else None,
             "poc": decimal(poc) if poc is not None else None,
             "footprint": [
