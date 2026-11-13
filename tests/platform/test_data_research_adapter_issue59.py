@@ -1,283 +1,242 @@
-"""DATA #72 producer schema → strict RESEARCH adapter regression matrix.
-
-All examples represent PUBLIC recent executions only, NOT full market history.
-"""
+"""RESEARCH against versioned DATA #72 public execution events, no live orders."""
 import base64
-import copy
 import hashlib
+import importlib
 import json
+import os
+from datetime import datetime, timezone
 from urllib.parse import urlencode
+from unittest.mock import Mock
 
 import pytest
 
-from src.integration.data_research_adapter import project_data_page, read_data_metrics
-from src.storage.models import canonical, digest, normalize
+from src.integration.data_research_adapter import (
+    DATA_CONTRACT_VERSION,
+    project_events,
+    read_data_metrics,
+)
 
 START = 1704067200000
-STAMP = START + 1000
 END = START + 60000
-OBSERVED = "2026-11-13T16:00:00+00:00"
+OBSERVED_MS = 1794560000000
 
 
-def source_row(trade_id="a", price="100", size="2", side="Buy", time=STAMP):
-    return {"symbol": "BTCUSDT", "execId": trade_id, "time": str(time),
-            "price": price, "size": size, "side": side}
-
-
-def make_page(raw_rows=None, *, quantity_unit="source_native_quantity"):
-    raw_rows = [source_row()] if raw_rows is None else raw_rows
-    params = {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
-    url = "https://api.bybit.com/v5/market/recent-trade?" + urlencode(params)
-    raw_http = json.dumps({"retCode": 0, "result": {"list": raw_rows}}).encode()
-    http_sha = hashlib.sha256(raw_http).hexdigest()
-    run_id, job_key, evidence_id = "ci-public-research-run", "ci-public-research-job", "evidence-1"
-    start, end = min(int(r["time"]) for r in raw_rows), max(int(r["time"]) for r in raw_rows) + 1
-    receipt = {
+def event(trade_id="a", *, price="100", quantity="2", side="Buy",
+          event_ms=START + 1000):
+    return {
+        "contract_version": DATA_CONTRACT_VERSION,
         "venue": "bybit", "category": "linear", "symbol": "BTCUSDT",
-        "dataset": "trades", "interval": "", "start_ms": start, "end_ms": end,
-        "status": "UNVERIFIED", "coverage_status": "UNKNOWN",
-        "ingestion_run": run_id, "source_url": url,
-        "observed_at_utc": OBSERVED, "http_sha256": http_sha,
-        "http_hash_scope": "original_http_body",
-        "http_bytes_base64": base64.b64encode(raw_http).decode(),
-        "cursor_in": None,
-        "pages": [{"params": params, "cursor": None, "next_cursor": None,
-                   "count": len(raw_rows), "http_sha256": http_sha}],
+        "exec_id": trade_id, "taker_side": side,
+        "price": price, "quantity": quantity,
+        "quantity_unit": "source_native_linear_size",
+        "event_ms": event_ms, "observed_ms": OBSERVED_MS,
+        "publication_ms": None,
+        "utc_interval": {"start_ms": START, "end_ms": END},
+        "source_coverage": {"status": "UNKNOWN", "start_ms": START, "end_ms": END},
+        "availability": {"status": "UNVERIFIED", "reason": "Public recent executions only"},
+        "provenance": [{
+            "source_kind": "bybit_rest",
+            "source_ref": "https://api.bybit.com/v5/market/recent-trade",
+            "source_hash": "c" * 64, "ingestion_run": "source-run",
+            "timestamp_precision": "ms", "source_timestamp": str(event_ms),
+            "parent_refs": ["evidence-1", "b" * 64, "a" * 64],
+            "method_version": DATA_CONTRACT_VERSION,
+        }],
+        "source_receipts": [{
+            "evidence_id": "evidence-1", "page_ref": "f" * 64,
+            "http_sha256": "a" * 64, "page_sha256": "b" * 64,
+            "row_sha256": "c" * 64,
+        }],
     }
-    evidence = {
-        "evidence_id": evidence_id, "job_key": job_key,
-        "start_ms": start, "end_ms": end,
-        "status": "UNVERIFIED", "verified": False,
-        "record_count": len(raw_rows), "evidence": receipt,
-    }
-    raw_envelopes, rows, observations = [], [], []
-    for row in raw_rows:
-        source = {
-            "url": url, "fetched_at": OBSERVED,
-            "sha256": hashlib.sha256(canonical(row).encode()).hexdigest(),
-            "hash_scope": "canonical_row_json",
-            "source_kind": "rest",
-            "source_timestamp": str(row["time"]),
-            "observed_at_utc": OBSERVED, "ingestion_run": run_id,
-            "evidence_refs": [digest([run_id, job_key, url, http_sha])],
-        }
-        payload = {
-            "price": row["price"], "size": row["size"], "side": row["side"],
-            "trade_id": row["execId"], "unit": quantity_unit,
-            "event_timestamp_ms": int(row["time"]),
-            "publication_timestamp_ms": None,
-            "anonymous_public_execution": True, "source_fields": row,
-        }
-        envelope = normalize({
-            "schema_version": "1.0", "venue": "bybit", "category": "linear",
-            "symbol": "BTCUSDT", "dataset": "trades", "interval": "",
-            "timestamp_ms": int(row["time"]), "timestamp_precision": "ms",
-            "timestamp_ns": None, "payload": payload, "source": source,
-        })
-        raw_envelopes.append(envelope)
-        rows.append(copy.deepcopy({k: v for k, v in envelope.items() if k != "source"}))
-        observations.append({
-            "record_key": envelope["record_key"], "authentic_run": True,
-            "source_run_status": "matched", "run_origin": "caller",
-            "source": source, "raw_envelope": envelope,
-            "source_kind": "rest", "run_id": run_id, "job_key": job_key,
-            "evidence_id": evidence_id,
-        })
-    page = {
-        "outcome": "OK", "scope": {"venue": "bybit", "category": "linear",
-            "symbol": "BTCUSDT", "dataset": "trades", "interval": ""},
-        "rows": rows, "observations": observations, "evidence": [evidence],
-        "page_exhausted": True, "next_cursor": None,
-        "coverage": {"state": "UNKNOWN", "complete": False,
-                     "start_ms": START, "end_ms": END},
-    }
-    return page, raw_envelopes, receipt
 
 
-def project(page):
-    return project_data_page(page, category="linear", symbol="BTCUSDT",
-                             start_ms=START, end_ms=END)
+def preview(rows):
+    return project_events(
+        rows, category="linear", symbol="BTCUSDT",
+        start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+    )
 
 
-class Store:
-    def __init__(self, page):
-        self.page = page
-        self.calls = []
-
-    def read_page(self, *args, **kwargs):
-        self.calls.append((args, kwargs))
-        return self.page
-
-
-def test_data72_exact_projection_and_mathematics():
-    page, _, _ = make_page([source_row(), source_row("b", "102", "1", "Sell")])
-    data = project(page)
-    assert data["coverage"] == "UNKNOWN"
-    assert data["admitted_to_f"] is False
-    assert data["observed_window"]["observed_unique_trades"] == 2
-    assert data["observed_window"]["complete_market_history"] is False
-    assert data["trades"][0]["quantity"] == "2"
-    assert data["trades"][0]["provenance"][0]["source_hash"]
-    store = Store(page)
-    result = read_data_metrics(store, category="linear", symbol="BTCUSDT",
-                               start_ms=START, end_ms=END,
-                               interval_ms=60000, tick_size="0.5")
-    assert store.calls[0][0][0] == "trades"
-    assert store.calls[0][1]["limit"] == 1000
-    bar = result["metrics"]["bars"][0]
-    assert bar["vwap"].startswith("100.666666666")
-    assert bar["poc"] == "100"
+def test_exact_observed_sample_footprint_delta_cvd_vwap_poc():
+    outcome = preview([event(), event("b", price="102", quantity="1", side="Sell")])
+    bar = outcome["metrics"]["bars"][0]
+    assert bar["volume"] == "3"
     assert bar["delta_known"] == "1"
     assert bar["cvd_known"] == "1"
+    assert bar["poc"] == "100"
+    assert bar["vwap"].startswith("100.666666666")
+    assert len(bar["footprint"]) == 2
+    assert outcome["admitted_to_f"] is False
+    assert outcome["f_input"] is None
+    assert outcome["status"] == "OBSERVED_UNVERIFIED"
+    assert outcome["source_verification"] == "CALLER_UNATTESTED"
+
+
+def test_unknown_side_retained_never_bid_ask_inferred():
+    outcome = preview([event(side="Unknown")])
+    bar = outcome["metrics"]["bars"][0]
+    assert bar["unknown_side_volume"] == "2"
+    assert bar["delta_known"] == "0"
     assert bar["delta_complete"] is False
-    assert result["f_input"] is None
-    assert result["g_e_result"] is None
+    assert bar["footprint"][0]["unknown_side_volume"] == "2"
+    assert outcome["publication_time"] == "UNKNOWN"
 
 
-def test_source_order_does_not_change_metrics():
-    rows = [source_row("a", "100", "2"), source_row("b", "102", "1", "Sell")]
-    outcomes = []
-    for order in (rows, list(reversed(rows))):
-        store = Store(make_page(order)[0])
-        result = read_data_metrics(store, category="linear", symbol="BTCUSDT",
-                                   start_ms=START, end_ms=END,
-                                   interval_ms=60000, tick_size="0.5")
-        outcomes.append(result["metrics"]["bars"])
-    assert outcomes[0] == outcomes[1]
+def test_reordered_events_produce_identical_metrics():
+    a, b = event("a", event_ms=START + 2000), event("b", side="Sell")
+    assert preview([a, b])["metrics"] == preview([b, a])["metrics"]
 
 
-@pytest.mark.parametrize("mutation,reason", [
-    (lambda p: p["evidence"][0]["evidence"].pop("http_bytes_base64"), "missing_or_oversized_http_body"),
-    (lambda p: p["evidence"][0]["evidence"].__setitem__("http_sha256", "0" * 64), "http_body_sha256_mismatch"),
-    (lambda p: p["observations"][0]["source"].__setitem__("sha256", "0" * 64), "wrong_provenance_source_kind"),
-    (lambda p: p["rows"][0]["payload"].__setitem__("unit", "inverse_contracts"), "source_envelope_readback_mismatch"),
-    (lambda p: p["rows"][0]["payload"].__setitem__("publication_timestamp_ms", 1), "source_envelope_readback_mismatch"),
-    (lambda p: p.__setitem__("page_exhausted", False), "missing_source_records_or_more_pages"),
-    (lambda p: p["evidence"][0]["evidence"]["pages"][0].__setitem__("next_cursor", "more"), "unproven_pagination_chain"),
-    (lambda p: p["observations"].clear(), "missing_trade_observations"),
-    (lambda p: p["coverage"].pop("start_ms"), "missing_requested_coverage_bounds"),
-    (lambda p: p["coverage"].__setitem__("complete", True), "unexpected_recent_trade_history_certification"),
+@pytest.mark.parametrize("edit,reason", [
+    (lambda e: e.__setitem__("contract_version", "other"), "unknown_data_execution_contract"),
+    (lambda e: e.__setitem__("quantity_unit", "source_native_inverse_contract"), "market_or_quantity_unit_mismatch"),
+    (lambda e: e.__setitem__("symbol", "ETHUSDT"), "market_or_quantity_unit_mismatch"),
+    (lambda e: e.__setitem__("publication_ms", START), "publication_time_not_proven"),
+    (lambda e: e.pop("publication_ms"), "publication_time_not_proven"),
+    (lambda e: e["source_coverage"].__setitem__("status", "COMPLETE"), "historical_scope_or_coverage_mismatch"),
+    (lambda e: e["utc_interval"].__setitem__("end_ms", END + 1), "historical_scope_or_coverage_mismatch"),
+    (lambda e: e["availability"].__setitem__("status", "AVAILABLE"), "source_availability_not_proven"),
+    (lambda e: e.__setitem__("taker_side", "bid"), "invalid_or_inferred_taker_side"),
+    (lambda e: e["source_receipts"].clear(), "original_http_page_row_receipts_required"),
+    (lambda e: e["source_receipts"][0].__setitem__("page_sha256", "not-a-sha"), "unqualified_source_sha256"),
+    (lambda e: e.__setitem__("event_ms", float(START + 1)), "invalid_event_or_observation_time"),
 ])
-def test_source_tampering_refused(mutation, reason):
-    page, _, _ = make_page()
-    mutation(page)
+def test_unqualified_event_refused(edit, reason):
+    row = event()
+    edit(row)
     with pytest.raises(ValueError, match=reason):
-        project(page)
+        preview([row])
 
 
-def test_missing_http_page_member_refused():
-    page, _, _ = make_page([source_row(), source_row("b", "102", "1", "Sell")])
-    page["rows"].pop()
-    page["observations"].pop()
-    with pytest.raises(ValueError, match="missing_page_members_or_duplicate_ids"):
-        project(page)
+def test_zero_quantity_refused():
+    with pytest.raises(ValueError):
+        preview([event(quantity="0")])
 
 
-def test_late_knowledge_refused_no_lookahead():
-    page, _, _ = make_page()
+def test_duplicate_identity_refused_even_if_economics_differ():
+    with pytest.raises(ValueError, match="duplicate_exchange_exec_id"):
+        preview([event("a"), event("a", price="101")])
+
+
+def test_late_observation_as_of_fails_closed():
     with pytest.raises(ValueError, match="late_source_knowledge"):
-        project_data_page(page, category="linear", symbol="BTCUSDT",
-                          start_ms=START, end_ms=END, as_of_ms=START + 60000)
+        project_events(
+            [event()], category="linear", symbol="BTCUSDT",
+            start_ms=START, end_ms=END, interval_ms=60000,
+            tick_size="0.5", as_of_ms=START + 60000
+        )
 
 
-def test_wrong_dataset_and_market_refused():
-    page, _, _ = make_page()
-    page["scope"]["dataset"] = "funding"
-    with pytest.raises(ValueError, match="data_page_unavailable_or_wrong_scope"):
-        project(page)
-    page, _, _ = make_page()
-    with pytest.raises(ValueError, match="inverse_or_unsupported_quantity_unit"):
-        project_data_page(page, category="inverse", symbol="BTCUSDT",
-                          start_ms=START, end_ms=END)
+def test_inverse_rejected_before_any_data_read():
+    store = Mock()
+    with pytest.raises(ValueError, match="inverse_quantity_unit_not_comparable"):
+        read_data_metrics(
+            store, category="inverse", symbol="BTCUSDT",
+            start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+        )
+    store.read.assert_not_called()
 
 
-def test_unknown_side_never_synthesized():
-    with pytest.raises(ValueError, match="invalid taker side"):
-        make_page([source_row(side="Unknown")])
+def test_bounded_100_event_window_and_no_data():
+    assert preview([])["status"] == "NO_DATA"
+    assert preview([])["f_input"] is None
+    with pytest.raises(ValueError, match="events_exceed_bounded_read"):
+        preview([event(str(i)) for i in range(101)])
 
 
-def test_zero_volume_refused_at_data_contract_boundary():
-    with pytest.raises(ValueError, match="invalid size"):
-        make_page([source_row(size="0")])
+def _composed_data():
+    try:
+        return importlib.import_module("src.ingest.execution_contract")
+    except ModuleNotFoundError as exc:
+        if exc.name == "src.ingest.execution_contract":
+            pytest.skip("DATA #72 has not yet been composed into RESEARCH #71")
+        raise
 
 
-def test_duplicate_exchange_identity_refused():
-    page, _, _ = make_page([source_row("a", "100"), source_row("a", "101")])
-    with pytest.raises(ValueError, match="duplicate_source_record_key"):
-        project(page)
+def test_actual_data72_versioned_event_projection_on_composed_branch():
+    data = _composed_data()
+    if data.VERSION != DATA_CONTRACT_VERSION:
+        pytest.fail("DATA #72 version skew")
+    from tests.test_execution_contract_bridge import fixture, MS
 
-
-def test_missing_unit_cannot_be_guessed():
-    page, _, _ = make_page(quantity_unit="contracts_unknown")
-    with pytest.raises(ValueError, match="unknown_or_incompatible_quantity_unit"):
-        project(page)
-
-
-def test_actual_data72_decoder_when_composed():
-    """Runs on MASTER's combined DATA+RESEARCH candidate; otherwise explicit SKIP."""
-    import importlib.util
-    from datetime import datetime
-
-    if importlib.util.find_spec("src.ingest.public_auxiliary") is None:
-        pytest.skip("PR #72 module not yet composed into this independent PR")
-    from src.ingest.public_auxiliary import decode
-
-    page, raw_envelopes, receipt = make_page()
-    row = source_row()
-    expected = decode(
-        "trades", "linear", "BTCUSDT",
-        {"retCode": 0, "result": {"list": [row]}},
-        fetched_at=datetime.fromisoformat(OBSERVED),
-        url=receipt["source_url"], ingestion_run=receipt["ingestion_run"],
-        evidence_ref=page["observations"][0]["source"]["evidence_refs"][0],
+    window = (MS // 60000) * 60000
+    store = Mock()
+    store.read.return_value = [fixture(side="Unknown")]
+    outcome = read_data_metrics(
+        store, category="linear", symbol="BTCUSDT",
+        start_ms=window, end_ms=window + 60000,
+        interval_ms=60000, tick_size="0.5", limit=10
     )
-    assert expected == raw_envelopes
-    assert project(page)["admitted_to_f"] is False
+    assert outcome["source_verification"] == "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
+    assert outcome["metrics"]["bars"][0]["unknown_side_volume"] == "0.125"
+    assert outcome["metrics"]["bars"][0]["delta_known"] == "0"
+    assert outcome["f_input"] is None
+    store.read.assert_called_once_with(
+        "trades", "bybit", "linear", "BTCUSDT", window, window + 60000, "",
+        limit=10, compact_provenance=False
+    )
+    store.ingest.assert_not_called()
 
 
 @pytest.mark.integration
-def test_disposable_postgres_data_provenance_roundtrip():
-    """Actual B Store transaction, reopen, idempotent DATA-shaped replay.
-
-    Never connects to a default/production database: only explicit CI DSN.
-    """
-    import os
-
+def test_disposable_postgres_actual_data72_source_to_research():
     dsn = os.environ.get("TESTER_RESEARCH_DATA_TEST_DSN")
     if not dsn:
-        pytest.skip("dedicated TESTER_RESEARCH_DATA_TEST_DSN not configured")
+        pytest.skip("explicit disposable PostgreSQL DSN absent")
     if "tester_research_data_disposable" not in dsn:
-        raise ValueError("test requires specifically named disposable database")
-    import psycopg
+        raise ValueError("refusing non-disposable PostgreSQL database")
+    _composed_data()
+    from src.ingest.public_auxiliary import fetch_and_ingest
     from src.storage.migrations import migrate
-    from src.storage.store import Store as PostgresStore
+    from src.storage.store import Store
+    import psycopg
 
-    with psycopg.connect(dsn) as conn:
-        migrate(conn)
-    _, source_envelopes, receipt = make_page()
-    store = PostgresStore(dsn)
+    with psycopg.connect(dsn) as connection:
+        migrate(connection)
+    original = {
+        "symbol": "BTCUSDT", "execId": "research-data72-pg-v1",
+        "time": "1600000000000", "price": "10234.56000",
+        "size": "0.125000", "side": "Buy",
+    }
+    result = {"list": [original]}
+    url = "https://api.bybit.com/v5/market/recent-trade?" + urlencode(
+        {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
+    )
+    original_http = json.dumps({"retCode": 0, "result": result}).encode()
+    sha = hashlib.sha256(original_http).hexdigest()
+
+    class SourceReplay:
+        def __init__(self):
+            self.last_response = {
+                "url": url, "status_code": 200, "hash_scope": "original_http_body",
+                "sha256": sha,
+                "bytes_base64": base64.b64encode(original_http).decode(),
+            }
+
+        def call(self, path, params):
+            assert path == "/recent-trade"
+            assert params == {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
+            return result, url
+
+    store = Store(dsn)
     for _ in range(2):
-        store.ingest(source_envelopes, receipt,
-                     "ci-public-research-job", run_id="ci-public-research-run")
-    # A fresh read verifies durable linkage instead of trusting the producer's return.
-    reopened = PostgresStore(dsn)
-    result = read_data_metrics(reopened, category="linear", symbol="BTCUSDT",
-                               start_ms=START, end_ms=END,
-                               interval_ms=60000, tick_size="0.5")
-    assert result["metrics"]["observed_execution_count"] == 1
-    assert result["metrics"]["bars"][0]["vwap"] == "100"
-    assert result["metrics"]["bars"][0]["delta_known"] == "2"
-    assert result["admitted_to_f"] is False
-    assert result["f_input"] is None
-    assert result["status"] == "OBSERVED_UNVERIFIED"
-
-
-def test_missing_and_forged_time_roles_are_refused():
-    page, _, _ = make_page()
-    page["observations"][0]["raw_envelope"]["payload"].pop("publication_timestamp_ms")
-    with pytest.raises(ValueError):
-        project(page)
-    page, _, _ = make_page()
-    page["observations"][0]["source"]["source_timestamp"] = "0"
-    with pytest.raises(ValueError, match="wrong_provenance_source_kind"):
-        project(page)
+        fetch_and_ingest(
+            store, SourceReplay(), kind="trades", category="linear",
+            symbol="BTCUSDT", run_id="research-data72-pg-run-v1",
+            job_key="research-data72-pg-job-v1",
+            observed_at=datetime(2026, 11, 13, 20, tzinfo=timezone.utc)
+        )
+    reopened = Store(dsn)
+    stamp = 1600000000000
+    start = stamp // 60000 * 60000
+    outcome = read_data_metrics(
+        reopened, category="linear", symbol="BTCUSDT",
+        start_ms=start, end_ms=start + 60000, interval_ms=60000,
+        tick_size="0.5", limit=10
+    )
+    assert outcome["metrics"]["bars"][0]["vwap"] == "10234.56"
+    assert outcome["metrics"]["bars"][0]["delta_known"] == "0.125"
+    assert outcome["observed_window"]["observed_unique_trades"] == 1
+    assert outcome["coverage"] == "UNKNOWN"
+    assert outcome["admitted_to_f"] is False
+    assert outcome["f_input"] is None
