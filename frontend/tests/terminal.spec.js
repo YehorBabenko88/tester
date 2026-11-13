@@ -163,7 +163,7 @@ async function setup(page, options = {}) {
       const routes = {
         candles: "/api/candles", volume: "/api/candles",
         footprint: "/api/footprint", open_interest: "/api/open-interest",
-        funding: "/api/funding", mark: "/api/candles", index: "/api/candles",
+        funding: "/api/funding", mark: "/api/price-candles", index: "/api/price-candles",
       };
       const panels = Object.fromEntries(
         ["candles", "volume", "footprint", "delta", "cvd", "profile",
@@ -173,6 +173,10 @@ async function setup(page, options = {}) {
               panel, status: "AVAILABLE", reason: "source_qualified",
               resource: routes[panel], revision: "fixture:1",
               source_ref: "fixture:market:1",
+              schema_version: ["mark", "index"].includes(panel) ? "1.1" : "1.0",
+              ...(["mark", "index"].includes(panel)
+                ? { candle_kind: panel === "mark" ? "official_mark" : "official_index" }
+                : {}),
             } : {
               panel, status: "UNVERIFIED", reason: "source_revision_not_verified",
             })]),
@@ -180,6 +184,16 @@ async function setup(page, options = {}) {
       await route.fulfill({
         json: { schema_version: "1.0", data: { panels } },
       });
+      return;
+    }
+    if (u.pathname === "/api/price-candles") {
+      await route.fulfill({ json: {
+        schema_version: "1.1", data: [], next_cursor: null,
+        availability: { status: "UNAVAILABLE", reason: "No verified price fixtures" },
+        coverage: { status: "UNKNOWN", start_ms: Number(u.searchParams.get("start_ms")),
+                    end_ms: Number(u.searchParams.get("end_ms")), evidence_refs: [] },
+        provenance: [],
+      }});
       return;
     }
     if (u.pathname === "/api/sources")
@@ -1181,14 +1195,16 @@ test("mark and index use separate official candle kinds without analytics fallba
   await setup(page);
   page.on("request", req => {
     const url = new URL(req.url());
-    if (url.pathname === "/api/candles") requested.push(url.searchParams.get("candle_kind"));
+    if (url.pathname === "/api/price-candles") requested.push(
+      [url.searchParams.get("candle_kind"), url.searchParams.get("schema_version")]
+    );
   });
   await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
   await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
   await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
   await expect(page.locator('[data-panel="mark"]')).not.toContainText("Loading…");
   await expect(page.locator('[data-panel="index"]')).not.toContainText("Loading…");
-  expect(requested).toContain("official_mark");
-  expect(requested).toContain("official_index");
+  expect(requested).toContainEqual(["official_mark", "1.1"]);
+  expect(requested).toContainEqual(["official_index", "1.1"]);
   expect(errors).toEqual([]);
 });
