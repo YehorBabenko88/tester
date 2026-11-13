@@ -161,3 +161,26 @@ def test_invalid_range_is_rejected_and_untrusted_host_is_denied():
         denied = c.get("/api/capabilities", params=PARAMS,
                        headers={"Host": "evil.example"})
         assert denied.status_code == 400
+
+
+def test_oi_discovery_uses_selected_source_interval_not_default():
+    seen = []
+
+    class SpyReader:
+        def read(self, resource, query):
+            if resource == "open-interest":
+                seen.append((query.interval, query.source_interval,
+                             query.viewport_interval))
+            raise ProviderUnavailable("Not connected")
+
+    app = create_app(
+        Settings(provider_factory="src.integration.lab_market:create_reader",
+                 market_catalog_enabled=False),
+        provider=SpyReader(),
+    )
+    with TestClient(app, base_url="http://127.0.0.1:8765") as c:
+        response = c.get("/api/capabilities",
+                         params={**PARAMS, "source_interval": "1h"})
+    assert response.status_code == 200
+    assert seen == [("1h", "1h", "1")]
+    assert response.json()["data"]["panels"]["open_interest"]["status"] == "UNVERIFIED"
