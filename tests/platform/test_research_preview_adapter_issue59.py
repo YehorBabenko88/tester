@@ -1,6 +1,7 @@
 """Exercise the real B one-page snapshot adapter without inventing coverage."""
 import pytest
 
+from src.analytics.core import normalize_trade
 from src.integration.qualified_snapshot import SnapshotRequest
 from src.integration.research_preview import research_preview
 
@@ -63,4 +64,24 @@ def test_incomplete_page_is_not_accepted():
     bad["next_cursor"] = "next"
     result = research_preview(Store(bad), request(), [], tick_size="0.5")
     assert "single_page_limit" in result["reasons"]
+    assert result["f_input"] is None
+
+
+def test_actual_execution_math_binds_original_input_and_snapshot():
+    source = {
+        "source_kind": "bybit_rest", "source_ref": "read-only-fixture",
+        "source_hash": None, "ingestion_run": "fixture-run",
+        "timestamp_precision": "ms", "source_timestamp": "1",
+    }
+    trade = normalize_trade(
+        {"time": "1", "price": "100", "size": "2",
+         "side": "Buy", "execId": "trade-1"},
+        category="linear", symbol="BTCUSDT", source_ref=source,
+    )
+    result = research_preview(Store(page()), request(), [trade], tick_size="0.5")
+    assert result["metrics"]["bars"][0]["vwap"] == "100"
+    assert result["metrics"]["bars"][0]["delta_known"] == "2"
+    assert result["metrics"]["bars"][0]["delta_complete"] is False
+    assert result["proof"]["execution_input_digest"]
+    assert result["proof"]["snapshot_evidence_digest"]
     assert result["f_input"] is None
