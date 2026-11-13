@@ -3,7 +3,6 @@
 All examples represent PUBLIC recent executions only, NOT full market history.
 """
 import base64
-import copy
 import hashlib
 import json
 from urllib.parse import urlencode
@@ -88,7 +87,8 @@ def make_page(raw_rows=None, *, quantity_unit="source_native_quantity"):
             "symbol": "BTCUSDT", "dataset": "trades", "interval": ""},
         "rows": rows, "observations": observations, "evidence": [evidence],
         "page_exhausted": True, "next_cursor": None,
-        "coverage": {"state": "UNKNOWN", "complete": False},
+        "coverage": {"state": "UNKNOWN", "complete": False,
+                     "start_ms": START, "end_ms": END},
     }
     return page, raw_envelopes, receipt
 
@@ -113,6 +113,8 @@ def test_data72_exact_projection_and_mathematics():
     data = project(page)
     assert data["coverage"] == "UNKNOWN"
     assert data["admitted_to_f"] is False
+    assert data["observed_window"]["observed_unique_trades"] == 2
+    assert data["observed_window"]["complete_market_history"] is False
     assert data["trades"][0]["quantity"] == "2"
     assert data["trades"][0]["provenance"][0]["source_hash"]
     store = Store(page)
@@ -152,6 +154,7 @@ def test_source_order_does_not_change_metrics():
     (lambda p: p.__setitem__("page_exhausted", False), "missing_source_records_or_more_pages"),
     (lambda p: p["evidence"][0]["evidence"]["pages"][0].__setitem__("next_cursor", "more"), "unproven_pagination_chain"),
     (lambda p: p["observations"].clear(), "missing_trade_observations"),
+    (lambda p: p["coverage"].pop("start_ms"), "missing_requested_coverage_bounds"),
 ])
 def test_source_tampering_refused(mutation, reason):
     page, _, _ = make_page()
