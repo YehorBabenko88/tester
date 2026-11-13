@@ -79,6 +79,21 @@ def _trade(event, *, category, symbol, start_ms, end_ms, as_of_ms):
             if not isinstance(receipt.get(field), str) or not _HEX.fullmatch(receipt[field]):
                 raise ValueError("unqualified_source_sha256")
         evidence_ids.add(receipt["evidence_id"])
+    provenance = event.get("provenance")
+    if not isinstance(provenance, list) or not provenance:
+        raise ValueError("source_provenance_required")
+    for receipt in receipts:
+        expected_parents = {
+            receipt["evidence_id"], receipt["page_sha256"], receipt["http_sha256"]
+        }
+        if not any(
+            isinstance(p, dict) and p.get("source_kind") == "bybit_rest"
+            and p.get("source_hash") == receipt["row_sha256"]
+            and isinstance(p.get("parent_refs"), list)
+            and expected_parents.issubset(p["parent_refs"])
+            for p in provenance
+        ):
+            raise ValueError("source_receipt_provenance_mismatch")
     result = {
         "schema_version": "1.0", "venue": "bybit", "category": category,
         "symbol": symbol, "timestamp_ms": event_ms, "timestamp_ns": None,
