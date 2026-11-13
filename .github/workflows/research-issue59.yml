@@ -57,7 +57,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Checkout reviewed DATA #72 at exact immutable HEAD
+        uses: actions/checkout@v4
+        with:
+          ref: 9193622249a5c659d53b9848c13fd363a86f3b4a
+          path: data72-reviewed
+      - name: Test-only composition, no git commit or merge
+        run: |
+          cp data72-reviewed/src/ingest/execution_contract.py src/ingest/execution_contract.py
+          cp data72-reviewed/src/ingest/public_auxiliary.py src/ingest/public_auxiliary.py
+          cp data72-reviewed/src/storage/models.py src/storage/models.py
+          cp data72-reviewed/tests/test_execution_contract_bridge.py tests/test_execution_contract_bridge.py
       - name: Install isolated test dependencies
         run: python -m pip install "pytest>=8,<10" "psycopg[binary]>=3.2,<4"
-      - name: Actual disposable PostgreSQL publication/replay/readback
-        run: python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k disposable_postgres
+      - name: DATA original-HTTP contract unit tests
+        run: python -m unittest tests.test_execution_contract_bridge -v
+      - name: DATA↔RESEARCH composed adapter and real disposable PostgreSQL
+        run: python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres"
