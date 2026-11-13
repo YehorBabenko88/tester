@@ -44,13 +44,13 @@ class ClaimTests(unittest.TestCase):
     def test_capacity_refuses_without_update(self):
         cur = FakeCursor({"draining": False, "max_running": 1}, 1, True)
         with patch("scripts.ops_pg_claim.connect", return_value=FakeConnection(cur)):
-            self.assertFalse(claim_existing("disposable", str(uuid4())))
+            self.assertIsNone(claim_existing("disposable", str(uuid4())))
         self.assertEqual(len(cur.sql), 2)
 
-    def test_lost_claim_returns_false(self):
+    def test_lost_claim_returns_none(self):
         cur = FakeCursor({"draining": False, "max_running": 2}, 0, False)
         with patch("scripts.ops_pg_claim.connect", return_value=FakeConnection(cur)):
-            self.assertFalse(claim_existing("disposable", str(uuid4())))
+            self.assertIsNone(claim_existing("disposable", str(uuid4())))
 
     def test_invalid_id_never_connects(self):
         with patch("scripts.ops_pg_claim.connect") as connect:
