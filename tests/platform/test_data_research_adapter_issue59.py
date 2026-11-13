@@ -70,6 +70,8 @@ def test_exact_observed_sample_footprint_delta_cvd_vwap_poc():
     assert outcome["f_input"] is None
     assert outcome["status"] == "OBSERVED_UNVERIFIED"
     assert outcome["source_verification"] == "CALLER_UNATTESTED"
+    assert outcome["observed_window"]["observed_nonempty_bars"] == 1
+    assert outcome["observed_window"]["historical_completeness_state"] == "UNKNOWN"
 
 
 def test_unknown_side_retained_never_bid_ask_inferred():
@@ -101,6 +103,7 @@ def test_reordered_events_produce_identical_metrics():
     (lambda e: e["source_receipts"][0].__setitem__("page_sha256", "not-a-sha"), "unqualified_source_sha256"),
     (lambda e: e["provenance"][0]["parent_refs"].clear(), "source_receipt_provenance_mismatch"),
     (lambda e: e["source_receipts"][0].__setitem__("row_sha256", "d" * 64), "source_receipt_provenance_mismatch"),
+    (lambda e: e["source_receipts"].append(dict(e["source_receipts"][0])), "duplicate_source_receipt"),
     (lambda e: e.__setitem__("event_ms", float(START + 1)), "invalid_event_or_observation_time"),
 ])
 def test_unqualified_event_refused(edit, reason):
