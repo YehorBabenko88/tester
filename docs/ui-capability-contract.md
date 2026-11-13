@@ -115,3 +115,78 @@ A loopback Chromium navigation to an isolated HTTP server is blocked by
 Playwright integration is **NOT_RUN** locally; the hosted CI jobs remain
 the required independent execution gate. No live historical PostgreSQL or
 PC4 hardware was touched.
+
+## DATA #72 / RESEARCH #71 exact-source compatibility (19:41 MASTER)
+
+**Reviewed producer heads (pinned by UI CI, not merged):**
+
+- DATA #72: `d08418fc51c890d3390ee5853cf2f9dba6073a80`
+- RESEARCH #71: `aecba8f9bdd8ec193f7d2ee36a5dbc64b5366a43`
+- UI branch remains based on PR #70; neither producer is copied into the
+  committed UI source tree.
+
+The standalone protocol schema is
+`docs/ui-capability-protocol-v1.schema.json` with
+`data.protocol_version = tester.ui-capabilities/1`.
+It does **not** replace `contracts/v1/openapi.json`.
+The response contains `data.source_contracts` with exact interface signatures
+and `data.observed_page_revision` explicitly identifying a bounded page digest,
+not a frozen historical database revision.
+
+### DATA execution evidence bridge
+
+The optional `src.api.capability_data_bridge.observed_execution_evidence`
+invokes DATA's exact `src.ingest.execution_contract.read_execution_events`
+interface only if DATA has actually been composed into a runtime with a
+configured, read-only `Store`. It is **never called by merely copying its
+contract declaration**.
+
+Its source input is strictly bounded to a 7-day, 100-event limit. When a page
+contains exactly 100 events the result is
+`UNVERIFIED/data72_full_page_boundary_unproven` (no continuation witness).
+The bridge also fails closed on missing original HTTP/page/row receipts,
+unsupported inverse quantity units, publication times presented as known,
+cross-scope event IDs, observation times before execution and observations
+after an explicitly provided information cutoff. Even a verified smaller
+sample returns `UNVERIFIED/data72_observed_sample_not_historical_visibility`
+with `historical_coverage=UNKNOWN`, `admitted_to_f=false`, and a
+`sample:<sha256>` evidence digest rather than a historical dataset revision.
+
+DATA's `tester-public-execution/1` and RESEARCH's
+`tester.execution-metrics/1` are pinned by an additional isolated
+`scripts/verify_ui_source_contracts.py` AST signature/provenance gate,
+executed against exact independent producer checkouts in the hosted UI
+workflow. It checks literal function arguments, versions, limits, quantity
+units, immutable receipt fields and explicit unknown coverage. This check
+**cannot replace actual original HTTP → disposable PostgreSQL → DATA readback
+→ RESEARCH metrics execution on a composed source tree**.
+
+### UI panel policy after composition
+
+Footprint, Delta, CVD, VWAP and POC may eventually display *observed-sample*
+research metrics only behind a separately designed, versioned and documented
+HTTP read endpoint that supplies exact immutable source/read scope. Current
+`/api/analytics` is not an implemented route, and DATA's Python functions
+alone do not authorize a browser query. `Profile` likewise remains
+unintegrated: RESEARCH #71 does not provide a qualified chart profile route.
+
+Funding and OI DATA #72 are public auxiliary acquisition products, not
+`tester-public-execution/1` trades; their provenance and source-native
+cadences must be separately verified by a real read endpoint. Neither is
+included in execution-only Delta/CVD/VWAP/POC arithmetic.
+
+Mark/Index remain separately qualified price-only v1.1 derivatives, with
+closed exchange-time bars, original Decimal strings, true UTC interval
+boundaries and no fabricated volume. Their page digest is **not** a shared,
+atomic revision with DATA executions or RESEARCH metrics; comparison at
+a historical decision time remains unverified.
+
+### Acceptance status
+
+The earlier isolated FastAPI/Chromium E2E on
+`9da9054a4ce37ebf56f89f2df278f6c01eb5e4b5` is accepted for UI wiring
+only: synthetic price source, 13 timeframes, no browser errors.
+It is **NOT** physical Bybit historical acceptance. New source compatibility
+checks must pass their own exact-head CI, and MASTER must compose the
+independent producer branches and run disposable PostgreSQL source-to-metrics
+tests before any historical real-data release can be considered.
