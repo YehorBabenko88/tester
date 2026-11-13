@@ -1,3 +1,4 @@
+import pytest
 """API capability discovery: explicit provenance and fail-closed defaults."""
 from fastapi.testclient import TestClient
 
@@ -65,3 +66,16 @@ def test_bad_scope_returns_schema_validation_error():
     )
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_error"
+
+@pytest.mark.parametrize("interval", [
+    "1", "3", "5", "15", "30", "60", "120",
+    "240", "360", "720", "D", "W", "M",
+])
+def test_discovery_for_each_timeframe_fails_closed(interval):
+    response = client(UnavailableReader()).get(
+        "/api/capabilities", params={**PARAMS, "interval": interval}
+    )
+    assert response.status_code == 200
+    panels = response.json()["data"]["panels"]
+    assert len(panels) == 12
+    assert all(p["status"] == "UNVERIFIED" for p in panels.values())
