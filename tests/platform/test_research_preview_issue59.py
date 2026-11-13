@@ -1,10 +1,8 @@
 """Read-only bridge refuses false F admission and cross-market composition."""
-from types import SimpleNamespace
-
 import pytest
 
 from src.integration import research_preview as bridge
-from src.integration.qualified_snapshot import SnapshotRequest
+from src.integration.qualified_snapshot import QualifiedSnapshot, SnapshotRequest
 
 
 def request():
@@ -12,11 +10,8 @@ def request():
 
 
 def test_preview_refuses_f_and_binds_digests(monkeypatch):
-    snapshot = SimpleNamespace(
-        mode="REAL", snapshot_id="unverified:abc",
-        dataset_revision="abc", evidence_digest="def",
-        reasons=("historical_visibility_not_proven",),
-    )
+    snapshot = QualifiedSnapshot("REAL", "abc", None, "def", False,
+                                 ("historical_visibility_not_proven",), None, "{}")
     monkeypatch.setattr(bridge, "read_canonical_snapshot", lambda store, req: snapshot)
     monkeypatch.setattr(bridge, "calculate", lambda *args, **kwargs: {
         "market": {"venue": "bybit", "category": "linear", "symbol": "BTCUSDT"},
@@ -32,10 +27,7 @@ def test_preview_refuses_f_and_binds_digests(monkeypatch):
 
 
 def test_cross_market_rejected(monkeypatch):
-    monkeypatch.setattr(bridge, "read_canonical_snapshot", lambda *args: SimpleNamespace(
-        mode="REAL", snapshot_id="x", dataset_revision="x",
-        evidence_digest="x", reasons=(),
-    ))
+    monkeypatch.setattr(bridge, "read_canonical_snapshot", lambda *args: QualifiedSnapshot("REAL", "x", None, "x", False, (), None, "{}"))
     monkeypatch.setattr(bridge, "calculate", lambda *args, **kwargs: {
         "market": {"venue": "bybit", "category": "spot", "symbol": "BTCUSDT"},
         "reasons": [], "bars": [],
