@@ -173,9 +173,12 @@ def project_data_page(page, *, category, symbol, start_ms, end_ms, as_of_ms=None
         expected_ref = digest([observation["run_id"], observation["job_key"], source["url"], body["http_sha256"]])
         if source.get("evidence_refs") != [expected_ref]:
             raise ValueError("source_page_linkage_mismatch")
-        if source.get("observed_at_utc") != body.get("observed_at_utc"):
+        if (source.get("observed_at_utc") != body.get("observed_at_utc")
+                or source.get("fetched_at") != body.get("observed_at_utc")):
             raise ValueError("observation_receipt_time_mismatch")
         observed_ms = _timestamp(source.get("observed_at_utc"))
+        if observed_ms < row["timestamp_ms"]:
+            raise ValueError("source_observed_before_execution")
         if as_of_ms is not None and observed_ms > as_of_ms:
             raise ValueError("late_source_knowledge")
         p = row.get("payload")
@@ -277,7 +280,10 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
         "schema_version": "tester.data-research-preview/1",
         "source": sample["source"], "quantity_unit": sample["quantity_unit"],
         "status": "OBSERVED_UNVERIFIED", "coverage": "UNKNOWN",
-        "data_evidence_digest": sample["evidence_digest"], "metrics_digest": digest(metrics),
+        "data_evidence_digest": sample["evidence_digest"],
+        "data_execution_digest": digest(sample["trades"]),
+        "observed_window": sample["observed_window"],
+        "metrics_digest": digest(metrics),
         "metrics": metrics, "f_input": None, "g_e_result": None,
         "admitted_to_f": False,
         "reasons": ["real_historical_coverage_not_proven", "historical_visibility_unknown",
