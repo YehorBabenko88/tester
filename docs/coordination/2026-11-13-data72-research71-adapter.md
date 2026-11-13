@@ -5,7 +5,7 @@
 - MASTER scope: https://github.com/YehorBabenko88/tester/pull/71#issuecomment-6857982889
 - Interface review: https://github.com/YehorBabenko88/tester/pull/75
 - DATA owner: https://github.com/YehorBabenko88/tester/pull/72
-- DATA versioned contract reviewed at **9193622249a5c659d53b9848c13fd363a86f3b4a**;
+- DATA versioned contract reviewed at **6eca8a9bfaf5c6eb0bac162fa737a1dbb64ae31a**;
   schema **`tester-public-execution/1`**.
 - Independent RESEARCH branch does **not** copy DATA source files into Git.
   Only the isolated hosted CI job composes those exact files into a temporary
