@@ -107,7 +107,6 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
                        "unit": "fraction_per_funding_event",
                        "event_timestamp_ms": timestamp,
                        "publication_timestamp_ms": None,
-                       "observed_at_utc": observed,
                        "source_fields": row}
         elif kind == "open_interest":
             timestamp = _ms(row.get("timestamp"), "timestamp")
@@ -115,7 +114,6 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
                        "unit": "contracts_source_native",
                        "observation_timestamp_ms": timestamp,
                        "publication_timestamp_ms": None,
-                       "observed_at_utc": observed,
                        "source_fields": row}
         else:
             timestamp = _ms(row.get("time"), "time")
@@ -128,7 +126,6 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
                        "unit": "source_native_quantity",
                        "event_timestamp_ms": timestamp,
                        "publication_timestamp_ms": None,
-                       "observed_at_utc": observed,
                        "anonymous_public_execution": True,
                        "source_fields": row}
         raw = json.dumps(row, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
@@ -137,6 +134,7 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
                   "hash_scope": "canonical_row_json",
                   "source_kind": "rest",
                   "source_timestamp": str(timestamp),
+                  "observed_at_utc": observed,
                   "ingestion_run": ingestion_run,
                   "evidence_refs": [evidence_ref]}
         if kind == "trades" and not payload["trade_id"]:
