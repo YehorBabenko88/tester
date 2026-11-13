@@ -14,7 +14,7 @@ const ROUTES = Object.freeze({
 const REASON = /^[a-z][a-z0-9_]{0,79}$/;
 function validSourceRef(value) {
   if (typeof value !== "string" || value.length > 512) return false;
-  if (/^[a-zA-Z0-9_.:/-]{1,256}$/.test(value)) return true;
+  if (!value.includes("://") && /^[a-zA-Z0-9_.:/-]{1,256}$/.test(value)) return true;
   try {
     const url = new URL(value);
     return url.protocol === "https:" &&
