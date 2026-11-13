@@ -6,7 +6,6 @@ import argparse
 import json
 import os
 import uuid
-from urllib.parse import urlsplit
 
 from psycopg.conninfo import conninfo_to_dict
 
@@ -21,7 +20,7 @@ def isolated_dsn(value):
     if not value:
         raise ValueError("explicit disposable PostgreSQL DSN required")
     parsed = conninfo_to_dict(value)
-    if parsed.get("host") != "127.0.0.1":
+    if set(parsed) != {"host", "port", "dbname", "user", "password"}:\n        raise ValueError("unexpected PostgreSQL connection parameters")\n    if parsed.get("host") != "127.0.0.1":
         raise ValueError("only loopback PostgreSQL allowed")
     port = int(parsed.get("port", "5432"))
     if port in (5432, 55471) or not 1024 <= port <= 65535:
@@ -29,7 +28,7 @@ def isolated_dsn(value):
     name = parsed.get("dbname", "")
     if not name.startswith("tester_aux_disposable_"):
         raise ValueError("disposable database name marker required")
-    if not parsed.get("user") or not parsed.get("password"):
+    if parsed.get("user") in (None, "", "postgres", "research_owner") or not parsed.get("password"):
         raise ValueError("explicit limited-role credentials required")
     return value
 
