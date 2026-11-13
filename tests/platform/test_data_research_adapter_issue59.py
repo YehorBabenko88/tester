@@ -293,3 +293,39 @@ def test_all_thirteen_utc_exchange_interval_boundaries(interval):
         assert datetime.fromtimestamp(start // 1000, UTC).day == 1
     if interval.isdigit():
         assert end - start == int(interval) * 60000
+
+
+def test_full_source_page_never_claims_complete_sample(monkeypatch):
+    from types import SimpleNamespace
+
+    import src.integration.data_research_adapter as adapter
+
+    monkeypatch.setattr(adapter.importlib, "import_module", lambda name: SimpleNamespace(
+        VERSION=DATA_CONTRACT_VERSION,
+        read_execution_events=lambda *args, **kwargs: [event()],
+        to_research_trade=lambda e: None,
+    ))
+    with pytest.raises(ValueError, match="data_event_page_limit_requires_pagination"):
+        read_data_metrics(
+            Mock(), category="linear", symbol="BTCUSDT", start_ms=START,
+            end_ms=END, interval_ms=60000, tick_size="0.5", limit=1
+        )
+
+
+def test_empty_data_read_does_not_claim_proof(monkeypatch):
+    from types import SimpleNamespace
+
+    import src.integration.data_research_adapter as adapter
+
+    monkeypatch.setattr(adapter.importlib, "import_module", lambda name: SimpleNamespace(
+        VERSION=DATA_CONTRACT_VERSION,
+        read_execution_events=lambda *args, **kwargs: [],
+        to_research_trade=lambda e: None,
+    ))
+    result = read_data_metrics(
+        Mock(), category="linear", symbol="BTCUSDT", start_ms=START,
+        end_ms=END, interval_ms=60000, tick_size="0.5", limit=10
+    )
+    assert result["status"] == "NO_DATA"
+    assert result["source_verification"] == "NO_EXECUTION_EVIDENCE"
+    assert result["f_input"] is None
