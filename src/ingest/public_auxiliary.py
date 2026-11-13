@@ -219,6 +219,8 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     if not isinstance(original_response, dict) or original_response.get("retCode") != 0 or original_response.get("result") != result:
         raise ValueError("HTTP body/result mismatch")
     evidence_ref = digest([run_id, job_key, url, http["sha256"]])
+    if len(result.get("list", [])) > params["limit"]:
+        raise ValueError("source response exceeds requested limit")
     rows = decode(kind, category, symbol, response, fetched_at=observed_at,
                   url=url, ingestion_run=run_id, evidence_ref=evidence_ref,
                   interval=interval)
@@ -232,7 +234,7 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     if any(not start_ms <= row["timestamp_ms"] < end_ms for row in rows):
         raise ValueError("source returned data outside requested time window")
     cursor = result.get("nextPageCursor")
-    if cursor is not None and (not isinstance(cursor, str) or not cursor or cursor == cursor_in):
+    if cursor is not None and (kind != "open_interest" or not isinstance(cursor, str) or not cursor or cursor == cursor_in):
         raise ValueError("invalid pagination cursor")
     evidence = {
         "venue": "bybit", "category": category, "symbol": symbol,
