@@ -275,3 +275,21 @@ def test_data72_version_skew_refused_before_read(monkeypatch):
             start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
         )
     store.read.assert_not_called()
+
+
+@pytest.mark.parametrize("interval", [
+    "1", "3", "5", "15", "30", "60", "120", "240", "360",
+    "720", "D", "W", "M",
+])
+def test_all_thirteen_utc_exchange_interval_boundaries(interval):
+    """Timeframe boundary contract only; NOT chart/browser acceptance."""
+    from src.analytics.core import interval_bounds
+
+    start, end = interval_bounds(1794560000000, interval)
+    assert start <= 1794560000000 < end
+    if interval == "W":
+        assert datetime.fromtimestamp(start // 1000, timezone.utc).weekday() == 0
+    if interval == "M":
+        assert datetime.fromtimestamp(start // 1000, timezone.utc).day == 1
+    if interval.isdigit():
+        assert end - start == int(interval) * 60000
