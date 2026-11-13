@@ -19,16 +19,8 @@ class CiReferenceReader(ReferencePriceReader):
 
     def read(self, resource, query):
         if resource == "sources":
-            return dict(
-                schema_version="1.0",
-                data=[dict(id="bybit_ci_fixture", availability="partial",
-                           kinds=["mark", "index"])],
-                next_cursor=None,
-                availability=dict(status="PARTIAL", reason="CI source only"),
-                coverage=dict(status="UNKNOWN", start_ms=query.start_ms,
-                              end_ms=query.end_ms, evidence_refs=[]),
-                provenance=[],
-            )
+            # Reuse the real, canonical source listing; it does not query DB.
+            return ReferencePriceReader.read(self, resource, query)
         if resource != "price-candles":
             raise ProviderUnavailable("CI fixture only supports price-only sources")
         if query.category != "linear" or query.symbol != "BTCUSDT":
