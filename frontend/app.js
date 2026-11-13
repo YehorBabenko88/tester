@@ -65,6 +65,7 @@ const state = {
   instrumentAbort: null,
   capabilities: null,
   capabilityKey: null,
+  capabilityError: null,
 };
 state.ids = new Set(
   [...state.ids]
@@ -720,6 +721,7 @@ async function discoverCapabilities(q, signal) {
   if (state.capabilityKey === key && state.capabilities) return state.capabilities;
   state.capabilities = null;
   state.capabilityKey = null;
+  state.capabilityError = null;
   try {
     const payload = await request("/api/capabilities", {
       category: q.category, symbol: q.symbol, interval: q.interval,
@@ -727,7 +729,8 @@ async function discoverCapabilities(q, signal) {
     }, { signal });
     if (!payload.data || typeof payload.data !== "object" ||
         Array.isArray(payload.data)) throw Error("Invalid capability envelope");
-    state.capabilities = payload.data;
+    state.capabilities = payload.data.panels && typeof payload.data.panels === "object" && !Array.isArray(payload.data.panels)
+      ? payload.data.panels : payload.data;
   } catch (error) {
     if (signal.aborted) throw error;
     // Discovery is optional until the backend implements its verified contract.
@@ -841,7 +844,6 @@ async function loadCharts(options = {}) {
     return;
   }
   state.chartAbort?.abort();
-  state.capabilityError = null;
   const abort = new AbortController();
   state.chartAbort = abort;
   let q;
