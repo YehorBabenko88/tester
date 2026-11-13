@@ -191,6 +191,8 @@ def project_storage_execution(row, *, category, symbol, start_ms, end_ms):
         if observed_at != source.get("fetched_at") or observed_at != evidence.get("observed_at_utc"):
             _fail("unbound observed UTC time")
         observed_ms = _utc_ms(observed_at)
+        if observed_ms < stamp:
+            _fail("observed acquisition time precedes original execution event")
         canonical_sources.append(dict(source_kind="bybit_rest", source_ref=url, source_hash=row_hash,
                                       ingestion_run=run, timestamp_precision="ms", source_timestamp=original_ts,
                                       parent_refs=[evidence_id, page_hash, http_hash], method_version=VERSION))
