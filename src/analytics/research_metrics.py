@@ -111,6 +111,8 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
     return {
         "method": METHOD, "status": "DERIVED_UNVERIFIED",
         "observed_execution_count": len(canonical),
+        "cvd_anchor_start_ms": start_ms,
+        "cvd_prior_history_known": False,
         "empty_bar_count": sum(not buckets[start] for start in range(start_ms, end_ms, interval_ms)),
         "unknown_side_bar_count": sum(b["unknown_side_volume"] != "0" for b in bars),
         "market": dict(zip(("venue", "category", "symbol"), next(iter(scopes)))),
