@@ -41,3 +41,9 @@ test("mark and index request distinct official candle kinds", () => {
   assert.match(series, /\["mark", "index"\]\.includes\(kind\)/);
   assert.match(series, /\{ value: r\.close \}/);
 });
+
+test("explicit retry invalidates cached discovery", () => {
+  assert.match(app, /if \(options\.refreshCapabilities\)/);
+  assert.match(app, /state\.capabilityKey = null/);
+  assert.match(app, /loadCharts\(\{ refreshCapabilities: true \}\)/);
+});
