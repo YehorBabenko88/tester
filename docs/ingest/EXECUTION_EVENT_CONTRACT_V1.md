@@ -20,7 +20,7 @@ Source review: MASTER comment [#72 / 6857982132](https://github.com/YehorBabenko
 
 `src.ingest.execution_contract.read_research_trades(store, category="linear", symbol="BTCUSDT", start_ms=..., end_ms=..., limit=...)` makes a read-only, scope-bounded PostgreSQL query and validates its projection using the existing `src.analytics.core.validate_trade` contract. Its output renames `size -> quantity` and `side -> taker_side` only **after** verifying original persisted evidence. The `provenance[]` entries become canonical `bybit_rest` objects with preserved SHA256 and original millisecond source timestamps, plus parent evidence refs.
 
-This projection is for **observed-sample research statistics only**. Real historical F strategy admission must reject `UNKNOWN` history and unknown publication/visibility. A projection or fixture is **not** a qualified F approval.
+This projection is for **observed-sample research statistics only**. The `read_research_trades` entry point rejects an exact-full `limit` result: a bounded SELECT cannot prove that a following execution page is empty. RESEARCH #71 also rejects full pages and does not promote `UNKNOWN` to complete history. Real historical F strategy admission must reject `UNKNOWN` history and unknown publication/visibility. A projection or fixture is **not** a qualified F approval.
 
 ## Admission controls and tests
 
@@ -32,3 +32,13 @@ This projection is for **observed-sample research statistics only**. Real histor
 - All physical 1→10 Bybit samples, full browser checks and release acceptance remain **NOT_RUN** until executed and measured. Full history remains `UNKNOWN`.
 
 Only PR #72 branch is modified. No main/PC4/ADMINIT/production database mutation; no cross-branch merge.
+
+## Disposable, pinned DATA + RESEARCH end-to-end checks
+
+The PR-local workflow `.github/workflows/public-auxiliary-data.yml` provides separate PostgreSQL 16 jobs:
+
+- `postgres-contract` runs DATA's offline recorded-HTTP → immutable PG roundtrip independently.
+- `research-composed-postgres` uses an ephemeral checkout of exact RESEARCH SHA `ba82b02f0e2eec7b6f1ef1c6276cdc30e736a7ad`, copies only the tested RESEARCH consumer/metric files **inside the ephemeral CI runner**, and asserts original HTTP → PG16 → reconnect → `read_data_metrics` → exact VWAP/POC/known Delta/CVD, bounded-page refusal, late-observation refusal and `admitted_to_f=false`. No branches are merged or updated.
+- `live-bybit-postgres` uses only unauthenticated public Bybit V5 HTTPS, starts with BTCUSDT, then checks ten public linear symbols, stores original HTTP/row/page proofs in a separate disposable database, reads them back and invokes the pinned RESEARCH consumer; Funding and OI use bounded two-page probes. This job has one-request/second throttling and cancels superseded PR instances. **Live PASS is not claimed until the GitHub runner actually executes it.** Geographical/public endpoint unavailability must be reported as FAIL/BLOCKED, not replaced with synthetic fixtures.
+
+No host PC4, ADMINIT, existing PostgreSQL port 5432 or production deployment is used. CI remains distinct from physical acceptance and does not certify market completeness.
