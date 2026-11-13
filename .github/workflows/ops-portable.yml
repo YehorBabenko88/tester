@@ -1,0 +1,21 @@
+name: OPS isolated portable lifecycle tests
+on:
+  pull_request:
+    paths:
+      - "scripts/portable_ops*.py"
+      - "tests/platform/test_portable_ops*.py"
+      - ".github/workflows/ops-portable.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portable-pure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Isolated pure tests, no database or network
+        run: python -m unittest discover -s tests/platform -p 'test_portable_ops*.py' -v
