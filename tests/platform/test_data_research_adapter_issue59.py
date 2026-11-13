@@ -247,6 +247,11 @@ def test_disposable_postgres_actual_data72_source_to_research():
     assert outcome["coverage"] == "UNKNOWN"
     assert outcome["admitted_to_f"] is False
     assert outcome["f_input"] is None
+    assert outcome["persisted_dataset_revision"] is None
+    assert outcome["historical_known_at_ms"] is None
+    assert len(outcome["observed_sample_fingerprint"]) == 64
+    with pytest.raises(ValueError, match="real_historical_visibility_unknown_f_denied"):
+        require_strategy_lab_f_input(outcome)
 
 
 def test_missing_data72_module_fails_closed(monkeypatch):
@@ -438,7 +443,21 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     assert actual["admitted_to_f"] is False
     assert actual["f_input"] is None
     assert actual["g_e_result"] is None
+    assert actual["historical_known_at_ms"] is None
+    assert actual["persisted_dataset_revision"] is None
+    with pytest.raises(ValueError, match="real_historical_visibility_unknown_f_denied"):
+        require_strategy_lab_f_input(actual)
     assert len(reopened.read(
         "trades", "bybit", "linear", "BTCUSDT",
         start, start + 60000, "", limit=10,
     )) == 2
+
+
+def test_strategy_lab_f_rejects_malformed_window_without_attribute_error():
+    preview = project_events(
+        [event()], category="linear", symbol="BTCUSDT",
+        start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+    )
+    preview["observed_window"] = None
+    with pytest.raises(ValueError, match="research_history_completeness_not_demonstrated"):
+        require_strategy_lab_f_input(preview)
