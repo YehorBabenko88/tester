@@ -78,6 +78,22 @@ class FixtureLauncherTests(unittest.TestCase):
         self.launcher.stop_and_seal(second)
         self.assertEqual((second.api.handle.poll(),second.worker.handle.poll()),(0,0))
 
+    def test_missing_api_executable_rolls_back_real_worker_without_adoption(self):
+        bad_api = (str(Path(self.temp.name).resolve() / "nonexistent-api.exe"),)
+        with self.assertRaises(NativeRestartBlocked):
+            self.launcher.start_pair(api_argv=bad_api, worker_argv=self.argv)
+        self.assertEqual(len(self.launcher._children), 1)
+        self.assertEqual(self.launcher._children[0].poll(), 0)
+        record = Path(self.temp.name) / "native-generation-0000-rollback.json"
+        self.assertTrue(record.is_file())
+        import json
+        receipt = json.loads(record.read_text())
+        self.assertFalse(receipt["restart_permitted"])
+        self.assertEqual(receipt["status"], "SEALED_PARTIAL")
+        self.assertEqual(set(receipt["sealed_roles"]), {"worker"})
+        with self.assertRaises(NativeRestartBlocked):
+            self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
+
     def test_pg_incarnation_mismatch_blocks_before_spawn(self):
         self.launcher.pg_probe=lambda: {"pg_system_identifier":"foreign",
                                         "pg_postmaster_start":"start-time"}
