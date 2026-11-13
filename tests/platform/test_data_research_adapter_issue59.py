@@ -3,6 +3,7 @@
 All examples represent PUBLIC recent executions only, NOT full market history.
 """
 import base64
+import copy
 import hashlib
 import json
 from urllib.parse import urlencode
@@ -74,7 +75,7 @@ def make_page(raw_rows=None, *, quantity_unit="source_native_quantity"):
             "timestamp_ns": None, "payload": payload, "source": source,
         })
         raw_envelopes.append(envelope)
-        rows.append({k: v for k, v in envelope.items() if k != "source"})
+        rows.append(copy.deepcopy({k: v for k, v in envelope.items() if k != "source"}))
         observations.append({
             "record_key": envelope["record_key"], "authentic_run": True,
             "source_run_status": "matched", "run_origin": "caller",
