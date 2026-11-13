@@ -334,7 +334,13 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         # query scope, canonical provenance and price-only v1.1 distinction.
         from .capability_discovery import discover
 
-        return Envelope(data=discover(reader, query))
+        price_router_enabled = (
+            settings.provider_factory == "src.integration.reference_prices:create_reader"
+        )
+        return Envelope(data=discover(
+            reader, query, authorized=bool(settings.provider_factory),
+            price_route_enabled=price_router_enabled,
+        ))
 
     @app.post("/api/downloads", response_model=Envelope[Job], status_code=202)
     def downloads(body: DownloadRequest):
