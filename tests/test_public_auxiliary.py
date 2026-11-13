@@ -63,6 +63,8 @@ class PublicAuxiliaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             decode("trades", "linear", "BTCUSDT", response(row), **BASE)
         row["symbol"], row["side"] = "BTCUSDT", "Unknown"
+        self.assertEqual(decode("trades", "linear", "BTCUSDT", response(row), **BASE)[0]["payload"]["side"], "Unknown")
+        row["side"] = "invalid"
         with self.assertRaises(ValueError):
             decode("trades", "linear", "BTCUSDT", response(row), **BASE)
 
