@@ -1,5 +1,4 @@
 """Real Windows disposable launcher tests; never touch installed tester or PG5432."""
-import os
 from pathlib import Path
 import subprocess
 import sys

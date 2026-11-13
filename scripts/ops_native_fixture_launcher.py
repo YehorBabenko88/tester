@@ -7,13 +7,11 @@ All child commands are exact caller-supplied trusted fixture argv.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import hashlib
 import json
 import os
 from pathlib import Path
 import secrets
 import subprocess
-import sys
 import time
 from typing import Callable, Mapping
 
@@ -133,7 +131,7 @@ class DisposableWin32Launcher:
             pair = LaunchedPair(generation, api, worker, witness)
             self._pairs[generation] = pair
             return pair
-        except Exception as exc:
+        except Exception:
             if enrolled:
                 rollback_partial_start(
                     root=self.root, generation=generation,
