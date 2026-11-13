@@ -355,9 +355,9 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
                 "reason": "configured" if catalog is not None else "catalog_not_configured",
             },
             "sources": {
-                "enabled": not isinstance(reader, UnavailableReader),
-                "reason": "provider_configured" if not isinstance(reader, UnavailableReader)
-                else "provider_not_connected",
+                "enabled": catalog is not None and not isinstance(reader, UnavailableReader),
+                "reason": "catalog_and_provider_required" if catalog is None or isinstance(reader, UnavailableReader)
+                else "source_discovery_may_be_attempted",
             },
         }
         return Envelope(data=availability)
