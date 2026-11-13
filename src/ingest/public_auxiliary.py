@@ -250,7 +250,8 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
     published = store.ingest(rows, evidence, job_key, run_id=run_id)
     if return_receipt:
         return {"published": published, "next_cursor": cursor, "records": len(rows),
-                "http_sha256": http["sha256"], "coverage": "UNKNOWN",\n                "oldest_ms": min((r["timestamp_ms"] for r in rows), default=None)}
+                "http_sha256": http["sha256"], "coverage": "UNKNOWN",
+                "oldest_ms": min((r["timestamp_ms"] for r in rows), default=None)}
     return published
 
 
