@@ -461,3 +461,68 @@ def test_strategy_lab_f_rejects_malformed_window_without_attribute_error():
     preview["observed_window"] = None
     with pytest.raises(ValueError, match="research_history_completeness_not_demonstrated"):
         require_strategy_lab_f_input(preview)
+
+
+@pytest.mark.integration
+def test_disposable_pg_gapped_observation_window_stays_unknown():
+    """A missing minute in original executions is NOT a verified empty market."""
+    dsn = os.environ.get("TESTER_RESEARCH_DATA_TEST_DSN")
+    if not dsn:
+        pytest.skip("disposable PG16 DSN unavailable")
+    if "tester_research_data_disposable" not in dsn:
+        raise ValueError("protected: disposable PG DB only")
+    _composed_data()
+    import psycopg
+
+    from src.ingest.public_auxiliary import fetch_and_ingest
+    from src.storage.migrations import migrate
+    from src.storage.store import Store
+
+    with psycopg.connect(dsn) as connection:
+        migrate(connection)
+    start = 1600000200000 // 60000 * 60000
+    rows = [
+        {"symbol": "BTCUSDT", "execId": "research-gap-first-v3",
+         "time": str(start + 1000), "price": "100", "size": "1", "side": "Buy"},
+        {"symbol": "BTCUSDT", "execId": "research-gap-third-v3",
+         "time": str(start + 121000), "price": "102", "size": "1", "side": "Sell"},
+    ]
+    result = {"list": rows}
+    params = {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
+    url = "https://api.bybit.com/v5/market/recent-trade?" + urlencode(params)
+    raw = json.dumps({"retCode": 0, "result": result}).encode()
+
+    class Replay:
+        last_response = {
+            "url": url, "status_code": 200, "hash_scope": "original_http_body",
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "bytes_base64": base64.b64encode(raw).decode(),
+        }
+
+        def call(self, path, got):
+            assert path == "/recent-trade" and got == params
+            return result, url
+
+    store = Store(dsn)
+    fetch_and_ingest(
+        store, Replay(), kind="trades", category="linear", symbol="BTCUSDT",
+        run_id="research-gap-v3-run", job_key="research-gap-v3-job",
+        observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC)
+    )
+    reopened = Store(dsn)
+    preview = read_data_metrics(
+        reopened, category="linear", symbol="BTCUSDT",
+        start_ms=start, end_ms=start + 180000,
+        interval_ms=60000, tick_size="0.5", limit=3
+    )
+    assert preview["status"] == "OBSERVED_UNVERIFIED"
+    bars = preview["metrics"]["bars"]
+    assert [b["trade_count"] for b in bars] == [1, 0, 1]
+    assert [b["cvd_known"] for b in bars] == ["1", "1", "0"]
+    assert bars[1]["vwap"] is None
+    assert bars[1]["poc"] is None
+    assert "empty_interval" in bars[1]["reasons"]
+    assert preview["observed_window"]["empty_bars_in_observed_sample"] == 1
+    assert preview["observed_window"]["complete_market_history"] is False
+    with pytest.raises(ValueError, match="real_historical_visibility_unknown_f_denied"):
+        require_strategy_lab_f_input(preview)
