@@ -26,7 +26,9 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
         raise ValueError("invalid bounds")
     if (end_ms - start_ms) % interval_ms:
         raise ValueError("unaligned observation window")
-    if (end_ms - start_ms) // interval_ms > MAX_BARS:\n        raise ValueError("bar limit exceeded")\n    step = number(tick_size, positive=True)
+    if (end_ms - start_ms) // interval_ms > MAX_BARS:
+        raise ValueError("bar limit exceeded")
+    step = number(tick_size, positive=True)
     if len(trades) > MAX_TRADES:
         raise ValueError("execution limit exceeded")
     canonical = deduplicate([validate_trade(t) for t in trades])
