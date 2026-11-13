@@ -38,3 +38,15 @@ test("malformed metadata cannot become AVAILABLE", () => {
     assert.equal(classifyPanelCapability("mark", record).requestAllowed, false);
   }
 });
+
+test("no arbitrary analytics or cross-panel endpoint can be advertised", () => {
+  for (const panel of ["delta", "cvd", "profile", "poc", "vwap"]) {
+    assert.equal(classifyPanelCapability(panel, valid(panel)).requestAllowed, false);
+  }
+  assert.equal(classifyPanelCapability("mark", {
+    ...valid("mark"), resource: "/api/funding"
+  }).reason, "unsupported_panel_resource");
+  assert.equal(classifyPanelCapability("footprint", {
+    ...valid("footprint"), resource: "/api/footprint"
+  }).requestAllowed, true);
+});
