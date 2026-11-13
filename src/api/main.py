@@ -345,6 +345,52 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
                 "status": "UNVERIFIED",
                 "reason": "source_revision_not_verified",
             }
+        # Optional reader-owned discovery must provide immutable source bindings.
+        # Only exact known routes are accepted; unsupported analytics never
+        # becomes available merely because a provider is configured.
+        discovery = getattr(reader, "capabilities", None)
+        if callable(discovery):
+            try:
+                offered = discovery(query)
+            except (ProviderUnavailable, ProviderDataUnavailable):
+                offered = None
+            allowed_routes = {
+                "candles": "/api/candles",
+                "volume": "/api/candles",
+                "footprint": "/api/footprint",
+                "open_interest": "/api/open-interest",
+                "funding": "/api/funding",
+                "mark": "/api/candles",
+                "index": "/api/candles",
+            }
+            if isinstance(offered, dict):
+                for panel, route in allowed_routes.items():
+                    record = offered.get(panel)
+                    if not isinstance(record, dict):
+                        continue
+                    if record.get("status") not in ("AVAILABLE", "PARTIAL"):
+                        continue
+                    if record.get("resource") != route:
+                        continue
+                    revision = record.get("revision")
+                    source_ref = record.get("source_ref")
+                    if not (
+                        isinstance(revision, str)
+                        and 1 <= len(revision) <= 128
+                        and all(c.isalnum() or c in "_.:-" for c in revision)
+                        and isinstance(source_ref, str)
+                        and 1 <= len(source_ref) <= 256
+                        and all(c.isalnum() or c in "_.:/-" for c in source_ref)
+                    ):
+                        continue
+                    panels[panel] = {
+                        "panel": panel,
+                        "status": record["status"],
+                        "reason": "source_qualified",
+                        "resource": route,
+                        "revision": revision,
+                        "source_ref": source_ref,
+                    }
         return Envelope(data={"panels": panels})
 
     @app.post("/api/downloads", response_model=Envelope[Job], status_code=202)
