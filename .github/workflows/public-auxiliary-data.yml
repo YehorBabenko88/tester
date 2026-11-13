@@ -25,3 +25,27 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Offline DATA contracts
         run: python -m unittest tests.test_public_auxiliary -v
+  postgres-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_ci
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Isolated PostgreSQL DATA roundtrip
+        run: python -m unittest tests.test_public_auxiliary_postgres -v
