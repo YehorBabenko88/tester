@@ -121,3 +121,59 @@ class IsolatedDualPgTests(unittest.TestCase):
         raise AssertionError('Worker lease not observed in disposable PostgreSQL')
 
 if __name__=='__main__':unittest.main()
+
+
+def _test_failed_api_restart_rolls_back_without_db_reclaim(self):
+    from unittest.mock import patch
+    from psycopg.types.json import Jsonb
+    from src.api.db import connect
+    from src.api.jobs import JobQueue
+    from scripts.ops_dual_lifecycle import DisposableApiWorker, LifecycleBlocked
+    uid=uuid4()
+    with connect(DSN) as conn:
+        conn.execute('DELETE FROM tester_platform.jobs')
+        conn.execute('UPDATE tester_platform.control SET draining=false,max_running=2 WHERE singleton')
+        conn.execute('INSERT INTO tester_platform.jobs(id,request) VALUES(%s,%s)',(
+            uid,Jsonb(dict(category='linear',symbol='BTCUSDT',source='bybit',
+                           kind='candles',interval='1',start_ms=0,end_ms=60000))))
+    with tempfile.TemporaryDirectory() as directory:
+        runtime=DisposableApiWorker(Path(directory),'disposable-pg-rollback-marker-123456')
+        py=str(Path(sys.executable).resolve())
+        api=[py,'-m','scripts.ops_disposable_api']
+        worker=[py,'-m','scripts.ops_pg_disposable_worker']
+        repo_root=str(Path(__file__).resolve().parents[2])
+        env=dict(os.environ, OPS_JOB_ID=str(uid),
+                 PYTHONPATH=repo_root+os.pathsep+os.environ.get('PYTHONPATH',''))
+        try:
+            first=runtime.start_pair(api,worker,environment=env)
+            self._await_attempt(uid,1)
+            runtime.stop_pair_and_seal(first)
+            job=JobQueue(DSN).get(uid)
+            self.assertEqual((job.state,job.attempts,job.checkpoint),
+                             ('queued',1,{'generation':0}))
+            with patch.object(runtime.api,'start',side_effect=RuntimeError('injected API startup failure')):
+                with self.assertRaises(LifecycleBlocked):
+                    runtime.start_pair(api,worker,environment=env)
+            receipt=json.loads((Path(directory)/'pair-generations'/'0001'/'rollback.json').read_text())
+            self.assertEqual(receipt['status'],'SEALED_PARTIAL')
+            self.assertEqual(list(receipt['sealed_children']),['worker'])
+            self.assertEqual(runtime.worker.handles[1].poll(),0)
+            self.assertFalse((Path(directory)/'pair-generations'/'0001'/'activated.request').exists())
+            job=JobQueue(DSN).get(uid)
+            self.assertEqual((job.state,job.attempts,job.checkpoint),
+                             ('queued',1,{'generation':0}))
+            with self.assertRaises(LifecycleBlocked):
+                runtime.start_pair(api,worker,environment=env)
+        finally:
+            for ctl in (runtime.api,runtime.worker):
+                for gen,handle in ctl.handles.items():
+                    if handle.poll() is None:
+                        request=ctl.root/'ops-generations'/f'{gen:04d}'/'stop.request'
+                        try:request.touch(exist_ok=True)
+                        except OSError:pass
+                        try:handle.wait(timeout=3)
+                        except subprocess.TimeoutExpired:pass
+            with connect(DSN) as conn:
+                conn.execute('DELETE FROM tester_platform.jobs WHERE id=%s',(uid,))
+
+IsolatedDualPgTests.test_failed_api_restart_rolls_back_without_db_reclaim=_test_failed_api_restart_rolls_back_without_db_reclaim

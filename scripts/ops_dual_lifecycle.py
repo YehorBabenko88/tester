@@ -59,11 +59,12 @@ class DisposableApiWorker:
         previous_sha = None
         for generation in generations:
             path = self.pair_root / f"{generation:04d}"
-            if {p.name for p in path.iterdir()} != {"manifest.json", "closed.json"}:
+            if {p.name for p in path.iterdir()} != {"manifest.json", "activated.request", "closed.json"}:
                 raise LifecycleBlocked("Partial pair evidence")
             if any(p.is_symlink() or not p.is_file() for p in path.iterdir()):
                 raise LifecycleBlocked("Unsafe pair evidence")
             manifest, closure = _load(path / "manifest.json"), _load(path / "closed.json")
+            activated = _load(path / "activated.request")
             proof = self.pairs.get(generation)
             if proof is None or proof.generation != generation:
                 raise LifecycleBlocked("Unverifiable original pair handles")
@@ -72,7 +73,10 @@ class DisposableApiWorker:
                     or manifest.get("root") != str(self.root)
                     or manifest.get("api") != json.loads(json.dumps(vars(proof.api)))
                     or manifest.get("worker") != json.loads(json.dumps(vars(proof.worker)))
-                    or manifest.get("previous_closure_sha256") != previous_sha):
+                    or manifest.get("previous_closure_sha256") != previous_sha
+                    or activated != {"schema": "ops-disposable-pair-ready/1",
+                                     "generation": generation,
+                                     "manifest_sha256": _digest(manifest)}):
                 raise LifecycleBlocked("Pair manifest changed")
             expected_closures = {}
             for name, ctl in (("api", self.api), ("worker", self.worker)):
@@ -117,19 +121,61 @@ class DisposableApiWorker:
                     raise LifecycleBlocked("API/worker previous source/configuration changed")
         path = self.pair_root / f"{generation:04d}"
         path.mkdir(mode=0o700)  # append-only reservation
-        # A failed spawn is retained as partial state, never skipped.
-        worker = self.worker.start(worker_argv, environment=environment)
-        api = self.api.start(api_argv, environment=environment)
-        proof = PairProof(generation=generation, api=api, worker=worker)
-        self.pairs[generation] = proof
-        previous = (_digest(_load(self.pair_root / f"{generation - 1:04d}" / "closed.json"))
-                    if generation else None)
-        _write_new(path / "manifest.json", {
-            "schema": "ops-disposable-pair/1", "generation": generation,
-            "root": str(self.root), "api": vars(api), "worker": vars(worker),
-            "previous_closure_sha256": previous,
-        })
-        return proof
+        # Worker may not claim durable queue jobs before API, manifest and
+        # ownership proofs have all been committed by this controller.
+        child_env = dict(environment or {})
+        if environment is None:
+            import os
+            child_env = dict(os.environ)
+        child_env["OPS_PAIR_READY_PATH"] = str(path / "activated.request")
+        # Failure cannot release the reservation. Roll back *only* owned,
+        # birth-attested children by their cooperative generation stop path.
+        try:
+            worker = self.worker.start(worker_argv, environment=child_env)
+            api = self.api.start(api_argv, environment=child_env)
+            proof = PairProof(generation=generation, api=api, worker=worker)
+            previous = (_digest(_load(self.pair_root / f"{generation - 1:04d}" / "closed.json"))
+                        if generation else None)
+            manifest = {
+                "schema": "ops-disposable-pair/1", "generation": generation,
+                "root": str(self.root), "api": vars(api), "worker": vars(worker),
+                "previous_closure_sha256": previous,
+            }
+            _write_new(path / "manifest.json", manifest)
+            self.pairs[generation] = proof
+            # An API that exits between enrollment and activation must not
+            # permit the worker to claim any durable job.
+            self.assert_both_owned(proof)
+            # Last fallible operation before return: the worker can only
+            # claim after this generation-scoped receipt exists.
+            _write_new(path / "activated.request", {
+                "schema": "ops-disposable-pair-ready/1",
+                "generation": generation, "manifest_sha256": _digest(manifest),
+            })
+            return proof
+        except Exception:
+            # No exception text, argv, environment, or passwords in receipts.
+            sealed: dict[str, str] = {}
+            blocked: list[str] = []
+            for name, ctl in (("api", self.api), ("worker", self.worker)):
+                if generation not in ctl.handles:
+                    continue
+                if generation not in ctl.proofs:
+                    blocked.append(name)  # child exists but no trusted birth proof
+                    continue
+                try:
+                    receipt = ctl.stop_and_seal(generation, expected=ctl.proofs[generation])
+                    sealed[name] = _digest(receipt)
+                except Exception:
+                    blocked.append(name)  # leave alive, never force terminate
+            _write_new(path / "rollback.json", {
+                "schema": "ops-disposable-pair-rollback/1",
+                "generation": generation,
+                "status": "BLOCKED" if blocked else "SEALED_PARTIAL",
+                "sealed_children": sealed, "unverified_children": blocked,
+                "restart_permitted": False,
+            })
+            raise LifecycleBlocked("Pair startup failed; reserved generation cannot be reused") from None
 
     def assert_both_owned(self, proof: PairProof) -> None:
         if self.pairs.get(proof.generation) != proof:
@@ -145,12 +191,15 @@ class DisposableApiWorker:
         if (path / "closed.json").exists():
             raise LifecycleBlocked("Pair already closed")
         manifest = _load(path / "manifest.json")
+        ready = _load(path / "activated.request")
         previous = (_digest(_load(self.pair_root / f"{g - 1:04d}" / "closed.json"))
                     if g else None)
         if (manifest.get("schema") != "ops-disposable-pair/1"
                 or manifest.get("generation") != g
                 or manifest.get("root") != str(self.root)
                 or manifest.get("previous_closure_sha256") != previous
+                or ready != {"schema": "ops-disposable-pair-ready/1",
+                             "generation": g, "manifest_sha256": _digest(manifest)}
                 or manifest.get("api") != json.loads(json.dumps(vars(proof.api)))
                 or manifest.get("worker") != json.loads(json.dumps(vars(proof.worker)))):
             raise LifecycleBlocked("Pair manifest ownership changed")

@@ -25,6 +25,37 @@ def main() -> int:
     output = Path(os.environ["OPS_CHECKPOINT_PATH"])
     if generation not in (0, 1) or stop.parent != output.parent:
         return 92
+    # Never claim a durable job until the controller has enrolled BOTH API and
+    # worker and atomically published their exact pair manifest receipt.
+    ready = Path(os.environ.get("OPS_PAIR_READY_PATH", ""))
+    if (ready.name != "activated.request" or ready.parent.name != f"{generation:04d}"
+            or ready.parent.parent.name != "pair-generations"):
+        return 95
+    until = time.monotonic() + 12
+    while not ready.is_file():
+        if stop.is_file():
+            # Startup failed: cooperative exit, no DB transaction or job claim.
+            with output.open("x", encoding="utf-8") as handle:
+                json.dump({"generation": generation,
+                           "owner_marker": os.environ["OPS_OWNER_MARKER"],
+                           "inflight": "not-admitted", "durable_state": "unchanged"}, handle)
+                handle.flush()
+                os.fsync(handle.fileno())
+            return 0
+        if time.monotonic() > until:
+            return 96
+        time.sleep(0.02)
+    if stop.is_file():
+        return 97  # no unowned DB claim on race with stop request
+    from scripts.ops_disposable_lifecycle import _digest
+    try:
+        manifest = json.loads((ready.parent / "manifest.json").read_text(encoding="utf-8"))
+        receipt = json.loads(ready.read_text(encoding="utf-8"))
+        if receipt != {"schema": "ops-disposable-pair-ready/1",
+                       "generation": generation, "manifest_sha256": _digest(manifest)}:
+            return 98
+    except (OSError, ValueError):
+        return 99
     queue = JobQueue(dsn, lease_seconds=30)
     lease = queue.claim()
     if lease is None or lease.id != job_id:
