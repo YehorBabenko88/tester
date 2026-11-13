@@ -197,6 +197,36 @@ class PublicAuxiliaryTests(unittest.TestCase):
                              symbol="BTCUSDT", run_id="run-test", job_key="wrong-url")
         store.ingest.assert_not_called()
 
+    def test_refuse_unbounded_http_receipt_before_publication(self):
+        store, api = Mock(), Mock()
+        result = {"list": [{"symbol": "BTCUSDT", "fundingRate": "0.01",
+                            "fundingRateTimestamp": "1794560000000"}]}
+        url = "https://api.bybit.com/v5/market/funding/history?" + urlencode(
+            {"category": "linear", "symbol": "BTCUSDT", "limit": 200,
+             "startTime": 1794559999999, "endTime": 1794560000000})
+        api.call.return_value = (result, url)
+        api.last_response = {"url": url, "status_code": 200,
+                             "hash_scope": "original_http_body",
+                             "sha256": "0" * 64,
+                             "bytes_base64": "A" * (4 * 1024 * 1024 + 1)}
+        with self.assertRaises(ValueError):
+            fetch_and_ingest(store, api, kind="funding", category="linear",
+                             symbol="BTCUSDT", run_id="run-test", job_key="large",
+                             start_ms=1794559999999, end_ms=1794560000001,
+                             observed_at=NOW)
+        store.ingest.assert_not_called()
+
+    def test_single_page_rejects_unproven_cursor_chain(self):
+        store = Mock()
+        with self.assertRaises(ValueError):
+            ingest_page(store, kind="open_interest", category="linear",
+                        symbol="BTCUSDT", response={"retCode": 0, "result": {"list": []}},
+                        fetched_at=NOW, url="https://api.bybit.com/v5/market/open-interest",
+                        run_id="run-test", job_key="bad-cursor", evidence_ref="ref",
+                        start_ms=100, end_ms=200, request_params={"intervalTime": "5min"},
+                        cursor_in="unproven")
+        store.ingest.assert_not_called()
+
     def test_reject_source_page_above_limit_before_storage(self):
         store = Mock()
         api = Mock()
