@@ -158,6 +158,8 @@ def ingest_page(store, *, kind, category, symbol, response, fetched_at,
 
     A page is only a bounded observation; its receipt never proves full history.
     """
+    if cursor_in is not None:
+        raise ValueError("single-page ingest_page cannot attest a continued cursor chain")
     records = decode(kind, category, symbol, response, fetched_at=fetched_at,
                      url=url, ingestion_run=run_id, evidence_ref=evidence_ref, interval=request_params.get("intervalTime") if kind == "open_interest" else None)
     if type(start_ms) is not int or type(end_ms) is not int or start_ms >= end_ms:
@@ -213,10 +215,14 @@ def fetch_and_ingest(store, api, *, kind, category, symbol, run_id, job_key,
         raise ValueError("missing original HTTP SHA256")
     if http.get("url") != url or http.get("status_code") != 200:
         raise ValueError("HTTP receipt request/status mismatch")
+    if not isinstance(http.get("bytes_base64"), str) or len(http["bytes_base64"]) > 4 * 1024 * 1024:
+        raise ValueError("original HTTP body exceeds bounded evidence budget")
     if not isinstance(http.get("bytes_base64"), str):
         raise ValueError("original HTTP body missing")
     import base64
     body = base64.b64decode(http["bytes_base64"], validate=True)
+    if len(body) > 3 * 1024 * 1024:
+        raise ValueError("decoded HTTP evidence exceeds budget")
     if hashlib.sha256(body).hexdigest() != http["sha256"]:
         raise ValueError("HTTP evidence hash mismatch")
     try:
