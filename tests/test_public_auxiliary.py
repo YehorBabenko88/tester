@@ -27,7 +27,7 @@ class PublicAuxiliaryTests(unittest.TestCase):
 
     def test_oi_exact_decimal_and_observation_time(self):
         rows = decode("open_interest", "linear", "BTCUSDT",
-                      response({"symbol": "BTCUSDT", "openInterest": "123456789.000001",
+                      response({"openInterest": "123456789.000001",
                                 "timestamp": "1794560000000"}), **BASE)
         self.assertEqual(rows[0]["payload"]["value"], "123456789.000001")
         self.assertEqual(rows[0]["payload"]["observation_timestamp_ms"], 1794560000000)
