@@ -10,14 +10,28 @@ import re
 from urllib.parse import parse_qs, urlsplit
 
 from contracts.v1.validate import ContractError
+
 from .models import Query
 from .providers import ProviderUnavailable, UnavailableReader
 from .scope import ScopeError, SourceIntervalError, bound_response, resource_query
 
-PANELS = ("candles", "volume", "footprint", "delta", "cvd", "profile", "poc",
-          "vwap", "open_interest", "funding", "mark", "index")
-INTERVALS = frozenset(("1", "3", "5", "15", "30", "60", "120", "240",
-                       "360", "720", "D", "W", "M"))
+PANELS = (
+    "candles",
+    "volume",
+    "footprint",
+    "delta",
+    "cvd",
+    "profile",
+    "poc",
+    "vwap",
+    "open_interest",
+    "funding",
+    "mark",
+    "index",
+)
+INTERVALS = frozenset(
+    ("1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M")
+)
 # Do not list footprint: its financial query requires a separate frozen cutoff
 # and explicit price-step selection. No /api/analytics route is implemented.
 READABLE = {
@@ -46,13 +60,16 @@ def _source_ref(provenance, panel, query):
     refs = []
     for p in provenance:
         if not isinstance(p, dict) or p.get("source_kind") not in {
-            "bybit_rest", "bybit_archive"
+            "bybit_rest",
+            "bybit_archive",
         }:
             return None
-        if (not isinstance(p.get("source_hash"), str)
-                or not re.fullmatch(r"[a-f0-9]{64}", p["source_hash"])
-                or not isinstance(p.get("ingestion_run"), str)
-                or not p["ingestion_run"]):
+        if (
+            not isinstance(p.get("source_hash"), str)
+            or not re.fullmatch(r"[a-f0-9]{64}", p["source_hash"])
+            or not isinstance(p.get("ingestion_run"), str)
+            or not p["ingestion_run"]
+        ):
             return None
         ref = p.get("source_ref")
         if not isinstance(ref, str) or not 1 <= len(ref) <= 512:
@@ -65,10 +82,14 @@ def _source_ref(provenance, panel, query):
                 or (url.scheme, url.netloc, url.path)
                 != ("https", "api.bybit.com", expected_price_endpoint)
                 or url.fragment
-                or any(args.get(key) != [value] for key, value in {
-                    "category": query.category, "symbol": query.symbol,
-                    "interval": query.interval,
-                }.items())
+                or any(
+                    args.get(key) != [value]
+                    for key, value in {
+                        "category": query.category,
+                        "symbol": query.symbol,
+                        "interval": query.interval,
+                    }.items()
+                )
             ):
                 return None
         elif "://" in ref and not (
@@ -82,17 +103,25 @@ def _source_ref(provenance, panel, query):
 
 def _verified_page(reader, panel, query):
     resource, route, record_kind = READABLE[panel]
-    source_query = query.model_copy(update={
-        "limit": 10, "cursor": None, "source_interval": None,
-        "candle_kind": (
-            "official_mark" if panel == "mark" else
-            "official_index" if panel == "index" else "official_trade"
-        ),
-    })
+    source_query = query.model_copy(
+        update={
+            "limit": 10,
+            "cursor": None,
+            "source_interval": None,
+            "candle_kind": (
+                "official_mark"
+                if panel == "mark"
+                else "official_index"
+                if panel == "index"
+                else "official_trade"
+            ),
+        }
+    )
     if resource == "price-candles":
         # This is an explicitly opt-in 1.1 reader; 1.0 /api/candles cannot
         # return mark/index, even when its query accepts candle_kind.
-        from src.integration.reference_prices import ReferencePriceReader, PriceEnvelope
+        from src.integration.reference_prices import PriceEnvelope, ReferencePriceReader
+
         if not isinstance(reader, ReferencePriceReader):
             return None, "reference_price_source_not_connected"
         payload = reader.read(resource, source_query)
@@ -125,8 +154,10 @@ def _verified_page(reader, panel, query):
         return None, "no_verified_observations_in_range"
     if payload.get("availability", {}).get("status") not in ("AVAILABLE", "PARTIAL"):
         return None, "source_availability_not_qualified"
-    if any(row.get("availability", {}).get("status") not in ("AVAILABLE", "PARTIAL")
-           for row in rows):
+    if any(
+        row.get("availability", {}).get("status") not in ("AVAILABLE", "PARTIAL")
+        for row in rows
+    ):
         return None, "row_availability_not_qualified"
     provenance = payload.get("provenance", [])
     ref = _source_ref(provenance, panel, query)
@@ -134,18 +165,38 @@ def _verified_page(reader, panel, query):
         return None, "source_provenance_not_qualified"
     # This digest is a content address for the bounded, verified observation
     # page. It is deliberately NOT described as whole-history coverage.
-    digest = hashlib.sha256(json.dumps({
-        "query": query.model_dump(mode="json", exclude_none=True),
-        "rows": rows, "provenance": provenance,
-    }, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
-    return dict(
-        panel=panel, status="PARTIAL", reason="bounded_observations_only",
-        resource=route, revision="page:" + digest,
-        revision_kind="observed_page_digest", source_ref=ref,
-        schema_version="1.1" if resource == "price-candles" else "1.0",
-        observed_rows=len(rows), coverage_status="UNKNOWN",
-        **({"candle_kind": source_query.candle_kind} if panel in ("mark", "index") else {}),
-    ), None
+    digest = hashlib.sha256(
+        json.dumps(
+            {
+                "query": query.model_dump(mode="json", exclude_none=True),
+                "rows": rows,
+                "provenance": provenance,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        ).encode()
+    ).hexdigest()
+    return (
+        dict(
+            panel=panel,
+            status="PARTIAL",
+            reason="bounded_observations_only",
+            resource=route,
+            revision="page:" + digest,
+            revision_kind="observed_page_digest",
+            source_ref=ref,
+            schema_version="1.1" if resource == "price-candles" else "1.0",
+            observed_rows=len(rows),
+            coverage_status="UNKNOWN",
+            **(
+                {"candle_kind": source_query.candle_kind}
+                if panel in ("mark", "index")
+                else {}
+            ),
+        ),
+        None,
+    )
 
 
 def discover(reader, query: Query, *, authorized=False, price_route_enabled=False):
@@ -155,15 +206,21 @@ def discover(reader, query: Query, *, authorized=False, price_route_enabled=Fals
         if not query.symbol:
             result[panel] = _unavailable(panel, "UNVERIFIED", "instrument_required")
         elif query.interval not in INTERVALS:
-            result[panel] = _unavailable(panel, "UNAVAILABLE", "timeframe_not_supported")
+            result[panel] = _unavailable(
+                panel, "UNAVAILABLE", "timeframe_not_supported"
+            )
         elif query.category == "spot" and panel in DERIVATIVES:
             result[panel] = _unavailable(panel, "UNAVAILABLE", "not_applicable_to_spot")
         elif panel not in READABLE:
-            result[panel] = _unavailable(panel, "UNAVAILABLE", "endpoint_contract_not_supported")
+            result[panel] = _unavailable(
+                panel, "UNAVAILABLE", "endpoint_contract_not_supported"
+            )
         elif not authorized:
             result[panel] = _unavailable(panel, "UNVERIFIED", "source_not_authorized")
         elif panel in ("mark", "index") and not price_route_enabled:
-            result[panel] = _unavailable(panel, "UNVERIFIED", "reference_price_route_not_enabled")
+            result[panel] = _unavailable(
+                panel, "UNVERIFIED", "reference_price_route_not_enabled"
+            )
         elif isinstance(reader, UnavailableReader):
             result[panel] = _unavailable(panel, "UNVERIFIED", "provider_not_connected")
         else:
@@ -171,14 +228,27 @@ def discover(reader, query: Query, *, authorized=False, price_route_enabled=Fals
                 qualified, reason = _verified_page(reader, panel, query)
                 result[panel] = qualified or _unavailable(panel, "UNVERIFIED", reason)
             except ProviderUnavailable:
-                result[panel] = _unavailable(panel, "UNVERIFIED", "source_not_connected")
-            except (ContractError, ScopeError, SourceIntervalError, ValueError,
-                    KeyError, TypeError, AttributeError):
-                result[panel] = _unavailable(panel, "UNVERIFIED", "source_contract_not_verified")
+                result[panel] = _unavailable(
+                    panel, "UNVERIFIED", "source_not_connected"
+                )
+            except (
+                ContractError,
+                ScopeError,
+                SourceIntervalError,
+                ValueError,
+                KeyError,
+                TypeError,
+                AttributeError,
+            ):
+                result[panel] = _unavailable(
+                    panel, "UNVERIFIED", "source_contract_not_verified"
+                )
             except Exception as exc:
                 logging.getLogger("tester.api").warning(
                     "capability_source_probe_failed",
                     extra={"panel": panel, "exception_type": type(exc).__name__},
                 )
-                result[panel] = _unavailable(panel, "UNVERIFIED", "source_probe_unavailable")
+                result[panel] = _unavailable(
+                    panel, "UNVERIFIED", "source_probe_unavailable"
+                )
     return {"panels": result}
