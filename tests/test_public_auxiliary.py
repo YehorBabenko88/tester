@@ -85,7 +85,7 @@ class PublicAuxiliaryTests(unittest.TestCase):
                                             "fundingRate": "0.00001",
                                             "fundingRateTimestamp": "1794560000000"}]},
                                  "https://api.bybit.com/v5/market/funding/history")
-        original = b'{"retCode":0,"result":{"list":[]}}'
+        original = json.dumps({"retCode": 0, "result": api.call.return_value[0]}).encode()
         api.last_response = {"hash_scope": "original_http_body",
                              "sha256": hashlib.sha256(original).hexdigest(),
                              "bytes_base64": base64.b64encode(original).decode()}
