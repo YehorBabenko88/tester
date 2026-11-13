@@ -47,3 +47,8 @@ test("explicit retry invalidates cached discovery", () => {
   assert.match(app, /state\.capabilityKey = null/);
   assert.match(app, /loadCharts\(\{ refreshCapabilities: true \}\)/);
 });
+
+test("mark/index rendering is guarded by matching response provenance", () => {
+  assert.match(app, /Mark\/Index response provenance does not match/);
+  assert.match(app, /p\.source_ref === capability\.source_ref/);
+});
