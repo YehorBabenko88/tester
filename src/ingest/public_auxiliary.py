@@ -120,6 +120,8 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
             side = row.get("side")
             if side not in ("Buy", "Sell"):
                 raise ValueError("unknown taker side")
+            if not isinstance(row.get("execId"), str) or not row["execId"]:
+                raise ValueError("public execution requires exchange execId")
             payload = {"price": _exact(row.get("price"), "price", positive=True),
                        "size": _exact(row.get("size"), "size", positive=True),
                        "side": side, "trade_id": row.get("execId"),
