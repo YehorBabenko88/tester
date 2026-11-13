@@ -253,9 +253,12 @@ def read_research_trades(store, *, category, symbol, start_ms, end_ms, limit=MAX
     """Strict read-only RESEARCH projection; always UNKNOWN and never F-admitted."""
     if category != "linear":
         _fail("research metrics require comparable linear source-native size")
-    from src.analytics.core import validate_trade
-
-    return [validate_trade(to_research_trade(event)) for event in read_execution_events(
+    events = read_execution_events(
         store, category=category, symbol=symbol, start_ms=start_ms,
         end_ms=end_ms, limit=limit,
-    )]
+    )
+    if len(events) >= limit:
+        _fail("full execution page requires verified pagination; history remains UNKNOWN")
+    from src.analytics.core import validate_trade
+
+    return [validate_trade(to_research_trade(event)) for event in events]
