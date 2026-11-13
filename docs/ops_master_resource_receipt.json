@@ -1,0 +1,21 @@
+{
+  "checkpoint": "CHECKPOINT_PRESENT",
+  "cpu_percent": 89.8,
+  "exit_code": 0,
+  "limits_enforced": false,
+  "owner_marker_validated": true,
+  "pc4_integration": "NOT_RUN",
+  "pg_integration": "NOT_RUN",
+  "postgresql": "NOT_RUN",
+  "read_bytes": 0,
+  "rss_bytes": 2875392,
+  "source": "isolated_python_fixture",
+  "threads": 1,
+  "unknown_fields": [
+    "postgresql",
+    "windows_native"
+  ],
+  "verified_status": "PROCESS_TEST_ONLY",
+  "windows_native": "NOT_RUN",
+  "write_bytes": 0
+}
