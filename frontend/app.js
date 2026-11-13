@@ -66,6 +66,8 @@ const state = {
   capabilities: null,
   capabilityKey: null,
   capabilityError: null,
+  capabilitySourceContracts: null,
+  capabilityProtocolVersion: null,
   marketCatalogEnabled: null,
   sourceListEnabled: null,
 };
@@ -759,6 +761,8 @@ async function discoverCapabilities(q, signal) {
   state.capabilities = null;
   state.capabilityKey = null;
   state.capabilityError = null;
+  state.capabilitySourceContracts = null;
+  state.capabilityProtocolVersion = null;
   try {
     const payload = await request("/api/capabilities", {
       category: q.category, symbol: q.symbol, interval: q.interval,
@@ -767,6 +771,11 @@ async function discoverCapabilities(q, signal) {
     }, { signal });
     if (!payload.data || typeof payload.data !== "object" ||
         Array.isArray(payload.data)) throw Error("Invalid capability envelope");
+    if (payload.data.protocol_version != null &&
+        payload.data.protocol_version !== "tester.ui-capabilities/1")
+      throw Error("Unsupported capability protocol version");
+    state.capabilityProtocolVersion = payload.data.protocol_version || null;
+    state.capabilitySourceContracts = payload.data.source_contracts || null;
     state.capabilities = payload.data.panels && typeof payload.data.panels === "object" && !Array.isArray(payload.data.panels)
       ? payload.data.panels : payload.data;
   } catch (error) {
@@ -937,9 +946,19 @@ async function loadCharts(options = {}) {
           p.originBadge.textContent = "not verified";
           const reason = capability.reason === "capability_not_advertised"
             ? (state.capabilityError || capability.reason) : capability.reason;
-          p.message.textContent = `DATA_UNAVAILABLE · ${capability.state} · ${panelReason(reason)} (${reason})`;
+          const dependencies = capabilities[kind]?.source_contract_dependencies || [];
+          const dependencyNote = Array.isArray(dependencies) && dependencies.length
+            ? " · source contracts: " + dependencies.join(", ") + " (not linked to a supported API route)"
+            : "";
+          p.message.textContent = `DATA_UNAVAILABLE · ${capability.state} · ${panelReason(reason)} (${reason})` + dependencyNote;
           p.meta.textContent = `${capability.state} · ${capability.reason} · no request sent`;
-          p.proof.textContent = JSON.stringify({ capability, discovery: state.capabilityError || null }, null, 2);
+          p.proof.textContent = JSON.stringify({
+            capability,
+            source_binding: capabilities[kind] || null,
+            source_contracts: state.capabilitySourceContracts,
+            protocol_version: state.capabilityProtocolVersion,
+            discovery: state.capabilityError || null,
+          }, null, 2);
           return;
         }
         const path = capability.resource;
@@ -998,6 +1017,8 @@ async function loadCharts(options = {}) {
         p.proof.textContent = JSON.stringify(
           {
             capability,
+            source_binding: capabilities[kind] || null,
+            protocol_version: state.capabilityProtocolVersion,
             availability: series.availability,
             reason: series.reason,
             coverage: series.coverage,
