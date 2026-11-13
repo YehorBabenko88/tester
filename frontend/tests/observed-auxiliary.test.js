@@ -71,7 +71,9 @@ test("rejects unverified native unit, hash, publication and event time", () => {
       { payload: { ...row.payload, value: 12.5 } },
       { payload: { ...row.payload, unit: "fabricated_asset_amount" } },
       { payload: { ...row.payload, publication_timestamp_ms: timestamp } },
-      { payload: { ...row.payload, event_timestamp_ms: timestamp + 1 } },
+      { payload: { ...row.payload,
+        [kind === "open_interest" ? "observation_timestamp_ms" : "event_timestamp_ms"]:
+          timestamp + 1 } },
       { content_hash: "not-a-hash" },
       { source: { ...row.source, sha256: "bad" } },
       { source: { ...row.source, source_timestamp: "0" } },
