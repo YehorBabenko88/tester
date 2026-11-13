@@ -899,7 +899,7 @@ async function loadCharts(options = {}) {
           return;
         }
         const path = capability.resource;
-        if (!/^\\/api\\/[a-zA-Z0-9_/-]+$/.test(path) || path.includes(".."))
+        if (!/^\/api\/[a-zA-Z0-9_/-]+$/.test(path) || path.includes(".."))
           throw Error("Unsafe capability resource");
         const params = {
             ...q,
