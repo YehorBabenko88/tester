@@ -28,7 +28,7 @@ def test_exact_vwap_delta_cvd_and_poc_tie():
              trade(2, "101", "0.2", "Sell", "b"),
              trade(60001, "100", "0.3", "Buy", "c")])
     x, y = a["bars"]
-    assert x["vwap"] == "100.66666666666666666666666666666666666666666666666667"
+    assert x["vwap"] == "100." + "6" * 47 + "7"
     assert x["delta_known"] == "-0.1"
     assert x["cvd_known"] == "-0.1"
     assert x["poc"] == "101"
