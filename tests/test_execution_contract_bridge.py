@@ -116,6 +116,16 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(event["availability"]["status"], "UNVERIFIED")
         self.assertEqual(event["source_coverage"]["status"], "UNKNOWN")
 
+    def test_source_observation_cannot_predate_exchange_event(self):
+        r = fixture()
+        observation = r["provenance"]["observations"][0]
+        earlier = "2026-11-12T23:00:00+00:00"
+        observation["source"]["fetched_at"] = earlier
+        observation["source"]["observed_at_utc"] = earlier
+        observation["evidence"]["observed_at_utc"] = earlier
+        with self.assertRaises(ExecutionContractError):
+            self.project(r)
+
     def test_thirteen_calendar_intervals_are_utc_bounded(self):
         from src.analytics.core import interval_bounds
         all_intervals = (
