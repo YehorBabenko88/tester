@@ -94,11 +94,11 @@ class ExecutionBridgePostgresTests(unittest.TestCase):
         self.assertEqual(canonical[0]["coverage"]["status"], "UNKNOWN")
         with reopened.connect() as connection:
             count = connection.execute(
-                "SELECT count(*) FROM tester_storage.raw_records "
+                "SELECT count(*) AS record_count FROM tester_storage.raw_records "
                 "WHERE venue='bybit' AND category='linear' "
                 "AND symbol='BTCUSDT' AND dataset='trades' "
                 "AND trade_id='data72-bridge-disposable-ci-v1'"
-            ).fetchone()[0]
+            ).fetchone()["record_count"]
         self.assertEqual(count, 1)
 
     def test_tampered_persisted_page_receipt_fails_after_reconnect(self):
