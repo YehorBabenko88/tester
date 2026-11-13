@@ -11,6 +11,7 @@ from dataclasses import replace
 
 from scripts.ops_native_windows_witness import (
     NativeBirth, NativeExitWitness, NativeRestartBlocked, observe_psutil,
+    request_native_scoped_stop, sample_native_resources,
 )
 
 
@@ -174,6 +175,42 @@ class NativeWitnessTests(unittest.TestCase):
         # This also differs from the persisted closure; must fail closed.
         with self.assertRaises(NativeRestartBlocked):
             self.witness.require_restart_allowed(receipt)
+
+    def test_generation_scoped_stop_receipts_are_create_only(self):
+        self.witness.request_stop(
+            stop_for_role=lambda birth: request_native_scoped_stop(self.root, birth)
+        )
+        for role, birth in (("api", self.api), ("worker", self.worker)):
+            path = self.root / f"native-0000-{role}.stop.request"
+            self.assertTrue(path.is_file())
+            receipt = json.loads(path.read_text())
+            self.assertEqual((receipt["role"], receipt["generation"]), (role, 0))
+            with self.assertRaises(NativeRestartBlocked):
+                request_native_scoped_stop(self.root, birth)
+
+    def test_resource_sampler_requires_live_original_handle(self):
+        class MetricsProcess:
+            pid = 121
+            def create_time(self): return 1234.5
+            def exe(self): return 'C:/python.exe'
+            def cwd(self): return 'C:/owned'
+            def cmdline(self): return ['python','-m','api']
+            def username(self): return 'limited'
+            def environ(self): return {
+                'OPS_OWNER_MARKER': 'api-owner-marker-123456',
+                'OPS_CONFIG_SHA256': 'a'*64}
+            def memory_info(self): return type('M', (), {'rss':8192})()
+            def cpu_percent(self, interval=0.1): return 12.5
+            def num_threads(self): return 2
+            def io_counters(self): return type('I', (), {'read_bytes':5,'write_bytes':7})()
+        result = sample_native_resources(self.api,self.api_handle,
+                                         lambda _:MetricsProcess(),cpu_window=0.1)
+        self.assertEqual((result['rss_bytes'],result['threads']), (8192,2))
+        self.assertEqual((result['io_read_bytes'],result['io_write_bytes']), (5,7))
+        self.assertEqual(result['unknown_fields'], [])
+        self.api_handle.stopped=True
+        with self.assertRaises(NativeRestartBlocked):
+            sample_native_resources(self.api,self.api_handle,lambda _:MetricsProcess())
 
 if __name__ == '__main__':
     unittest.main()

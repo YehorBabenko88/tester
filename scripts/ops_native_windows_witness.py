@@ -219,3 +219,63 @@ class NativeExitWitness:
                 raise NativeRestartBlocked("Retained checkpoint unreadable") from exc
             if handle.poll() != 0:
                 raise NativeRestartBlocked("Old process still alive or changed")
+
+
+def request_native_scoped_stop(root: Path, birth: NativeBirth) -> Path:
+    """Create-only generation+role-scoped cooperative request, never signal PID."""
+    if (birth.role not in {"api", "worker"} or birth.generation < 0
+            or birth.pid <= 0 or root.is_symlink() or not root.is_dir()):
+        raise NativeRestartBlocked("Invalid native stop scope")
+    owned_root = root.resolve(strict=True)
+    path = owned_root / f"native-{birth.generation:04d}-{birth.role}.stop.request"
+    append_new(path, {
+        "schema": "ops-native-stop/1",
+        "role": birth.role,
+        "generation": birth.generation,
+        "pid": birth.pid,
+        "birth_sha256": sha256(vars(birth)),
+        "config_sha256": birth.config_sha256,
+    })
+    return path
+
+
+def sample_native_resources(expected: NativeBirth, handle: NativeHandle,
+                            process_lookup: Callable[[int], object],
+                            *, cpu_window: float = 0.1) -> dict:
+    """Read-only process metrics, bracketed by repeated exact owner checks."""
+    if not 0 < cpu_window <= 1.0:
+        raise NativeRestartBlocked("Invalid bounded CPU sample interval")
+    observe_psutil(expected, handle, process_lookup)
+    process = process_lookup(expected.pid)
+    metrics = {
+        "schema": "ops-native-process-sample/1", "role": expected.role,
+        "generation": expected.generation, "pid": expected.pid,
+        "birth_sha256": sha256(vars(expected)),
+        "rss_bytes": None, "cpu_percent": None, "threads": None,
+        "io_read_bytes": None, "io_write_bytes": None,
+        "sample_window_seconds": cpu_window, "hard_limits_enforced": False,
+    }
+    for key, supplier in {
+        "rss_bytes": lambda: process.memory_info().rss,
+        "cpu_percent": lambda: process.cpu_percent(interval=cpu_window),
+        "threads": process.num_threads,
+        "io_read_bytes": lambda: process.io_counters().read_bytes,
+        "io_write_bytes": lambda: process.io_counters().write_bytes,
+    }.items():
+        try:
+            value = supplier()
+            if value is not None and value >= 0:
+                metrics[key] = value
+        except (AttributeError, OSError):
+            pass
+        except Exception as exc:
+            # Includes psutil.AccessDenied/NoSuchProcess without leaking paths.
+            if exc.__class__.__module__.startswith("psutil"):
+                pass
+            else:
+                raise NativeRestartBlocked("Process metric observation failed") from exc
+    observe_psutil(expected, handle, process_lookup)
+    metrics["unknown_fields"] = [name for name in (
+        "rss_bytes", "cpu_percent", "threads", "io_read_bytes", "io_write_bytes"
+    ) if metrics[name] is None]
+    return metrics

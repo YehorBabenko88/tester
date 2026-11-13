@@ -12,7 +12,8 @@ from tempfile import TemporaryDirectory
 import time
 import unittest
 
-from scripts.ops_native_windows_witness import NativeBirth, NativeExitWitness, NativeRestartBlocked, observe_psutil
+from scripts.ops_native_windows_witness import NativeBirth, NativeExitWitness, NativeRestartBlocked, observe_psutil,
+    request_native_scoped_stop, sample_native_resources
 from scripts.ops_win32_handle import WindowsOriginalHandle
 
 CHILD = """import json,os,time,pathlib
@@ -54,7 +55,7 @@ class OriginalWin32ProcessTests(unittest.TestCase):
 
     def launch(self, role, generation):
         import psutil
-        stop = self.root / f'{role}-{generation}.stop.request'
+        stop = self.root / f'native-{generation:04d}-{role}.stop.request'
         checkpoint = self.root / f'{role}-{generation}.checkpoint.json'
         self.stops.append(stop)
         marker = f'win32-fixture-{role}-generation-{generation}-123456'
@@ -89,6 +90,7 @@ class OriginalWin32ProcessTests(unittest.TestCase):
 
     def test_two_real_windows_generations_and_original_handles(self):
         import psutil
+        resources = []
         for generation in (0, 1):
             api, ah, api_checkpoint = self.launch('api', generation)
             worker, wh, worker_checkpoint = self.launch('worker', generation)
@@ -99,11 +101,14 @@ class OriginalWin32ProcessTests(unittest.TestCase):
                 root=self.root)
             with self.assertRaises(NativeRestartBlocked):
                 witness.require_restart_allowed({})
-            def stop(role):
-                path = self.root / f'{role.role}-{generation}.stop.request'
-                with path.open('x', encoding='ascii') as handle:
-                    handle.write('owned cooperative stop\n')
-            witness.request_stop(stop_for_role=stop)
+            resources.append({
+                "generation": generation,
+                "api": sample_native_resources(api, ah, psutil.Process),
+                "worker": sample_native_resources(worker, wh, psutil.Process),
+            })
+            witness.request_stop(
+                stop_for_role=lambda birth: request_native_scoped_stop(self.root, birth)
+            )
             receipt = witness.seal_exits(checkpoint_paths={"api": api_checkpoint,
                                                          "worker": worker_checkpoint}, timeout=6)
             witness.require_restart_allowed(receipt)
@@ -111,6 +116,18 @@ class OriginalWin32ProcessTests(unittest.TestCase):
             self.assertTrue(api_checkpoint.exists())
             self.assertTrue(worker_checkpoint.exists())
             self.assertEqual(json.loads(api_checkpoint.read_text())['generation'], generation)
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            Path("ops-native-win32-evidence.json").write_text(json.dumps({
+                "schema": "ops-native-win32-fixture/1",
+                "process_generations": 2,
+                "api_worker_original_win32_handles": True,
+                "external_clean_exit_zero_each": True,
+                "retained_checkpoints_hash_verified": True,
+                "samples": resources,
+                "pg_integration": "NOT_RUN_ON_WINDOWS",
+                "installed_pc4": "NOT_RUN",
+                "hard_limits_enforced": False,
+            }, indent=2, sort_keys=True), encoding="utf-8")
 
     def test_stale_birth_refuses_before_stop(self):
         import psutil

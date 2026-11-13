@@ -86,3 +86,11 @@ jobs:
         run: python -m pip install psutil
       - name: Verify original Win32 child handles and two cooperative generations
         run: python -m unittest discover -s tests/platform -p "test_ops_native_windows_process.py" -v
+      - name: Upload Windows original-handle resource receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-native-win32-evidence
+          path: ops-native-win32-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14

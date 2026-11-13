@@ -59,3 +59,18 @@ retained checkpoint files, refuses absolute/escaping/symlinked paths and
 requires byte-identical hashes. A checkpoint mutated after the clean exit
 cannot authorize a successor. This is source-level validation only: the
 actual PC4 runner remains separate and NOT_READY.
+
+## Reviewed scoped stop and Windows resource evidence
+
+`request_native_scoped_stop` creates a **new** generation- and role-named
+cooperative request which binds the exact API/worker birth SHA and immutable
+config hash. It never sends an OS signal or reuses a previous stop marker.
+The separate hosted Windows test uses it for the original Win32-handle
+children, preserving exact exit and drain receipts.
+
+`sample_native_resources` samples RSS, CPU, thread count and IO before
+stop, re-attesting birth-bound ownership both before and after the sample.
+Unavailable platform counters are explicit `null` with `unknown_fields`;
+there are no hard OS resource limits or real PC4 claims. Hosted workflow
+uploads `ops-native-win32-evidence.json` for the new exact HEAD only when
+the Windows test generates it successfully.
