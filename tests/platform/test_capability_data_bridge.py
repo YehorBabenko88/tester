@@ -27,12 +27,20 @@ def event(**update):
         event_ms=1000,
         observed_ms=5000,
         publication_ms=None,
+        utc_interval=dict(start_ms=0, end_ms=60000),
         source_coverage=dict(status="UNKNOWN", start_ms=0, end_ms=60000),
         availability=dict(status="UNVERIFIED", reason="Historical visibility unknown"),
         source_receipts=[
             dict(evidence_id="ledger-1", page_ref="page:1",
                  http_sha256="a" * 64, page_sha256="b" * 64,
                  row_sha256="c" * 64)
+        ],
+        provenance=[
+            dict(source_kind="bybit_rest",
+                 source_ref="https://api.bybit.com/v5/market/recent-trade?"
+                            "category=linear&symbol=BTCUSDT&limit=100",
+                 source_hash="c" * 64, timestamp_precision="ms",
+                 source_timestamp="1000", ingestion_run="receipt-run")
         ],
     )
     values.update(update)
@@ -93,6 +101,29 @@ def test_invalid_units_unknown_publication_and_missing_hashes_fail_closed():
                  row_sha256="c" * 64)
         ]),
     ):
+        result = observed_execution_evidence(
+            reader, query(), read_events=lambda *a, **kw: [invalid]
+        )
+        assert result["status"] == "UNVERIFIED"
+        assert "evidence_revision" not in result
+
+
+
+def test_wrong_scope_source_hash_or_decimal_cannot_gain_a_revision():
+    reader = SimpleNamespace(store=object())
+    cases = [
+        event(utc_interval=dict(start_ms=1, end_ms=60000)),
+        event(price=100.0),
+        event(quantity="1e-5"),
+        event(provenance=[dict(
+            source_kind="bybit_rest",
+            source_ref="https://api.bybit.com/v5/market/recent-trade?"
+                       "category=linear&symbol=BTCUSDT",
+            source_hash="d" * 64, timestamp_precision="ms",
+            source_timestamp="1000", ingestion_run="receipt-run",
+        )]),
+    ]
+    for invalid in cases:
         result = observed_execution_evidence(
             reader, query(), read_events=lambda *a, **kw: [invalid]
         )
