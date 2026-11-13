@@ -75,7 +75,7 @@ def request(kind, category, symbol, *, start_ms=None, end_ms=None, interval=None
     return PATHS[kind], params
 
 
-def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, evidence_ref):
+def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, evidence_ref, interval=None):
     """Normalize source rows; retain exact original fields and time roles.
 
     Return envelopes ready for tester_storage.Store.ingest. HTTP body and
@@ -88,7 +88,7 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
     result = response.get("result")
     if not isinstance(result, dict) or not isinstance(result.get("list"), list):
         raise ValueError("missing result.list")
-    observed = _utc(fetched_at)
+    if kind == "open_interest" and interval not in OI_INTERVALS:\n        raise ValueError("OI interval required")\n    if kind != "open_interest" and interval is not None:\n        raise ValueError("unexpected metric interval")\n    observed = _utc(fetched_at)
     if not isinstance(ingestion_run, str) or not ingestion_run or not isinstance(evidence_ref, str) or not evidence_ref:
         raise ValueError("explicit provenance required")
     records = []
@@ -139,7 +139,7 @@ def decode(kind, category, symbol, response, *, fetched_at, url, ingestion_run, 
             source["record_key"] = hashlib.sha256(raw).hexdigest()
         records.append(normalize({"schema_version": "1.0", "venue": "bybit",
                                   "category": category, "symbol": symbol,
-                                  "dataset": kind, "interval": request_params.get("intervalTime", "") if kind == "open_interest" else "",
+                                  "dataset": kind, "interval": interval if kind == "open_interest" else "",
                                   "timestamp_ms": timestamp,
                                   "timestamp_precision": "ms", "timestamp_ns": None,
                                   "payload": payload, "source": source}))
@@ -154,7 +154,7 @@ def ingest_page(store, *, kind, category, symbol, response, fetched_at,
     A page is only a bounded observation; its receipt never proves full history.
     """
     records = decode(kind, category, symbol, response, fetched_at=fetched_at,
-                     url=url, ingestion_run=run_id, evidence_ref=evidence_ref)
+                     url=url, ingestion_run=run_id, evidence_ref=evidence_ref, interval=request_params.get("intervalTime") if kind == "open_interest" else None)
     if type(start_ms) is not int or type(end_ms) is not int or start_ms >= end_ms:
         raise ValueError("invalid evidence bounds")
     if any(not start_ms <= r["timestamp_ms"] < end_ms for r in records):
