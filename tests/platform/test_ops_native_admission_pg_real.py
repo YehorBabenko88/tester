@@ -50,6 +50,25 @@ class NativePgAdmissionTests(unittest.TestCase):
                 with self.assertRaises(NativeRestartBlocked):
                     admission.reserve(1, previous_exit_validator=lambda _: True,
                                       pg_probe=pg, leases_probe=leases)
+                # Independent fresh native root: running lease itself blocks
+                # admission, not merely the prior incomplete reservation.
+                with TemporaryDirectory() as fresh_td:
+                    fresh_root = Path(fresh_td).resolve()
+                    fresh_pin = NativePin(
+                        "a"*40, "b"*64, str(fresh_root),
+                        before["pg_system_identifier"], before["pg_postmaster_start"])
+                    fresh = NativeAdmission(fresh_root, fresh_pin)
+                    with self.assertRaises(NativeRestartBlocked):
+                        fresh.reserve(0, previous_exit_validator=lambda _: False,
+                                      pg_probe=pg, leases_probe=leases)
+                    self.assertFalse((fresh.generations/"0000").exists())
+                    with self.assertRaises(NativeRestartBlocked):
+                        fresh.reserve(
+                            0, previous_exit_validator=lambda _: False,
+                            pg_probe=lambda: {
+                                **pg(), "pg_system_identifier": "foreign-pg-instance"
+                            }, leases_probe=lambda: {"queued":"queued"})
+                    self.assertFalse((fresh.generations/"0000").exists())
                 # A prior partial reservation is never reusable even if DB is free.
                 with connect(DSN) as conn:
                     conn.execute("UPDATE tester_platform.jobs SET state='queued',"
