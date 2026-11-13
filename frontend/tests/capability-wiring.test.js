@@ -79,3 +79,9 @@ test("JSON request rejects incompatible API versions before rendering", async ()
   const result = await request("/api/price-candles", {}, { fetcher, schemaVersion: "1.1" });
   assert.equal(result.schema_version, "1.1");
 });
+
+test("OI source cadence is scoped by capability discovery and cache key", () => {
+  assert.match(app, /const cadence = \$\("#oi-source-interval"\)\.value/);
+  assert.match(app, /q\.end_ms, cadence/);
+  assert.match(app, /source_interval: cadence/);
+});
