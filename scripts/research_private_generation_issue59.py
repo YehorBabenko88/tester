@@ -124,6 +124,15 @@ def _private_execution_assertions(published: Path) -> dict:
     # Dependencies outside these 10 modules are the pinned baseline Python
     # environment; all DATA receipt/projection and RESEARCH math modules
     # being *tested* are loaded by absolute path from the sealed generation.
+    # The baseline installs src.* but not tests.* as a Python package.
+    # Register a private tests namespace explicitly; never fall back to an
+    # unrelated site-packages "tests" distribution or import the fixture
+    # from the active checkout by accident.
+    import types
+    tests_pkg = types.ModuleType("tests")
+    tests_pkg.__path__ = [str(published / "tests")]
+    tests_pkg.__package__ = "tests"
+    sys.modules["tests"] = tests_pkg
     for relative, module_name in MOD_MAP.items():
         _load_module(module_name, published / relative)
     from src.integration import data_research_adapter as adapter
