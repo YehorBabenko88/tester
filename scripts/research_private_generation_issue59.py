@@ -219,6 +219,12 @@ def run(*, ledger_path: Path, expected_ledger_blob: str, ops_module: Path,
     runner_temp = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
     if runner_temp == workspace or runner_temp.is_relative_to(workspace):
         raise PermissionError("private_generation_must_be_outside_checkout")
+    # A Python source import can silently create __pycache__ in the sealed
+    # generation; pytest's cache provider can likewise mutate the tree.
+    # Disable both before importing the reviewed OPS publisher or any
+    # privately published source. Never repair/ignore unexpected files.
+    sys.dont_write_bytecode = True
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
     ledger = load_source_ledger(ledger_path, expected_git_sha1=expected_ledger_blob)
     for ref in ledger["source_pins"].values():
         if _git("rev-parse", ref + "^{commit}").decode().strip() != ref:
@@ -267,7 +273,7 @@ def run(*, ledger_path: Path, expected_ledger_blob: str, ops_module: Path,
                 str(published / "tests/platform/test_research_metrics_issue59.py"),
                 str(published / "tests/platform/test_research_composed_negative_issue59.py"),
             ]
-            code = pytest.main(["-q", *tests])
+            code = pytest.main(["-q", "-p", "no:cacheprovider", *tests])
             if code != 0:
                 raise AssertionError("private_generation_pytest_failed:" + str(code))
             results["private_pytest"] = "PASS"
