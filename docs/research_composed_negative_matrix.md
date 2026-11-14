@@ -69,3 +69,45 @@ revision-coupled market history, publication known-at, real Strategy Lab F
 admission, one immutable combined PR #77 runtime SHA, PG14/PG18 whole-tree
 migration acceptance, native PC4 restart, and combined Chromium security
 coverage. **Release NO_GO** regardless of producer test success.
+
+## MASTER #77 updated composer validation — 2026-11-14
+
+Reviewed the exact MASTER #77 HEAD
+`88ad7a7a82f35d1829b5eb07c0c1d4878741f527`, composer blob
+`2837616952af052d60fd191e035fc29479a96d2b`.
+
+Compared with previous staging `4e64ec9f6a1da453019b68e598e235036701739f`,
+the new source composer still pins immutable PC4 base `3b2eef8a` and
+DATA `d5bfdad4`, RESEARCH `7ec35810`, UI `a61a2c3b`, OPS `0d4649f3`.
+It additionally rejects symlink source modes (Git `100644/100755` regular
+blobs only), destination and parent symlinks, unsupported paths, and files
+outside an approved workspace before applying the 125-file ephemeral
+composition. A new guard requires `CI=true`, `GITHUB_ACTIONS=true` and
+matching `GITHUB_WORKSPACE`. **These are not cryptographic runner
+attestation:** forged environment flags and preflight/write path races still
+require independent review. The RESEARCH branch does not modify this
+MASTER-owned security logic.
+
+The separate RESEARCH composed workflow was re-pinned to this new MASTER
+HEAD, while retaining the same frozen producer set. In addition to the
+existing 27 negative pure tests and 1 actual-PG negative test, the workflow
+now verifies the byte identity of **all** RESEARCH analytics/preview/UI
+source modules and their associated tests, DATA execution contract/migration
+008 and shared PGHOSTADDR test, the checked-out composer itself, and that
+protected native PC4/worker/bootstrap files exactly equal the pinned
+pre-composition base.
+
+The combined workflow still performs real disposable PostgreSQL16
+DATA→RESEARCH→UI readback and separate Research Control PG tests on three
+independent databases (host ports 55476/55477/55472), with no real trading,
+no native launch and no production PostgreSQL 5432 access. The HTTP receipt,
+provenance, revision, Unknown-side, Decimal, Footprint, Delta, CVD, VWAP,
+POC and as-of/lookahead negatives are retained unchanged.
+
+**Acceptance boundaries:** a new workflow SUCCESS validates this exact
+frozen MASTER *source composition* and its RESEARCH E2E. It does not certify
+that MASTER PR #77 has merged the newer RESEARCH feature branch, does not
+prove the composer is immune to forged runner conditions or path races,
+and is not the required single committed combined SHA with full PG14/18,
+FastAPI/Chromium, Python static and Platform gates. REAL F remains denied
+on UNKNOWN historical coverage, and the overall release remains NO_GO.
