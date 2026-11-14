@@ -143,3 +143,22 @@ dataset revision UNPINNED, F admission false, and Bybit 403 ACCESS_BLOCKED.
 
 The immutable ledger is a **DATA-proposed review artifact**, not a
 MASTER-approved manifest and not an externally signed trust root.
+
+
+## Frozen canonical OPS-compatible 25-file manifest
+
+The independently reproduced canonical manifest is checked in at
+`docs/coordination/data72-25file-ops-canonical-manifest.json`.
+
+- Manifest Git blob SHA1: `f31261f2811208bc4a023cf50171a0125dfc32e0`
+- Manifest SHA256: `53c31ea12d320ccfcd567fa9fca18d78ea7da060cab7063b2f001700bcde4fce`
+- Source DATA commit: `4581e415bd8979a4debee1eb56120bb21b9d95fd`
+- Source count: 25 regular Git blobs with exact per-file SHA256, Git SHA1
+  and mode `420` (`0o644`), usable by OPS
+  `verify_sources`/`publish_generation` in isolated CI.
+- This digest was generated and checked **inside DATA CI**. It is NOT
+  independently signed/attested by MASTER and does not approve expanding
+  MASTER #77's allowlist. External pin and trust review are still BLOCKED.
+
+`tests/test_data_25file_private_generation.py` now rejects any drift in
+the canonical manifest bytes, SHA256 or Git blob.

@@ -92,6 +92,13 @@ class Data25FilePrivateGeneration(unittest.TestCase):
             ],
         })
         cls.digest = hashlib.sha256(cls.manifest).hexdigest()
+        pinned_file = ROOT / "docs/coordination/data72-25file-ops-canonical-manifest.json"
+        if pinned_file.read_bytes() != cls.manifest:
+            raise AssertionError("canonical OPS manifest is not exact pinned bytes")
+        if cls.digest != "53c31ea12d320ccfcd567fa9fca18d78ea7da060cab7063b2f001700bcde4fce":
+            raise AssertionError("unreviewed canonical manifest SHA256")
+        if blob_hash(cls.manifest) != "f31261f2811208bc4a023cf50171a0125dfc32e0":
+            raise AssertionError("unreviewed canonical manifest Git blob")
         out = runner_temp / "data72-25file-ops-compatible-manifest.json"
         out.write_bytes(cls.manifest)
         print("DATA25_CANONICAL_MANIFEST_JSON", cls.manifest.decode("utf-8"), flush=True)

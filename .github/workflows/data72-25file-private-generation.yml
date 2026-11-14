@@ -4,6 +4,7 @@ on:
     paths:
       - ".github/workflows/data72-25file-private-generation.yml"
       - "tests/test_data_25file_private_generation.py"
+      - "docs/coordination/data72-25file-ops-canonical-manifest.json"
       - "docs/coordination/data72-current-head-immutable-review.json"
       - "scripts/verify_data72_head_manifest.py"
       - "docs/coordination/data72-298d-allowlist-final-review.md"
