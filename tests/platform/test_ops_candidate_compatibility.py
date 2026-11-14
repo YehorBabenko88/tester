@@ -13,8 +13,8 @@ def fixture():
         "pc4": "def serve():\n    return 'pc4-shutdown.request'\n",
         "api": "def create_app():\n    return '/ok'\ndef run():\n    return 'stop.request'\n",
         "worker": "def process_one():\n    return 1\ndef run():\n    return 'stop.request'\n",
-        "data": "def read_execution_events():\n    return None\ndef read_research_trades():\n    return None\n",
-        "research": "def read_data_metrics():\n    return 'UNKNOWN'\ndef require_strategy_lab_f_input():\n    raise ValueError('UNKNOWN')\n",
+        "data": "VERSION = 'tester-public-execution/1'\nMAX_ROWS = 100\ndef read_execution_events(*, category, symbol, start_ms, end_ms, limit=100):\n    return None\ndef read_research_trades():\n    return None\n",
+        "research": "DATA_CONTRACT_VERSION = 'tester-public-execution/1'\nMAX_EVENTS = 100\ndef read_data_metrics(*, category, symbol, start_ms, end_ms, limit=100):\n    return 'UNKNOWN'\ndef require_strategy_lab_f_input():\n    raise ValueError('UNKNOWN')\n",
     }
 
 
@@ -33,6 +33,9 @@ class CandidateCompatibilityTests(unittest.TestCase):
         for name in ("pc4", "api", "worker", "data", "research"):
             self.assertTrue(review["interfaces"][name]["required_functions_present"])
         self.assertTrue(review["ui_api"]["capabilities_route"])
+        self.assertNotIn("data_research_execution_contract_version_mismatch", review["blockers"])
+        self.assertNotIn("data_research_bounded_page_limit_mismatch", review["blockers"])
+        self.assertNotIn("research_read_interface_signature_mismatch", review["blockers"])
         self.assertIn("persistent_external_original_handle_guardian_not_implemented", review["blockers"])
         self.assertIn("api_generation_scoped_stop_not_implemented", review["blockers"])
         self.assertIn("worker_generation_scoped_stop_not_implemented", review["blockers"])
@@ -50,6 +53,22 @@ class CandidateCompatibilityTests(unittest.TestCase):
                                                   ui_api_source=UI)["manifest_sha256"])
         self.assertEqual(len(first["manifest_sha256"]), 64)
         self.assertEqual(second["installed_native_activation"], "BLOCKED")
+
+    def test_version_and_kw_signature_skew_is_reported_but_never_autofixed(self):
+        source = fixture()
+        source["research"] = source["research"].replace(
+            "'tester-public-execution/1'", "'tester-public-execution/2'"
+        ).replace("MAX_EVENTS = 100", "MAX_EVENTS = 1000")
+        report = review_candidate_sources(source, ui_api_source=UI)
+        self.assertIn("data_research_execution_contract_version_mismatch", report["blockers"])
+        self.assertIn("data_research_bounded_page_limit_mismatch", report["blockers"])
+        self.assertFalse(report["pc4_restart_authorized"])
+        source = fixture()
+        source["data"] = source["data"].replace("end_ms, limit=100", "limit=100")
+        report = review_candidate_sources(source, ui_api_source=UI)
+        self.assertIn("data_read_interface_signature_mismatch", report["blockers"])
+        with self.assertRaises(RuntimeError):
+            require_installed_native_activation(report)
 
     def test_missing_or_forged_contract_is_never_enabled(self):
         sources = fixture()
