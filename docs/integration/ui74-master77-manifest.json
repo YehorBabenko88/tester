@@ -4,7 +4,7 @@
   "source": {
     "pr": 74,
     "branch": "workstream/ui-capability-wiring-20261113",
-    "reviewed_head": "41a2282e622eb3f3096d4a18d7e518dcdae99c72",
+    "reviewed_head": "88650d819d5044d4c3796e89cc1809d5ca58d83a",
     "base_pr": 70,
     "base_head": "6240b6665fb3125c06eb91ef535b96700988a7ab",
     "ancestor": "3b2eef8a4139195db1a775545e83f1c1f58bf403"
@@ -98,7 +98,7 @@
   "backend": {
     "data": {
       "pr": 72,
-      "head": "93d13a8e78ff7c2aacc6610f838732ba22db8234",
+      "head": "d5bfdad445a1eefb9dc12bf2725a00f171e2c321",
       "contract": "tester-public-execution/1",
       "reader": "src.ingest.execution_contract.read_execution_events",
       "research_reader": "src.ingest.execution_contract.read_research_trades",
