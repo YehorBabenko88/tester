@@ -300,3 +300,128 @@ jobs:
             ops-master-pinned-changed-files.txt
           if-no-files-found: ignore
           retention-days: 14
+
+  master-composed-ops-win32-smoke:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4e64ec9f6a1da453019b68e598e235036701739f
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch exact source producer commit objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "4e64ec9f6a1da453019b68e598e235036701739f"
+          for sha in 3b2eef8a4139195db1a775545e83f1c1f58bf403 d5bfdad445a1eefb9dc12bf2725a00f171e2c321 7ec35810434e3c9159f36712a4186595ac637efa a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 0d4649f3a7cd3595ea58757f2abaf2f1b0558667; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Compose uncommitted exact MASTER source in ephemeral workspace
+        env:
+          CI: "true"
+          EXPECTED_STAGING_SHA: 4e64ec9f6a1da453019b68e598e235036701739f
+        run: python scripts/master_disposable_compose.py > master-composition-test-only.txt
+      - name: Assert broad test-only source scope, no installed service files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^COMPOSED_UNCOMMITTED_FILES=125' master-composition-test-only.txt
+          grep -q 'COMPOSITION_ONLY: not a commit' master-composition-test-only.txt
+          test "$(git status --porcelain -- src/api/worker.py src/integration/pc4_runtime.py pyproject.toml)" = ""
+          test ! -f native-activation-authorized.json
+
+      - name: Real original-handle API/worker Windows subprocess smoke
+        run: |
+          python -m pip install psutil
+          python -m unittest discover -s tests/platform -p "test_ops_native_windows_process.py" -v
+          python -m unittest discover -s tests/platform -p "test_ops_native_fixture_launcher.py" -v
+          python -m unittest discover -s tests/platform -p "test_ops_native_optin_handoff.py" -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ops-master-composed-windows-testonly
+          path: |
+            master-composition-test-only.txt
+            ops-native-win32-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  master-composed-ops-pg16-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ops_tester
+          POSTGRES_PASSWORD: isolated-only
+          POSTGRES_DB: ops_isolated
+        ports:
+          - 55479:5432
+        options: >-
+          --health-cmd "pg_isready -U ops_tester -d ops_isolated"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_OPS_ISOLATED_DSN: "host=127.0.0.1 port=55479 dbname=ops_isolated user=ops_tester password=isolated-only"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4e64ec9f6a1da453019b68e598e235036701739f
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch exact source producer commit objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "4e64ec9f6a1da453019b68e598e235036701739f"
+          for sha in 3b2eef8a4139195db1a775545e83f1c1f58bf403 d5bfdad445a1eefb9dc12bf2725a00f171e2c321 7ec35810434e3c9159f36712a4186595ac637efa a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 0d4649f3a7cd3595ea58757f2abaf2f1b0558667; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Compose uncommitted exact MASTER source in ephemeral workspace
+        env:
+          CI: "true"
+          EXPECTED_STAGING_SHA: 4e64ec9f6a1da453019b68e598e235036701739f
+        run: python scripts/master_disposable_compose.py > master-composition-test-only.txt
+      - name: Assert broad test-only source scope, no installed service files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^COMPOSED_UNCOMMITTED_FILES=125' master-composition-test-only.txt
+          grep -q 'COMPOSITION_ONLY: not a commit' master-composition-test-only.txt
+          test "$(git status --porcelain -- src/api/worker.py src/integration/pc4_runtime.py pyproject.toml)" = ""
+          test ! -f native-activation-authorized.json
+
+      - name: Real fenced lease, rollback and WAL resources on composed sources
+        run: |
+          python -m pip install -e . psutil
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_lifecycle_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_dual_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_load_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_admission_pg_real.py' -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ops-master-composed-pg16-testonly
+          path: |
+            master-composition-test-only.txt
+            ops-dual-pg-evidence.json
+            ops-load-pg-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
