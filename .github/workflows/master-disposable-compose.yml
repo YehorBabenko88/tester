@@ -1,0 +1,62 @@
+name: MASTER disposable pinned source composition
+on:
+  pull_request:
+    paths:
+      - scripts/master_disposable_compose.py
+      - .github/workflows/master-disposable-compose.yml
+      - docs/coordination/2026-11-14-master-wave.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch immutable producer commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            d5bfdad445a1eefb9dc12bf2725a00f171e2c321 \
+            7ec35810434e3c9159f36712a4186595ac637efa \
+            a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 \
+            0d4649f3a7cd3595ea58757f2abaf2f1b0558667; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Compose source in disposable runner only
+        env:
+          CI: 'true'
+          EXPECTED_STAGING_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python scripts/master_disposable_compose.py | tee /tmp/master-composition-manifest.txt
+      - name: Syntax check composed Python source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          count = 0
+          for root in ('src', 'scripts', 'tests'):
+              for path in Path(root).rglob('*.py'):
+                  ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+                  count += 1
+          print('COMPOSED_PYTHON_AST_PASS', count)
+          PY
+      - name: Publish manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-disposable-source-manifest
+          path: /tmp/master-composition-manifest.txt
