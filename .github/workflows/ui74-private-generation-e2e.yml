@@ -113,13 +113,18 @@ jobs:
           cd "$RUNNER_TEMP/ui-private-cwd"
           python - <<'PY'
           import os
+          import sys
           from pathlib import Path
           from fastapi.testclient import TestClient
-          from src.api.main import create_app
-          from src.api.config import Settings
 
           root=Path(os.environ["UI_PRIVATE_GENERATION_DIR"]).resolve()
-          assert Path(create_app.__code__.co_filename).resolve().is_relative_to(root)
+          sys.path.insert(0,str(root))
+          from src.api.main import create_app
+          from src.api.config import Settings
+          actual=Path(create_app.__code__.co_filename).resolve()
+          print("UI_PRIVATE_APPLICATION_IMPORTED_FROM",actual,flush=True)
+          print("UI_PRIVATE_EXPECTED_SOURCE",root,flush=True)
+          assert actual.is_relative_to(root),(actual,root,sys.path[:5])
           app=create_app(Settings(
               frontend_dir=root/"frontend", market_catalog_enabled=False,
               data_dir=Path(os.environ["RUNNER_TEMP"])/"ui-private-runtime",
