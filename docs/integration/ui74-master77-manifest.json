@@ -14,9 +14,10 @@
     "frontend/capabilities.js",
     "frontend/tests/capabilities.test.js"
   ],
-  "total_changed": 33,
+  "total_changed": 35,
   "all_changed": [
     ".github/workflows/capability-browser.yml",
+    "docs/integration/ui74-master77-manifest.json",
     "docs/proposals/download-kind-v1_1.json",
     "docs/ui-capability-contract.md",
     "docs/ui-capability-protocol-v1.schema.json",
@@ -48,6 +49,7 @@
     "tests/platform/test_capability_data_bridge.py",
     "tests/platform/test_capability_discovery.py",
     "tests/platform/test_download_kind_proposal.py",
+    "tests/platform/test_ui_composition_manifest.py",
     "tests/platform/test_ui_source_protocol.py"
   ],
   "groups": {
@@ -82,10 +84,12 @@
       "tests/platform/test_capability_data_bridge.py",
       "tests/platform/test_capability_discovery.py",
       "tests/platform/test_download_kind_proposal.py",
+      "tests/platform/test_ui_composition_manifest.py",
       "tests/platform/test_ui_source_protocol.py"
     ],
     "ci_and_documentation": [
       ".github/workflows/capability-browser.yml",
+      "docs/integration/ui74-master77-manifest.json",
       "docs/proposals/download-kind-v1_1.json",
       "docs/ui-capability-contract.md",
       "docs/ui-capability-protocol-v1.schema.json"
