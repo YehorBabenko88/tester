@@ -15,7 +15,7 @@
     "frontend/capabilities.js",
     "frontend/tests/capabilities.test.js"
   ],
-  "total_changed": 45,
+  "total_changed": 46,
   "all_changed": [
     ".github/workflows/capability-browser.yml",
     ".github/workflows/ui74-current-head-private-e2e.yml",
@@ -36,6 +36,7 @@
     "frontend/observed-research.js",
     "frontend/playwright.capability.config.js",
     "frontend/series.js",
+    "frontend/strategy.js",
     "frontend/tests/capabilities.test.js",
     "frontend/tests/capability-backend.e2e.js",
     "frontend/tests/capability-wiring.test.js",
@@ -72,6 +73,7 @@
       "frontend/observed-auxiliary.js",
       "frontend/observed-research.js",
       "frontend/series.js",
+      "frontend/strategy.js",
       "src/api/capability_data_bridge.py",
       "src/api/capability_discovery.py",
       "src/api/capability_source_contracts.py",
@@ -409,7 +411,7 @@
       "mode": "100644"
     },
     "frontend/tests/terminal.spec.js": {
-      "git_blob_sha1": "7e4a2c008597c6a152e80578d3a5c51606392445",
+      "git_blob_sha1": "a0f02dae38631716b74c35daf9fcab9cead41549",
       "mode": "100644"
     },
     "scripts/capability_fixture_server.py": {
@@ -491,6 +493,10 @@
     "tests/platform/test_combined_route_contract_ui74.py": {
       "git_blob_sha1": "1f8b34e3691f605b36025ac88a4f53734c34f411",
       "mode": "100644"
+    },
+    "frontend/strategy.js": {
+      "git_blob_sha1": "a168e86b6278092a1fa2524a7c20fc60b0014e48",
+      "mode": "100644"
     }
   },
   "combined_browser_404_audit": {
@@ -506,6 +512,23 @@
     "route_graph_regression": "tests/platform/test_combined_route_contract_ui74.py",
     "master_admission": "NOT_AUTHORIZED",
     "runtime_main_changed": false,
+    "release": "NO_GO"
+  },
+  "strategy_workspace_accessibility_20261114": {
+    "source_workflow": 43628171496,
+    "failure": "region Stop Loss / Take Profit absent because only two placeholder regions were generated",
+    "restored_regions": [
+      "Stop Loss / Take Profit",
+      "Simulation journal",
+      "Equity",
+      "Drawdown",
+      "Trade overlays"
+    ],
+    "aria_contract": "role=region, aria-label exact heading",
+    "fail_closed": "DATA_UNAVAILABLE until validated simulation",
+    "execution_requires_registered_digest_and_capability": true,
+    "source_ui": "frontend/strategy.js",
+    "regression": "frontend/tests/terminal.spec.js",
     "release": "NO_GO"
   }
 }
