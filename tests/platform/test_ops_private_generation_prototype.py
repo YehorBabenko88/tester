@@ -219,7 +219,7 @@ class PrivateGenerationTests(unittest.TestCase):
         def fault(stage, p):
             if stage == "before_publish":
                 p.rename(moved)
-        with self.assertRaises(OSError):
+        with self.assertRaisesRegex(CompositionRefused, "incomplete_staging_tree"):
             self.publish(fault=fault)
         self.assertFalse((self.private / "CURRENT").exists())
         # A hostile same-UID relocator is outside the prototype trust model;
