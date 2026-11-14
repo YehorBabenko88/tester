@@ -1,0 +1,62 @@
+name: DATA72 private generation source-only review (disposable)
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/data-private-generation-review.yml"
+      - "tests/test_data_private_generation_compat.py"
+      - "docs/coordination/data72-private-generation-blob-manifest.json"
+      - "docs/coordination/data72-private-generation-replay.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  data-source-generation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DATA_PRIVATE_GENERATION_CI: "true"
+      DATA_REVIEWED_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
+      OPS_REVIEWED_PROTOTYPE_SHA: 113d7f3b97f47c86a19dc8590bdbb9809138c4d8
+      DATA_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      DATA_PRIVATE_OPS_SOURCE: ${{ runner.temp }}/ops-private-generation-prototype.py
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify exact DATA checkout and reviewed Git objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DATA_TESTED_HEAD_SHA"
+          for sha in "$DATA_REVIEWED_SOURCE_SHA" "$OPS_REVIEWED_PROTOTYPE_SHA"; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+          git show "$OPS_REVIEWED_PROTOTYPE_SHA:scripts/ops_private_generation_prototype.py" > "$DATA_PRIVATE_OPS_SOURCE"
+          test "$(git hash-object "$DATA_PRIVATE_OPS_SOURCE")" = "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e"
+          test "$(git rev-parse "$DATA_REVIEWED_SOURCE_SHA:src/storage/migrations/008_public_unknown_taker_side.sql")" = "05600c50e3d4598aaa4645ac58e137a719b0eed2"
+      - name: Execute DATA Git blob private generation in owner-only temp workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q tests/test_data_private_generation_compat.py
+          before="$(git status --porcelain --untracked-files=normal)"
+          python -m unittest tests.test_data_private_generation_compat -v 2>&1 | tee "$RUNNER_TEMP/data-private-generation-test.log"
+          after="$(git status --porcelain --untracked-files=normal)"
+          test "$before" = "$after"
+          echo "DATA_PRIVATE_GENERATION_SOURCE_ONLY_PASS" | tee -a "$RUNNER_TEMP/data-private-generation-test.log"
+          echo "NO_POSTGRES_NO_LIVE_BYBIT_NO_NATIVE_LAUNCHER" | tee -a "$RUNNER_TEMP/data-private-generation-test.log"
+          echo "EXTERNAL_RUNNER_AND_GIT_ATTESTATION_NOT_PROVEN" | tee -a "$RUNNER_TEMP/data-private-generation-test.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data72-private-generation-disposable-source-evidence
+          path: ${{ runner.temp }}/data-private-generation-test.log
+          retention-days: 7
+          if-no-files-found: ignore
