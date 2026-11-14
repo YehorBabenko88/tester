@@ -4,10 +4,11 @@
   "source": {
     "pr": 74,
     "branch": "workstream/ui-capability-wiring-20261113",
-    "reviewed_head": "bb28e85e73576fed35301802c287eb4341274b74",
     "base_pr": 70,
     "base_head": "6240b6665fb3125c06eb91ef535b96700988a7ab",
-    "ancestor": "3b2eef8a4139195db1a775545e83f1c1f58bf403"
+    "ancestor": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "last_verified_ui_head": "49a884140ee7b9953b7c0eae862f9cc9a25a4b55",
+    "live_head_policy": "Take exact PR74 HEAD from GitHub immediately before composition; this manifest is a source-only handoff, not a self-pinned commit"
   },
   "strategy": "Apply PR70 ancestor before the PR74 complete delta, never overlay PR70 files after PR74; MASTER PR77 remains untouched",
   "pr70_included_and_updated": [
@@ -189,20 +190,25 @@
   },
   "evidence": {
     "ui_fastapi_chromium": {
-      "run": 43565092242,
+      "run": 43570202221,
       "result": "PASS",
-      "note": "Fixture-backed FastAPI and Chromium, 13 timeframes; not live history"
+      "source_head": "49a884140ee7b9953b7c0eae862f9cc9a25a4b55",
+      "note": "6 Kind, 47 Python, 124 Node, 1 Chromium; 13 UTC timeframes; fixture-backed, not live history"
     },
     "frontend": {
-      "run": 43565091999,
-      "result": "PASS"
+      "run": 43570202234,
+      "result": "PASS",
+      "source_head": "49a884140ee7b9953b7c0eae862f9cc9a25a4b55",
+      "note": "124 Node + 54 Playwright"
     },
     "combined_fgd": {
-      "run": 43565092076,
+      "run": 43570202423,
       "result": "PASS",
-      "note": "Synthetic source, real disposable PostgreSQL16, real G auth + E ACK"
+      "source_head": "49a884140ee7b9953b7c0eae862f9cc9a25a4b55",
+      "note": "Synthetic source: 7 Python fixture tests, disposable PostgreSQL16 and real Chromium digest-bound G/E ACK"
     },
-    "global_release": "NO_GO"
+    "global_release": "NO_GO",
+    "combined_master77": "NOT_RUN"
   },
   "replay_file": "docs/integration/UI74_MASTER77_REPLAY.md"
 }
