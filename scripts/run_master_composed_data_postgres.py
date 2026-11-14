@@ -14,7 +14,6 @@ import psycopg
 from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
-
 SUITES = (
     ("tester_master_execution_ci", ("tests.test_execution_contract_postgres",)),
     ("tester_master_auxiliary_ci", ("tests.test_public_auxiliary_postgres",)),
@@ -51,7 +50,10 @@ def main():
     # not share a fixture DB with public execution or auxiliary test modules.
     subprocess.run(
         (
-            sys.executable, "-m", "unittest", "-v",
+            sys.executable,
+            "-m",
+            "unittest",
+            "-v",
             "tests.storage.test_postgres.PostgresTests.test_upgrade_preserves_version_one_raw_data",
             "tests.storage.test_postgres.PostgresTests.test_migrations_repeat_and_checksum",
         ),
@@ -61,7 +63,9 @@ def main():
     databases = []
     with psycopg.connect(admin_dsn, autocommit=True) as connection:
         for database, _ in SUITES:
-            connection.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(database)))
+            connection.execute(
+                sql.SQL("CREATE DATABASE {}").format(sql.Identifier(database))
+            )
             databases.append(database)
 
     try:
