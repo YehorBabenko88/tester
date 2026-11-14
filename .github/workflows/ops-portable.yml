@@ -36,6 +36,7 @@ jobs:
           python -m unittest discover -s tests/platform -p 'test_ops_native_admission.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_native_scoped_stop.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_native_optin_handoff.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_combined_ci_plan.py' -v
   portable-pg:
     runs-on: ubuntu-latest
     timeout-minutes: 10
