@@ -93,6 +93,55 @@ jobs:
           python -m unittest tests.test_execution_contract_bridge -v
           python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres or disposable_pg"
           python -m unittest tests.test_composed_data_research_postgres -v
+      - name: Verify composed FastAPI 13-timeframe API and fail-closed market panels
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from fastapi.testclient import TestClient
+          from src.api.config import Settings
+          from src.api.main import create_app
+
+          app = create_app(Settings(
+              market_catalog_enabled=False, frontend_dir=Path("frontend").resolve()
+          ))
+          route_paths = {getattr(route, "path", "") for route in app.routes}
+          assert "/api/capabilities" in route_paths
+          assert "/api/analytics" not in route_paths
+          assert "/api/v1_1/downloads" not in route_paths
+          assert "/api/open-interest" in route_paths
+          assert "/api/funding" in route_paths
+          intervals = ("1", "3", "5", "15", "30", "60", "120",
+                       "240", "360", "720", "D", "W", "M")
+          with TestClient(app) as client:
+              for interval in intervals:
+                  response = client.get("/api/capabilities", params=dict(
+                      category="linear", symbol="BTCUSDT", interval=interval,
+                      start_ms=1704067200000, end_ms=1711929600000,
+                  ))
+                  assert response.status_code == 200, (interval, response.text)
+                  d = response.json()["data"]
+                  assert d["features"]["market_catalog"]["enabled"] is False
+                  assert d["features"]["sources"]["enabled"] is False
+                  assert d["observed_page_revision"]["history_complete"] is False
+                  assert d["observed_page_revision"]["supports_f_admission"] is False
+                  assert d["source_contracts"]["research_ui_observation"]["http_route"] is None
+                  assert d["source_contracts"]["research_ui_observation"]["g_e_execution"] == "NOT_AUTHORIZED"
+                  for panel in ("footprint", "delta", "cvd", "vwap", "poc", "profile"):
+                      item = d["panels"][panel]
+                      assert item["status"] == "UNAVAILABLE", (interval, panel, item)
+                      assert item["reason"] == "endpoint_contract_not_supported"
+                      assert "resource" not in item
+                  for panel in ("open_interest", "funding", "mark", "index"):
+                      item = d["panels"][panel]
+                      assert item["status"] == "UNVERIFIED", (interval, panel, item)
+                      assert item["reason"] in {
+                          "source_not_authorized", "provider_not_connected",
+                          "reference_price_route_not_enabled", "source_not_connected",
+                      }, (interval, panel, item)
+                      assert "resource" not in item
+          print("COMPOSED_CAPABILITY_13TF_FAIL_CLOSED_PASS", len(intervals))
+          PY
       - name: Install browser test dependencies
         working-directory: frontend
         run: |
