@@ -8,6 +8,7 @@ import json
 import os
 import pathlib
 import subprocess
+import stat
 import uuid
 
 BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
@@ -61,6 +62,8 @@ def main():
             status, path = row.split("\t", 1)
             if status not in ("A", "M") or not path.startswith(ALLOWED) or path in PROTECTED or path not in approved[label]:
                 raise SystemExit(f"refusing {label} status/path: {row}")
+            if path in observed:
+                raise SystemExit(f"{label}: duplicate producer diff entry: {path}")
             observed.add(path)
             # Only regular Git blobs are eligible: reject symlinks and gitlinks.
             mode_row = git("ls-tree", sha, "--", path).decode().strip()
@@ -112,11 +115,17 @@ def main():
                 # existing leaf, which could be a hardlink outside checkout.
                 tmpname = ".master-compose-" + uuid.uuid4().hex
                 fd = os.open(tmpname, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parentfd)
+                created = os.fstat(fd)
                 try:
                     with os.fdopen(fd, "wb") as output:
                         output.write(raw)
                         output.flush()
                         os.fsync(output.fileno())
+                    # Reject substituted temporary entries, including symlinks.
+                    staged = os.stat(tmpname, dir_fd=parentfd, follow_symlinks=False)
+                    if (not stat.S_ISREG(staged.st_mode) or staged.st_ino != created.st_ino
+                            or staged.st_dev != created.st_dev or staged.st_nlink != 1):
+                        raise SystemExit(f"temporary inode replaced: {path}")
                     os.replace(tmpname, parts[-1], src_dir_fd=parentfd, dst_dir_fd=parentfd)
                 finally:
                     try:
