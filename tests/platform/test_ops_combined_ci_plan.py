@@ -91,6 +91,7 @@ class CombinedAcceptancePlanTests(unittest.TestCase):
             "postgres18_storage_migration_and_http",
             "postgres16_real_source_readback_research",
             "postgres16_ops_lease_wal_and_resource",
+            "ops_pure_scoped_stop_crash_fencing_and_optin",
             "node_chromium_ui_13tf",
             "fastapi_genuine_synthetic_f_g_d_browser",
             "win32_native_original_handle_and_rollback",
@@ -102,6 +103,9 @@ class CombinedAcceptancePlanTests(unittest.TestCase):
             for x in plan["stages"] if "postgres" in x
         ]
         self.assertNotIn(5432, ports)
+        pure_ops = stages["ops_pure_scoped_stop_crash_fencing_and_optin"]["commands"]
+        self.assertTrue(any("test_ops_combined_ci_plan.py" in cmd for cmd in pure_ops))
+        self.assertTrue(any("test_ops_native_scoped_stop.py" in cmd for cmd in pure_ops))
         self.assertTrue(all(55400 <= p <= 55499 for p in ports))
 
     def test_invalid_or_unreviewed_inputs_refuse_without_any_execution(self):
