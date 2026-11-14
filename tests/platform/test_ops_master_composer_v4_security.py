@@ -310,6 +310,40 @@ class MasterV4ExactSandboxTests(unittest.TestCase):
         self.assertIn("COMPOSITION_ONLY",result)
         self.assertEqual(unexpected.read_bytes(),b"UNKNOWN")
 
+    def test_20_staged_temp_inode_replaced_by_symlink_STILL_RACE(self):
+        # Private temporary filenames are random, but an adversary with
+        # write access to this directory can race after the writer closes it.
+        # Replacing the temporary source with a symlink plants a symlink in
+        # the finished candidate. No actual outside file is modified.
+        sentinel = self.outside / "staged-symlink-target"
+        sentinel.write_bytes(b"KEEP")
+        original = os.replace
+        swapped = False
+        def intercept(src,dst,*args,**kwargs):
+            nonlocal swapped
+            if not swapped and dst == Path(TARGET).name:
+                swapped = True
+                src_fd = kwargs["src_dir_fd"]
+                os.unlink(src,dir_fd=src_fd)
+                os.symlink(sentinel,src,dir_fd=src_fd)
+            return original(src,dst,*args,**kwargs)
+        with patch.object(os,"replace",side_effect=intercept):
+            output,_=self._run()
+        self.assertTrue(swapped)
+        self.assertIn("COMPOSITION_ONLY",output)
+        self.assertTrue((self.root/TARGET).is_symlink())
+        self.assertEqual((self.root/TARGET).resolve(), sentinel)
+        self.assertEqual(sentinel.read_bytes(),b"KEEP")
+
+    def test_21_forged_git_blob_content_under_exact_head_STILL_TRUSTS_GIT(self):
+        # Mocked Git proves the boundary: a compromised Git command can
+        # supply bytes unrelated to the displayed ls-tree object SHA.
+        # This is NOT a bypass of genuine Git's object integrity.
+        hostile=b"UNVERIFIED_GIT_OUTPUT_ONLY"
+        output,_=self._run(bytes_override=hostile)
+        self.assertIn("COMPOSITION_ONLY",output)
+        self.assertEqual((self.root/TARGET).read_bytes(),hostile)
+
     def test_19_second_target_symlink_preflight_refuses_before_any_write(self):
         sentinel = self.outside/"sentinel"
         sentinel.write_bytes(b"KEEP")
