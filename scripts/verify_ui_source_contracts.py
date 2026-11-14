@@ -39,8 +39,9 @@ def _parse(file):
 
 
 
-def verify_shared_pg_hostaddr_test(data_path, research_path, *,
-                                   expected_blob="402c25410ba4cc6704911148b1ec0c5bba720088"):
+def verify_shared_pg_hostaddr_test(
+    data_path, research_path, *, expected_blob="402c25410ba4cc6704911148b1ec0c5bba720088"
+):
     """Audit DATA/RESEARCH same-path conflict by exact Git blob, not merge order.
 
     No database or producer module is loaded. This only certifies the test
@@ -51,16 +52,19 @@ def verify_shared_pg_hostaddr_test(data_path, research_path, *,
     research = Path(research_path).read_bytes()
     if not data or len(data) > 256_000 or data != research:
         raise ValueError("data_research_pghostaddr_overlap_requires_manual_reconciliation")
-    sha = hashlib.sha1(
-        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
-    ).hexdigest()
+    sha = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
     if sha != expected_blob:
         raise ValueError("pghostaddr_overlap_unreviewed_git_blob")
     text = data.decode("utf-8")
     required = (
-        "PGHOSTADDR", "PGHOST", "PGPORT", "PGDATABASE",
-        "conn.info.hostaddr", "inet_server_addr",
-        "127.0.0.2", "172.18.0.2",
+        "PGHOSTADDR",
+        "PGHOST",
+        "PGPORT",
+        "PGDATABASE",
+        "conn.info.hostaddr",
+        "inet_server_addr",
+        "127.0.0.2",
+        "172.18.0.2",
         "test_actual_postgres_hostaddr_environment_cannot_redirect",
         "test_research_dsn_refuses_explicit_hostaddr_redirect",
     )
