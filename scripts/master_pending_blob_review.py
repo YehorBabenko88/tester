@@ -2,6 +2,7 @@
 
 Run only in a disposable full-history checkout. Never modifies source files.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -55,24 +56,34 @@ def main() -> None:
             raw = git("show", f"{sha}:{path}")
             if git_blob_hash(raw) != blob_sha:
                 raise SystemExit(f"{label}: Git blob digest mismatch: {path}")
-            pending.append({
-                "path": path,
-                "git_blob_sha": blob_sha,
-                "sha256": hashlib.sha256(raw).hexdigest(),
-                "mode": mode,
-                "role_guess": (
-                    "workflow" if path.startswith(".github/workflows/")
-                    else "documentation" if path.startswith("docs/")
-                    else "test" if path.startswith("tests/")
-                    else "script_review_required"
-                ),
-                "approved": False,
-            })
-        runtime_pending = [entry["path"] for entry in pending if entry["path"].startswith(("src/", "frontend/"))]
+            pending.append(
+                {
+                    "path": path,
+                    "git_blob_sha": blob_sha,
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                    "mode": mode,
+                    "role_guess": (
+                        "workflow"
+                        if path.startswith(".github/workflows/")
+                        else "documentation"
+                        if path.startswith("docs/")
+                        else "test"
+                        if path.startswith("tests/")
+                        else "script_review_required"
+                    ),
+                    "approved": False,
+                }
+            )
+        runtime_pending = [
+            entry["path"] for entry in pending if entry["path"].startswith(("src/", "frontend/"))
+        ]
         if runtime_pending:
-            raise SystemExit(f"{label}: new runtime paths require explicit review: {runtime_pending}")
+            raise SystemExit(
+                f"{label}: new runtime paths require explicit review: {runtime_pending}"
+            )
         result["producers"][label] = {
-            "head": sha, "pending": pending,
+            "head": sha,
+            "pending": pending,
             "runtime_path_additions": runtime_pending,
             "runtime_path_additions_checked": True,
             "admission_status": "NOT_APPROVED",
@@ -80,7 +91,9 @@ def main() -> None:
     runtime = {}
     for label, sha in PRODUCERS.items():
         rows = []
-        for path in sorted(p for p in reviewed["producers"][label] if p.startswith(("src/", "frontend/"))):
+        for path in sorted(
+            p for p in reviewed["producers"][label] if p.startswith(("src/", "frontend/"))
+        ):
             mode_line = git("ls-tree", sha, "--", path).decode().strip()
             parts = mode_line.split()
             if len(parts) < 4 or parts[0] not in {"100644", "100755"} or parts[1] != "blob":
@@ -88,17 +101,31 @@ def main() -> None:
             raw = git("show", f"{sha}:{path}")
             if git_blob_hash(raw) != parts[2]:
                 raise SystemExit(f"{label}: approved runtime blob digest mismatch: {path}")
-            rows.append({"path": path, "mode": parts[0], "git_blob_sha": parts[2], "sha256": hashlib.sha256(raw).hexdigest()})
+            rows.append(
+                {
+                    "path": path,
+                    "mode": parts[0],
+                    "git_blob_sha": parts[2],
+                    "sha256": hashlib.sha256(raw).hexdigest(),
+                }
+            )
         runtime[label] = rows
     owners = {}
     for label, rows in runtime.items():
         for entry in rows:
             old = owners.get(entry["path"])
-            if old is not None and (old["git_blob_sha"], old["mode"]) != (entry["git_blob_sha"], entry["mode"]):
+            if old is not None and (old["git_blob_sha"], old["mode"]) != (
+                entry["git_blob_sha"],
+                entry["mode"],
+            ):
                 raise SystemExit("runtime source conflict: " + entry["path"])
             owners[entry["path"]] = entry
     result["pending_executable_scripts"] = {
-        label: [entry for entry in result["producers"][label]["pending"] if entry["path"].startswith("scripts/")]
+        label: [
+            entry
+            for entry in result["producers"][label]["pending"]
+            if entry["path"].startswith("scripts/")
+        ]
         for label in PRODUCERS
     }
     result["approved_runtime_blobs"] = runtime

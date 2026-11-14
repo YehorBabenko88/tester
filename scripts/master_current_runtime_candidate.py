@@ -3,6 +3,7 @@
 Creates a private 0700 temporary tree with reviewed src/frontend blobs only.
 This is NOT the OPS generation publisher or a deployable release.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -43,12 +44,19 @@ def main() -> None:
     for label, sha in PRODUCERS.items():
         if git("rev-parse", sha + "^{commit}").decode().strip() != sha:
             raise SystemExit("unpinned producer " + label)
-        changed = {row.split("\t", 1)[1] for row in git("diff", "--name-status", "--no-renames", BASE, sha).decode().splitlines()}
+        changed = {
+            row.split("\t", 1)[1]
+            for row in git("diff", "--name-status", "--no-renames", BASE, sha).decode().splitlines()
+        }
         approved = set(manifest["producers"][label])
         for path in sorted(approved):
             if not path.startswith(("src/", "frontend/")):
                 continue
-            if path not in changed or path.startswith("/") or ".." in pathlib.PurePosixPath(path).parts:
+            if (
+                path not in changed
+                or path.startswith("/")
+                or ".." in pathlib.PurePosixPath(path).parts
+            ):
                 raise SystemExit("invalid approved runtime path " + path)
             entry = git("ls-tree", sha, "--", path).decode().strip().split()
             if len(entry) != 4 or entry[0] not in ("100644", "100755") or entry[1] != "blob":
@@ -79,8 +87,10 @@ def main() -> None:
             "schema": "master-current-runtime-source-smoke/1",
             "status": "CI_ONLY_NOT_PUBLISHED",
             "source_pins": PRODUCERS,
-            "runtime_files": {path: {"blob": sha, "mode": mode, "producer": label}
-                              for path, (sha, mode, raw, label) in sorted(sources.items())},
+            "runtime_files": {
+                path: {"blob": sha, "mode": mode, "producer": label}
+                for path, (sha, mode, raw, label) in sorted(sources.items())
+            },
         }
         print(json.dumps(receipt, sort_keys=True, indent=2))
     print("NO_ACTIVE_CHECKOUT_WRITE_NO_NATIVE_LAUNCHER_NO_RELEASE")
