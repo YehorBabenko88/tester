@@ -15,7 +15,7 @@
     "frontend/capabilities.js",
     "frontend/tests/capabilities.test.js"
   ],
-  "total_changed": 44,
+  "total_changed": 45,
   "all_changed": [
     ".github/workflows/capability-browser.yml",
     ".github/workflows/ui74-current-head-private-e2e.yml",
@@ -57,6 +57,7 @@
     "src/api/main.py",
     "tests/platform/test_capability_data_bridge.py",
     "tests/platform/test_capability_discovery.py",
+    "tests/platform/test_combined_route_contract_ui74.py",
     "tests/platform/test_download_kind_proposal.py",
     "tests/platform/test_ui_composition_manifest.py",
     "tests/platform/test_ui_pending_allowlist.py",
@@ -95,6 +96,7 @@
       "scripts/verify_ui_source_contracts.py",
       "tests/platform/test_capability_data_bridge.py",
       "tests/platform/test_capability_discovery.py",
+      "tests/platform/test_combined_route_contract_ui74.py",
       "tests/platform/test_download_kind_proposal.py",
       "tests/platform/test_ui_composition_manifest.py",
       "tests/platform/test_ui_pending_allowlist.py",
@@ -387,7 +389,7 @@
       "mode": "100644"
     },
     "frontend/tests/combined-backend.e2e.js": {
-      "git_blob_sha1": "6efdff220e989775f1587104a2e478dcbd06cdbd",
+      "git_blob_sha1": "f2013caba0b96bbd858154fe692236e14a60642e",
       "mode": "100644"
     },
     "frontend/tests/native-gestures.spec.js": {
@@ -485,6 +487,25 @@
     ".github/workflows/ui74-current-head-private-e2e.yml": {
       "git_blob_sha1": "1fdbb13c7e3646825fbcc16a0285d17153367248",
       "mode": "100644"
+    },
+    "tests/platform/test_combined_route_contract_ui74.py": {
+      "git_blob_sha1": "ec7f9468ab4c478651681ceb79b41114e0c605eb",
+      "mode": "100644"
     }
+  },
+  "combined_browser_404_audit": {
+    "master_failed_workflow": 43621012482,
+    "job": 132526472080,
+    "master_checkout": "5a60dc16",
+    "legacy_market_main_blob": "6f09ac49cac4535527ca37039c134cb62ebaa7be",
+    "ui_market_main_blob": "da62598a06db5caa0977775f8b0291ac70c96c43",
+    "missing_endpoint": "GET /api/capabilities",
+    "cause": "legacy market API source does not register capabilities; latest frontend calls endpoint",
+    "historical_ui_e2e_preserved": true,
+    "new_preflight": "frontend/tests/combined-backend.e2e.js",
+    "route_graph_regression": "tests/platform/test_combined_route_contract_ui74.py",
+    "master_admission": "NOT_AUTHORIZED",
+    "runtime_main_changed": false,
+    "release": "NO_GO"
   }
 }
