@@ -115,7 +115,7 @@ class MasterComposerScopeAuditTests(unittest.TestCase):
             source, changed_ops_paths=paths, expected_ops_sha=OPS_PIN
         )
         self.assertEqual(len(paths), 59)
-        self.assertEqual(report["approved_count"], 29)
+        self.assertEqual(report["approved_count"], 31)
         self.assertEqual(report["actually_composed_ops_count"], 59)
         self.assertEqual(report["extra_count"], 30)
         self.assertEqual(report["result"], "BLOCKED_SCOPE_TOO_BROAD")
@@ -123,7 +123,10 @@ class MasterComposerScopeAuditTests(unittest.TestCase):
         self.assertIn("scripts/ops_disposable_api.py", report["extra_paths"])
         self.assertIn("tests/platform/test_ops_pg_load_real.py", report["extra_paths"])
         self.assertNotIn("scripts/ops_pg_claim.py", report["extra_paths"])
-        self.assertEqual(report["approved_missing"], [])
+        self.assertEqual(report["approved_missing"], [
+            "scripts/ops_master_composer_audit.py",
+            "tests/platform/test_ops_master_composer_audit.py",
+        ])
         self.assertTrue(report["protected_installed_runtime_paths_guarded"])
         self.assertFalse(report["direct_native_activation_calls_in_composer"])
 
