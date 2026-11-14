@@ -82,10 +82,8 @@ class MasterRuntimePrivateGenerationTests(unittest.TestCase):
             or ops.git_hash(raw_allowlist) != cls.review["master_allowlist_git_blob_sha1"]
         ):
             raise AssertionError("MASTER Git blob identity mismatch")
-        if ops.git_hash(git("show", "HEAD:" + MASTER_ALLOWLIST)) != cls.review[
-            "master_allowlist_git_blob_sha1"
-        ]:
-            raise AssertionError("OPS worktree source allowlist diverged from MASTER")
+        # OPS deliberately does not carry MASTER's allowlist in HEAD.
+        # Use only the exact immutable MASTER Git blob in a scratch directory.
         allowed = json.loads(raw_allowlist)["producers"]
         prepared = {}
         for label, commit in cls.pins.items():
@@ -177,7 +175,19 @@ class MasterRuntimePrivateGenerationTests(unittest.TestCase):
                 raise AssertionError("cannot load pinned MASTER source")
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            module.ROOT = ROOT
+            scratch = Path(temp) / "master-source-only"
+            manifest_file = scratch / MASTER_ALLOWLIST
+            manifest_file.parent.mkdir(parents=True, mode=0o700)
+            manifest_file.write_bytes(raw_allowlist)
+            scratch.chmod(0o700)
+            module.ROOT = scratch
+
+            def immutable_master_git(*args):
+                if args == ("show", "HEAD:" + MASTER_ALLOWLIST):
+                    return raw_allowlist
+                return git(*args)
+
+            module.git = immutable_master_git
             output = io.StringIO()
             with contextlib.redirect_stdout(output):
                 module.main()
