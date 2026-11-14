@@ -107,7 +107,7 @@ def source(root: Path):
             if frozen.selected(path):
                 included[path] = (head, mode, blob, label)
         parity[label] = paths == set(approved[label])
-    if not all(label in PRODUCER_PINS for _, _, _, label in included.values()):
+    if not all(label in (*PRODUCER_PINS, "BASE") for _, _, _, label in included.values()):
         raise AssertionError("unknown producer label")
     audited = []
     for path in sorted(included):
