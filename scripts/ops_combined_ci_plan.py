@@ -235,3 +235,42 @@ def combined_acceptance_plan(*, combined_sha: str, ops_sha: str,
         "status": "COMBINED_CANDIDATE_REQUIRES_MASTER_COMPOSITION_AND_CI",
     }
     return {**plan, "plan_sha256": _digest(plan)}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Print a review-only JSON matrix. No test commands are executed."""
+    import argparse
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(description="OPS #77 source-only combined CI plan")
+    parser.add_argument("--combined-sha", required=True)
+    parser.add_argument("--combined-tree-sha", required=True)
+    parser.add_argument("--ops-sha", required=True)
+    parser.add_argument("--handoff-json", required=True)
+    parser.add_argument("--producer-pins-json", required=True)
+    args = parser.parse_args(argv)
+
+    def read_limited_json(value: str):
+        path = Path(value)
+        if (path.is_symlink() or not path.is_file()
+                or not 0 < path.stat().st_size <= 1024 * 1024):
+            raise ValueError("missing_or_unsafe_candidate_manifest")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("candidate_manifest_must_be_object")
+        return payload
+
+    plan = combined_acceptance_plan(
+        combined_sha=args.combined_sha,
+        source_tree_sha=args.combined_tree_sha,
+        ops_sha=args.ops_sha,
+        handoff=read_limited_json(args.handoff_json),
+        producer_shas=read_limited_json(args.producer_pins_json),
+        ephemeral_ci_only=True,
+    )
+    print(json.dumps(plan, sort_keys=True, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
