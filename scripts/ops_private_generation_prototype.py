@@ -220,6 +220,10 @@ def publish_generation(root: Path, *, blobs: Iterable[ReviewedBlob],
             raise CompositionRefused("generation_collision")
         os.rename(candidate, final)  # unique destination, same filesystem
         sync_dir(gens)
+        # Detect relocation-transition mutations before publishing CURRENT.
+        # Same-UID adversarial writes AFTER this verification remain BLOCKED.
+        if verify_tree(final, approved, sealed=True) != digest:
+            raise CompositionRefused("published_generation_mutated")
         if fault:
             fault("after_publish_before_current", final)
         write_exclusive(pointer_tmp, canonical(dict(
@@ -277,3 +281,43 @@ def read_current(root: Path, *, manifest: bytes, manifest_sha256: str) -> str:
         return gen
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise CompositionRefused("incomplete_or_corrupted_generation") from exc
+
+
+
+def read_pinned(root: Path, generation: str, *, manifest: bytes,
+                manifest_sha256: str) -> str:
+    """Revalidate a named generation without following a later CURRENT switch."""
+    private_root(root)
+    if not isinstance(generation, str) or not re.fullmatch(r"[a-f0-9]{32}", generation):
+        raise CompositionRefused("invalid_pinned_generation")
+    if not isinstance(manifest, bytes) or hash256(manifest) != manifest_sha256:
+        raise CompositionRefused("untrusted_manifest")
+    try:
+        doc = json.loads(manifest)
+        if doc.get("schema") != SCHEMA or not isinstance(doc.get("files"), list):
+            raise ValueError("bad manifest")
+        candidate = root / "generations" / generation
+        if candidate.is_symlink() or not candidate.is_dir():
+            raise ValueError("missing generation")
+        receipt_path = candidate / "generation.json"
+        if receipt_path.is_symlink() or not stat.S_ISREG(receipt_path.lstat().st_mode):
+            raise ValueError("bad receipt inode")
+        receipt = json.loads(receipt_path.read_bytes())
+        if (receipt.get("status") != "VERIFIED"
+                or receipt.get("generation") != generation
+                or receipt.get("manifest_sha256") != manifest_sha256
+                or receipt.get("source_pins") != doc.get("source_pins")):
+            raise ValueError("bad receipt")
+        expected = [ReviewedBlob(e["path"], b"", e["sha256"],
+                                 e["git_blob_sha1"], e["mode"]) for e in doc["files"]]
+        digest = verify_tree(candidate, expected, sealed=True)
+        if digest != receipt.get("tree_sha256"):
+            raise ValueError("bad tree digest")
+        return generation
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise CompositionRefused("invalid_or_corrupted_pinned_generation") from exc
+
+
+def retire_generation(*_args, **_kwargs) -> None:
+    """Fail closed: safe GC needs cross-process reader leases and recovery."""
+    raise CompositionRefused("gc_disabled_without_reader_leases")

@@ -69,3 +69,27 @@ launcher. No real PC4, installed Windows SCM or PostgreSQL is accessed.
 The protocol does not pretend an os.replace can atomically overwrite a
 populated directory. It publishes a fresh unique generation and swaps only
 a small verified pointer.
+
+
+## Crash and concurrency follow-up
+
+The independently tested `tests/platform/test_ops_private_generation_crash.py`
+exercises crash-like exceptions immediately before/after CURRENT replacement,
+root fsync after visible publication, corruption of receipt and source files,
+reader pinning across switches, refused GC, late partial failures, and same-UID
+writer/directory relocation at the staging-to-published boundary.
+
+**Visibility is not crash durability.** A successful same-filesystem CURRENT
+rename selects a complete tree if untrusted concurrent writes are excluded.
+After a post-swap fsync exception the caller sees failure although the new
+CURRENT may be visible; after actual power loss its persistence is UNKNOWN.
+The tests simulate exceptions, not device power failure or journal recovery.
+
+A same-UID writer can mutate files after the final validation, rename ancestor
+folders, or defeat the trust boundary. Revalidating a pinned generation detects
+corruption at read time but cannot guarantee a snapshot under live hostile
+mutation. Reader pinning here means retaining the generation identifier, **not**
+a durable open-fd lease. Generation deletion is unconditionally refused until
+lease fencing and recovery are designed. External Git authenticity/runner
+attestation, production crash durability, concurrent malicious writer isolation
+and four-producer application integration remain **BLOCKED / NO_GO**.
