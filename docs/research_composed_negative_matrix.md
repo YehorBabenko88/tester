@@ -174,3 +174,48 @@ The MASTER document `docs/coordination/2026-11-14-producer-allowlist-review.md` 
 **Separation:** the workflow, runner and tests are disposable CI tooling; the two documents are review/replay artifacts. None is a native launcher, installed API/worker route, DATA trading input or automatically authorized runtime blob. The existing **23-blob** DATA/RESEARCH/UI ledger is a different inner integrity manifest; no approval to add these five files to a private generation tree is implied. The producer sha and every file mode/hash above must be re-verified if the RESEARCH source branch advances.
 
 **Required acceptance after MASTER approval:** external reviewer pins this exact five-file list and the original SHA set; a new MASTER private generation composed from one immutable combined candidate must pass PG14/18, RESEARCH PG16, FastAPI/Chromium, security and native lifecycle gates. Until then `FULL_COMBINED_RELEASE=NO_GO` and real F remains `DENIED_UNKNOWN_COVERAGE`; do not claim historical completeness or invent Bid/Ask.
+
+
+## PostgreSQL hostaddr security — MASTER 43618643107 regression
+
+The failed MASTER pinned-PG workflow `43618643107` (9 PASS, 1 FAIL)
+used the **old** `tests/platform/test_research_postgres.py` Git blob
+`989aef873fd6445f2a5f6bf012ec1ad7156605cb`. It incorrectly equated
+the validated libpq client connection endpoint `127.0.0.1:55472` with
+the PostgreSQL server's own `inet_server_addr()/inet_server_port()`.
+GitHub Actions Docker NAT in that run returned
+`172.18.0.2:5432` on the server side. These are two legitimate views
+of the **same connection**, not proof of DSN redirection.
+
+The canonical DATA #72 / RESEARCH #71 shared test already has reviewed
+Git blob `402c25410ba4cc6704911148b1ec0c5bba720088`. It checks
+**`conn.info.host`, `conn.info.hostaddr`, `conn.info.port`,
+`conn.info.dbname`** against the explicit validated client DSN, while
+asserting only that the server-side `current_database()` matches.
+`src.api.research_ledger.validate_research_dsn` requires numeric loopback
+and a non-5432 `tester_research_*` database, rejecting any explicit
+`hostaddr`, `service` or `options`. Its `connection()` supplies
+`hostaddr=endpoint["host"]` to psycopg, taking precedence over libpq
+`PGHOSTADDR` and preventing the ambient redirect.
+
+The RESEARCH-owned (not shared DATA) negative E2E adds
+`test_actual_postgres_client_hostaddr_is_pinned_despite_libpq_environment`
+with **two** malicious `PGHOSTADDR` candidates:
+`127.0.0.2` and `172.18.0.2`; `PGHOST/PGPORT/PGDATABASE` are poisoned
+simultaneously. It connects to an **actual disposable PostgreSQL16**
+on `127.0.0.1:55472`, asserts the libpq client endpoint, and verifies
+server DB identity without asserting a Docker-internal address or port.
+It also refuses a forged explicit `hostaddr` even if it matches loopback.
+Nothing in this change modifies the PostgreSQL runtime, weakens the
+client address guard, or alters DATA's shared regression source.
+
+For future immutable MASTER composition, use **both** DATA and RESEARCH
+byte-identical corrected test Git blob `402c25410ba4cc6704911148b1ec0c5bba720088`
+instead of the stale `989a...` master checkout version. The MASTER owner
+must perform and verify that replacement on an approved combined source
+commit; RESEARCH does **not** change PR #77. A successful producer-only
+run cannot retroactively mark `43618643107` PASS.
+
+All pending full-release gates remain: PG14/18, FastAPI/Chromium, signed
+source authority, native Windows and physical PC4 acceptance. Real F is
+still `DENIED_UNKNOWN_COVERAGE` and release `NO_GO`.
