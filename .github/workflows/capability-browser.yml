@@ -1,0 +1,137 @@
+name: UI capability discovery and real FastAPI browser contract
+on:
+  pull_request:
+    paths:
+      - 'src/api/capability_discovery.py'
+      - 'src/api/main.py'
+      - 'frontend/**'
+      - 'tests/platform/test_capability_discovery.py'
+      - 'scripts/capability_fixture_server.py'
+      - 'scripts/verify_ui_source_contracts.py'
+      - 'docs/integration/ui74-master77-manifest.json'
+      - 'tests/platform/test_ui_composition_manifest.py'
+      - 'scripts/diagnose_ui_contract_drift.py'
+      - 'scripts/compare_download_kind_proposal.py'
+      - 'docs/proposals/download-kind-v1_1.json'
+      - 'tests/platform/test_download_kind_proposal.py'
+      - 'src/api/capability_source_contracts.py'
+      - 'src/api/capability_data_bridge.py'
+      - 'docs/ui-capability-protocol-v1.schema.json'
+      - '.github/workflows/capability-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capability-browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Pin reviewed DATA #72 original-execution contract
+        uses: actions/checkout@v4
+        with:
+          ref: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
+          path: .ci-source-data72
+          sparse-checkout: |
+            src/ingest/execution_contract.py
+            tests/platform/test_research_postgres.py
+          sparse-checkout-cone-mode: false
+      - name: Pin reviewed RESEARCH #71 observed-metrics contracts
+        uses: actions/checkout@v4
+        with:
+          ref: 7ec35810434e3c9159f36712a4186595ac637efa
+          path: .ci-source-research71
+          sparse-checkout: |
+            src/integration/data_research_adapter.py
+            src/analytics/research_metrics.py
+            src/integration/research_ui_projection.py
+            tests/platform/test_research_postgres.py
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install 'pip>=26.2,<27'
+      - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Diagnose inherited shared-contract drift without mutation
+        run: python scripts/diagnose_ui_contract_drift.py > capability-contract-drift.json
+      - name: Validate proposed versioned Kind delta without modifying v1
+        run: |
+          python scripts/compare_download_kind_proposal.py > capability-kind-proposal-evidence.json
+          python -m pytest tests/platform/test_download_kind_proposal.py -q
+      - name: Verify exact independently pinned DATA/RESEARCH source interfaces
+        shell: bash
+        run: |
+          test "$(git -C .ci-source-data72 rev-parse HEAD)" = "d5bfdad445a1eefb9dc12bf2725a00f171e2c321"
+          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "7ec35810434e3c9159f36712a4186595ac637efa"
+          python scripts/verify_ui_source_contracts.py \
+            --data .ci-source-data72/src/ingest/execution_contract.py \
+            --research .ci-source-research71/src/integration/data_research_adapter.py \
+            --metrics .ci-source-research71/src/analytics/research_metrics.py \
+            --research-ui .ci-source-research71/src/integration/research_ui_projection.py \
+            --data-pg-test .ci-source-data72/tests/platform/test_research_postgres.py \
+            --research-pg-test .ci-source-research71/tests/platform/test_research_postgres.py
+          test "$(git hash-object .ci-source-data72/src/ingest/execution_contract.py)" = "8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79"
+          test "$(git hash-object .ci-source-research71/src/integration/data_research_adapter.py)" = "35404adef064a667faef6a8f3f852f5aa492cf76"
+          test "$(git hash-object .ci-source-research71/src/analytics/research_metrics.py)" = "d565c1239b60e770c0337423c5e014daeec0e457"
+          test "$(git hash-object .ci-source-research71/src/integration/research_ui_projection.py)" = "1c165bccaa39fcf73cf33171730e9ea7d7fd6474"
+          # Previously overlapping DATA/RESEARCH PGHOSTADDR test is byte-identical
+          # at these reviewed producer SHAs. Never copy with last-writer-wins.
+          test "$(git hash-object .ci-source-data72/tests/platform/test_research_postgres.py)" = "402c25410ba4cc6704911148b1ec0c5bba720088"
+          test "$(git hash-object .ci-source-research71/tests/platform/test_research_postgres.py)" = "402c25410ba4cc6704911148b1ec0c5bba720088"
+          cmp .ci-source-data72/tests/platform/test_research_postgres.py .ci-source-research71/tests/platform/test_research_postgres.py
+      - name: Exercise real FastAPI capability discovery
+        run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py tests/platform/test_capability_data_bridge.py tests/platform/test_ui_composition_manifest.py -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: frontend
+      - run: npm test
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Start isolated loopback FastAPI fixture server
+        shell: bash
+        run: |
+          python scripts/capability_fixture_server.py >capability-backend.log 2>&1 &
+          echo $! >capability-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS 'http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000' >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat capability-backend.log
+          exit 1
+      - name: Verify exact source checkout
+        shell: bash
+        env:
+          TESTER_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual="$(git rev-parse HEAD)"
+          if [ "$actual" != "$TESTER_TESTED_HEAD_SHA" ]; then
+            echo "Mismatch: actual checkout is not the requested PR HEAD"
+            exit 1
+          fi
+      - name: Chromium against real FastAPI and 13 timeframes
+        env:
+          TESTER_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          TESTER_DATA_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
+          TESTER_RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
+        run: npx playwright test --config playwright.capability.config.js
+        working-directory: frontend
+      - name: Store browser screenshot, traces and backend log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capability-browser-evidence
+          path: |
+            frontend/test-results/
+            capability-backend.log
+            capability-contract-drift.json
+            capability-kind-proposal-evidence.json
+          if-no-files-found: ignore

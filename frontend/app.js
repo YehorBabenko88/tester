@@ -10,6 +10,7 @@ import { adaptSeries, sourceText } from "./series.js";
 import { request } from "./api.js";
 import { progress, connectionNotice, validateSeries, PANELS } from "./model.js";
 import { PanelChart } from "./charts.js";
+import { classifyPanelCapability } from "./capabilities.js";
 const $ = (s) => document.querySelector(s);
 const el = (tag, text, className) => {
   const n = document.createElement(tag);
@@ -62,6 +63,14 @@ const state = {
   charts: new Map(),
   chartAbort: null,
   instrumentAbort: null,
+  capabilities: null,
+  capabilityKey: null,
+  capabilityError: null,
+  capabilitySourceContracts: null,
+  capabilityExecutionEvidence: null,
+  capabilityProtocolVersion: null,
+  marketCatalogEnabled: null,
+  sourceListEnabled: null,
 };
 state.ids = new Set(
   [...state.ids]
@@ -292,6 +301,11 @@ async function loadInstruments(
   pinned = false,
   conflictRecovered = false,
 ) {
+  if (state.marketCatalogEnabled === false) {
+    $("#screener-status").textContent =
+      "DATA_UNAVAILABLE · market_catalog_not_configured · Direct source symbol selection remains available for verified price data.";
+    return;
+  }
   state.instrumentAbort?.abort();
   const abort = new AbortController();
   state.instrumentAbort = abort;
@@ -413,6 +427,7 @@ setInterval(() => {
       : `Shared refresh schedule unknown`;
 }, 1000);
 async function loadSources() {
+  if (state.sourceListEnabled === false) return;
   try {
     const p = await request("/api/sources", {
       category: $("#category").value,
@@ -710,17 +725,75 @@ async function submitDownloads(keys) {
   }
 }
 $("#download").onclick = () => submitDownloads([...state.selected]);
-// No raw-trade endpoint is ever requested by charts.
-function panelEndpoint(kind) {
-  return (
-    {
-      candles: "/api/candles",
-      volume: "/api/candles",
-      footprint: "/api/footprint",
-      open_interest: "/api/open-interest",
-      funding: "/api/funding",
-    }[kind] || "/api/analytics"
-  );
+const PANEL_REASON_TEXT = Object.freeze({
+  instrument_required: "Select an instrument before requesting data",
+  timeframe_not_supported: "The source does not support this timeframe",
+  not_applicable_to_spot: "This indicator is derivatives-only",
+  endpoint_contract_not_supported: "No compatible analytics endpoint is implemented",
+  provider_not_connected: "No qualified data provider is connected",
+  source_not_authorized: "The configured source is not authorized for discovery",
+  reference_price_route_not_enabled: "The price-only API v1.1 route is not enabled",
+  source_not_connected: "This source is not connected",
+  reference_price_source_not_connected: "The price-only Bybit source is not connected",
+  no_verified_observations_in_range: "No verified source observations exist in the chosen range",
+  source_availability_not_qualified: "Source availability was not verified",
+  row_availability_not_qualified: "Individual observations are unavailable or unverified",
+  source_provenance_not_qualified: "Original source provenance is insufficient",
+  price_source_timestamp_mismatch: "Original millisecond timestamp or price-source binding is inconsistent",
+  price_scope_mismatch: "Price candle does not match instrument, interval or UTC range",
+  price_contract_mismatch: "The price-only v1.1 response contract is invalid",
+  source_contract_not_verified: "The source did not satisfy its API contract",
+  source_probe_unavailable: "The source could not be checked",
+  bounded_observations_only: "Observed data only; complete history is not certified",
+  capability_not_advertised: "This panel was not advertised",
+  unverified_capability_binding: "Source revision or provenance is missing",
+  price_contract_not_verified: "A verified price-only v1.1 contract is required",
+  unsupported_panel_resource: "No supported endpoint exists for this panel",
+});
+function panelReason(reason) {
+  return PANEL_REASON_TEXT[reason] || "Source unavailable or not verified";
+}
+// Capability discovery is scoped to the selected instrument and interval.
+// A failed or absent discovery response never authorizes speculative API calls.
+async function discoverCapabilities(q, signal) {
+  const cadence = $("#oi-source-interval").value;
+  const key = JSON.stringify([q.category, q.symbol, q.interval, q.start_ms, q.end_ms, cadence]);
+  if (state.capabilityKey === key && state.capabilities) return state.capabilities;
+  state.capabilities = null;
+  state.capabilityKey = null;
+  state.capabilityError = null;
+  state.capabilitySourceContracts = null;
+  state.capabilityExecutionEvidence = null;
+  state.capabilityProtocolVersion = null;
+  try {
+    const payload = await request("/api/capabilities", {
+      category: q.category, symbol: q.symbol, interval: q.interval,
+      start_ms: q.start_ms, end_ms: q.end_ms,
+      source_interval: cadence,
+    }, { signal });
+    if (!payload.data || typeof payload.data !== "object" ||
+        Array.isArray(payload.data)) throw Error("Invalid capability envelope");
+    if (payload.data.protocol_version != null &&
+        payload.data.protocol_version !== "tester.ui-capabilities/1")
+      throw Error("Unsupported capability protocol version");
+    state.capabilityProtocolVersion = payload.data.protocol_version || null;
+    state.capabilitySourceContracts = payload.data.source_contracts || null;
+    state.capabilityExecutionEvidence = payload.data.execution_source_evidence || null;
+    state.capabilities = payload.data.panels && typeof payload.data.panels === "object" && !Array.isArray(payload.data.panels)
+      ? payload.data.panels : payload.data;
+  } catch (error) {
+    if (signal.aborted) throw error;
+    // Discovery is optional until the backend implements its verified contract.
+    // Suppress repeat 404/503 requests for the same selection.
+    state.capabilities = {};
+    state.capabilityError = error.status === 404
+      ? "capability_discovery_not_implemented"
+      : error.status === 503
+        ? "capability_service_unavailable"
+        : "capability_discovery_failed";
+  }
+  state.capabilityKey = key;
+  return state.capabilities;
 }
 for (const [kind, title, type] of PANELS) {
   const section = el("article", null, "chart-panel");
@@ -858,24 +931,56 @@ async function loadCharts(options = {}) {
       el("summary", "Exact source values (first 100 rows)"),
     );
   }
+  if (options.refreshCapabilities) {
+    state.capabilityKey = null;
+    state.capabilities = null;
+  }
+  const capabilities = await discoverCapabilities(q, abort.signal).catch(() => ({}));
+  if (abort.signal.aborted) return;
   const cache = new Map();
   let unavailable = 0;
   await Promise.allSettled(
     PANELS.map(async ([kind, , type]) => {
       const p = state.charts.get(kind);
       try {
-        const path = panelEndpoint(kind),
-          params = {
+        const capability = classifyPanelCapability(kind, capabilities[kind]);
+        if (!capability.requestAllowed) {
+          unavailable++;
+          p.originBadge.textContent = "not verified";
+          const reason = capability.reason === "capability_not_advertised"
+            ? (state.capabilityError || capability.reason) : capability.reason;
+          const dependencies = capabilities[kind]?.source_contract_dependencies || [];
+          const dependencyNote = Array.isArray(dependencies) && dependencies.length
+            ? " · source contracts: " + dependencies.join(", ") + " (not linked to a supported API route)"
+            : "";
+          p.message.textContent = `DATA_UNAVAILABLE · ${capability.state} · ${panelReason(reason)} (${reason})` + dependencyNote;
+          p.meta.textContent = `${capability.state} · ${capability.reason} · no request sent`;
+          p.proof.textContent = JSON.stringify({
+            capability,
+            source_binding: capabilities[kind] || null,
+            source_contracts: state.capabilitySourceContracts,
+            execution_source_evidence: state.capabilityExecutionEvidence,
+            protocol_version: state.capabilityProtocolVersion,
+            discovery: state.capabilityError || null,
+          }, null, 2);
+          return;
+        }
+        const path = capability.resource;
+        if (!/^\/api\/[a-zA-Z0-9_/-]+$/.test(path) || path.includes(".."))
+          throw Error("Unsafe capability resource");
+        const params = {
             ...q,
             ...(cadences.get(kind)
               ? { source_interval: cadences.get(kind) }
               : {}),
             ...(p.page.cursor ? { cursor: p.page.cursor } : {}),
             ...(path === "/api/analytics" ? { metric: kind } : {}),
+            ...(capability.candle_kind ? { candle_kind: capability.candle_kind } : {}),
+            ...(capability.schema_version === "1.1" ? { schema_version: "1.1" } : {}),
           },
           cacheKey = path + JSON.stringify(params);
         if (!cache.has(cacheKey))
-          cache.set(cacheKey, request(path, params, { signal: abort.signal }));
+          cache.set(cacheKey, request(path, params, { signal: abort.signal, schemaVersion: capability.schema_version }));
         const payload = await cache.get(cacheKey);
         if (abort.signal.aborted) return;
         if (
@@ -884,7 +989,27 @@ async function loadCharts(options = {}) {
             payload.next_cursor.length > 4096)
         )
           throw Error("Corrupt server cursor");
+        // The backend may change between discovery and read. Never display
+        // an unrelated dataset under a qualified panel's identity.
         const series = adaptSeries(payload, kind, q);
+        if (capability.state === "PARTIAL" && series.availability === "AVAILABLE") {
+          series.availability = "PARTIAL";
+          series.completeness = "PARTIAL";
+          series.reason = [series.reason, panelReason(capability.reason)].filter(Boolean).join(" · ");
+        }
+        if (["mark", "index"].includes(kind) && series.renderable) {
+          const expectedKind = kind === "mark" ? "official_mark" : "official_index";
+          const matchesSource = series.provenance.some((p) =>
+            p && typeof p === "object" && p.source_ref === capability.source_ref
+          );
+          const contradictsKind = series.provenance.some((p) =>
+            p && typeof p === "object" &&
+            typeof p.candle_kind === "string" && p.candle_kind !== expectedKind
+          );
+          if (!matchesSource || contradictsKind) {
+            throw Error("Mark/Index response provenance does not match the qualified source");
+          }
+        }
         p.page.next = payload.next_cursor || null;
         p.next.disabled = !p.page.next;
         p.previous.disabled = !p.page.back.length;
@@ -895,6 +1020,10 @@ async function loadCharts(options = {}) {
           p.meta.textContent += ` · source ${cadences.get(kind)} · display ${q.interval}`;
         p.proof.textContent = JSON.stringify(
           {
+            capability,
+            source_binding: capabilities[kind] || null,
+            execution_source_evidence: state.capabilityExecutionEvidence,
+            protocol_version: state.capabilityProtocolVersion,
             availability: series.availability,
             reason: series.reason,
             coverage: series.coverage,
@@ -942,7 +1071,11 @@ async function loadCharts(options = {}) {
   if (!abort.signal.aborted) {
     $("#chart-status").textContent =
       `${PANELS.length - unavailable}/${PANELS.length} panels have records. Consult each panel for coverage and verification.`;
-    loadQuality(q, abort.signal);
+    // Aggregate /api/coverage has no independent discovery contract.
+    // Per-panel response envelopes carry their own source coverage evidence.
+    // Do not issue a speculative /api/coverage request (which may return 503).
+    $("#quality-data").textContent =
+      "Coverage evidence is shown inside each panel. Aggregate coverage endpoint is not qualified; no request sent.";
   }
 }
 async function loadQuality(q, signal) {
@@ -982,7 +1115,7 @@ async function loadQuality(q, signal) {
       $("#quality-data").textContent = "DATA_UNAVAILABLE · " + e.message;
   }
 }
-$("#apply").onclick = loadCharts;
+$("#apply").onclick = () => loadCharts({ refreshCapabilities: true });
 $("#interval").onchange = () => {
   if (state.active) loadCharts();
 };
@@ -1027,8 +1160,65 @@ setInterval(
   1000,
 );
 selection();
-loadInstruments();
-loadSources();
+async function initializeOptionalRoutes() {
+  $("#refresh").disabled = true;
+  try {
+    // No instrument is required for route feature discovery. This endpoint
+    // must be registered even without a market catalog or connected provider.
+    const payload = await request("/api/capabilities");
+    const features = payload.data?.features;
+    if (features?.market_catalog?.enabled === false)
+      state.marketCatalogEnabled = false;
+    else if (features?.market_catalog?.enabled === true)
+      state.marketCatalogEnabled = true;
+    if (features?.sources?.enabled === false)
+      state.sourceListEnabled = false;
+    else if (features?.sources?.enabled === true)
+      state.sourceListEnabled = true;
+  } catch (error) {
+    // Older servers may not have route capability discovery. Keep the existing
+    // catalog UI behavior but report the failed feature negotiation.
+    $("#screener-status").textContent =
+      "DATA_UNAVAILABLE · optional_route_discovery_failed · " + error.message;
+  }
+  if (state.marketCatalogEnabled === false) {
+    // The disabled branch does not call loadInstruments(), so the status must
+    // be reported here, not exclusively inside the loadInstruments guard.
+    $("#screener-status").textContent =
+      "DATA_UNAVAILABLE · market_catalog_not_configured · " +
+      "Use Direct source symbol to inspect verified price data.";
+    $("#refresh").disabled = true;
+    $("#next").disabled = true;
+    $("#previous").disabled = true;
+  } else {
+    $("#refresh").disabled = false;
+    await loadInstruments();
+  }
+  if (state.sourceListEnabled === false) {
+    const option = el("option", "Source downloads not configured");
+    option.value = "";
+    $("#source").replaceChildren(option);
+    $("#download-status").textContent =
+      "DATA_UNAVAILABLE · source_downloads_not_configured · Chart inspection is read-only.";
+  } else {
+    await loadSources();
+  }
+}
+
+$("#open-manual").addEventListener("click", () => {
+  const symbol = $("#manual-symbol").value.trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{1,40}$/.test(symbol)) {
+    $("#chart-status").textContent =
+      "DATA_UNAVAILABLE · Invalid source symbol. Use 1–40 uppercase letters, digits, _ or -.";
+    return;
+  }
+  state.active = { category: $("#category").value, symbol };
+  $("#active-symbol").textContent =
+    symbol + " · " + state.active.category + " · awaiting source verification";
+  loadCharts();
+});
+
+initializeOptionalRoutes();
 refreshJobs();
 
 mountStrategyWorkspace(document.querySelector("#strategy-panels"), {

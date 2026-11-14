@@ -1,0 +1,59 @@
+{
+  "schema": "tester.ui74-unreviewed-additions/1",
+  "kind": "IMMUTABLE_UI_PRODUCER_REVIEW_CANDIDATE_NOT_MASTER_APPROVAL",
+  "status": "PENDING_MASTER_APPROVAL",
+  "source": {
+    "base": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "pr70": "6240b6665fb3125c06eb91ef535b96700988a7ab",
+    "ui_source_head": "8819b86f329a2958a7989800e802b6a40fa58aa2",
+    "master_inventory_head": "298d610771d962ee7b796eac1834d74138768fac",
+    "master_review_document": "docs/coordination/2026-11-14-producer-allowlist-review.md",
+    "master_review_document_blob": "fbb49ef29188b8ddb5531b31578ef40e7987dcbc",
+    "enforced_allowlist_blob": "08482cd45a3f46b5b8168aab2b7b19f63acb30fb",
+    "ui_existing_manifest_blob": "ab8d816464d367fb1e7cb04c31252d42d7aeeaf3"
+  },
+  "counts": {
+    "current_ui_changed": 39,
+    "master_enforced_ui": 37,
+    "unreviewed_additions": 2,
+    "approved_ui_files_missing": 0
+  },
+  "unreviewed": [
+    {
+      "path": ".github/workflows/ui74-private-generation-e2e.yml",
+      "git_blob_sha1": "70a73b817d3f7130a60ab20f283cd06e7dfe454a",
+      "mode": "100644",
+      "classification": "CI_ONLY_GITHUB_ACTIONS",
+      "approved": false,
+      "publisher_input": false,
+      "scope": "reviewed_test_harness_only"
+    },
+    {
+      "path": "scripts/ui74_private_generation_ci.py",
+      "git_blob_sha1": "c50d22a77591a637d5f0d02465eec28d0a14d9e4",
+      "mode": "100644",
+      "classification": "CI_ONLY_PRIVATE_GENERATION_TEST_DRIVER",
+      "approved": false,
+      "publisher_input": false,
+      "scope": "reviewed_test_harness_only"
+    }
+  ],
+  "pr70_dependencies": [
+    "frontend/capabilities.js",
+    "frontend/tests/capabilities.test.js"
+  ],
+  "notes": {
+    "published_generation": "PRIVATE_CI_ONLY_PROTOTYPE",
+    "include_in_master_approved_allowlist": false,
+    "apply_to_installed_runtime": false,
+    "authoritative_approval": "MASTER_OWNER_REQUIRED",
+    "ui_new_review_json_is_handoff_only": true
+  },
+  "limits": {
+    "historical_coverage": "UNKNOWN",
+    "dataset_revision": "UNPINNED",
+    "real_f_g_e_authorized": false,
+    "contracts_v1_openapi_git_blob": "fc3f4b20d4bd6d6fed642f9e00ceb099c68c4398",
+    "release": "NO_GO"
+  }
+}

@@ -327,6 +327,51 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             operation_id="read_" + resource,
         )
 
+    @app.get(
+        "/api/capabilities",
+        response_model=Envelope[dict],
+        operation_id="read_capabilities",
+        include_in_schema=False,  # Additive preview; preserve pinned public v1 OpenAPI.
+    )
+    def capabilities(query: Annotated[Query, Depends(validated_query)]):
+        # Reader-owned endpoint announcements alone are not sufficient.
+        # The bounded discovery path validates real source records, their
+        # query scope, canonical provenance and price-only v1.1 distinction.
+        from .capability_discovery import discover
+
+        price_router_enabled = (
+            settings.provider_factory == "src.integration.reference_prices:create_reader"
+        )
+        availability = discover(
+            reader,
+            query,
+            authorized=bool(settings.provider_factory),
+            price_route_enabled=price_router_enabled,
+        )
+        from .capability_data_bridge import observed_execution_evidence
+        from .capability_source_contracts import manifest
+
+        availability.update(manifest())
+        availability["execution_source_evidence"] = observed_execution_evidence(reader, query)
+        # Advertise optional, separately registered UI routes even when no
+        # instrument was selected. Never force the browser to probe an absent
+        # catalog router or a disconnected source list (404/503).
+        availability["features"] = {
+            "market_catalog": {
+                "enabled": catalog is not None,
+                "reason": ("configured" if catalog is not None else "catalog_not_configured"),
+            },
+            "sources": {
+                "enabled": catalog is not None and not isinstance(reader, UnavailableReader),
+                "reason": (
+                    "catalog_and_provider_required"
+                    if catalog is None or isinstance(reader, UnavailableReader)
+                    else "source_discovery_may_be_attempted"
+                ),
+            },
+        }
+        return Envelope(data=availability)
+
     @app.post("/api/downloads", response_model=Envelope[Job], status_code=202)
     def downloads(body: DownloadRequest):
         storage = storage_status(settings)

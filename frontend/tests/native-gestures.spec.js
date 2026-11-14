@@ -76,6 +76,41 @@ async function mount(page, interval = "60") {
       });
       return;
     }
+    if (url.pathname === "/api/capabilities") {
+      const qualified = (panel) => ({
+        panel,
+        status: "PARTIAL",
+        reason: "bounded_observations_only",
+        resource: "/api/candles",
+        revision: "fixture:gestures",
+        source_ref: "fixture:gestures",
+        schema_version: "1.0",
+      });
+      const panels = Object.fromEntries(
+        [
+          "candles", "volume", "footprint", "delta", "cvd", "profile",
+          "poc", "vwap", "open_interest", "funding", "mark", "index",
+        ].map((panel) => [
+          panel,
+          ["candles", "volume"].includes(panel)
+            ? qualified(panel)
+            : { panel, status: "UNVERIFIED", reason: "source_revision_not_verified" },
+        ]),
+      );
+      await route.fulfill({
+        json: {
+          schema_version: "1.0",
+          data: {
+            panels,
+            features: {
+              market_catalog: { enabled: true, reason: "fixture_catalog" },
+              sources: { enabled: true, reason: "fixture_sources" },
+            },
+          },
+        },
+      });
+      return;
+    }
     if (
       [
         "/api/candles",
@@ -170,7 +205,9 @@ async function assertRange(page, requests, expected, waveStart = null) {
   expect([Number(query.start_ms), Number(query.end_ms)]).toEqual(expected);
   if (waveStart !== null) {
     const wave = requests.chartPages.slice(waveStart);
-    expect(wave.length).toBeGreaterThan(2);
+    // Only /api/candles is qualified; volume shares the same bounded read.
+    expect(wave.length).toBeGreaterThanOrEqual(1);
+    expect(wave.every((entry) => entry.path === "/api/candles")).toBe(true);
     for (const entry of wave)
       expect([
         Number(entry.query.start_ms),

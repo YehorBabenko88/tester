@@ -1,0 +1,49 @@
+{
+  "proposal_version": "tester.download-kind-proposal/1",
+  "status": "CONTRACT_OWNER_REVIEW_REQUIRED",
+  "target": "additive_opt_in_v1_1_only",
+  "legacy_contract": "contracts/v1/openapi.json",
+  "legacy_path": "/api/downloads",
+  "legacy_schema_pointer": "/components/schemas/DownloadRequest/properties/kind/enum",
+  "legacy_kinds": [
+    "candles",
+    "trades",
+    "footprint",
+    "open_interest",
+    "funding"
+  ],
+  "proposed_kinds": [
+    "candles",
+    "trades",
+    "footprint",
+    "open_interest",
+    "funding",
+    "mark",
+    "index"
+  ],
+  "draft_versioned_path": "/api/v1_1/downloads",
+  "activated": false,
+  "current_api_routes_changed": false,
+  "source_types": {
+    "mark": {
+      "price_only_schema": "1.1",
+      "reader": "/api/price-candles",
+      "kind": "official_mark",
+      "volume": "NOT_APPLICABLE"
+    },
+    "index": {
+      "price_only_schema": "1.1",
+      "reader": "/api/price-candles",
+      "kind": "official_index",
+      "volume": "NOT_APPLICABLE"
+    }
+  },
+  "constraints": {
+    "existing_v1_request_schema_immutable": true,
+    "generated_clients_can_opt_in_explicitly": true,
+    "no_implicit_mark_index_download_authorization": true,
+    "new_route_requires_contract_owner_approval": true,
+    "historical_source_coverage": "UNKNOWN",
+    "real_trading": false
+  }
+}

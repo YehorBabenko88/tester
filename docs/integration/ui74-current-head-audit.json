@@ -1,0 +1,64 @@
+{
+  "schema": "tester.ui74-current-head-private-audit/1",
+  "status": "CI_ONLY_UNAPPROVED_PROTOTYPE",
+  "pins": {
+    "MASTER": "de95aef6ed46842063fc7c2ef766b7da75fe540e",
+    "BASE": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "producers": {
+      "DATA": "9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb",
+      "RESEARCH": "af143bb73277e7bffea8ae76d84fd0ed7a707ab0",
+      "UI": "2de6428b48e2b468d15aa8c9e40e4e47719e168f",
+      "OPS": "9c0ee3a44e78d16d8beb34fbaf2973ee2e126386"
+    },
+    "ops_publisher_blob": "d8e42103c15824d7ff316314127074ee983804b3",
+    "enforced_allowlist_blob": "08482cd45a3f46b5b8168aab2b7b19f63acb30fb",
+    "frozen_openapi_blob": "fc3f4b20d4bd6d6fed642f9e00ceb099c68c4398"
+  },
+  "ui_pending_paths": [
+    {
+      "path": ".github/workflows/ui74-private-generation-e2e.yml",
+      "git_blob_sha1": "70a73b817d3f7130a60ab20f283cd06e7dfe454a",
+      "mode": "100644",
+      "approved": false,
+      "role": "CI_ONLY"
+    },
+    {
+      "path": "docs/integration/ui74-master77-pending-allowlist-additions.json",
+      "git_blob_sha1": "8b3b64ccbe84a00b05bc3b21d5b2a1c450311cdc",
+      "mode": "100644",
+      "approved": false,
+      "role": "REVIEW_ONLY"
+    },
+    {
+      "path": "scripts/ui74_private_generation_ci.py",
+      "git_blob_sha1": "c50d22a77591a637d5f0d02465eec28d0a14d9e4",
+      "mode": "100644",
+      "approved": false,
+      "role": "CI_ONLY"
+    },
+    {
+      "path": "tests/platform/test_ui_pending_allowlist.py",
+      "git_blob_sha1": "cfe7f45a3c5a3f2476c8786b200325188e0ad3f3",
+      "mode": "100644",
+      "approved": false,
+      "role": "CI_TEST_ONLY"
+    }
+  ],
+  "scope": {
+    "master_approval": false,
+    "committed_combined_sha": null,
+    "real_f_admission": false,
+    "historical_coverage": "UNKNOWN",
+    "publication_known": false,
+    "real_trading_allowed": false,
+    "research_http_analytics_route": null,
+    "open_interest_funding_provenance_route": "UNVERIFIED",
+    "run_type": "SEPARATE_CURRENT_HEAD_DISPOSABLE_CI"
+  },
+  "frozen_replay": {
+    "driver": "scripts/ui74_private_generation_ci.py",
+    "workflow": ".github/workflows/ui74-private-generation-e2e.yml",
+    "preserve_unchanged": true,
+    "source_ui": "a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96"
+  }
+}
