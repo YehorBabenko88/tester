@@ -124,3 +124,21 @@ still documentation-only. Run the FastAPI+Chromium and Combined F-G-D
 scripts above against the **same actual combined commit SHA** after the
 DATA+RESEARCH PGHOSTADDR and source-file verification. Never substitute
 existing successful producer CI for combined-source acceptance.
+
+
+## Actual composed-source Chromium workflow and transport truth
+
+The UI Draft branch now also defines [`.github/workflows/ui74-master-composed-e2e.yml`](../../.github/workflows/ui74-master-composed-e2e.yml). It checks out **MASTER staging SHA `4e64ec9f6a1da453019b68e598e235036701739f`**, fetches its five exact source pins, runs the actual `master_disposable_compose.py` in the ephemeral runner and confirms exactly **125** unique composed source changes including **36/36 UI files from pinned PR #74 `a61a2c3b`**. It then runs the existing real FastAPI/Chromium 13-timeframe and synthetic PG16 G/E browser cases **against this composed working tree**. The workflow does not commit/merge the ephemeral composition or modify MASTER #77.
+
+| Capability | Real FastAPI HTTP route | Qualification / test boundary |
+| --- | --- | --- |
+| `/api/capabilities` | **YES** | Actual route; exposes feature negotiation and source-contract metadata; not itself historical proof |
+| `/api/price-candles` Mark/Index | **YES, explicitly opt-in v1.1** | Actual FastAPI+Chromium route with original Decimal strings, UTC and provenance shape; isolated CI reader is deterministic synthetic, **not live Bybit data** |
+| `/api/control/research`, result, ACK | **YES, only after authorized research composition** | Real PG16-backed HTTP and digest-bound G/E ACK in CI from certified **synthetic** F fixture; no real market admission |
+| Footprint, known Delta, CVD, VWAP, POC | **NO qualified HTTP route** | RESEARCH `read_verified_ui_observation` is real **read-only PostgreSQL source-backed function**, confirmed in separate composed RESEARCH CI; its `http_route=null` and `NOT_REGISTERED`, so browser retains `UNAVAILABLE/UNVERIFIED` and does not probe `/api/analytics` |
+| OI / Funding | Generic `GET /api/open-interest` and `GET /api/funding` **are registered**, but no qualified DATA #72 source reader is composed into them | Source-native DATA public auxiliary ingestion/PG proof is independently tested; UI's `projectObservedAuxiliary` is a pure **no-fetch** adapter, not source verification or an API admission grant |
+| Market catalog and sources | Optional routes exist only with configured catalog/provider | Default combined test disables catalog; browser does **not** call unmounted catalog/source-list endpoints |
+
+The 13 periods are `1,3,5,15,30,60,120,240,360,720,D,W,M`. A `PARTIAL` bounded price-only page keeps `historical_coverage=UNKNOWN`, `dataset_revision=UNPINNED` and `admitted_to_f=false`; it is not a whole-history confirmation. Footprint/known Delta/CVD/VWAP/POC source visibility and maker/taker Unknown fields remain unknown unless verified through the trusted readback; no fabricated Bid/Ask, F authority or side assignment.
+
+**Acceptance states must remain separate:** source composition and AST syntax PASS, composed RESEARCH PostgreSQL source-backed readback PASS, and composed UI FastAPI+Chromium/PG16 G/E browser must each have **independent exact-workflow execution evidence**. No v1 `DownloadRequest.kind` rewrite is authorized by Issue #76, and no current live Bybit HTTP 403 may be relabeled as market-history PASS.
