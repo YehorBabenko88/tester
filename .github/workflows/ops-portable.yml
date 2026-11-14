@@ -99,3 +99,39 @@ jobs:
           path: ops-native-win32-evidence.json
           if-no-files-found: ignore
           retention-days: 14
+
+  candidate-readonly-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout immutable DATA #72 producer
+        uses: actions/checkout@v4
+        with:
+          ref: f78349b1ad7bb754baee380f59bca67f2b1d2009
+          path: candidate-data
+      - name: Checkout immutable RESEARCH #71 producer
+        uses: actions/checkout@v4
+        with:
+          ref: b11b79832d1b0d848773ff077a36e7cb0595fdcb
+          path: candidate-research
+      - name: Checkout immutable UI #74 with #70 ancestry
+        uses: actions/checkout@v4
+        with:
+          ref: fd151168473f4add97ee286b008d4540b49ac566
+          path: candidate-ui
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Assert exact producer SHA pins before static compatibility review
+        shell: bash
+        run: |
+          test "$(git -C candidate-data rev-parse HEAD)" = "f78349b1ad7bb754baee380f59bca67f2b1d2009"
+          test "$(git -C candidate-research rev-parse HEAD)" = "b11b79832d1b0d848773ff077a36e7cb0595fdcb"
+          test "$(git -C candidate-ui rev-parse HEAD)" = "fd151168473f4add97ee286b008d4540b49ac566"
+      - name: Verify read-only DATA/RESEARCH/UI interfaces and native BLOCKED
+        env:
+          OPS_CANDIDATE_DATA_ROOT: "${{ github.workspace }}/candidate-data"
+          OPS_CANDIDATE_RESEARCH_ROOT: "${{ github.workspace }}/candidate-research"
+          OPS_CANDIDATE_UI_ROOT: "${{ github.workspace }}/candidate-ui"
+        run: python -m unittest discover -s tests/platform -p 'test_ops_candidate_compatibility.py' -v
