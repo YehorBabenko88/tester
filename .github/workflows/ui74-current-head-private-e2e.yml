@@ -32,6 +32,7 @@ jobs:
       TESTER_DATA_SOURCE_SHA: 9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb
       TESTER_RESEARCH_SOURCE_SHA: af143bb73277e7bffea8ae76d84fd0ed7a707ab0
       TESTER_AUX_LIVE_BYBIT: "no"
+      PYTHONPATH: ${{ github.workspace }}/.ci-ui-current
     steps:
       - name: Exact MASTER source checkout (read only)
         uses: actions/checkout@v4
