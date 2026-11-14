@@ -39,7 +39,7 @@ jobs:
       - name: Pin reviewed RESEARCH #71 observed-metrics contracts
         uses: actions/checkout@v4
         with:
-          ref: c01c32b03aaf04923b33b0513b71776b12af1e09
+          ref: 7ec35810434e3c9159f36712a4186595ac637efa
           path: .ci-source-research71
           sparse-checkout: |
             src/integration/data_research_adapter.py
@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           test "$(git -C .ci-source-data72 rev-parse HEAD)" = "93d13a8e78ff7c2aacc6610f838732ba22db8234"
-          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "c01c32b03aaf04923b33b0513b71776b12af1e09"
+          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "7ec35810434e3c9159f36712a4186595ac637efa"
           python scripts/verify_ui_source_contracts.py \
             --data .ci-source-data72/src/ingest/execution_contract.py \
             --research .ci-source-research71/src/integration/data_research_adapter.py \
@@ -112,7 +112,7 @@ jobs:
         env:
           TESTER_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           TESTER_DATA_SOURCE_SHA: 93d13a8e78ff7c2aacc6610f838732ba22db8234
-          TESTER_RESEARCH_SOURCE_SHA: c01c32b03aaf04923b33b0513b71776b12af1e09
+          TESTER_RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
         run: npx playwright test --config playwright.capability.config.js
         working-directory: frontend
       - name: Store browser screenshot, traces and backend log
