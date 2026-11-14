@@ -144,8 +144,10 @@ def reviewed_source(root, manifest_path):
         s = candidate.lstat()
         if not stat.S_ISREG(s.st_mode) or s.st_nlink != 1:
             raise AssertionError("nonregular or hardlinked candidate: " + name)
-        if stat.S_IMODE(s.st_mode) != mode:
-            raise AssertionError("unexpected executable mode: " + name)
+        # MASTER stages fresh regular inodes with private mode 0600.
+        # Publication restores the reviewed Git blob mode 0644/0755.
+        if label == "BASE" and stat.S_IMODE(s.st_mode) != mode:
+            raise AssertionError("unexpected baseline source mode: " + name)
         audited.append((name, raw, mode, label, expected_sha))
     return audited, declared
 
