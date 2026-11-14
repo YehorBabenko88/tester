@@ -81,7 +81,11 @@ jobs:
           GITHUB_SHA: 5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd
         run: |
           set -euo pipefail
-          python scripts/master_disposable_compose.py | tee "$RUNNER_TEMP/ui-source-composed-manifest.txt"
+          # GitHub reserves GITHUB_SHA; an env: override is not authoritative.
+          # This isolated source-smoke passes the explicitly checked-out
+          # staging SHA to the composer's process (NOT runner attestation).
+          env GITHUB_SHA="$MASTER_SHA" EXPECTED_STAGING_SHA="$MASTER_SHA" \
+            python scripts/master_disposable_compose.py | tee "$RUNNER_TEMP/ui-source-composed-manifest.txt"
           grep -q "^COMPOSED_UNCOMMITTED_FILES=" "$RUNNER_TEMP/ui-source-composed-manifest.txt"
       - name: Publish privately sealed generation with real reviewed Git blobs
         shell: bash
