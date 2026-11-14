@@ -62,7 +62,8 @@ def test_manifest_research_entrypoint_stays_unmounted_and_f_denied():
     assert handoff["admission"]["ge_real_execution"] is False
     assert handoff["openapi"]["pinned_v1_immutable"] is True
 
-    app = create_app(Settings(market_catalog_enabled=False, frontend_dir=ROOT / "frontend"))
+    settings = Settings(market_catalog_enabled=False, frontend_dir=ROOT / "frontend")
+    app = create_app(settings)
     routes = {getattr(route, "path", "") for route in app.routes}
     assert "/api/capabilities" in routes
     assert "/api/v1_1/downloads" not in routes
@@ -94,8 +95,11 @@ def test_manifest_research_entrypoint_stays_unmounted_and_f_denied():
 
 
 def test_legacy_download_v1_is_not_rewritten_by_handoff():
-    schema = json.loads((ROOT / "contracts/v1/openapi.json").read_text(encoding="utf-8"))
-    kinds = schema["components"]["schemas"]["DownloadRequest"]["properties"]["kind"]["enum"]
+    document_path = ROOT / "contracts/v1/openapi.json"
+    schema = json.loads(document_path.read_text(encoding="utf-8"))
+    kinds = (
+        schema["components"]["schemas"]["DownloadRequest"]["properties"]["kind"]["enum"]
+    )
     assert kinds == [
         "candles",
         "trades",
