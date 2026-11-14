@@ -1,0 +1,187 @@
+name: UI74 current producer private generation 13TF Chromium PG16 CI only
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/ui74-current-head-private-e2e.yml"
+      - "scripts/ui74_current_head_ci.py"
+      - "docs/integration/ui74-current-head-audit.json"
+permissions:
+  contents: read
+jobs:
+  current-private-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_combined_ci
+          POSTGRES_USER: tester_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ["55472:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tester_ci -d tester_research_combined_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+      TESTER_COMBINED_CI: synthetic-disposable
+      TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
+      TESTER_TESTED_HEAD_SHA: 2de6428b48e2b468d15aa8c9e40e4e47719e168f
+      TESTER_DATA_SOURCE_SHA: 9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb
+      TESTER_RESEARCH_SOURCE_SHA: af143bb73277e7bffea8ae76d84fd0ed7a707ab0
+      TESTER_AUX_LIVE_BYBIT: "no"
+    steps:
+      - name: Exact MASTER source checkout (read only)
+        uses: actions/checkout@v4
+        with:
+          ref: de95aef6ed46842063fc7c2ef766b7da75fe540e
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Separate UI driver checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: .ci-ui-current
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fetch immutable source producer objects and OPS publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = de95aef6ed46842063fc7c2ef766b7da75fe540e
+          for sha in 3b2eef8a4139195db1a775545e83f1c1f58bf403 9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb af143bb73277e7bffea8ae76d84fd0ed7a707ab0 2de6428b48e2b468d15aa8c9e40e4e47719e168f 9c0ee3a44e78d16d8beb34fbaf2973ee2e126386; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+          test "$(git hash-object docs/coordination/master-reviewed-producer-files.json)" = 08482cd45a3f46b5b8168aab2b7b19f63acb30fb
+          git show 9c0ee3a44e78d16d8beb34fbaf2973ee2e126386:scripts/ops_private_generation_prototype.py > "$RUNNER_TEMP/ui-current-ops-publisher.py"
+          test "$(git hash-object "$RUNNER_TEMP/ui-current-ops-publisher.py")" = d8e42103c15824d7ff316314127074ee983804b3
+      - name: Publish a single private source generation from exact Git blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .ci-ui-current/scripts/ui74_current_head_ci.py build \
+            --source "$GITHUB_WORKSPACE" --root "$RUNNER_TEMP/ui-current-generation" \
+            --publisher "$RUNNER_TEMP/ui-current-ops-publisher.py" \
+            --manifest-out "$RUNNER_TEMP/ui-current-source-manifest.json" \
+            --receipt-out "$RUNNER_TEMP/ui-current-receipt.json"
+          python .ci-ui-current/scripts/ui74_current_head_ci.py verify \
+            --root "$RUNNER_TEMP/ui-current-generation" \
+            --publisher "$RUNNER_TEMP/ui-current-ops-publisher.py" \
+            --manifest-out "$RUNNER_TEMP/ui-current-source-manifest.json" \
+            --receipt-out "$RUNNER_TEMP/ui-current-receipt.json"
+      - name: Isolated test dependencies
+        run: |
+          python -m pip install -e '.[dev]' -c requirements-platform.lock
+          (cd .ci-ui-current/frontend && npm ci --ignore-scripts && npm test && npx playwright install --with-deps chromium)
+      - name: FastAPI source identity and 13 timeframe fail-closed checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          export UI_CURRENT_GENERATION_DIR="$RUNNER_TEMP/ui-current-generation/generations/$(python -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/ui-current-receipt.json"))["generation"])')"
+          export PYTHONPATH="$UI_CURRENT_GENERATION_DIR:$GITHUB_WORKSPACE"
+          mkdir -p "$RUNNER_TEMP/ui-current-work"
+          cd "$RUNNER_TEMP/ui-current-work"
+          python - <<'PY'
+          import os,sys
+          from pathlib import Path
+          from fastapi.testclient import TestClient
+          root=Path(os.environ["UI_CURRENT_GENERATION_DIR"]).resolve()
+          sys.path.insert(0,str(root))
+          from src.api.config import Settings
+          from src.api.main import create_app
+          assert Path(create_app.__code__.co_filename).resolve().is_relative_to(root)
+          app=create_app(Settings(
+              market_catalog_enabled=False,frontend_dir=root/"frontend",
+              data_dir=Path(os.environ["RUNNER_TEMP"])/"ui-current-runtime"))
+          routes={getattr(r,"path","") for r in app.routes}
+          assert "/api/capabilities" in routes
+          assert "/api/analytics" not in routes
+          assert "/api/v1_1/downloads" not in routes
+          assert "/api/open-interest" in routes and "/api/funding" in routes
+          intervals=("1","3","5","15","30","60","120","240","360","720","D","W","M")
+          with TestClient(app,base_url="http://127.0.0.1:8765") as client:
+              for interval in intervals:
+                  r=client.get("/api/capabilities",params=dict(
+                      category="linear",symbol="BTCUSDT",interval=interval,
+                      start_ms=1704067200000,end_ms=1711929600000))
+                  assert r.status_code==200,(interval,r.text)
+                  data=r.json()["data"]
+                  assert data["observed_page_revision"]["historical_dataset_revision"]=="UNPINNED"
+                  assert data["observed_page_revision"]["history_complete"] is False
+                  assert data["observed_page_revision"]["supports_f_admission"] is False
+                  assert data["source_contracts"]["research_ui_observation"]["http_route"] is None
+                  for panel in ("footprint","delta","cvd","vwap","poc","profile"):
+                      assert data["panels"][panel]["status"]=="UNAVAILABLE"
+                      assert "resource" not in data["panels"][panel]
+                  for panel in ("mark","index","open_interest","funding"):
+                      assert data["panels"][panel]["status"]=="UNVERIFIED"
+                      assert "resource" not in data["panels"][panel]
+          print("CURRENT_PRIVATE_FASTAPI_13TF_PASS",len(intervals))
+          PY
+      - name: One generation real FastAPI Chromium 13TF
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .ci-ui-current/scripts/ui74_current_head_ci.py serve \
+            --root "$RUNNER_TEMP/ui-current-generation" \
+            --publisher "$RUNNER_TEMP/ui-current-ops-publisher.py" \
+            --manifest-out "$RUNNER_TEMP/ui-current-source-manifest.json" \
+            --receipt-out "$RUNNER_TEMP/ui-current-receipt.json" \
+            --runtime "$RUNNER_TEMP/ui-current-runtime" > "$RUNNER_TEMP/ui-current-fastapi.log" 2>&1 &
+          server=$!
+          trap 'kill -TERM "$server" 2>/dev/null || true; wait "$server" || true' EXIT
+          for i in $(seq 1 35); do
+            if curl -fsS "http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000" >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS "http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000" >/dev/null
+          (cd .ci-ui-current/frontend && npx playwright test --config playwright.capability.config.js --reporter=line)
+          mkdir -p "$RUNNER_TEMP/ui-current-price-results"
+          cp -a .ci-ui-current/frontend/test-results/. "$RUNNER_TEMP/ui-current-price-results/"
+          python .ci-ui-current/scripts/ui74_current_head_ci.py verify \
+            --root "$RUNNER_TEMP/ui-current-generation" --publisher "$RUNNER_TEMP/ui-current-ops-publisher.py" \
+            --manifest-out "$RUNNER_TEMP/ui-current-source-manifest.json" --receipt-out "$RUNNER_TEMP/ui-current-receipt.json"
+      - name: Same source generation synthetic G E PG16 Chromium ACK
+        shell: bash
+        run: |
+          set -euo pipefail
+          export UI_CURRENT_GENERATION_DIR="$RUNNER_TEMP/ui-current-generation/generations/$(python -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/ui-current-receipt.json"))["generation"])')"
+          export PYTHONPATH="$UI_CURRENT_GENERATION_DIR:$GITHUB_WORKSPACE"
+          export TESTER_COMBINED_FIXTURE_FILE="$RUNNER_TEMP/ui-current-ge-private.json"
+          mkdir -p "$RUNNER_TEMP/ui-current-work"
+          ln -s "$UI_CURRENT_GENERATION_DIR/frontend" "$RUNNER_TEMP/ui-current-work/frontend"
+          (
+            cd "$RUNNER_TEMP/ui-current-work"
+            python -m scripts.combined_browser_ci prepare "$TESTER_COMBINED_FIXTURE_FILE"
+            python -m scripts.combined_browser_ci serve "$TESTER_COMBINED_FIXTURE_FILE" > "$RUNNER_TEMP/ui-current-ge.log" 2>&1 &
+            server=$!
+            trap 'kill -TERM "$server" 2>/dev/null || true; wait "$server" || true' EXIT
+            python -m scripts.combined_browser_ci gateway "$TESTER_COMBINED_FIXTURE_FILE"
+            (cd "$GITHUB_WORKSPACE/.ci-ui-current/frontend" && npx playwright test -c playwright.combined.config.js --reporter=line)
+            python -m scripts.combined_browser_ci verify "$TESTER_COMBINED_FIXTURE_FILE"
+          )
+          python .ci-ui-current/scripts/ui74_current_head_ci.py verify \
+            --root "$RUNNER_TEMP/ui-current-generation" --publisher "$RUNNER_TEMP/ui-current-ops-publisher.py" \
+            --manifest-out "$RUNNER_TEMP/ui-current-source-manifest.json" --receipt-out "$RUNNER_TEMP/ui-current-receipt.json"
+      - name: Archive CI-only not MASTER release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui74-current-head-single-generation-ci-only
+          path: |
+            ${{ runner.temp }}/ui-current-receipt.json
+            ${{ runner.temp }}/ui-current-source-manifest.json
+            ${{ runner.temp }}/ui-current-fastapi.log
+            ${{ runner.temp }}/ui-current-ge.log
+            ${{ runner.temp }}/ui-current-price-results/
+            .ci-ui-current/frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
