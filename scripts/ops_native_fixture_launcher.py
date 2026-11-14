@@ -168,6 +168,37 @@ class DisposableWin32Launcher:
                     children=tuple(enrolled), observe=self._observe)
             raise NativeRestartBlocked("Native startup failed; reserved generation remains blocked") from None
 
+    def sample_pair(self, pair: LaunchedPair, *, cpu_window: float = 0.1) -> dict:
+        """Birth-bound read-only CPU/RAM/I/O sample for the live fixture pair.
+
+        The API/worker samples are sequential observations, NOT an atomic
+        resource snapshot or hard resource caps. PostgreSQL WAL is measured
+        independently by ops_resource_metrics against its disposable DSN.
+        """
+        if self._pairs.get(pair.generation) is not pair:
+            raise NativeRestartBlocked("Cannot sample a foreign native generation")
+        from scripts.ops_native_windows_witness import sample_native_resources
+        pair.witness.require_both_live()
+        api = sample_native_resources(
+            pair.api.birth, pair.api.handle, self.process_lookup,
+            cpu_window=cpu_window,
+        )
+        worker = sample_native_resources(
+            pair.worker.birth, pair.worker.handle, self.process_lookup,
+            cpu_window=cpu_window,
+        )
+        pair.witness.require_both_live()
+        return {
+            "schema": "ops-native-launch-resource-sample/1",
+            "generation": pair.generation,
+            "api": api,
+            "worker": worker,
+            "birth_bound_original_handles": True,
+            "atomic_process_and_pg_snapshot": False,
+            "hard_limits_enforced": False,
+            "pg_wal_sample": None,
+        }
+
     def stop_and_seal(self, pair: LaunchedPair) -> dict:
         if self._pairs.get(pair.generation) is not pair:
             raise NativeRestartBlocked("Foreign native pair")
