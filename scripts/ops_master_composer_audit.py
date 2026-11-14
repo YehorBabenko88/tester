@@ -18,6 +18,11 @@ from scripts.ops_native_optin_handoff import (
 
 SCHEMA = "ops-master-composition-scope-audit/1"
 EXPECTED_BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
+MASTER_PINNED_OPS = "0d4649f3a7cd3595ea58757f2abaf2f1b0558667"
+POST_PIN_AUDIT_FILES = frozenset({
+    "scripts/ops_master_composer_audit.py",
+    "tests/platform/test_ops_master_composer_audit.py",
+})
 _APPROVED = frozenset((*RUNTIME_FILES, *TEST_FILES, *CI_AND_DOC_FILES))
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 
@@ -53,7 +58,15 @@ def audit_master_composer(source: str, *, changed_ops_paths: Iterable[str],
     excess = sorted(set(files) - _APPROVED)
     missing = sorted(_APPROVED - set(files))
     if missing:
-        raise ValueError("approved_ops_handoff_files_missing_from_producer")
+        # MASTER pinned a historic OPS source before this read-only audit
+        # existed. Only those TWO explicitly reviewed CI-only additions may
+        # be absent; any missing runtime or other test remains a hard refusal.
+        historical_only = (
+            expected_ops_sha == MASTER_PINNED_OPS
+            and set(missing) == POST_PIN_AUDIT_FILES
+        )
+        if not historical_only:
+            raise ValueError("approved_ops_handoff_files_missing_from_producer")
     # Check executable AST, not comments or a positive CI status. This is
     # source-only evidence: GitHub Actions runtime and physical PC4 remain
     # separate from a static composer file.
@@ -103,8 +116,8 @@ def audit_master_composer(source: str, *, changed_ops_paths: Iterable[str],
         "source_audit_only_no_runtime_or_install_proof": True,
         "copies_all_ops_diff": unbounded_ops_diff,
         "explicit_ops_scope_allowlist": explicit_scope,
-        "minimal_optin_copy_confirmed": not excess and explicit_scope,
+        "minimal_optin_copy_confirmed": not excess and not missing and explicit_scope,
         "native_installed_restart_authorized": False,
-        "result": "BLOCKED_SCOPE_TOO_BROAD" if excess or unbounded_ops_diff
+        "result": "BLOCKED_SCOPE_TOO_BROAD" if excess or missing or unbounded_ops_diff
                   else "SOURCE_SCOPE_REVIEWED",
     }
