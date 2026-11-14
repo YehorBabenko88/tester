@@ -87,8 +87,15 @@ class DataPrivateGenerationCompatibility(unittest.TestCase):
                 raise AssertionError("source git object mode or SHA mismatch:" + path)
             if blob_hash(raw) != item["git_blob_sha1"]:
                 raise AssertionError("Git object bytes are corrupted:" + path)
-            if (ROOT / path).read_bytes() != raw:
-                raise AssertionError("current DATA branch rewrote reviewed source:" + path)
+            current = (ROOT / path).read_bytes()
+            if current != raw:
+                # The *test-driver* checkout extends this workflow with the
+                # private-generation acceptance job. MASTER still pins the
+                # immutable older producer blob; never claim it is identical.
+                if path != ".github/workflows/public-auxiliary-data.yml":
+                    raise AssertionError("DATA runtime or reviewed evidence was rewritten:" + path)
+                if b"Private generation DATA Git source review" not in current:
+                    raise AssertionError("unexpected source workflow change")
             mode = int(item["mode"][-3:], 8)
             cls.blobs.append(module.ReviewedBlob(
                 path=path, data=raw, sha256=module.hash256(raw),
