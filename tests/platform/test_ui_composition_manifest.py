@@ -143,11 +143,11 @@ def test_common_pg_hostaddr_blob_matches_current_master_resolution(tmp_path):
     # Source-only stand-in; hosted CI independently checks the actual exact
     # DATA/RESEARCH Git blobs against 402c25410 and still runs PG tests.
     content = (
-        "PGHOSTADDR PGHOST PGPORT PGDATABASE "
-        "conn.info.hostaddr inet_server_addr 127.0.0.2 172.18.0.2 "
-        "test_actual_postgres_hostaddr_environment_cannot_redirect "
-        "test_research_dsn_refuses_explicit_hostaddr_redirect"
-    ).encode("utf-8")
+        b"PGHOSTADDR PGHOST PGPORT PGDATABASE "
+        b"conn.info.hostaddr inet_server_addr 127.0.0.2 172.18.0.2 "
+        b"test_actual_postgres_hostaddr_environment_cannot_redirect "
+        b"test_research_dsn_refuses_explicit_hostaddr_redirect"
+    )
     data, research = tmp_path / "data.py", tmp_path / "research.py"
     data.write_bytes(content)
     research.write_bytes(content)
@@ -161,11 +161,11 @@ def test_common_pg_hostaddr_blob_matches_current_master_resolution(tmp_path):
 
 def test_pg_hostaddr_last_writer_wins_and_missing_guard_rejected(tmp_path):
     content = (
-        "PGHOSTADDR PGHOST PGPORT PGDATABASE "
-        "conn.info.hostaddr inet_server_addr 127.0.0.2 172.18.0.2 "
-        "test_actual_postgres_hostaddr_environment_cannot_redirect "
-        "test_research_dsn_refuses_explicit_hostaddr_redirect"
-    ).encode("utf-8")
+        b"PGHOSTADDR PGHOST PGPORT PGDATABASE "
+        b"conn.info.hostaddr inet_server_addr 127.0.0.2 172.18.0.2 "
+        b"test_actual_postgres_hostaddr_environment_cannot_redirect "
+        b"test_research_dsn_refuses_explicit_hostaddr_redirect"
+    )
     data, research = tmp_path / "data.py", tmp_path / "research.py"
     data.write_bytes(content)
     research.write_bytes(content + b" altered")
