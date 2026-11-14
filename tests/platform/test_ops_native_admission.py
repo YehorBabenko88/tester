@@ -122,7 +122,8 @@ class NativeAdmissionTests(unittest.TestCase):
         self.reserve()
         fresh = NativeAdmission(self.root, self.pin)
         report = fresh.inspect_crashed_controller(
-            pg_probe=self.pg, leases_probe=self.lease
+            pg_probe=lambda: {**self.pg(), "active_running": 0},
+            leases_probe=self.lease
         )
         self.assertEqual(report["status"], "BLOCKED")
         self.assertEqual(report["generations"], [0])
@@ -131,6 +132,14 @@ class NativeAdmissionTests(unittest.TestCase):
         self.assertFalse(report["active_or_unknown_leases"])
         self.assertFalse(report["independent_handle_witness"])
         self.assertFalse(report["pid_adoption_allowed"])
+        self.assertFalse(report["restart_allowed"])
+
+    def test_missing_pg_active_count_does_not_become_false_zero(self):
+        self.reserve()
+        report = self.admission.inspect_crashed_controller(
+            pg_probe=self.pg, leases_probe=self.lease
+        )
+        self.assertIsNone(report["active_or_unknown_leases"])
         self.assertFalse(report["restart_allowed"])
 
     def test_crash_inventory_never_trusts_hash_consistent_closure_as_exit(self):
