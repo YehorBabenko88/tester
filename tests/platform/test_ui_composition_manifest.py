@@ -33,7 +33,10 @@ def test_exact_manifest_has_all_files_and_no_overwrites():
     assert handoff["composition"]["combined_head_ci"] == "NOT_RUN"
     assert handoff["composition"]["real_data_admission"] == "DENIED_UNKNOWN_COVERAGE"
     assert handoff["composition"]["ui_pr70_ancestry_required"] is True
-    assert handoff["composition"]["pghostaddr_shared_test_blob"] == "402c25410ba4cc6704911148b1ec0c5bba720088"
+    assert (
+        handoff["composition"]["pghostaddr_shared_test_blob"]
+        == "402c25410ba4cc6704911148b1ec0c5bba720088"
+    )
     assert handoff["source"]["base_pr"] == 70
     assert handoff["source"]["base_head"] == "6240b6665fb3125c06eb91ef535b96700988a7ab"
     assert handoff["strategy"].startswith("Apply PR70 ancestor before")
@@ -122,9 +125,7 @@ def test_legacy_download_v1_is_not_rewritten_by_handoff():
 
 
 def _git_blob(content: bytes) -> str:
-    return hashlib.sha1(
-        b"blob " + str(len(content)).encode("ascii") + b"\0" + content
-    ).hexdigest()
+    return hashlib.sha1(b"blob " + str(len(content)).encode("ascii") + b"\0" + content).hexdigest()
 
 
 def test_frozen_v1_openapi_git_blob_unchanged_by_ui_handoff():
@@ -132,7 +133,11 @@ def test_frozen_v1_openapi_git_blob_unchanged_by_ui_handoff():
     assert _git_blob(path.read_bytes()) == "fc3f4b20d4bd6d6fed642f9e00ceb099c68c4398"
     schema = json.loads(path.read_text(encoding="utf-8"))
     assert schema["components"]["schemas"]["DownloadRequest"]["properties"]["kind"]["enum"] == [
-        "candles", "trades", "footprint", "open_interest", "funding"
+        "candles",
+        "trades",
+        "footprint",
+        "open_interest",
+        "funding",
     ]
     handoff = load_manifest()
     assert handoff["openapi"]["status"] == "CONTRACT_OWNER_REVIEW_REQUIRED"
@@ -151,9 +156,7 @@ def test_common_pg_hostaddr_blob_matches_current_master_resolution(tmp_path):
     data, research = tmp_path / "data.py", tmp_path / "research.py"
     data.write_bytes(content)
     research.write_bytes(content)
-    report = verify_shared_pg_hostaddr_test(
-        data, research, expected_blob=_git_blob(content)
-    )
+    report = verify_shared_pg_hostaddr_test(data, research, expected_blob=_git_blob(content))
     assert report["identical_DATA_RESEARCH_bytes"] is True
     assert report["hostaddr_negative_guards_preserved"] is True
     assert report["runtime_postgres_acceptance"] == "NOT_RUN_BY_SOURCE_AUDIT"
