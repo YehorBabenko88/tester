@@ -1,0 +1,58 @@
+name: OPS independent MASTER d6d6548 composer security negative audit
+on:
+  pull_request:
+    paths:
+      - "tests/platform/test_ops_master_composer_v3_security.py"
+      - ".github/workflows/ops-master-v3-security-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  master-v3-exact-negative:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout OPS PR branch (test source only)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout exact audited MASTER v3 commit
+        uses: actions/checkout@v4
+        with:
+          ref: d6d6548fee441710e34f716d29adb4c25c7e4660
+          path: exact-master-v3
+          persist-credentials: false
+      - name: Checkout previous MASTER v2 for regression comparison
+        uses: actions/checkout@v4
+        with:
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+          path: exact-master-v2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify immutable Git commits and reviewed file SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C exact-master-v3 rev-parse HEAD)" = "d6d6548fee441710e34f716d29adb4c25c7e4660"
+          test "$(git -C exact-master-v2 rev-parse HEAD)" = "88ad7a7a82f35d1829b5eb07c0c1d4878741f527"
+          test "$(git -C exact-master-v3 hash-object scripts/master_disposable_compose.py)" = "f151161576d5e61013b3981aad255a4df247cb10"
+          test "$(git -C exact-master-v3 hash-object docs/coordination/master-reviewed-producer-files.json)" = "08482cd45a3f46b5b8168aab2b7b19f63acb30fb"
+      - name: Reproduce original MASTER v2 vulnerabilities in sandbox
+        env:
+          OPS_PINNED_MASTER_V2_COMPOSER_FILE: ${{ github.workspace }}/exact-master-v2/scripts/master_disposable_compose.py
+        run: python -m unittest discover -s tests/platform -p 'test_ops_master_composer_v2_negative.py' -v
+      - name: Audit exact MASTER v3 with isolated Git and filesystem
+        env:
+          OPS_MASTER_V3_COMPOSER_FILE: ${{ github.workspace }}/exact-master-v3/scripts/master_disposable_compose.py
+          OPS_MASTER_V3_MANIFEST_FILE: ${{ github.workspace }}/exact-master-v3/docs/coordination/master-reviewed-producer-files.json
+        run: python -m unittest discover -s tests/platform -p 'test_ops_master_composer_v3_security.py' -v
+      - name: Verify audit tests did not execute service or network calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e exact-master-v3/scripts/ops_master_v3_test_output
+          echo "SANDBOX_ONLY: no native Windows launcher/PC4/PG operations"
