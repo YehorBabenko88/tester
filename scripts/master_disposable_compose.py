@@ -4,11 +4,9 @@ This never modifies a branch, machine installation, or PostgreSQL instance.
 All producer changes are replayed against the immutable PC4 source tree.
 """
 import hashlib
-import stat
 import os
 import pathlib
 import subprocess
-import sys
 
 BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
 PRODUCERS = (
@@ -66,9 +64,6 @@ def main():
         if rel.is_absolute() or ".." in rel.parts or "\\x00" in path or "\\" in path:
             raise SystemExit(f"unsafe relative path: {path}")
         target = ROOT.joinpath(*rel.parts)
-        for candidate in (ROOT, *list(target.relative_to(ROOT).parents)[::-1]):
-            if isinstance(candidate, pathlib.Path) and candidate.is_absolute() and candidate.is_symlink():
-                raise SystemExit(f"symlink path ancestor: {path}")
         node = ROOT
         for component in rel.parts:
             node = node / component
