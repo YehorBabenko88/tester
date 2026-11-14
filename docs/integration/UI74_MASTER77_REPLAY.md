@@ -6,9 +6,9 @@
 
 - Baseline PC4 source: 3b2eef8a4139195db1a775545e83f1c1f58bf403.
 - PR #70: 6240b6665fb3125c06eb91ef535b96700988a7ab. Apply its ancestry before UI #74. Both inherited frontend/capabilities.js and frontend/tests/capabilities.test.js must be the *updated #74 versions*, not overlaid by older #70 files.
-- Full UI list: docs/integration/ui74-master77-manifest.json (35 paths, 11 runtime, 19 tests/probes, 5 docs/CI). Compare to live GitHub PR #74 changed-file list; do not infer files from a partial diff.
+- Full UI list: docs/integration/ui74-master77-manifest.json (36 paths, 11 runtime, 19 tests/probes, 6 docs/CI). Compare to live GitHub PR #74 changed-file list; do not infer files from a partial diff.
 - DATA #72: d5bfdad445a1eefb9dc12bf2725a00f171e2c321, execution_contract.py blob 8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79. Read-only original HTTP/page/row proof and Unknown-side migration 008.
-- RESEARCH #71: c01c32b03aaf04923b33b0513b71776b12af1e09; data_research_adapter.py blob 35404adef064a667faef6a8f3f852f5aa492cf76, research_metrics.py blob d565c1239b60e770c0337423c5e014daeec0e457, research_ui_projection.py blob 1c165bccaa39fcf73cf33171730e9ea7d7fd6474. The trusted read_verified_ui_observation() performs original persisted source readback. Its http_route is NULL/NOT_REGISTERED: it is not an approved HTTP analytics endpoint.
+- RESEARCH #71: 7ec35810434e3c9159f36712a4186595ac637efa; data_research_adapter.py blob 35404adef064a667faef6a8f3f852f5aa492cf76, research_metrics.py blob d565c1239b60e770c0337423c5e014daeec0e457, research_ui_projection.py blob 1c165bccaa39fcf73cf33171730e9ea7d7fd6474. The trusted read_verified_ui_observation() performs original persisted source readback. Its http_route is NULL/NOT_REGISTERED: it is not an approved HTTP analytics endpoint.
 - G/E: explicitly composed Research control ASGI app with server-issued bearer ACL and digest-bound acknowledgments. No real trading/F admission.
 
 ## Route and panel gates
@@ -56,7 +56,9 @@ python scripts/verify_ui_source_contracts.py \
   --data .ci-source-data72/src/ingest/execution_contract.py \
   --research .ci-source-research71/src/integration/data_research_adapter.py \
   --metrics .ci-source-research71/src/analytics/research_metrics.py \
-  --research-ui .ci-source-research71/src/integration/research_ui_projection.py
+  --research-ui .ci-source-research71/src/integration/research_ui_projection.py \
+  --data-pg-test .ci-source-data72/tests/platform/test_research_postgres.py \
+  --research-pg-test .ci-source-research71/tests/platform/test_research_postgres.py
 ~~~
 
 That AST audit proves interface compatibility, not a source-backed market-data runtime.
@@ -91,3 +93,34 @@ Acceptance: 7 fixture Python, 1 real Chromium E2E, all 13 display intervals, zer
 - OpenAPI Kind mark/index drift belongs to owner Issue #76. Keep contracts/v1/openapi.json and old clients untouched. Proposal docs/proposals/download-kind-v1_1.json is inactive and versioned; neither a new download route nor permission to fetch bulk Mark/Index has been granted.
 - No approved HTTP read route for observed RESEARCH/OI/Funding yet. Pure source-to-chart adapters must stay no-fetch and return UNAVAILABLE/UNVERIFIED.
 - MASTER PR #77 must be composed and tested at one exact immutable combined HEAD. No UI target PASS can authorize real historical F or change Bybit 403 ACCESS_BLOCKED.
+
+
+## 2026-11-14 MASTER 08:27 — READY_FOR_COMPOSITION source handoff
+
+The source-file collision is resolved for the reviewed DATA #72 head
+`d5bfdad445a1eefb9dc12bf2725a00f171e2c321` and RESEARCH #71 head
+`7ec35810434e3c9159f36712a4186595ac637efa`:
+`tests/platform/test_research_postgres.py` has identical exact Git blob
+`402c25410ba4cc6704911148b1ec0c5bba720088`. The added UI source-audit
+function `verify_shared_pg_hostaddr_test` checks *both* files' bytes, Git
+blob SHA and required PGHOSTADDR/PGHOST/PGPORT/PGDATABASE negative controls.
+A mismatched or weakened file fails rather than allowing last-writer-wins.
+This is a source-level review, **not** a substitute for real PostgreSQL
+PG14/18 acceptance on the later combined SHA.
+
+The full UI PR74 36-file list includes both updated files inherited from
+PR70. Retain PR70 ancestry before copying the final PR74 content.
+`contracts/v1/openapi.json` is **byte-for-byte unchanged** from the pinned
+PC4 ancestor, exact Git blob `fc3f4b20d4bd6d6fed642f9e00ceb099c68c4398`.
+`/api/v1_1/downloads` remains an **inactive proposal** under Issue #76;
+the working `/api/price-candles` Mark/Index price-only route is a separately
+qualified v1.1 read contract, not approval of downloads. No existing v1
+OpenAPI is rewritten.
+
+UI can be transferred as source for a **new immutable combined candidate**
+(`READY_FOR_COMPOSITION`) only; full release, PC4 installation, real F
+qualification and historical completeness remain `NO_GO`. MASTER #77 is
+still documentation-only. Run the FastAPI+Chromium and Combined F-G-D
+scripts above against the **same actual combined commit SHA** after the
+DATA+RESEARCH PGHOSTADDR and source-file verification. Never substitute
+existing successful producer CI for combined-source acceptance.
