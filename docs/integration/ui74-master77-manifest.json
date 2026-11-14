@@ -234,7 +234,7 @@
   },
   "private_generation": {
     "proposal": "CI_ONLY_PROTOTYPE_NO_RELEASE",
-    "source_tree_review_sha": "072efe1c424bfc15461489d92bdc2392197931fd",
+    "source_tree_review_sha": "19f1ba2da56e6aa9b18ef590308cc1f7b542d831",
     "master_source_sha": "5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd",
     "ops_private_publisher_sha": "113d7f3b97f47c86a19dc8590bdbb9809138c4d8",
     "ops_publisher_git_blob": "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e",
@@ -245,7 +245,28 @@
     "crash_durability": "UNKNOWN",
     "same_uid_writers": "BLOCKED",
     "production_ready": false,
-    "e2e_status": "NOT_RUN_AT_MANIFEST_CREATION"
+    "e2e_status": "PASS_CI_ONLY_PROTOTYPE_SYNTHETIC",
+    "evidence_run": 43596116665,
+    "generation_source_files": 492,
+    "actual_privately_published_tree_sha256": "e4aa57ab56c93475842b2f12e880be29c15dcde14665f17803343c97f81dfb6f",
+    "actual_manifest_sha256": "a67412cb5e95b7bcababa842420e219938d0300b9414991fbf0b301c155967c7",
+    "master_allowlist_parity": {
+      "DATA": false,
+      "RESEARCH": false,
+      "UI": false,
+      "OPS": false
+    },
+    "has_externally_attested_manifest": false,
+    "publishable_source_isolation": "PRIVATE_GENERATION_SELECTED_SRC_SCRIPTS_FRONTEND_TESTS_DOCS; BASE_CONTRACTS_SEPARATELY_PINNED",
+    "not_production_reasons": [
+      "UNPINNED_INDEPENDENT_GIT_ATTESTATION",
+      "MASTER_ALLOWLIST_MISMATCH",
+      "SAME_UID_DIRECTORY_RELOCATION",
+      "POST_CURRENT_FSYNC_CRASH_DURABILITY",
+      "READER_GC_NO_LEASE",
+      "COMMITTED_COMBINED_SHA_NOT_CREATED",
+      "REAL_BYBIT_HISTORY_UNKNOWN"
+    ]
   },
   "nonself_current_ui_file_blobs": {
     ".github/workflows/capability-browser.yml": {
@@ -257,7 +278,7 @@
       "mode": "100644"
     },
     ".github/workflows/ui74-private-generation-e2e.yml": {
-      "git_blob_sha1": "38f337b9cec4dc5ae7e48efe2541bbd6bea9b88e",
+      "git_blob_sha1": "643779096bcf9bd0f2cb944cfcb409839c41763e",
       "mode": "100644"
     },
     "docs/integration/UI74_MASTER77_REPLAY.md": {
@@ -357,7 +378,7 @@
       "mode": "100644"
     },
     "scripts/ui74_private_generation_ci.py": {
-      "git_blob_sha1": "64fdb54ff2b1fb837cb1a0b746682403288839ba",
+      "git_blob_sha1": "032a4dc9602199310ccfb40840317725537d4e66",
       "mode": "100644"
     },
     "scripts/verify_ui_source_contracts.py": {
@@ -393,7 +414,7 @@
       "mode": "100644"
     },
     "tests/platform/test_ui_composition_manifest.py": {
-      "git_blob_sha1": "7790f84d492d84a4e2dc11ee335db641e2d5c2e5",
+      "git_blob_sha1": "070691a005c0a9e12413be0e7401d6ace87b9047",
       "mode": "100644"
     },
     "tests/platform/test_ui_source_protocol.py": {
