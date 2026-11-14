@@ -148,6 +148,16 @@ jobs:
         run: |
           python -m pip install -e '.[dev]' -c requirements-platform.lock
           python -m compileall -q src/analytics/research_metrics.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py
+      - name: Verify immutable five-file RESEARCH Git blob review remains pending MASTER approval
+        shell: bash
+        env:
+          RESEARCH_ALLOWLIST_EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin 298d610771d962ee7b796eac1834d74138768fac
+          test "$(git rev-parse "$RESEARCH_ALLOWLIST_EXACT_HEAD^{commit}")" = "$RESEARCH_ALLOWLIST_EXACT_HEAD"
+          python -m pytest -q tests/platform/test_research_composed_negative_issue59.py -k exact_five_new_research_allowlist
+          echo "RESEARCH_FIVE_FILE_GIT_BLOBS_PASS; MASTER_ALLOWLIST_REVIEW_PENDING"
       - name: Research arithmetic, UI contract, UNKNOWN and no-lookahead
         run: |
           python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
