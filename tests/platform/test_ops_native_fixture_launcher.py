@@ -167,6 +167,24 @@ class FixtureLauncherTests(unittest.TestCase):
         self.assertEqual(rollback["status"], "SEALED_PARTIAL")
         self.assertIs(rollback["restart_permitted"], False)
 
+    def test_real_win32_pair_resource_sampling_and_foreign_refusal(self):
+        pair = self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
+        sample = self.launcher.sample_pair(pair, cpu_window=0.1)
+        self.assertEqual(sample["schema"], "ops-native-launch-resource-sample/1")
+        self.assertEqual(sample["generation"], 0)
+        self.assertTrue(sample["birth_bound_original_handles"])
+        self.assertFalse(sample["atomic_process_and_pg_snapshot"])
+        self.assertFalse(sample["hard_limits_enforced"])
+        self.assertIsNone(sample["pg_wal_sample"])
+        self.assertEqual(sample["api"]["pid"], pair.api.birth.pid)
+        self.assertEqual(sample["worker"]["pid"], pair.worker.birth.pid)
+        self.assertGreater(sample["api"]["rss_bytes"], 0)
+        self.assertGreater(sample["worker"]["rss_bytes"], 0)
+        self.assertIn("io_write_bytes", sample["api"])
+        self.launcher.stop_and_seal(pair)
+        with self.assertRaises(NativeRestartBlocked):
+            self.launcher.sample_pair(pair)
+
     def test_pg_incarnation_mismatch_blocks_before_spawn(self):
         self.launcher.pg_probe=lambda: {"pg_system_identifier":"foreign",
                                         "pg_postmaster_start":"start-time"}
