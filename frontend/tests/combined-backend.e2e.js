@@ -18,6 +18,20 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
     if (path.startsWith("/api/market-catalog/") || path === "/api/analytics")
       unexpectedCatalog.push(path);
   });
+  // The combined app must expose the UI capability contract before the page
+  // can request it. A 404 here means an older market API was composed with a
+  // newer UI; do not mask it as DATA_UNAVAILABLE or allow the browser to pass.
+  const preflight = await page.request.get("/api/capabilities?" + new URLSearchParams({
+    category: "linear", symbol: "BTCUSDT", interval: "1",
+    start_ms: "1704067200000", end_ms: "1711929600000",
+  }));
+  expect(preflight.status(), "combined app missing GET /api/capabilities; check UI main.py source blob").toBe(200);
+  const preflightData = (await preflight.json()).data;
+  expect(preflightData.protocol_version).toBe("tester.ui-capabilities/1");
+  expect(preflightData.observed_page_revision.history_complete).toBe(false);
+  expect(preflightData.observed_page_revision.supports_f_admission).toBe(false);
+  expect(preflightData.panels.footprint.status).toBe("UNAVAILABLE");
+  expect(preflightData.panels.open_interest.status).toBe("UNVERIFIED");
   await page.goto("/");
   await expect(page.locator("body")).toContainText(/HISTORICAL LAB/i);
   await expect(page.locator("#screener-status"))
