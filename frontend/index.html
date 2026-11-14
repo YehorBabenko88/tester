@@ -173,6 +173,14 @@
           </div>
         </div>
         <div class="toolbar">
+          <label>Direct source instrument
+            <input id="manual-symbol" aria-label="Direct source symbol" maxlength="40"
+                   autocomplete="off" placeholder="BTCUSDT" spellcheck="false" />
+          </label>
+          <button id="open-manual" type="button">Open source symbol</button>
+          <span class="muted">Direct selection is unverified until API source discovery succeeds.</span>
+        </div>
+        <div class="toolbar">
           <label
             >OI source cadence<select
               id="oi-source-interval"
