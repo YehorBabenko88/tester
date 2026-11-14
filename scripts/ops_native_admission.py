@@ -200,3 +200,75 @@ class NativeAdmission:
         }
         _new(folder / "closure.json", closure)
         return closure
+
+
+    def inspect_crashed_controller(self, *,
+                                   pg_probe: Callable[[], Mapping],
+                                   leases_probe: Callable[[], Mapping[str, str]]) -> dict:
+        """Read-only recovery inventory; NEVER adopt a persisted PID or restart.
+
+        A new controller cannot inherit the original Windows child handles from
+        a dead controller. Even hash-consistent JSON closure files are not an
+        external OS exit witness. Inspect what can safely be reported, retain
+        every generation, and require an independent persistent handle owner
+        before any future automatic crash-recovery protocol is authorized.
+        """
+        result = {
+            "schema": "ops-native-crash-inventory/1",
+            "status": "BLOCKED",
+            "restart_allowed": False,
+            "pid_adoption_allowed": False,
+            "independent_handle_witness": False,
+            "generations": [],
+            "incomplete_generations": [],
+            "pg_incarnation_matches": None,
+            "active_or_unknown_leases": None,
+            "ledger_consistent": False,
+        }
+        try:
+            numbers = self._names()
+            for generation in numbers:
+                folder = self.generations / f"{generation:04d}"
+                names = {entry.name for entry in folder.iterdir()}
+                if names not in ({"reservation.json"},
+                                 {"reservation.json", "closure.json"}):
+                    raise NativeRestartBlocked("Unexpected recovery files")
+                reservation = _read_exact(folder / "reservation.json")
+                if (reservation.get("schema") != "ops-native-reservation/1"
+                        or reservation.get("generation") != generation
+                        or reservation.get("pin") != vars(self.pin)):
+                    raise NativeRestartBlocked("Wrong crash reservation identity")
+                if "closure.json" in names:
+                    closure = _read_exact(folder / "closure.json")
+                    if (closure.get("schema") != "ops-native-closure-link/1"
+                            or closure.get("generation") != generation
+                            or closure.get("reservation_sha256") != _digest(reservation)
+                            or closure.get("pg_system_identifier") != self.pin.pg_system_identifier
+                            or closure.get("pg_postmaster_start") != self.pin.pg_postmaster_start
+                            or closure.get("restart_allowed") is not True
+                            or not isinstance(closure.get("native_exit_sha256"), str)
+                            or len(closure["native_exit_sha256"]) != 64):
+                        raise NativeRestartBlocked("Invalid retained crash closure")
+                else:
+                    result["incomplete_generations"].append(generation)
+                result["generations"].append(generation)
+            result["ledger_consistent"] = True
+        except (OSError, ValueError, NativeRestartBlocked):
+            result["status"] = "CORRUPT_OR_UNKNOWN_LEDGER"
+            return result
+
+        try:
+            pg = dict(pg_probe())
+            result["pg_incarnation_matches"] = (
+                pg.get("pg_system_identifier") == self.pin.pg_system_identifier
+                and pg.get("pg_postmaster_start") == self.pin.pg_postmaster_start
+            )
+            states = dict(leases_probe())
+            result["active_or_unknown_leases"] = any(
+                state not in {"queued", "completed", "failed", "paused"}
+                for state in states.values()
+            ) or pg.get("active_running", 0) != 0
+        except Exception:
+            # Missing database evidence is UNKNOWN, never a false zero.
+            result["status"] = "PG_OR_LEASE_EVIDENCE_UNAVAILABLE"
+        return result
