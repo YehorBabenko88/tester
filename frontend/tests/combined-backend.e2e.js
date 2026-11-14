@@ -32,6 +32,33 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
     .toBe("tester-public-execution/1");
   expect(unexpectedCatalog).toEqual([]);
   expect(wrongHttp).toEqual([]);
+  // Combined E/G routing must preserve capability negotiation for every
+  // terminal timeframe even when the source provider is unavailable.
+  const intervals = ["1", "3", "5", "15", "30", "60", "120",
+                     "240", "360", "720", "D", "W", "M"];
+  await page.locator("#manual-symbol").fill("BTCUSDT");
+  await page.getByRole("button", {name: "Open source symbol"}).click();
+  for (const interval of intervals) {
+    const response = page.waitForResponse(r => {
+      const url = new URL(r.url());
+      return url.pathname === "/api/capabilities" &&
+        url.searchParams.get("interval") === interval;
+    });
+    await page.locator("#interval").selectOption(interval);
+    if (interval === "60") {
+      await page.getByRole("button", {name: "Apply range / Retry charts"}).click();
+    }
+    const observed = await response;
+    expect(observed.status()).toBe(200);
+    const negotiated = (await observed.json()).data;
+    expect(negotiated.source_contracts.public_executions.contract_version)
+      .toBe("tester-public-execution/1");
+    expect(negotiated.observed_page_revision.history_complete).toBe(false);
+    expect(negotiated.panels.footprint.resource).toBeUndefined();
+    expect(negotiated.panels.mark.resource).toBeUndefined();
+  }
+  expect(unexpectedCatalog).toEqual([]);
+  expect(wrongHttp).toEqual([]);
   await page.goto("/research.html");
   const withoutToken = await page.request.post("/api/control/research", {
     data: fixture.command,
