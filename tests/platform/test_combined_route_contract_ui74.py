@@ -2,7 +2,6 @@
 
 Do not replace this with a browser mock or activate a native runtime.
 """
-import inspect
 from pathlib import Path
 
 import pytest
@@ -11,7 +10,6 @@ from starlette.routing import Mount
 
 from src.api.config import Settings
 from src.api.main import create_app
-from src.api.research_control import create_control_app
 from src.integration.combined_routes import compose_research
 
 
@@ -78,7 +76,7 @@ def test_research_routes_are_before_static_mount_without_security_bypass():
     from src.api.research_control import create_control_app
 
     market = _fixture_market()
-    research = create_control_app()
+    research = create_control_app(None, lambda _authorization: None)
     combined = compose_research(market, research)
     routes = list(combined.router.routes)
     assert [getattr(x, "path", "") for x in routes[:2]] == [
