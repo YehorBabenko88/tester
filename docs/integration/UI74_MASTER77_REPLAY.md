@@ -87,7 +87,7 @@ Acceptance: 7 fixture Python, 1 real Chromium E2E, all 13 display intervals, zer
 
 ## Cross-owner blockers
 
-- DATA #72 and RESEARCH #71 both changed tests/platform/test_research_postgres.py. Combine their negative PGHOSTADDR cases: explicit conn.info.host/hostaddr/port/dbname must match validated client DSN despite hostile PGHOSTADDR/PGHOST/PGPORT/PGDATABASE; explicitly specified DSN hostaddr must be rejected. PostgreSQL server inet_server_addr() is container-internal and must not equal runner published address.
+- DATA #72 and RESEARCH #71 both changed tests/platform/test_research_postgres.py, but their current exact heads have the **same** Git blob SHA `402c25410ba4cc6704911148b1ec0c5bba720088`. Reuse it once in MASTER composition. The UI source-preflight CI checks both exact blob hashes and `cmp` equality. This regression verifies explicit conn.info.host/hostaddr/port/dbname against the validated client DSN despite hostile PGHOSTADDR/PGHOST/PGPORT/PGDATABASE, and rejects explicitly configured DSN hostaddr. PostgreSQL server inet_server_addr() is container-internal and must not be compared to the runner-published endpoint.
 - OpenAPI Kind mark/index drift belongs to owner Issue #76. Keep contracts/v1/openapi.json and old clients untouched. Proposal docs/proposals/download-kind-v1_1.json is inactive and versioned; neither a new download route nor permission to fetch bulk Mark/Index has been granted.
 - No approved HTTP read route for observed RESEARCH/OI/Funding yet. Pure source-to-chart adapters must stay no-fetch and return UNAVAILABLE/UNVERIFIED.
 - MASTER PR #77 must be composed and tested at one exact immutable combined HEAD. No UI target PASS can authorize real historical F or change Bybit 403 ACCESS_BLOCKED.
