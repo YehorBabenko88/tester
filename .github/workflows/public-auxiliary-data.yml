@@ -224,7 +224,7 @@ jobs:
       MASTER_COMPOSED_DATA_TEST: 'true'
       MASTER_DATA_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
       MASTER_RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
-      MASTER_STAGING_SHA: 4e64ec9f6a1da453019b68e598e235036701739f
+      MASTER_STAGING_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
       TESTER_AUX_LIVE_BYBIT: 'no'
       TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
       TESTER_TEST_ADMIN_DSN: host=127.0.0.1 port=55479 user=tester_aux_ci password=disposable-only dbname=tester_aux_ci connect_timeout=5
@@ -232,7 +232,7 @@ jobs:
       - name: Checkout exact MASTER staging tree
         uses: actions/checkout@v4
         with:
-          ref: 4e64ec9f6a1da453019b68e598e235036701739f
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
           fetch-depth: 0
           persist-credentials: false
       - name: Checkout current DATA test-only gate (never applied to staging)
@@ -262,7 +262,7 @@ jobs:
       - name: Compose actual MASTER source tree (no commit, no deployment)
         env:
           CI: 'true'
-          EXPECTED_STAGING_SHA: 4e64ec9f6a1da453019b68e598e235036701739f
+          EXPECTED_STAGING_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
         run: python scripts/master_disposable_compose.py | tee master-data-compose-manifest.txt
       - name: Verify exact DATA files, 008 checksum and RESEARCH conflict SHA
         env:
