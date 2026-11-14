@@ -31,7 +31,7 @@ jobs:
       - name: Pin reviewed DATA #72 original-execution contract
         uses: actions/checkout@v4
         with:
-          ref: 37fde4a9efba72eaf1b25a1b00e07385b07fd572
+          ref: 93d13a8e78ff7c2aacc6610f838732ba22db8234
           path: .ci-source-data72
           sparse-checkout: |
             src/ingest/execution_contract.py
@@ -39,7 +39,7 @@ jobs:
       - name: Pin reviewed RESEARCH #71 observed-metrics contracts
         uses: actions/checkout@v4
         with:
-          ref: eadbc2e2e19601bd1d07e8278980812f87f06723
+          ref: c01c32b03aaf04923b33b0513b71776b12af1e09
           path: .ci-source-research71
           sparse-checkout: |
             src/integration/data_research_adapter.py
@@ -61,8 +61,8 @@ jobs:
       - name: Verify exact independently pinned DATA/RESEARCH source interfaces
         shell: bash
         run: |
-          test "$(git -C .ci-source-data72 rev-parse HEAD)" = "37fde4a9efba72eaf1b25a1b00e07385b07fd572"
-          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "eadbc2e2e19601bd1d07e8278980812f87f06723"
+          test "$(git -C .ci-source-data72 rev-parse HEAD)" = "93d13a8e78ff7c2aacc6610f838732ba22db8234"
+          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "c01c32b03aaf04923b33b0513b71776b12af1e09"
           python scripts/verify_ui_source_contracts.py \
             --data .ci-source-data72/src/ingest/execution_contract.py \
             --research .ci-source-research71/src/integration/data_research_adapter.py \
@@ -111,8 +111,8 @@ jobs:
       - name: Chromium against real FastAPI and 13 timeframes
         env:
           TESTER_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          TESTER_DATA_SOURCE_SHA: 37fde4a9efba72eaf1b25a1b00e07385b07fd572
-          TESTER_RESEARCH_SOURCE_SHA: eadbc2e2e19601bd1d07e8278980812f87f06723
+          TESTER_DATA_SOURCE_SHA: 93d13a8e78ff7c2aacc6610f838732ba22db8234
+          TESTER_RESEARCH_SOURCE_SHA: c01c32b03aaf04923b33b0513b71776b12af1e09
         run: npx playwright test --config playwright.capability.config.js
         working-directory: frontend
       - name: Store browser screenshot, traces and backend log
