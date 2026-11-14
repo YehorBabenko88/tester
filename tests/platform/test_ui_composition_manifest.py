@@ -25,7 +25,15 @@ def load_manifest():
 def test_exact_manifest_has_all_files_and_no_overwrites():
     handoff = load_manifest()
     assert handoff["schema_version"] == "tester.ui74-master77-file-manifest/1"
-    assert handoff["status"] == "DRAFT_NO_GO"
+    assert handoff["status"] == "READY_FOR_COMPOSITION"
+    assert handoff["composition"]["scope"] == "SOURCE_ONLY"
+    assert handoff["composition"]["ready_for_composition"] is True
+    assert handoff["composition"]["ready_for_deployment"] is False
+    assert handoff["composition"]["master_pr77_composed"] is False
+    assert handoff["composition"]["combined_head_ci"] == "NOT_RUN"
+    assert handoff["composition"]["real_data_admission"] == "DENIED_UNKNOWN_COVERAGE"
+    assert handoff["composition"]["ui_pr70_ancestry_required"] is True
+    assert handoff["composition"]["pghostaddr_shared_test_blob"] == "402c25410ba4cc6704911148b1ec0c5bba720088"
     assert handoff["source"]["base_pr"] == 70
     assert handoff["source"]["base_head"] == "6240b6665fb3125c06eb91ef535b96700988a7ab"
     assert handoff["strategy"].startswith("Apply PR70 ancestor before")
