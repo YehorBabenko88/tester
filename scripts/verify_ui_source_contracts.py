@@ -72,10 +72,11 @@ def _literals(tree):
     return literals
 
 
-def verify_paths(data, research, metrics):
+def verify_paths(data, research, metrics, research_ui=None):
     producer = _parse(data)
     consumer = _parse(research)
     calculator = _parse(metrics)
+    projection = _parse(research_ui) if research_ui is not None else None
     if _constant(producer, "VERSION") != DATA_EXECUTION_VERSION:
         raise ValueError("data_contract_version_mismatch")
     if _constant(consumer, "DATA_CONTRACT_VERSION") != DATA_EXECUTION_VERSION:
@@ -126,6 +127,37 @@ def verify_paths(data, research, metrics):
     }
     if not required_metric_fields <= _literals(calculator):
         raise ValueError("research_metric_uncertainty_semantics_mismatch")
+    if projection is not None:
+        if _constant(projection, "SCHEMA") != "tester.research-ui-observation/1":
+            raise ValueError("research_ui_observation_version_mismatch")
+        _signature(
+            projection,
+            "read_verified_ui_observation",
+            {"category", "symbol", "start_ms", "end_ms", "interval_ms",
+             "tick_size", "as_of_ms", "limit"},
+        )
+        _signature(projection, "project_source_observation", set())
+        required = {
+            "OBSERVED_UNVERIFIED", "UNKNOWN", "DENIED_UNKNOWN_COVERAGE",
+            "NOT_AUTHORIZED", "NOT_REGISTERED", "metrics_digest",
+            "source_receipts_digest",
+        }
+        if not required <= _literals(projection):
+            raise ValueError("research_ui_not_fail_closed")
+        # An unregistered read-only research module is NOT an HTTP route.
+        null_route = any(
+            isinstance(node, ast.Dict)
+            and any(
+                isinstance(key, ast.Constant)
+                and key.value == "http_route"
+                and isinstance(value, ast.Constant)
+                and value.value is None
+                for key, value in zip(node.keys, node.values)
+            )
+            for node in ast.walk(projection)
+        )
+        if not null_route:
+            raise ValueError("research_ui_http_route_not_explicitly_unregistered")
     return {
         "data_contract": DATA_EXECUTION_VERSION,
         "research_contract": RESEARCH_METRICS_VERSION,
@@ -141,8 +173,9 @@ def main():
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--research", type=Path, required=True)
     parser.add_argument("--metrics", type=Path, required=True)
+    parser.add_argument("--research-ui", type=Path)
     args = parser.parse_args()
-    result = verify_paths(args.data, args.research, args.metrics)
+    result = verify_paths(args.data, args.research, args.metrics, args.research_ui)
     print("PASS: exact DATA/RESEARCH source signatures (no runtime DATA admission)")
     print(result)
 
