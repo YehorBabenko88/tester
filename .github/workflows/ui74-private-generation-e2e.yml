@@ -74,19 +74,14 @@ jobs:
           test "$(git hash-object docs/coordination/master-reviewed-producer-files.json)" = "08482cd45a3f46b5b8168aab2b7b19f63acb30fb"
           git show "$OPS_PUBLISHER_SHA:scripts/ops_private_generation_prototype.py" > "$RUNNER_TEMP/ops_private_generation_prototype.py"
           test "$(git hash-object "$RUNNER_TEMP/ops_private_generation_prototype.py")" = "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e"
-      - name: Compose reviewed four-producer sources in ephemeral source checkout
+      - name: Verify MASTER checkout is still source-only
         shell: bash
-        env:
-          EXPECTED_STAGING_SHA: 5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd
-          GITHUB_SHA: 5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd
         run: |
           set -euo pipefail
-          # GitHub reserves GITHUB_SHA; an env: override is not authoritative.
-          # This isolated source-smoke passes the explicitly checked-out
-          # staging SHA to the composer's process (NOT runner attestation).
-          env GITHUB_SHA="$MASTER_SHA" EXPECTED_STAGING_SHA="$MASTER_SHA" \
-            python scripts/master_disposable_compose.py | tee "$RUNNER_TEMP/ui-source-composed-manifest.txt"
-          grep -q "^COMPOSED_UNCOMMITTED_FILES=" "$RUNNER_TEMP/ui-source-composed-manifest.txt"
+          test "$(git rev-parse HEAD)" = "$MASTER_SHA"
+          test ! -e "$RUNNER_TEMP/ui-private-source"
+          # Private publication is built directly from immutable Git blobs.
+          # No MASTER composer writes to the source checkout here.
       - name: Publish privately sealed generation with real reviewed Git blobs
         shell: bash
         run: |
@@ -95,7 +90,6 @@ jobs:
             --source "$GITHUB_WORKSPACE" \
             --root "$RUNNER_TEMP/ui-private-source" \
             --publisher "$RUNNER_TEMP/ops_private_generation_prototype.py" \
-            --composed-manifest "$RUNNER_TEMP/ui-source-composed-manifest.txt" \
             --manifest-out "$RUNNER_TEMP/ui-private-manifest.json" \
             --receipt-out "$RUNNER_TEMP/ui-private-evidence.json"
           python .ci-ui-driver/scripts/ui74_private_generation_ci.py verify \
@@ -208,7 +202,6 @@ jobs:
           path: |
             ${{ runner.temp }}/ui-private-evidence.json
             ${{ runner.temp }}/ui-private-manifest.json
-            ${{ runner.temp }}/ui-source-composed-manifest.txt
             ${{ runner.temp }}/ui-private-fastapi.log
             ${{ runner.temp }}/ui-private-ge.log
             frontend/test-results/
