@@ -26,6 +26,8 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       CI: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_ADDOPTS: "-p no:cacheprovider"
       TESTER_RESEARCH_DATA_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55476/tester_research_data_disposable
     steps:
       - name: Checkout exact PR71 source only
