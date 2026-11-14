@@ -309,23 +309,22 @@ def test_actual_postgres_hostaddr_environment_cannot_redirect(persistent, monkey
     monkeypatch.setenv("PGPORT", "1")
     monkeypatch.setenv("PGDATABASE", "postgres")
     with persistent.connection() as conn:
-        # libpq reports the actual TCP destination used by this client.
-        # PostgreSQL's inet_server_addr()/inet_server_port() are the *server*
-        # container interface/port (e.g. 172.x:5432), not the runner's
-        # published 127.0.0.1:55472 endpoint.
-        assert conn.info.hostaddr == expected["host"]
+        # Security boundary: the client's effective, validated libpq target,
+        # not the server's internal Docker socket (172.x:5432) reached through
+        # the runner's pinned published loopback endpoint 127.0.0.1:55472.
         assert conn.info.host == expected["host"]
+        assert conn.info.hostaddr == expected["host"]
         assert int(conn.info.port) == int(expected["port"])
         assert conn.info.dbname == expected["dbname"]
         actual = conn.execute(
-            "SELECT current_database() AS db,"
-            " inet_server_addr() IS NOT NULL AS tcp,"
-            " inet_server_port() AS internal_port"
+            "SELECT host(inet_server_addr()) AS host,"
+            " inet_server_port() AS port,current_database() AS db"
         ).fetchone()
     assert actual["db"] == expected["dbname"]
-    assert actual["tcp"] is True
-    assert type(actual["internal_port"]) is int
-    assert 1 <= actual["internal_port"] <= 65535
+    assert actual["host"] is not None
+    assert actual["host"] != "127.0.0.2"
+    assert type(actual["port"]) is int
+    assert 1 <= actual["port"] <= 65535
 
 
 def test_research_dsn_refuses_explicit_hostaddr_redirect():
