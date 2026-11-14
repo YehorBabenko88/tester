@@ -115,7 +115,15 @@ export function mountStrategyWorkspace(
       eligibility();
     }
   });
-  const headings = ["Strategy preview", "Trader disclosures and hypotheses"];
+  const headings = [
+    "Strategy preview",
+    "Stop Loss / Take Profit",
+    "Simulation journal",
+    "Equity",
+    "Drawdown",
+    "Trade overlays",
+    "Trader disclosures and hypotheses",
+  ];
   for (const title of headings) {
     const card = document.createElement("article");
     card.className = "chart-panel";
