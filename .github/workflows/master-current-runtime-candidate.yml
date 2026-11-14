@@ -1,0 +1,46 @@
+name: MASTER current runtime source candidate (CI only)
+on:
+  pull_request:
+    paths:
+      - scripts/master_current_runtime_candidate.py
+      - .github/workflows/master-current-runtime-candidate.yml
+      - docs/coordination/master-reviewed-producer-files.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch exact immutable source pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            327e9be91cca1aec2cd79d6d7c4846d3b024c1b9 \
+            af143bb73277e7bffea8ae76d84fd0ed7a707ab0 \
+            1d6e34907ae2e4972b8ddf2d4b7301cf0920eb3f \
+            9c0ee3a44e78d16d8beb34fbaf2973ee2e126386; do
+            git fetch --no-tags origin "$sha"
+          done
+      - name: Stage reviewed runtime blobs outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/master_current_runtime_candidate.py > current-runtime-receipt.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: master-current-runtime-source-receipt
+          path: current-runtime-receipt.json
