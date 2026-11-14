@@ -113,12 +113,25 @@ jobs:
           assert SCHEMA == "tester.research-ui-observation/1"
           print("COMPOSED_RESEARCH_BYTES_AND_VERSION_PASS")
           PY
+      - name: Overlay only exact PR71 negative tests (never runtime code)
+        shell: bash
+        env:
+          RESEARCH_TEST_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$RESEARCH_TEST_HEAD"
+          test "$(git rev-parse "$RESEARCH_TEST_HEAD^{commit}")" = "$RESEARCH_TEST_HEAD"
+          git show "$RESEARCH_TEST_HEAD:tests/platform/test_research_composed_negative_issue59.py" > tests/platform/test_research_composed_negative_issue59.py
+          python -m compileall -q tests/platform/test_research_composed_negative_issue59.py
+          echo "NEGATIVE_TEST_OVERLAY_ONLY=$RESEARCH_TEST_HEAD"
       - name: Install pinned dependencies and compile
         run: |
           python -m pip install -e '.[dev]' -c requirements-platform.lock
           python -m compileall -q src/analytics/research_metrics.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py
       - name: Research arithmetic, UI contract, UNKNOWN and no-lookahead
-        run: python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+        run: |
+          python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+          python -m pytest -q tests/platform/test_research_composed_negative_issue59.py -k "not actual_postgres"
       # The pinned MASTER tree may predate RESEARCH's Ruff-only import fix.
       # Independent Research Issue59 CI runs Ruff on the latest producer HEAD.
       # This workflow does NOT certify composed-tree Ruff or full release.
@@ -127,6 +140,7 @@ jobs:
           python -m unittest tests.test_execution_contract_bridge -v
           python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres or disposable_pg"
           python -m unittest tests.test_composed_data_research_postgres -v
+          python -m pytest -q tests/platform/test_research_composed_negative_issue59.py -k "actual_postgres"
       - name: Pinned research control PostgreSQL, F/G/E auth and hostaddr fencing
         run: python -m pytest -q tests/platform/test_research_postgres.py tests/platform/test_combined_routes.py
       - name: Upload exact immutable composition manifest
