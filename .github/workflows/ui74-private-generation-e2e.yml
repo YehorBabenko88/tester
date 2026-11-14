@@ -172,6 +172,10 @@ jobs:
           done
           curl -fsS "http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000" >/dev/null
           (cd .ci-ui-driver/frontend && npx playwright test --config playwright.capability.config.js --reporter=line)
+          # The later G/E Playwright run resets test-results. Preserve the
+          # Mark/Index screenshot and all 13-TF network evidence separately.
+          mkdir -p "$RUNNER_TEMP/ui-private-capability-results"
+          cp -a .ci-ui-driver/frontend/test-results/. "$RUNNER_TEMP/ui-private-capability-results/"
           python .ci-ui-driver/scripts/ui74_private_generation_ci.py verify \
             --root "$RUNNER_TEMP/ui-private-source" \
             --publisher "$RUNNER_TEMP/ops_private_generation_prototype.py" \
@@ -211,6 +215,7 @@ jobs:
             ${{ runner.temp }}/ui-private-manifest.json
             ${{ runner.temp }}/ui-private-fastapi.log
             ${{ runner.temp }}/ui-private-ge.log
+            ${{ runner.temp }}/ui-private-capability-results/
             .ci-ui-driver/frontend/test-results/
           retention-days: 7
           if-no-files-found: ignore
