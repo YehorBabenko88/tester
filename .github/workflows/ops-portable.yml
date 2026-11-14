@@ -280,15 +280,19 @@ jobs:
               expected_ops_sha="0d4649f3a7cd3595ea58757f2abaf2f1b0558667",
           )
           if (report["result"] != "BLOCKED_SCOPE_TOO_BROAD"
-                  or report["approved_count"] != 29
+                  or report["approved_count"] != 31
                   or report["actually_composed_ops_count"] != 59
                   or report["extra_count"] != 30
+                  or report["approved_missing"] != [
+                      "scripts/ops_master_composer_audit.py",
+                      "tests/platform/test_ops_master_composer_audit.py",
+                  ]
                   or report["minimal_optin_copy_confirmed"]):
               raise SystemExit("MASTER composer scope changed; explicit re-review required")
           Path("ops-master-composer-scope-audit.json").write_text(
               json.dumps(report, indent=2, sort_keys=True) + chr(10), encoding="utf-8"
           )
-          print("SOURCE_COMPOSE_SMOKE_PASS; MINIMAL_OPS_SCOPE_BLOCKED: 30 extra files")
+          print("SOURCE_COMPOSE_SMOKE_PASS; MINIMAL_OPS_SCOPE_BLOCKED: 30 extra, 2 post-pin files absent")
           PY
       - name: Retain exact source-scope evidence
         if: always()
