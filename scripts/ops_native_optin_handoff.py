@@ -33,6 +33,7 @@ RUNTIME_FILES = (
     "scripts/ops_native_scoped_stop.py",
     "scripts/ops_native_windows_rollback.py",
     "scripts/ops_native_windows_witness.py",
+    "scripts/ops_pg_claim.py",
     "scripts/ops_pg_isolation.py",
     "scripts/ops_resource_metrics.py",
     "scripts/ops_win32_handle.py",
