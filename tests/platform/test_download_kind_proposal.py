@@ -70,8 +70,12 @@ def test_old_v1_download_kind_values_stay_valid_in_runtime():
     legacy = ["candles", "trades", "footprint", "open_interest", "funding"]
     for kind in legacy:
         req = DownloadRequest(
-            category="linear", symbol="BTCUSDT", source="public",
-            kind=kind, start_ms=0, end_ms=60000,
+            category="linear",
+            symbol="BTCUSDT",
+            source="public",
+            kind=kind,
+            start_ms=0,
+            end_ms=60000,
         )
         assert req.kind == kind
 
