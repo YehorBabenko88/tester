@@ -3,6 +3,7 @@
 This module cannot authorize Strategy Lab F/G/E, install a route, or certify
 historical completeness. Only source-backed DATA72 PostgreSQL readback is
 eligible for a rendered observation; synthetic fixtures remain untrusted.
+A caller-supplied dict is NOT a proof of source authenticity.
 """
 import re
 from copy import deepcopy
@@ -22,6 +23,23 @@ def _exact(value, *, nonnegative=False):
     if nonnegative and result < 0:
         raise ValueError("research_ui_negative_volume")
     return result
+
+
+def read_verified_ui_observation(store, *, category, symbol, start_ms, end_ms,
+                                 interval_ms, tick_size, as_of_ms=None, limit=100):
+    """Read actual DATA72 persisted evidence; never trust a caller's preview label.
+
+    This is the only intended future API/UI entrypoint. It remains a pure
+    readback with no mounted HTTP route, F/G/E job or writer privileges.
+    """
+    from src.integration.data_research_adapter import read_data_metrics
+
+    source = read_data_metrics(
+        store, category=category, symbol=symbol,
+        start_ms=start_ms, end_ms=end_ms, interval_ms=interval_ms,
+        tick_size=tick_size, as_of_ms=as_of_ms, limit=limit,
+    )
+    return project_source_observation(source)
 
 
 def project_source_observation(preview):

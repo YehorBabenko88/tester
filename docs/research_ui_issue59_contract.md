@@ -29,12 +29,22 @@ endpoint nor a G/E control command.
   `http_route_status=NOT_REGISTERED`. It cannot authorize Strategy Lab F,
   dispatch G, acknowledge E or fabricate a mounted UI endpoint.
 
+The intended entrypoint is **read_verified_ui_observation(store, ...)**:
+it invokes DATA72's persisted original-HTTP/page/row readback through
+`read_data_metrics` first, and only then projects the display contract.
+The lower-level `project_source_observation(preview)` checks internal
+shape and arithmetic but **does not cryptographically authenticate a
+caller-supplied dictionary**: fabricating a `source_verification`
+string must never authorize a route, trading job or DATA capability.
+Only the readback entrypoint may serve future API integration.
+
 Standalone shape tests include valid exact arithmetic, unknown side,
 Decimal VWAP, observed CVD, invalid and rehashed metrics, tampered
 footprint/POC/UTC/digests, forged coverage/known-at/F/G/E admission and
 failure to promote unauthenticated fixtures. The existing composed DATA
-unit and real PostgreSQL integration cases also consume this bridge and
-assert the same restrictions on actual readback.
+unit and real PostgreSQL integration cases also exercise the trusted
+readback entrypoint, assert equality to the derived projection, reject
+lookahead `as_of_ms`, and retain the F/G/E restrictions.
 
 ## Combined F-G-D browser HTTP 404 — independent routing failure
 

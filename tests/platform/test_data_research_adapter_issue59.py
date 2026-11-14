@@ -17,7 +17,10 @@ from src.integration.data_research_adapter import (
     read_data_metrics,
     require_strategy_lab_f_input,
 )
-from src.integration.research_ui_projection import project_source_observation
+from src.integration.research_ui_projection import (
+    project_source_observation,
+    read_verified_ui_observation,
+)
 from src.storage.models import digest
 
 START = 1704067200000
@@ -571,6 +574,20 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     bar = actual["metrics"]["bars"][0]
     assert actual["observed_window"]["observed_unique_trades"] == 2
     ui = project_source_observation(actual)
+    verified_ui = read_verified_ui_observation(
+        reopened, category="linear", symbol="BTCUSDT",
+        start_ms=start, end_ms=start + 60000,
+        interval_ms=60000, tick_size="0.5", limit=3,
+    )
+    assert ui == verified_ui
+    # Original event visibility cannot be moved backwards to permit lookahead.
+    with pytest.raises(ValueError, match="late_source_knowledge"):
+        read_verified_ui_observation(
+            reopened, category="linear", symbol="BTCUSDT",
+            start_ms=start, end_ms=start + 60000,
+            interval_ms=60000, tick_size="0.5", limit=3,
+            as_of_ms=start + 60000,
+        )
     assert ui["bars"][0]["unknown_side_volume"] == "0.25"
     assert ui["bars"][0]["delta_known"] == "0.5"
     assert ui["source_verification"] == "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
@@ -796,3 +813,23 @@ def test_research_ui_refuses_invalid_receipt_fingerprint():
     source["data_source_receipts_digest"] = "not-an-http-hash"
     with pytest.raises(ValueError, match="research_ui_unqualified_hash"):
         project_source_observation(source)
+
+
+def test_research_ui_verified_entrypoint_reads_composed_data_only():
+    _composed_data()
+    from tests.test_execution_contract_bridge import MS, fixture
+
+    start = MS // 60000 * 60000
+    store = Mock()
+    store.read.return_value = [fixture(side="Unknown")]
+    observation = read_verified_ui_observation(
+        store, category="linear", symbol="BTCUSDT",
+        start_ms=start, end_ms=start + 60000,
+        interval_ms=60000, tick_size="0.5", limit=10,
+    )
+    assert observation["bars"][0]["unknown_side_volume"] == "0.125"
+    assert observation["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
+    assert observation["g_e_execution"] == "NOT_AUTHORIZED"
+    assert observation["http_route"] is None
+    store.read.assert_called_once()
+    store.ingest.assert_not_called()
