@@ -7,7 +7,7 @@
     "base_pr": 70,
     "base_head": "6240b6665fb3125c06eb91ef535b96700988a7ab",
     "ancestor": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
-    "last_verified_ui_head": "49a884140ee7b9953b7c0eae862f9cc9a25a4b55",
+    "last_verified_ui_head": "bc4209ac604dba913a4b8e3fc562059b512c5aea",
     "live_head_policy": "Take exact PR74 HEAD from GitHub immediately before composition; this manifest is a source-only handoff, not a self-pinned commit"
   },
   "strategy": "Apply PR70 ancestor before the PR74 complete delta, never overlay PR70 files after PR74; MASTER PR77 remains untouched",
@@ -234,7 +234,7 @@
   },
   "private_generation": {
     "proposal": "CI_ONLY_PROTOTYPE_NO_RELEASE",
-    "source_tree_review_sha": "ce6798f2291c27eada4b2dfb090f8e345c1dd528",
+    "source_tree_review_sha": "a7434c215f139b3f8c753dc518099d44b9619fe4",
     "master_source_sha": "5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd",
     "ops_private_publisher_sha": "113d7f3b97f47c86a19dc8590bdbb9809138c4d8",
     "ops_publisher_git_blob": "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e",
@@ -246,7 +246,7 @@
     "same_uid_writers": "BLOCKED",
     "production_ready": false,
     "e2e_status": "PASS_CI_ONLY_PROTOTYPE_SYNTHETIC",
-    "evidence_run": 43596116665,
+    "evidence_run": 43596673650,
     "generation_source_files": 492,
     "actual_privately_published_tree_sha256": "e4aa57ab56c93475842b2f12e880be29c15dcde14665f17803343c97f81dfb6f",
     "actual_manifest_sha256": "a67412cb5e95b7bcababa842420e219938d0300b9414991fbf0b301c155967c7",
@@ -267,7 +267,7 @@
       "COMMITTED_COMBINED_SHA_NOT_CREATED",
       "REAL_BYBIT_HISTORY_UNKNOWN"
     ],
-    "artifact_url": "https://github.com/YehorBabenko88/tester/actions/runs/43596116665/artifacts/14114122128"
+    "artifact_url": "https://github.com/YehorBabenko88/tester/actions/runs/43596673650/artifacts/14115076484"
   },
   "nonself_current_ui_file_blobs": {
     ".github/workflows/capability-browser.yml": {
@@ -279,7 +279,7 @@
       "mode": "100644"
     },
     ".github/workflows/ui74-private-generation-e2e.yml": {
-      "git_blob_sha1": "81cee3b33129ac7d7268810c2daa6ba87cb2c492",
+      "git_blob_sha1": "70a73b817d3f7130a60ab20f283cd06e7dfe454a",
       "mode": "100644"
     },
     "docs/integration/UI74_MASTER77_REPLAY.md": {
