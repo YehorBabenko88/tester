@@ -182,3 +182,25 @@ def test_pg_hostaddr_last_writer_wins_and_missing_guard_rejected(tmp_path):
     research.write_bytes(weak)
     with pytest.raises(ValueError, match="negative_controls_absent"):
         verify_shared_pg_hostaddr_test(data, research, expected_blob=_git_blob(weak))
+
+def test_exact_current_ui_nonself_git_blobs_are_pinned():
+    """Each pinned UI path is exact content, not merely a plausible filename."""
+    handoff = load_manifest()
+    mapping = handoff["nonself_current_ui_file_blobs"]
+    self_path = "docs/integration/ui74-master77-manifest.json"
+    assert set(mapping) == set(handoff["all_changed"]) - {self_path}
+    for relative, expected in mapping.items():
+        path = ROOT / relative
+        assert path.is_file(), relative
+        assert _git_blob(path.read_bytes()) == expected["git_blob_sha1"], relative
+        assert expected["mode"] in {"100644", "100755"}
+    private = handoff["private_generation"]
+    assert private["proposal"] == "CI_ONLY_PROTOTYPE_NO_RELEASE"
+    assert private["production_ready"] is False
+    assert private["generation_attestation"] == "NOT_EXTERNALLY_ATTESTED"
+    assert private["crash_durability"] == "UNKNOWN"
+    assert private["same_uid_writers"] == "BLOCKED"
+    assert private["source_tree_review_sha"] != ""
+    assert private["master_source_sha"] == "5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd"
+    assert private["ops_private_publisher_sha"] == "113d7f3b97f47c86a19dc8590bdbb9809138c4d8"
+    assert private["ui_producer_source_sha"] == "a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96"
