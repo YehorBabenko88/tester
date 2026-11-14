@@ -262,21 +262,79 @@ def run(*, ledger_path: Path, expected_ledger_blob: str, ops_module: Path,
             if code != 0:
                 raise AssertionError("private_generation_pytest_failed:" + str(code))
             results["private_pytest"] = "PASS"
+        # Independent reader generation remains readable after a second
+        # private publication. Neither generation can be garbage-collected.
+        next_generation = prototype.publish_generation(
+            root, blobs=blobs, manifest=manifest,
+            manifest_sha256=manifest_sha, source_pins=ledger["source_pins"],
+        )
+        assert generation != next_generation
+        assert prototype.read_current(root, manifest=manifest,
+                                      manifest_sha256=manifest_sha) == next_generation
+        assert prototype.read_pinned(root, generation, manifest=manifest,
+                                     manifest_sha256=manifest_sha) == generation
+
+        # Test-only malicious same-UID writes to the NEW generation, while
+        # the previously pinned original stays untouched. These checks prove
+        # detection at read time, NOT same-UID isolation or crash durability.
+        next_path = root / "generations" / next_generation
+        next_receipt = next_path / "generation.json"
+        saved_receipt = next_receipt.read_bytes()
+        next_receipt.write_bytes(b'{"status":"FORGED"}')
         try:
-            prototype.retire_generation(root, generation)
-        except prototype.CompositionRefused as exc:
-            assert "gc_disabled_without_reader_leases" in str(exc)
+            prototype.read_current(root, manifest=manifest, manifest_sha256=manifest_sha)
+        except prototype.CompositionRefused:
+            pass
         else:
-            raise AssertionError("GC permitted deleting pinned readers")
+            raise AssertionError("forged_generation_receipt_accepted")
+        next_receipt.write_bytes(saved_receipt)
+
+        original = (next_path / "src/ingest/execution_contract.py")
+        original_bytes = original.read_bytes()
+        original.write_bytes(b"corrupt_private_source")
+        try:
+            prototype.read_pinned(root, next_generation, manifest=manifest,
+                                  manifest_sha256=manifest_sha)
+        except prototype.CompositionRefused:
+            pass
+        else:
+            raise AssertionError("corrupt_generation_blob_accepted")
+        original.write_bytes(original_bytes)
+        current = root / "CURRENT"
+        saved_pointer = current.read_bytes()
+        current.write_bytes(b'{"generation":"00000000000000000000000000000000"}')
+        try:
+            prototype.read_current(root, manifest=manifest, manifest_sha256=manifest_sha)
+        except prototype.CompositionRefused:
+            pass
+        else:
+            raise AssertionError("forged_current_pointer_accepted")
+        current.write_bytes(saved_pointer)
+
+        assert prototype.read_current(root, manifest=manifest,
+                                      manifest_sha256=manifest_sha) == next_generation
+        assert prototype.read_pinned(root, generation, manifest=manifest,
+                                     manifest_sha256=manifest_sha) == generation
+        for pinned in (generation, next_generation):
+            try:
+                prototype.retire_generation(root, pinned)
+            except prototype.CompositionRefused as exc:
+                assert "gc_disabled_without_reader_leases" in str(exc)
+            else:
+                raise AssertionError("GC permitted deleting pinned readers")
         receipt_path = published / "generation.json"
         receipt = json.loads(receipt_path.read_bytes())
-        assert receipt["tree_sha256"] == json.loads((root / "CURRENT").read_bytes())["tree_sha256"]
+        assert receipt["tree_sha256"] == json.loads(saved_pointer)["tree_sha256"]
         results.update({
-            "generation": generation,
+            "reader_pinned_generation": generation,
+            "current_generation": next_generation,
             "generation_receipt_sha256": hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
             "private_manifest_sha256": manifest_sha,
             "private_tree_sha256": receipt["tree_sha256"],
-            "pinning": "read_current+read_pinned_pass",
+            "pinning": "reader_remains_pinned_across_current_switch",
+            "corrupt_generation_receipt_refused": True,
+            "corrupt_generation_file_refused": True,
+            "corrupt_current_pointer_refused": True,
             "gc": "BLOCKED_WITHOUT_READER_LEASES",
         })
     report = {
