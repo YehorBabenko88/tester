@@ -3,8 +3,10 @@
 **REVIEW-ONLY PLAN — NOT_EXECUTED.** These commands are meant for a **fresh,
 isolated GitHub Actions runner**, NEVER the installed PC4, LS5, ADMINIT or the
 user's PostgreSQL cluster. They do not install the native launcher. The
-staging PR #77 is still documentation-only; therefore there is **no combined
-application SHA** to test yet. Never use PR #77's docs-only HEAD as if it
+staging PR #77 now includes a GitHub Actions-only uncommitted source composer;
+its first smoke test compiled 125 transferred files and checked 325 Python
+ASTs, but there is **no immutable combined application commit/tree SHA** for
+full release acceptance yet. Never use PR #77's docs-only HEAD as if it
 represented a composed DATA+RESEARCH+UI+OPS binary.
 
 ## Evidence required before any job
@@ -182,3 +184,24 @@ pins and scope, emits stage dependencies/commands and a SHA256 for the
 **Result as of this document:** combined exact-head test suite
 **NOT_RUN** because #77 does not contain a composed source tree.
 Native installed PC4 restart **BLOCKED**. Full staging release **NO_GO**.
+
+## Current OPS-only composer smoke evidence
+
+The MASTER composer source pinned at
+`4e64ec9f6a1da453019b68e598e235036701739f` has also been exercised
+by the OPS branch on fresh disposable CI runners:
+[OPS run 43578944193](https://github.com/YehorBabenko88/tester/actions/runs/43578944193)
+ran real Win32 birth-bound dual-process/rollback tests on Windows-2025
+and real isolated PostgreSQL16 queue/lease/WAL tests after test-only composition.
+Both jobs **PASS**, but the composer still transports 30 OPS files outside
+the minimal opt-in review list. The negative audit is an intentionally
+successful test that returns `BLOCKED_SCOPE_TOO_BROAD`; it must not be
+reinterpreted as approval of an installable native launcher.
+
+Master source currently checks `CI=true` and an exact staging SHA, not a
+hardware-backed machine identity. The supplied GitHub Actions workflow ran
+on disposable hosted infrastructure. Before any reuse outside that workflow,
+MASTER should add independent explicit runner/workspace validation and
+symlink-safe destination checks. **Never** run the composer against the
+installed PC4 checkout. Those further hardening requirements do not change
+the fact that no PC4 process or production PostgreSQL was touched by this test.
