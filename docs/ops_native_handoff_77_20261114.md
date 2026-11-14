@@ -38,12 +38,13 @@ Runtime source (opt-in, not installed; 12 files):
 - `scripts/ops_resource_metrics.py`
 - `scripts/ops_win32_handle.py`
 
-Focused tests (14 files):
+Focused tests (15 files):
 - `tests/platform/test_ops_candidate_compatibility.py`
 - `tests/platform/test_ops_combined_ci_plan.py`
 - `tests/platform/test_ops_master_composer_audit.py` — read-only exact MASTER overlap regression
 - `tests/platform/test_ops_master_composer_actual_negative.py` — mocked Git diff, isolated symlink/traversal/CI-spoof reproductions
 - `tests/platform/test_ops_master_composer_hardening.py` — negative guard tests in disposable TemporaryDirectory
+- `tests/platform/test_ops_master_composer_v2_negative.py` — sandbox checks of revised MASTER 88ad7a plus residual TOCTOU
 - `tests/platform/test_ops_native_admission.py`
 - `tests/platform/test_ops_native_admission_pg_real.py`
 - `tests/platform/test_ops_native_fixture_launcher.py`
@@ -113,7 +114,7 @@ a deterministic and SHA-bound JSON acceptance matrix; it NEVER invokes a
 command. Its test suite requires immutable reviewed producer pins, rejects
 an accidental user-local CI invocation and all live/native activation flags.
 
-Source handoff selection now contains **12 opt-in runtime modules, 14 focused
+Source handoff selection now contains **12 opt-in runtime modules, 15 focused
 OPS tests and 8 CI/documentation items**. Only after all PG14/PG18/PG16,
 Windows original-handle and rollback, FastAPI/Chromium 13TF, security and
 source-manifest jobs pass on the same combined SHA may MASTER consider the
@@ -134,9 +135,9 @@ or installed Windows service readiness**.
 The revised minimal handoff explicitly includes the previously omitted
 `scripts/ops_pg_claim.py`, a required direct import from the real
 `test_ops_native_admission_pg_real.py`; its approved count is now
-**12 runtime + 14 focused tests + 8 CI/docs = 34 files**. The frozen
-MASTER OPS pin predates five read-only security-audit files, so **29 of these
-34** are present in that historical source. The remaining **30 extra** OPS files
+**12 runtime + 15 focused tests + 8 CI/docs = 35 files**. The frozen
+MASTER OPS pin predates six read-only security-audit files, so **29 of these
+35** are present in that historical source. The remaining **30 extra** OPS files
 which MASTER copied but which are not in the minimal handoff are:
 
 - `docs/ops_dual_resource_receipt.json`
@@ -196,7 +197,7 @@ on the uncommitted 125-file MASTER source composition** (3 original-handle,
 on the same frozen MASTER source composition** (8 fenced lease, recovery,
 rollback and CPU/RAM/WAL/I/O tests PASS). The independent source scope audit
 ran 5/5 PASS while correctly returning `BLOCKED_SCOPE_TOO_BROAD`: 59 OPS
-files copied, 34 currently approved, 30 extras and 5 post-pin security files absent. Those are valid **disposable tests**,
+files copied, 35 currently approved, 30 extras and 6 post-pin security files absent. Those are valid **disposable tests**,
 not proof of narrow opt-in inclusion, native PC4 restart or full global
 PG14/PG18/Chromium source-release acceptance.
 
@@ -213,9 +214,9 @@ immutable producer SHA set.
 ### Handoff-pin consistency requirement
 
 An owner-reviewed **new** combined producer pin is required before the
-updated 34-file selection can be reproduced from Git. The current MASTER
+updated 35-file selection can be reproduced from Git. The current MASTER
 composer pins `0d4649f3a7cd3595ea58757f2abaf2f1b0558667`, which
-contains 29 of the updated selection; the five post-pin static security-audit paths
+contains 29 of the updated selection; the six post-pin static security-audit paths
 are not in that commit:
 
 - `scripts/ops_master_composer_audit.py`
@@ -223,12 +224,13 @@ are not in that commit:
 - `tests/platform/test_ops_master_composer_actual_negative.py`
 - `tests/platform/test_ops_master_composer_audit.py`
 - `tests/platform/test_ops_master_composer_hardening.py`
+- `tests/platform/test_ops_master_composer_v2_negative.py`
 
 This is an explicitly recorded SOURCE-PIN MISMATCH, **not a reason to copy a
 moving OPS branch silently**. The 29 historical paths are still intact;
 no required runtime imports are missing thanks to `ops_pg_claim.py`.
 MASTER can either keep its frozen pin and test the historical list, or
-approve a new exact OPS producer commit and only then use the 34-file
+approve a new exact OPS producer commit and only then use the 35-file
 self-contained handoff, after reviewing every added audit file. Both cases
 must keep installed native activation BLOCKED.
 
@@ -266,3 +268,39 @@ no-follow, directory-fd-relative atomic writes/rename (not a racy
 **in MASTER's own branch**, not silently imported from OPS. Until then the
 verified hosted CI smoke can remain source-only; use elsewhere and native
 PC4 restart are **BLOCKED**.
+
+## MASTER revised composer 88ad7a — independent scope and safety check
+
+MASTER revised `scripts/master_disposable_compose.py` at immutable
+`88ad7a7a82f35d1829b5eb07c0c1d4878741f527`. It adds:
+(1) explicit `GITHUB_ACTIONS=true` and workspace matching, (2) Git
+`ls-tree` rejection of symlink/gitlink modes, (3) a whole-batch preflight
+that refuses existing destination and parent symlinks and `..` paths.
+These checks materially improve the older composer and independently
+prevent the static parent/file symlink and traversal cases in a sandbox.
+
+**Residual blockers:** GitHub environment variables are not hardware-backed
+runner identity; a malicious local environment can still imitate those flags
+if the script is launched against a copied checkout. The prefix-based file
+policy still admits unexpected `scripts/installer_hook.py` and copies the
+full 59-file OPS diff rather than a producer-specific 35-file allowlist.
+Between symlink preflight and `target.write_bytes()`, there is a TOCTOU
+window. The sandbox test deterministically replaces a previously checked
+non-existent target with a symlink immediately before the write, using only
+files under `TemporaryDirectory`; the revised composer follows it. This
+proves the need for directory-descriptor-relative no-follow creation/atomic
+installation, not that any valid GitHub run was compromised.
+
+`tests/platform/test_ops_master_composer_v2_negative.py` loads the exact
+MASTER v2 source without running its `__main__`; uses a fully stubbed
+`git()` and a disposable root to verify normal source-only behavior,
+traversal and protected-worker aliases denied, symlink parent/target denied,
+Git modes `120000`/`160000` denied, and no native launcher/SCM calls.
+It also documents both remaining allowlist and race failures as expected
+negative observations. The dedicated `master-v2-security-readonly`
+GitHub Actions job pins HEAD, runs the complete sandbox matrix, and
+publishes a JSON `BLOCKED_RESIDUAL_TOCTOU_AND_TRUST` evidence artifact.
+
+**No changes in MASTER PR #77 by OPS.** Native installed PC4 restart,
+physical PC4 services, production PostgreSQL 5432 and deployment remain
+BLOCKED/UNTOUCHED. Green source-only smoke is not physical GO.
