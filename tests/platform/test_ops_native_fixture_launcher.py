@@ -141,6 +141,32 @@ class FixtureLauncherTests(unittest.TestCase):
         with self.assertRaises(NativeRestartBlocked):
             self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
 
+    def test_post_spawn_db_running_count_cannot_be_hidden_by_queued_lease(self):
+        observations = [0]
+
+        def pg():
+            observations[0] += 1
+            return {
+                "pg_system_identifier": "disposable-pg",
+                "pg_postmaster_start": "start-time",
+                "active_running": 0 if observations[0] <= 2 else 1,
+                "states": {"queued": 1, "running": 0 if observations[0] <= 2 else 1},
+            }
+
+        self.launcher.pg_probe = pg
+        self.launcher.leases_probe = lambda: {"job-one": "queued"}
+        with self.assertRaises(NativeRestartBlocked):
+            self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
+        self.assertGreaterEqual(observations[0], 3)
+        self.assertEqual(len(self.launcher._children), 2)
+        self.assertEqual([child.poll() for child in self.launcher._children], [0, 0])
+        import json
+        rollback = json.loads(
+            (Path(self.temp.name) / "native-generation-0000-rollback.json").read_text()
+        )
+        self.assertEqual(rollback["status"], "SEALED_PARTIAL")
+        self.assertIs(rollback["restart_permitted"], False)
+
     def test_pg_incarnation_mismatch_blocks_before_spawn(self):
         self.launcher.pg_probe=lambda: {"pg_system_identifier":"foreign",
                                         "pg_postmaster_start":"start-time"}
