@@ -1,0 +1,173 @@
+name: RESEARCH composite DATA PostgreSQL UI acceptance (disposable)
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/research-composed-e2e.yml"
+      - "src/integration/research_ui_projection.py"
+      - "src/integration/data_research_adapter.py"
+      - "tests/platform/test_data_research_adapter_issue59.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research-composed:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      data_pg:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_data_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports: ['55476:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_data_disposable"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      auxiliary_pg:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_composed_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports: ['55477:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_composed_disposable"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      control_pg:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_combined_ci
+          POSTGRES_USER: tester_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['55472:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_ci -d tester_research_combined_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      MASTER_STAGING_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+      DATA_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
+      RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
+      TESTER_RESEARCH_DATA_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55476/tester_research_data_disposable
+      TESTER_AUX_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55477/tester_research_composed_disposable
+      TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
+      CI: "true"
+    steps:
+      - name: Checkout the immutable MASTER staging composer (not PR71 branch)
+        uses: actions/checkout@v4
+        with:
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch and verify frozen producer commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$MASTER_STAGING_SHA"
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            d5bfdad445a1eefb9dc12bf2725a00f171e2c321 \
+            7ec35810434e3c9159f36712a4186595ac637efa \
+            a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 \
+            0d4649f3a7cd3595ea58757f2abaf2f1b0558667; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Compose exact immutable producer tree, no git commit
+        env:
+          EXPECTED_STAGING_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+        run: |
+          set -euo pipefail
+          python scripts/master_disposable_compose.py | tee /tmp/research-composed-manifest.txt
+          grep -F 'COMPOSED_UNCOMMITTED_FILES=125' /tmp/research-composed-manifest.txt
+      - name: Verify RESEARCH and DATA sources are *exact* pinned bytes
+        run: |
+          python - <<'PY'
+          import hashlib, os, pathlib, subprocess
+          research = os.environ["RESEARCH_SOURCE_SHA"]
+          data = os.environ["DATA_SOURCE_SHA"]
+          for sha, path in [
+              (research, "src/analytics/research_metrics.py"),
+              (research, "src/integration/data_research_adapter.py"),
+              (research, "src/integration/research_preview.py"),
+              (research, "src/integration/research_ui_projection.py"),
+              (research, "tests/platform/test_research_metrics_issue59.py"),
+              (research, "tests/platform/test_research_preview_issue59.py"),
+              (research, "tests/platform/test_research_preview_adapter_issue59.py"),
+              (research, "tests/platform/test_data_research_adapter_issue59.py"),
+              (research, ".github/workflows/research-issue59.yml"),
+              (data, "src/ingest/execution_contract.py"),
+              (data, "src/storage/migrations/008_public_unknown_taker_side.sql"),
+              (data, "tests/test_execution_contract_bridge.py"),
+              (data, "tests/platform/test_research_postgres.py"),
+          ]:
+              expected = subprocess.check_output(["git", "show", f"{sha}:{path}"])
+              actual = pathlib.Path(path).read_bytes()
+              assert actual == expected, f"Composed bytes mismatch: {path}"
+              print(path, hashlib.sha256(actual).hexdigest())
+          base = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
+          for path in (
+              "src/integration/pc4_runtime.py", "src/api/worker.py",
+              "pyproject.toml",
+          ):
+              original = subprocess.check_output(["git", "show", f"{base}:{path}"])
+              assert pathlib.Path(path).read_bytes() == original, (
+                  "Protected PC4/runtime source changed during composition", path
+              )
+          composer = subprocess.check_output([
+              "git", "show", f"{os.environ['MASTER_STAGING_SHA']}:scripts/master_disposable_compose.py"
+          ])
+          assert pathlib.Path("scripts/master_disposable_compose.py").read_bytes() == composer
+          print("COMPOSED_RESEARCH_ALL_PATHS_AND_PROTECTED_SOURCE_PASS")
+          old = subprocess.check_output(["git", "show", f"{research}:tests/platform/test_research_postgres.py"])
+          current = pathlib.Path("tests/platform/test_research_postgres.py").read_bytes()
+          assert current == old, "DATA/RESEARCH PGHOSTADDR overlap conflict"
+          from src.ingest.execution_contract import VERSION
+          assert VERSION == "tester-public-execution/1"
+          from src.integration.research_ui_projection import SCHEMA
+          assert SCHEMA == "tester.research-ui-observation/1"
+          print("COMPOSED_RESEARCH_BYTES_AND_VERSION_PASS")
+          PY
+      - name: Overlay only exact PR71 negative tests (never runtime code)
+        shell: bash
+        env:
+          RESEARCH_TEST_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$RESEARCH_TEST_HEAD"
+          test "$(git rev-parse "$RESEARCH_TEST_HEAD^{commit}")" = "$RESEARCH_TEST_HEAD"
+          git show "$RESEARCH_TEST_HEAD:tests/platform/test_research_composed_negative_issue59.py" > tests/platform/test_research_composed_negative_issue59.py
+          python -m compileall -q tests/platform/test_research_composed_negative_issue59.py
+          echo "NEGATIVE_TEST_OVERLAY_ONLY=$RESEARCH_TEST_HEAD"
+      - name: Install pinned dependencies and compile
+        run: |
+          python -m pip install -e '.[dev]' -c requirements-platform.lock
+          python -m compileall -q src/analytics/research_metrics.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py
+      - name: Research arithmetic, UI contract, UNKNOWN and no-lookahead
+        run: |
+          python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+          python -m pytest -q tests/platform/test_research_composed_negative_issue59.py -k "not actual_postgres"
+      # The pinned MASTER tree may predate RESEARCH's Ruff-only import fix.
+      # Independent Research Issue59 CI runs Ruff on the latest producer HEAD.
+      # This workflow does NOT certify composed-tree Ruff or full release.
+      - name: Actual disposable DATA PostgreSQL 16 → RESEARCH UI readback
+        run: |
+          python -m unittest tests.test_execution_contract_bridge -v
+          python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres or disposable_pg"
+          python -m unittest tests.test_composed_data_research_postgres -v
+          python -m pytest -q tests/platform/test_research_composed_negative_issue59.py -k "actual_postgres"
+      - name: Pinned research control PostgreSQL, F/G/E auth and hostaddr fencing
+        run: python -m pytest -q tests/platform/test_research_postgres.py tests/platform/test_combined_routes.py
+      - name: Upload exact immutable composition manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-71-composed-e2e-manifest
+          path: /tmp/research-composed-manifest.txt
+          if-no-files-found: ignore
+          retention-days: 14

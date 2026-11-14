@@ -1,0 +1,95 @@
+name: Research Issue 59 isolated checks
+on:
+  pull_request:
+    paths:
+      - "src/analytics/research_metrics.py"
+      - "src/integration/research_preview.py"
+      - "src/integration/data_research_adapter.py"
+      - "src/integration/research_ui_projection.py"
+      - "tests/platform/test_research_metrics_issue59.py"
+      - "tests/platform/test_research_preview_issue59.py"
+      - "tests/platform/test_research_preview_adapter_issue59.py"
+      - "tests/platform/test_data_research_adapter_issue59.py"
+      - ".github/workflows/research-issue59.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research-metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated test dependencies
+        run: python -m pip install "pytest>=8,<10" "ruff>=0.11,<1" "psycopg[binary]>=3.2,<4"
+      - name: Compile research sources and tests
+        run: python -m compileall -q src/analytics/research_metrics.py src/integration/research_preview.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+      - name: Focused tests
+        run: python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+      - name: Ruff research sources
+        run: python -m ruff check src/analytics/research_metrics.py src/integration/research_preview.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+
+  research-disposable-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_data_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_data_disposable"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TESTER_RESEARCH_DATA_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:5432/tester_research_data_disposable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Checkout reviewed DATA #72 at exact immutable HEAD
+        uses: actions/checkout@v4
+        with:
+          ref: f78349b1ad7bb754baee380f59bca67f2b1d2009
+          path: data72-reviewed
+      - name: Test-only composition, no git commit or merge
+        run: |
+          cp data72-reviewed/src/ingest/execution_contract.py src/ingest/execution_contract.py
+          cp data72-reviewed/src/ingest/public_auxiliary.py src/ingest/public_auxiliary.py
+          cp data72-reviewed/src/storage/models.py src/storage/models.py
+          cp data72-reviewed/src/storage/migrations/008_public_unknown_taker_side.sql src/storage/migrations/008_public_unknown_taker_side.sql
+          cp data72-reviewed/tests/test_execution_contract_bridge.py tests/test_execution_contract_bridge.py
+      - name: Install isolated test dependencies
+        run: python -m pip install "pytest>=8,<10" "psycopg[binary]>=3.2,<4"
+      - name: Validate pinned DATA execution contract SHA
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          raw = Path("src/ingest/execution_contract.py").read_bytes()
+          print("DATA contract source sha256:", hashlib.sha256(raw).hexdigest())
+          assert b'VERSION = "tester-public-execution/1"' in raw
+          # Migration 008 only adds source-authentic Unknown to trade-side
+          # domains. Earlier identity, price and size CHECKs remain required.
+          sql = Path("src/storage/migrations/008_public_unknown_taker_side.sql").read_text()
+          assert sql.count("IN ('Buy','Sell','Unknown')") == 2
+          assert "ADD CONSTRAINT raw_records_check2" in sql
+          assert "ADD CONSTRAINT trade_side_required" in sql
+          assert "trade_id IS NOT NULL" in sql
+          assert "price > 0 AND size > 0" in sql
+          PY
+      - name: DATA original-HTTP contract unit tests
+        run: python -m unittest tests.test_execution_contract_bridge -v
+      - name: DATA↔RESEARCH composed adapter and real disposable PostgreSQL
+        run: python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres or disposable_pg"
