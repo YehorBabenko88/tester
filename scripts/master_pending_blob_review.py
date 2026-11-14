@@ -58,7 +58,15 @@ def main() -> None:
                 ),
                 "approved": False,
             })
-        result["producers"][label] = {"head": sha, "pending": pending}
+        runtime_pending = [entry["path"] for entry in pending if entry["path"].startswith(("src/", "frontend/"))]
+        if runtime_pending:
+            raise SystemExit(f"{label}: new runtime paths require explicit review: {runtime_pending}")
+        result["producers"][label] = {
+            "head": sha, "pending": pending,
+            "runtime_path_additions": runtime_pending,
+            "runtime_path_additions_checked": True,
+            "admission_status": "NOT_APPROVED",
+        }
     print(json.dumps(result, sort_keys=True, indent=2))
 
 
