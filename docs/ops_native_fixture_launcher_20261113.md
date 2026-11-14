@@ -110,3 +110,41 @@ PostgreSQL and Windows process creation, no combined physical native Windows
 + PostgreSQL acceptance, no sustained real Bybit workload or hard CPU/RAM/I/O
 caps. Installed PC4 stays untouched and BLOCKED; neither these source changes
 nor successful prior CI implies release GO.
+
+## MASTER staging #77 source contract preflight — 2026-11-14
+
+The **new** `scripts/ops_candidate_compatibility.py` is a non-activating,
+read-only source scanner for the exact candidate producer interfaces.
+Its independent CI job checks out immutable DATA #72
+`f78349b1ad7bb754baee380f59bca67f2b1d2009`, RESEARCH #71
+`b11b79832d1b0d848773ff077a36e7cb0595fdcb`, and UI #74
+`fd151168473f4add97ee286b008d4540b49ac566` including UI #70 ancestry.
+The frozen PC4 baseline supplies installed `pc4_runtime`, `api/main.py`
+and `api/worker.py` for a *static only* review. The job checks each exact
+Git commit before reading the corresponding Python sources.
+
+Source contracts identified:
+- DATA exports `read_execution_events` / `read_research_trades`;
+  RESEARCH exports `read_data_metrics` and the explicit F denial seam;
+  the UI source declares `/api/capabilities`.
+- Installed PC4 uses `pc4-shutdown.request`, and the original API/worker
+  use the unscoped `stop.request`. They do **not** implement OPS-owned
+  `OPS_GENERATION` + `OPS_STOP_PATH` + `OPS_CHECKPOINT_PATH` birth-bound
+  cooperative stop/exit receipts. No code in PR #73 alters their behavior.
+- Even an AST source containing all marker strings is **not** proof of an
+  external Win32 original-handle guardian or a real PostgreSQL startup lease
+  transaction. The scanner always returns
+  `installed_native_activation=BLOCKED`,
+  `pc4_restart_authorized=false`, `default_activation_enabled=false`.
+- The report hashes the exact source texts and UI API source as a
+  reproducible manifest; its hash cannot attest live processes or historical
+  source data. `require_installed_native_activation` always rejects.
+
+This static-only composition check does not resolve staging #77's unrelated
+OpenAPI Kind enum drift, research `PGHOSTADDR` environment issue or the
+combined F/G/D 404 route. Those require separate owner-reviewed changes.
+
+**No auto-enable:** the native launcher remains confined to Windows disposable
+GitHub Actions children. It is not imported by installed `pc4_runtime`,
+`src.api.main`, or `src.api.worker`. PC4 native restart remains BLOCKED,
+regardless of independent producer CI successes.
