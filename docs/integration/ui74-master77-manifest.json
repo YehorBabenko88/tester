@@ -4,7 +4,7 @@
   "source": {
     "pr": 74,
     "branch": "workstream/ui-capability-wiring-20261113",
-    "reviewed_head": "88650d819d5044d4c3796e89cc1809d5ca58d83a",
+    "reviewed_head": "bb28e85e73576fed35301802c287eb4341274b74",
     "base_pr": 70,
     "base_head": "6240b6665fb3125c06eb91ef535b96700988a7ab",
     "ancestor": "3b2eef8a4139195db1a775545e83f1c1f58bf403"
