@@ -22,6 +22,8 @@ class NativePgAdmissionTests(unittest.TestCase):
         from src.api.db import connect
         from scripts.ops_admission_pg import read_admission_pg, safe_lease_states
         from scripts.ops_native_admission import NativeAdmission, NativePin
+        from scripts.ops_native_fixture_launcher import DisposableWin32Launcher
+        from types import SimpleNamespace
         from scripts.ops_native_windows_witness import NativeRestartBlocked
         from scripts.ops_pg_claim import claim_existing
 
@@ -42,11 +44,20 @@ class NativePgAdmissionTests(unittest.TestCase):
                 admission = NativeAdmission(root, pin)
                 pg = lambda: read_admission_pg(DSN)
                 leases = lambda: safe_lease_states(pg())
+                # Run the same post-spawn fence against a real disposable PG
+                # using injected read-only probes; no Win32 process here.
+                fence = object.__new__(DisposableWin32Launcher)
+                fence.admission = SimpleNamespace(pin=pin)
+                fence.pg_probe = pg
+                fence.leases_probe = leases
+                fence._post_spawn_fence()
                 path = admission.reserve(0, previous_exit_validator=lambda _: False,
                                          pg_probe=pg, leases_probe=leases)
                 self.assertTrue((path/"reservation.json").is_file())
                 lease = claim_existing(DSN, str(uid))
                 self.assertIsNotNone(lease)
+                with self.assertRaises(NativeRestartBlocked):
+                    fence._post_spawn_fence()
                 with self.assertRaises(NativeRestartBlocked):
                     admission.reserve(1, previous_exit_validator=lambda _: True,
                                       pg_probe=pg, leases_probe=leases)
