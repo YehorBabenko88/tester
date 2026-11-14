@@ -9,9 +9,12 @@ from pathlib import Path
 
 from scripts.ops_candidate_compatibility import SCHEMA
 from scripts.ops_native_optin_handoff import (
+    CI_AND_DOC_FILES,
     HANDOFF_SCHEMA,
     PINNED_PRODUCERS,
     PREPARE_ONLY,
+    RUNTIME_FILES,
+    TEST_FILES,
     prepare_native_source_handoff,
     require_live_native_activation,
 )
@@ -64,10 +67,6 @@ class OptinHandoffTests(unittest.TestCase):
             require_live_native_activation(plan)
 
     def test_minimal_handoff_includes_all_test_runtime_ops_dependencies(self):
-        from scripts.ops_native_optin_handoff import (
-            CI_AND_DOC_FILES, RUNTIME_FILES, TEST_FILES,
-        )
-
         root = Path(__file__).resolve().parents[2]
         selected = set((*RUNTIME_FILES, *TEST_FILES, *CI_AND_DOC_FILES))
         self.assertIn("scripts/ops_pg_claim.py", selected)
