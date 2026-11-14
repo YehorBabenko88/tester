@@ -50,8 +50,12 @@ DEPENDENCIES = {
     },
     "research_ui_observation": {
         "contract_version": "tester.research-ui-observation/1",
-        "trusted_readback": "src.integration.research_ui_projection.read_verified_ui_observation",
-        "pure_projection": "src.integration.research_ui_projection.project_source_observation",
+        "trusted_readback": (
+            "src.integration.research_ui_projection.read_verified_ui_observation"
+        ),
+        "pure_projection": (
+            "src.integration.research_ui_projection.project_source_observation"
+        ),
         "requires": [DATA_EXECUTION_VERSION, RESEARCH_METRICS_VERSION],
         "http_route": None,
         "http_route_status": "NOT_REGISTERED",
