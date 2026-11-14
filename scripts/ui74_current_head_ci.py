@@ -132,11 +132,16 @@ def build(args):
     audited, parity, counts = source(root)
     blobs = [ops.ReviewedBlob(p, raw, frozen.sha256(raw), sha, mode) for p, raw, mode, _, sha in audited]
     pins = {"BASE": BASE_SHA, "MASTER": MASTER_SHA, **PRODUCER_PINS, "OPS_PUBLISHER": OPS_PUBLISHER_COMMIT}
-    manifest = ops.canonical(dict(
-        schema=ops.SCHEMA,
-        source_pins=pins,
-        files=[dict(path=b.path, sha256=b.sha256, git_blob_sha1=b.git_blob_sha1, mode=b.mode) for b in blobs],
-    ))
+    manifest = ops.canonical(
+        dict(
+            schema=ops.SCHEMA,
+            source_pins=pins,
+            files=[
+                dict(path=b.path, sha256=b.sha256, git_blob_sha1=b.git_blob_sha1, mode=b.mode)
+                for b in blobs
+            ],
+        )
+    )
     private.mkdir(mode=0o700)
     private.chmod(0o700)
     generation = ops.publish_generation(
