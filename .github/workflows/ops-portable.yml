@@ -35,6 +35,7 @@ jobs:
           python -m unittest discover -s tests/platform -p 'test_ops_native_windows_rollback.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_native_admission.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_native_scoped_stop.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_optin_handoff.py' -v
   portable-pg:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -148,6 +149,7 @@ jobs:
           import os
           from pathlib import Path
           from scripts.ops_candidate_compatibility import review_candidate_sources
+          from scripts.ops_native_optin_handoff import (PREPARE_ONLY, PINNED_PRODUCERS, prepare_native_source_handoff)
 
           root = Path.cwd()
           sources = {
@@ -167,7 +169,16 @@ jobs:
           Path("ops-candidate-compatibility.json").write_text(
               json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8"
           )
+          plan = prepare_native_source_handoff(
+              report, producer_heads=PINNED_PRODUCERS, opt_in=PREPARE_ONLY
+          )
+          if plan["automatic_activation"] or plan["ready_to_merge_or_install"]:
+              raise SystemExit("OPS source handoff attempted live installation")
+          Path("ops-77-native-source-handoff.json").write_text(
+              json.dumps(plan, sort_keys=True, indent=2) + "\\n", encoding="utf-8"
+          )
           print("OPS candidate manifest:", report["manifest_sha256"])
+          print("OPS opt-in source-only handoff:", plan["plan_sha256"])
           print("Native blocked; unresolved gates:", len(report["blockers"]))
           PY
       - name: Upload immutable OPS source compatibility evidence
@@ -175,6 +186,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ops-77-source-compatibility
-          path: ops-candidate-compatibility.json
+          path: |
+            ops-candidate-compatibility.json
+            ops-77-native-source-handoff.json
           if-no-files-found: ignore
           retention-days: 14
