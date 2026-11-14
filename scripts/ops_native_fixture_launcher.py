@@ -124,6 +124,12 @@ class DisposableWin32Launcher:
             type(pg["active_running"]) is not int or pg["active_running"] != 0
         ):
             raise NativeRestartBlocked("Post-spawn running PostgreSQL lease")
+        states = pg.get("states")
+        if states is not None:
+            if (not isinstance(states, dict)
+                    or type(states.get("running", 0)) is not int
+                    or states.get("running", 0) != 0):
+                raise NativeRestartBlocked("Post-spawn PostgreSQL queue is not quiescent")
         leases = dict(self.leases_probe())
         if any(value not in {"queued", "completed", "failed", "paused"}
                for value in leases.values()):
@@ -151,6 +157,7 @@ class DisposableWin32Launcher:
                 observe=self._observe, root=self.root)
             witness.require_both_live()
             self._post_spawn_fence()  # a lease/PG could change while children spawn
+            witness.require_both_live()  # both must STILL be live after PG query
             pair = LaunchedPair(generation, api, worker, witness)
             self._pairs[generation] = pair
             return pair
