@@ -189,10 +189,42 @@ class PostgresTests(unittest.TestCase):
                     (n['record_key'],self.symbol,n['timestamp_ms'],n['trade_id'],Jsonb(n['payload']),n['content_hash']))
                 c.execute('INSERT INTO tester_storage.record_sources VALUES(%s,%s,%s,%s,%s,now())',
                     (digest([n['record_key'],n['source'],raw]),n['record_key'],self.symbol,Jsonb(n['source']),Jsonb(raw)))
+            # A historical v1 row and its unattested original source are
+            # immutable across the 001 -> 008 upgrade, including exact Decimal
+            # payloads, trade identity and original source JSON bytes.
+            with psycopg.connect(target) as c:
+                raw_before=c.execute('''SELECT record_key,trade_id,id_origin,
+                    timestamp_ms,payload,content_hash FROM tester_storage.raw_records
+                    WHERE record_key=%s''',(n['record_key'],)).fetchone()
+                sources_before=c.execute('''SELECT source_id,record_key,symbol,
+                    source,raw_envelope FROM tester_storage.record_sources
+                    WHERE record_key=%s ORDER BY source_id''',(n['record_key'],)).fetchall()
+                self.assertIsNotNone(raw_before)
+                self.assertEqual(len(sources_before),1)
             with psycopg.connect(target) as c:
                 migrate(c)
                 self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.raw_records').fetchone()[0],1)
                 self.assertEqual(c.execute('SELECT max(version) FROM tester_storage.schema_migrations').fetchone()[0],8)
+                raw_after=c.execute('''SELECT record_key,trade_id,id_origin,
+                    timestamp_ms,payload,content_hash FROM tester_storage.raw_records
+                    WHERE record_key=%s''',(n['record_key'],)).fetchone()
+                sources_after=c.execute('''SELECT source_id,record_key,symbol,
+                    source,raw_envelope FROM tester_storage.record_sources
+                    WHERE record_key=%s ORDER BY source_id''',(n['record_key'],)).fetchall()
+                self.assertEqual(raw_after,raw_before)
+                self.assertEqual(sources_after,sources_before)
+                self.assertEqual(raw_after[0],n['record_key'])
+                self.assertEqual(raw_after[1],n['trade_id'])
+                self.assertEqual(raw_after[4],n['payload'])
+                self.assertEqual(raw_after[5],n['content_hash'])
+                constraints=dict(c.execute('''SELECT conname,pg_get_constraintdef(oid)
+                    FROM pg_constraint WHERE conrelid='tester_storage.raw_records'::regclass
+                    AND conname IN ('raw_records_check2','trade_side_required')''').fetchall())
+                self.assertEqual(set(constraints),{'raw_records_check2','trade_side_required'})
+                for definition in constraints.values():
+                    self.assertIn('Unknown',definition)
+                    self.assertIn('Buy',definition)
+                    self.assertIn('Sell',definition)
             provenance=Store(target).provenance([n['record_key']])[n['record_key']]
             self.assertFalse(provenance['authentic'])
             self.assertEqual(len(provenance['unlinked_sources']),1)
