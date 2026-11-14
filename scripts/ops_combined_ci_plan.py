@@ -67,6 +67,11 @@ def combined_acceptance_plan(*, combined_sha: str, ops_sha: str,
     original = {k: v for k, v in handoff.items() if k != "plan_sha256"}
     if handoff.get("plan_sha256") != _digest(original):
         raise ValueError("ops_handoff_checksum_mismatch")
+    if any(
+        producer_shas[role] != PINNED_PRODUCERS[role]
+        for role in ("data", "research", "ui")
+    ):
+        raise ValueError("new_combined_producer_selection_requires_master_review")
 
     # Commands are copied from repository workflows, then grouped into
     # CI-only stages. The external runner is responsible for setting up the
