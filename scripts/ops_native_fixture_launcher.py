@@ -107,6 +107,28 @@ class DisposableWin32Launcher:
             time.sleep(.025)
         raise NativeRestartBlocked("Native child could not be birth-enrolled")
 
+    def _post_spawn_fence(self) -> None:
+        """Recheck PG incarnation and leases AFTER both child births are proven.
+
+        Pre-reservation checks alone leave a race in which a lease starts or
+        PostgreSQL restarts during subprocess startup. Refuse and cooperatively
+        roll back; never use a stale preflight observation as permission.
+        This is a disposable guard, NOT an atomic installed-runtime PG lock.
+        """
+        pin = self.admission.pin
+        pg = dict(self.pg_probe())
+        if (pg.get("pg_system_identifier") != pin.pg_system_identifier
+                or pg.get("pg_postmaster_start") != pin.pg_postmaster_start):
+            raise NativeRestartBlocked("Post-spawn PostgreSQL incarnation changed")
+        if "active_running" in pg and (
+            type(pg["active_running"]) is not int or pg["active_running"] != 0
+        ):
+            raise NativeRestartBlocked("Post-spawn running PostgreSQL lease")
+        leases = dict(self.leases_probe())
+        if any(value not in {"queued", "completed", "failed", "paused"}
+               for value in leases.values()):
+            raise NativeRestartBlocked("Post-spawn active/unverified lease")
+
     def start_pair(self, *, api_argv: tuple[str, ...],
                    worker_argv: tuple[str, ...]) -> LaunchedPair:
         pin = self.admission.pin
@@ -128,6 +150,7 @@ class DisposableWin32Launcher:
                 api_handle=api.handle, worker_handle=worker.handle,
                 observe=self._observe, root=self.root)
             witness.require_both_live()
+            self._post_spawn_fence()  # a lease/PG could change while children spawn
             pair = LaunchedPair(generation, api, worker, witness)
             self._pairs[generation] = pair
             return pair
