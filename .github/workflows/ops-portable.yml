@@ -136,3 +136,45 @@ jobs:
           OPS_CANDIDATE_RESEARCH_ROOT: "${{ github.workspace }}/candidate-research"
           OPS_CANDIDATE_UI_ROOT: "${{ github.workspace }}/candidate-ui"
         run: python -m unittest discover -s tests/platform -p 'test_ops_candidate_compatibility.py' -v
+      - name: Emit immutable source-only OPS compatibility report
+        env:
+          OPS_CANDIDATE_DATA_ROOT: "${{ github.workspace }}/candidate-data"
+          OPS_CANDIDATE_RESEARCH_ROOT: "${{ github.workspace }}/candidate-research"
+          OPS_CANDIDATE_UI_ROOT: "${{ github.workspace }}/candidate-ui"
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.ops_candidate_compatibility import review_candidate_sources
+
+          root = Path.cwd()
+          sources = {
+              "pc4": root / "src/integration/pc4_runtime.py",
+              "api": root / "src/api/main.py",
+              "worker": root / "src/api/worker.py",
+              "data": Path(os.environ["OPS_CANDIDATE_DATA_ROOT"]) / "src/ingest/execution_contract.py",
+              "research": Path(os.environ["OPS_CANDIDATE_RESEARCH_ROOT"]) / "src/integration/data_research_adapter.py",
+          }
+          ui = Path(os.environ["OPS_CANDIDATE_UI_ROOT"]) / "src/api/main.py"
+          report = review_candidate_sources(
+              {key: path.read_text(encoding="utf-8") for key, path in sources.items()},
+              ui_api_source=ui.read_text(encoding="utf-8"),
+          )
+          if report["installed_native_activation"] != "BLOCKED" or report["pc4_restart_authorized"]:
+              raise SystemExit("Refusing unauthorized native activation")
+          Path("ops-candidate-compatibility.json").write_text(
+              json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+          )
+          print("OPS candidate manifest:", report["manifest_sha256"])
+          print("Native blocked; unresolved gates:", len(report["blockers"]))
+          PY
+      - name: Upload immutable OPS source compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-77-source-compatibility
+          path: ops-candidate-compatibility.json
+          if-no-files-found: ignore
+          retention-days: 14
