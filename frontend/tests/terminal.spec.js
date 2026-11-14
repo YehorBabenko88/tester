@@ -789,11 +789,24 @@ test("strategy workspace fails closed before validated F outputs exist", async (
   await setup(page);
   for (const name of [
     "Strategy preview",
-    "Trader disclosures and hypotheses",
+    "Stop Loss / Take Profit",
+    "Simulation journal",
+    "Equity",
+    "Drawdown",
+    "Trade overlays",
   ]) {
     const panel = page.getByRole("region", { name, exact: true });
+    await expect(panel).toHaveCount(1);
     await expect(panel).toContainText("DATA_UNAVAILABLE");
+    await expect(panel).toContainText("validated simulation");
   }
+  const disclosures = page.getByRole("region", {
+    name: "Trader disclosures and hypotheses",
+    exact: true,
+  });
+  await expect(disclosures).toContainText("DATA_UNAVAILABLE");
+  await expect(disclosures).toContainText("NOT_INTEGRATED");
+  await expect(disclosures).toContainText("UNKNOWN");
   await expect(page.locator("#strategy-run")).toBeDisabled();
   await expect(page.locator("#strategy-execution-status")).toContainText(
     "DATA_UNAVAILABLE",
