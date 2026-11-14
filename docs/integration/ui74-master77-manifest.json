@@ -15,10 +15,11 @@
     "frontend/capabilities.js",
     "frontend/tests/capabilities.test.js"
   ],
-  "total_changed": 37,
+  "total_changed": 39,
   "all_changed": [
     ".github/workflows/capability-browser.yml",
     ".github/workflows/ui74-master-composed-e2e.yml",
+    ".github/workflows/ui74-private-generation-e2e.yml",
     "docs/integration/UI74_MASTER77_REPLAY.md",
     "docs/integration/ui74-master77-manifest.json",
     "docs/proposals/download-kind-v1_1.json",
@@ -44,6 +45,7 @@
     "scripts/capability_fixture_server.py",
     "scripts/compare_download_kind_proposal.py",
     "scripts/diagnose_ui_contract_drift.py",
+    "scripts/ui74_private_generation_ci.py",
     "scripts/verify_ui_source_contracts.py",
     "src/api/capability_data_bridge.py",
     "src/api/capability_discovery.py",
@@ -83,6 +85,7 @@
       "scripts/capability_fixture_server.py",
       "scripts/compare_download_kind_proposal.py",
       "scripts/diagnose_ui_contract_drift.py",
+      "scripts/ui74_private_generation_ci.py",
       "scripts/verify_ui_source_contracts.py",
       "tests/platform/test_capability_data_bridge.py",
       "tests/platform/test_capability_discovery.py",
@@ -93,6 +96,7 @@
     "ci_and_documentation": [
       ".github/workflows/capability-browser.yml",
       ".github/workflows/ui74-master-composed-e2e.yml",
+      ".github/workflows/ui74-private-generation-e2e.yml",
       "docs/integration/UI74_MASTER77_REPLAY.md",
       "docs/integration/ui74-master77-manifest.json",
       "docs/proposals/download-kind-v1_1.json",
@@ -227,5 +231,174 @@
     "pghostaddr_shared_test_blob": "402c25410ba4cc6704911148b1ec0c5bba720088",
     "composed_browser_ci": "UI74_DISPOSABLE_WORKFLOW_ADDED_PENDING_EXECUTION",
     "composed_browser_workflow": ".github/workflows/ui74-master-composed-e2e.yml"
+  },
+  "private_generation": {
+    "proposal": "CI_ONLY_PROTOTYPE_NO_RELEASE",
+    "source_tree_review_sha": "072efe1c424bfc15461489d92bdc2392197931fd",
+    "master_source_sha": "5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd",
+    "ops_private_publisher_sha": "113d7f3b97f47c86a19dc8590bdbb9809138c4d8",
+    "ops_publisher_git_blob": "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e",
+    "expected_reviewed_allowlist_git_blob": "08482cd45a3f46b5b8168aab2b7b19f63acb30fb",
+    "ui_producer_source_sha": "a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96",
+    "generation_source_tree_sha256": "DETERMINED_BY_CI_PUBLISHED_RECEIPT",
+    "generation_attestation": "NOT_EXTERNALLY_ATTESTED",
+    "crash_durability": "UNKNOWN",
+    "same_uid_writers": "BLOCKED",
+    "production_ready": false,
+    "e2e_status": "NOT_RUN_AT_MANIFEST_CREATION"
+  },
+  "nonself_current_ui_file_blobs": {
+    ".github/workflows/capability-browser.yml": {
+      "git_blob_sha1": "263c95d1f51988ff55db3d86eb5c153538727ee7",
+      "mode": "100644"
+    },
+    ".github/workflows/ui74-master-composed-e2e.yml": {
+      "git_blob_sha1": "f5653990cc673388ee27b245a2fc32d341c9fa8b",
+      "mode": "100644"
+    },
+    ".github/workflows/ui74-private-generation-e2e.yml": {
+      "git_blob_sha1": "38f337b9cec4dc5ae7e48efe2541bbd6bea9b88e",
+      "mode": "100644"
+    },
+    "docs/integration/UI74_MASTER77_REPLAY.md": {
+      "git_blob_sha1": "8f1b2c8ba5d6b20135fe15f5cd648ff7162c9e42",
+      "mode": "100644"
+    },
+    "docs/proposals/download-kind-v1_1.json": {
+      "git_blob_sha1": "7d8cc6bf8ec1323fae09fcf261a361292e811d33",
+      "mode": "100644"
+    },
+    "docs/ui-capability-contract.md": {
+      "git_blob_sha1": "21dc347c38224d74a8aef47908234a7429f9c92a",
+      "mode": "100644"
+    },
+    "docs/ui-capability-protocol-v1.schema.json": {
+      "git_blob_sha1": "57df7a7e6ca99b94ff66e7d032c39e93af4e4906",
+      "mode": "100644"
+    },
+    "frontend/api.js": {
+      "git_blob_sha1": "058dbe1b7af71f19ab8d0ef242e5f3ea48e83f95",
+      "mode": "100644"
+    },
+    "frontend/app.js": {
+      "git_blob_sha1": "093a98733df41b228572aef0e70ed051b7ac0026",
+      "mode": "100644"
+    },
+    "frontend/capabilities.js": {
+      "git_blob_sha1": "aa8844bc3dd3fc74b48c538e32d43ca79bb98ad5",
+      "mode": "100644"
+    },
+    "frontend/index.html": {
+      "git_blob_sha1": "6f655c37fa92c31fb855b3c69ba32e0f2b724de0",
+      "mode": "100644"
+    },
+    "frontend/observed-auxiliary.js": {
+      "git_blob_sha1": "4feb743f180758593f368ab6bfa95df8d8e2184c",
+      "mode": "100644"
+    },
+    "frontend/observed-research.js": {
+      "git_blob_sha1": "22176d950fabfc74b14d32559fe7d0020504c4b6",
+      "mode": "100644"
+    },
+    "frontend/playwright.capability.config.js": {
+      "git_blob_sha1": "6a793019ee5156352aff3312b1fc186db7e32211",
+      "mode": "100644"
+    },
+    "frontend/series.js": {
+      "git_blob_sha1": "e4277ed5e358634d440743c55cf87dd96411a506",
+      "mode": "100644"
+    },
+    "frontend/tests/capabilities.test.js": {
+      "git_blob_sha1": "320207bb603a99564218bdb59a5eb55f1c42efd5",
+      "mode": "100644"
+    },
+    "frontend/tests/capability-backend.e2e.js": {
+      "git_blob_sha1": "0d8e25b741f4932390fd8d0e781488d6eb270aac",
+      "mode": "100644"
+    },
+    "frontend/tests/capability-wiring.test.js": {
+      "git_blob_sha1": "111e72f968fb5c40654256c75bc201c1ef1406bd",
+      "mode": "100644"
+    },
+    "frontend/tests/combined-backend.e2e.js": {
+      "git_blob_sha1": "6efdff220e989775f1587104a2e478dcbd06cdbd",
+      "mode": "100644"
+    },
+    "frontend/tests/native-gestures.spec.js": {
+      "git_blob_sha1": "271ebff485492652cb1a6ca2b7775e891a0ee040",
+      "mode": "100644"
+    },
+    "frontend/tests/observed-auxiliary.test.js": {
+      "git_blob_sha1": "051784ce85cd43c79642210406be3ea11332ef86",
+      "mode": "100644"
+    },
+    "frontend/tests/observed-research.test.js": {
+      "git_blob_sha1": "b408855c3161c45dd4a4feeac1e2ebaeb63b9a94",
+      "mode": "100644"
+    },
+    "frontend/tests/price-only-timeframes.test.js": {
+      "git_blob_sha1": "08fb8e9368502edaf146a898ddd4c7354cd54982",
+      "mode": "100644"
+    },
+    "frontend/tests/terminal.spec.js": {
+      "git_blob_sha1": "7e4a2c008597c6a152e80578d3a5c51606392445",
+      "mode": "100644"
+    },
+    "scripts/capability_fixture_server.py": {
+      "git_blob_sha1": "7ab3f54a7512c1355e8b625f7801127add4bdfb2",
+      "mode": "100644"
+    },
+    "scripts/compare_download_kind_proposal.py": {
+      "git_blob_sha1": "ff57262703b2c5933a5813ae61e74e9fa62ac0f7",
+      "mode": "100644"
+    },
+    "scripts/diagnose_ui_contract_drift.py": {
+      "git_blob_sha1": "622cb45e4c250aaa3f7c423ef3fd1d9d9d682718",
+      "mode": "100644"
+    },
+    "scripts/ui74_private_generation_ci.py": {
+      "git_blob_sha1": "64fdb54ff2b1fb837cb1a0b746682403288839ba",
+      "mode": "100644"
+    },
+    "scripts/verify_ui_source_contracts.py": {
+      "git_blob_sha1": "6dd5358478181cde39f2e896f52632554f9be5a5",
+      "mode": "100644"
+    },
+    "src/api/capability_data_bridge.py": {
+      "git_blob_sha1": "d31ea28ef3bbf7185bf2b46f1b3749f6c4941b2c",
+      "mode": "100644"
+    },
+    "src/api/capability_discovery.py": {
+      "git_blob_sha1": "1a89151467fb84b12b41e1fd49a558c33c1d1572",
+      "mode": "100644"
+    },
+    "src/api/capability_source_contracts.py": {
+      "git_blob_sha1": "c2ed2ba88211e356901bc05bd16268fcdf86ff1f",
+      "mode": "100644"
+    },
+    "src/api/main.py": {
+      "git_blob_sha1": "da62598a06db5caa0977775f8b0291ac70c96c43",
+      "mode": "100644"
+    },
+    "tests/platform/test_capability_data_bridge.py": {
+      "git_blob_sha1": "99d65382e79bf1c376543ed0b4092d0d4e451e7e",
+      "mode": "100644"
+    },
+    "tests/platform/test_capability_discovery.py": {
+      "git_blob_sha1": "41b4a1a9b1398cf1e9837a87950803f5ef0c8d45",
+      "mode": "100644"
+    },
+    "tests/platform/test_download_kind_proposal.py": {
+      "git_blob_sha1": "4c5f14e9e8ae948ecd8d997aa4703e058fb23da0",
+      "mode": "100644"
+    },
+    "tests/platform/test_ui_composition_manifest.py": {
+      "git_blob_sha1": "7790f84d492d84a4e2dc11ee335db641e2d5c2e5",
+      "mode": "100644"
+    },
+    "tests/platform/test_ui_source_protocol.py": {
+      "git_blob_sha1": "15e107f8645baef6f1f653388b241612e12329a8",
+      "mode": "100644"
+    }
   }
 }
