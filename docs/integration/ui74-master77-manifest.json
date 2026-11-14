@@ -234,7 +234,7 @@
   },
   "private_generation": {
     "proposal": "CI_ONLY_PROTOTYPE_NO_RELEASE",
-    "source_tree_review_sha": "19f1ba2da56e6aa9b18ef590308cc1f7b542d831",
+    "source_tree_review_sha": "ce6798f2291c27eada4b2dfb090f8e345c1dd528",
     "master_source_sha": "5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd",
     "ops_private_publisher_sha": "113d7f3b97f47c86a19dc8590bdbb9809138c4d8",
     "ops_publisher_git_blob": "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e",
@@ -266,7 +266,8 @@
       "READER_GC_NO_LEASE",
       "COMMITTED_COMBINED_SHA_NOT_CREATED",
       "REAL_BYBIT_HISTORY_UNKNOWN"
-    ]
+    ],
+    "artifact_url": "https://github.com/YehorBabenko88/tester/actions/runs/43596116665/artifacts/14114122128"
   },
   "nonself_current_ui_file_blobs": {
     ".github/workflows/capability-browser.yml": {
@@ -278,11 +279,11 @@
       "mode": "100644"
     },
     ".github/workflows/ui74-private-generation-e2e.yml": {
-      "git_blob_sha1": "643779096bcf9bd0f2cb944cfcb409839c41763e",
+      "git_blob_sha1": "81cee3b33129ac7d7268810c2daa6ba87cb2c492",
       "mode": "100644"
     },
     "docs/integration/UI74_MASTER77_REPLAY.md": {
-      "git_blob_sha1": "8f1b2c8ba5d6b20135fe15f5cd648ff7162c9e42",
+      "git_blob_sha1": "aebadea931ea2c3e8123a9f35414942cbce706fb",
       "mode": "100644"
     },
     "docs/proposals/download-kind-v1_1.json": {
