@@ -501,19 +501,52 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
         assert str(persisted["price"]) == "101"
         assert str(persisted["size"]) == "0.25"
         assert persisted["trade_id"] == "research-pg-side-unknown-v2"
-        # Negative SQL proof on the disposable database. Nested transactions
-        # roll back each rejected UPDATE; immutable originals stay untouched.
-        for assignment in (
-            "payload = jsonb_set(payload, '{side}', '\"Other\"'::jsonb)",
-            "payload = jsonb_set(payload, '{size}', '\"0\"'::jsonb)",
-            "trade_id = NULL",
-        ):
+        # Historical rows are append-only: the BEFORE UPDATE trigger is
+        # intentionally stronger than CHECK and runs first. Do not disable it
+        # just to make the test reach a later constraint.
+        with pytest.raises(psycopg.errors.RaiseException, match="append-only"):
+            with connection.transaction():
+                connection.execute(
+                    "UPDATE tester_storage.raw_records "
+                    "SET trade_id = NULL "
+                    "WHERE trade_id = 'research-pg-side-unknown-v2'"
+                )
+        # Exercise the actual CHECKs separately with *new invalid INSERTs*.
+        # Copy all other validated columns from an authentic row, supplying
+        # a distinct key/trade_id to avoid unrelated uniqueness violations.
+        negative_rows = (
+            ("invalid_side", "jsonb_set(payload, '{side}', to_jsonb('Other'::text))",
+             "research-negative-invalid-side"),
+            ("zero_size", "jsonb_set(payload, '{size}', to_jsonb('0'::text))",
+             "research-negative-zero-size"),
+            ("zero_price", "jsonb_set(payload, '{price}', to_jsonb('0'::text))",
+             "research-negative-zero-price"),
+            ("missing_trade_id", "payload", None),
+        )
+        for label, payload_expression, trade_identity in negative_rows:
+            record_key = hashlib.sha256(
+                ("research-pg-constraint-negative-" + label).encode()
+            ).hexdigest()
+            statement = (
+                "INSERT INTO tester_storage.raw_records ("
+                "record_key, venue, category, symbol, dataset, interval, "
+                "schema_version, timestamp_ms, timestamp_ns, timestamp_us, "
+                "timestamp_precision, trade_id, id_origin, payload, content_hash"
+                ") SELECT %s, venue, category, symbol, dataset, interval, "
+                "schema_version, timestamp_ms, timestamp_ns, timestamp_us, "
+                "timestamp_precision, %s, id_origin, "
+                + payload_expression
+                + ", content_hash FROM tester_storage.raw_records "
+                  "WHERE trade_id = 'research-pg-side-unknown-v2'"
+            )
             with pytest.raises(psycopg.errors.CheckViolation):
                 with connection.transaction():
-                    connection.execute(
-                        "UPDATE tester_storage.raw_records SET " + assignment
-                        + " WHERE trade_id = 'research-pg-side-unknown-v2'"
-                    )
+                    connection.execute(statement, (record_key, trade_identity))
+        absent = connection.execute(
+            "SELECT count(*) AS rejected_rows FROM tester_storage.raw_records "
+            "WHERE trade_id LIKE 'research-negative-%'"
+        ).fetchone()
+        assert absent["rejected_rows"] == 0
         original = connection.execute(
             "SELECT payload->>'side' AS side, size, trade_id "
             "FROM tester_storage.raw_records "
