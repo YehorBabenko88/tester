@@ -288,3 +288,13 @@ API routes by its existence. Activation requires the DATA owner to expose
 an audited original-HTTP-proven, read-only, versioned auxiliary endpoint
 and for MASTER to run exact combined FastAPI/Chromium with disposable PG.
 No source completeness or production availability is claimed.
+
+## MASTER 2026-11-14 05:58 — versioned contract drift guard
+
+The exact independent source pins tested by the UI workflow are DATA #72 `0c6b3c4e13ff360c68f43e255d59993f0ec9edd7` and RESEARCH #71 `b0d498021fbe51d4a5ea5b0063b48b98b24e32df`; the DATA execution-contract blob is `8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79`, the RESEARCH consumer blob is `1f1c244361caa8dbbeb2fb0008bf346946a3092d`, and its metrics blob is `d565c1239b60e770c0337423c5e014daeec0e457`. These are separately asserted in CI, not copied into the UI branch and not a release-authorized combined revision. The latest DATA and RESEARCH integration suites still have independent full-acceptance gates.
+
+The proposed v1.1 `DownloadRequest.kind` extension remains **inactive**, pending contract-owner Issue #76. `compare_download_kind_proposal.py` now examines actual runtime OpenAPI paths to detect unauthorized activation of `/api/v1_1/downloads`; it does not hard-code that route as absent. Dedicated Python tests check this detection and preserve all five original v1 kind values. The immutable `contracts/v1/openapi.json`, financial-query v1 schema and existing download route are not edited.
+
+If MASTER later approves v1.1, its contract should be independently published with explicit opt-in routing, producer capability admission and client schema migration. `mark/index` continue to use existing price-only GET `/api/price-candles` v1.1 with original Decimal and UTC source/provenance; **no** fabricated volume, no implied download authorization.
+
+No real DATA/RESEARCH metrics HTTP endpoint is composed here. All Footprint/known Delta/window-anchored CVD/VWAP/POC and Funding/OI transforms remain pure no-fetch observed-sample adapters, deliberately displaying `UNAVAILABLE` or `UNVERIFIED` unless approved readback/route evidence exists. The UI must never guess `/api/analytics`, historical completeness, or an F grant. Synthetic closed mark/index fixtures in Chromium are UI contract evidence, not original live Bybit history.
