@@ -1,7 +1,6 @@
 """Pure filesystem negatives for private generation prototype. Never touches PC4."""
 from __future__ import annotations
 
-import json
 import os
 import stat
 import unittest
@@ -10,9 +9,9 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from scripts.ops_private_generation_prototype import (
+    SCHEMA,
     CompositionRefused,
     ReviewedBlob,
-    SCHEMA,
     canonical,
     git_hash,
     hash256,

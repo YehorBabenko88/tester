@@ -13,9 +13,9 @@ import re
 import shutil
 import stat
 import uuid
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Iterable
 
 SCHEMA = "ops-private-generation/1"
 HEX64 = re.compile(r"[a-f0-9]{64}\Z")
