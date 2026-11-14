@@ -111,3 +111,66 @@ prove the composer is immune to forged runner conditions or path races,
 and is not the required single committed combined SHA with full PG14/18,
 FastAPI/Chromium, Python static and Platform gates. REAL F remains denied
 on UNKNOWN historical coverage, and the overall release remains NO_GO.
+
+
+## MASTER 298d6107 — immutable RESEARCH five-file allowlist review proposal
+
+The MASTER document `docs/coordination/2026-11-14-producer-allowlist-review.md` is an **inventory, not authorization**. Its exact committed Git blob is `fbb49ef29188b8ddb5531b31578ef40e7987dcbc`. The RESEARCH review below pins the **five** files missing from MASTER's enforced allowlist to Git commit `e76b08dbb2b45121c577c84414c56a7218994d0c`; it is a **REVIEW_PENDING** proposal and never mutates the MASTER allowlist. To avoid creating a sixth unapproved RESEARCH file, the machine-readable proposal is embedded in this already reviewed RESEARCH documentation path.
+
+<!-- RESEARCH_ALLOWLIST_JSON_BEGIN -->
+```json
+{
+  "schema": "research-pr71-allowlist-review/1",
+  "producer": "RESEARCH",
+  "review_status": "REVIEW_PENDING_MASTER_NOT_APPROVED",
+  "master_review_commit": "298d610771d962ee7b796eac1834d74138768fac",
+  "master_allowlist_review_path": "docs/coordination/2026-11-14-producer-allowlist-review.md",
+  "master_allowlist_review_git_blob_sha1": "fbb49ef29188b8ddb5531b31578ef40e7987dcbc",
+  "research_immutable_source_commit": "e76b08dbb2b45121c577c84414c56a7218994d0c",
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/research-private-generation.yml",
+      "git_blob_sha1": "7f382dd526b2e030af59a69ba5ba352983638a41",
+      "mode": "100644",
+      "role": "ci_disposable_pg16"
+    },
+    {
+      "path": "docs/research_private_generation_e2e_commands.md",
+      "git_blob_sha1": "a1f05176b56ad323736e92dbda44a06861168c3a",
+      "mode": "100644",
+      "role": "docs_ci_replay"
+    },
+    {
+      "path": "docs/research_private_generation_source_ledger.json",
+      "git_blob_sha1": "1447406f01ff1c200059a89a7556dd404be3f9be",
+      "mode": "100644",
+      "role": "reviewed_23_blob_data_research_ui_ledger"
+    },
+    {
+      "path": "scripts/research_private_generation_issue59.py",
+      "git_blob_sha1": "9845ac1f3ef1be49deea4c5e32a0c9da34b5bfd3",
+      "mode": "100644",
+      "role": "ci_only_private_generation_test_runner"
+    },
+    {
+      "path": "tests/platform/test_research_private_generation_issue59.py",
+      "git_blob_sha1": "7da3cf46fb93541e5f58b1bdb785c234002d850b",
+      "mode": "100644",
+      "role": "negative_trust_and_receipt_tests"
+    }
+  ],
+  "private_generation_input_blobs": 23,
+  "private_generation_test_only": true,
+  "installable_runtime_files": [],
+  "native_launcher_activation": "FORBIDDEN",
+  "broadened_master_allowlist_approved": false,
+  "full_combined_candidate_sha": null,
+  "f_admission": "DENIED_UNKNOWN_COVERAGE",
+  "historical_completeness": "UNKNOWN"
+}
+```
+<!-- RESEARCH_ALLOWLIST_JSON_END -->
+
+**Separation:** the workflow, runner and tests are disposable CI tooling; the two documents are review/replay artifacts. None is a native launcher, installed API/worker route, DATA trading input or automatically authorized runtime blob. The existing **23-blob** DATA/RESEARCH/UI ledger is a different inner integrity manifest; no approval to add these five files to a private generation tree is implied. The producer sha and every file mode/hash above must be re-verified if the RESEARCH source branch advances.
+
+**Required acceptance after MASTER approval:** external reviewer pins this exact five-file list and the original SHA set; a new MASTER private generation composed from one immutable combined candidate must pass PG14/18, RESEARCH PG16, FastAPI/Chromium, security and native lifecycle gates. Until then `FULL_COMBINED_RELEASE=NO_GO` and real F remains `DENIED_UNKNOWN_COVERAGE`; do not claim historical completeness or invent Bid/Ask.
