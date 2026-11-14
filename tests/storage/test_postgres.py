@@ -192,7 +192,7 @@ class PostgresTests(unittest.TestCase):
             with psycopg.connect(target) as c:
                 migrate(c)
                 self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.raw_records').fetchone()[0],1)
-                self.assertEqual(c.execute('SELECT max(version) FROM tester_storage.schema_migrations').fetchone()[0],7)
+                self.assertEqual(c.execute('SELECT max(version) FROM tester_storage.schema_migrations').fetchone()[0],8)
             provenance=Store(target).provenance([n['record_key']])[n['record_key']]
             self.assertFalse(provenance['authentic'])
             self.assertEqual(len(provenance['unlinked_sources']),1)
