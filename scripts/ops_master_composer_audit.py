@@ -54,16 +54,40 @@ def audit_master_composer(source: str, *, changed_ops_paths: Iterable[str],
     missing = sorted(_APPROVED - set(files))
     if missing:
         raise ValueError("approved_ops_handoff_files_missing_from_producer")
-    # MASTER currently uses 'git diff --name-status BASE..SHA' without
-    # an OPS-only allowlist: all OPS PR changes are copied. The result is a
-    # source composition smoke, not proof that a narrow opt-in deployment
-    # list was applied.
-    uses_diff = "diff" in source and "--name-status" in source
-    has_allowlist = any(
-        isinstance(node, ast.Constant) and
-        isinstance(node.value, str) and node.value.startswith("scripts/ops_native_")
-        for node in ast.walk(tree)
+    # Check executable AST, not comments or a positive CI status. This is
+    # source-only evidence: GitHub Actions runtime and physical PC4 remain
+    # separate from a static composer file.
+    guarded = (
+        "CI" in source and "EXPECTED_STAGING_SHA" in source
+        and "staging SHA changed" in source
     )
+    protected = _assignment(tree, "PROTECTED")
+    if (not guarded or not isinstance(protected, tuple)
+            or not {"src/integration/pc4_runtime.py", "src/api/worker.py",
+                    "pyproject.toml"} <= set(protected)):
+        raise ValueError("composer_missing_immutable_or_pc4_protection")
+    direct_calls = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            fn = node.func
+            if isinstance(fn, ast.Name):
+                direct_calls.append(fn.id)
+            elif isinstance(fn, ast.Attribute):
+                direct_calls.append(fn.attr)
+    if any(call in direct_calls for call in (
+        "Popen", "system", "runpy", "exec", "eval", "StartService",
+        "CreateProcess", "kill", "terminate", "reboot",
+    )):
+        raise ValueError("composer_contains_unreviewed_process_activation_call")
+    uses_diff = "diff" in source and "--name-status" in source
+    explicit_scope = any(
+        isinstance(node, ast.Assign) and any(
+            isinstance(t, ast.Name) and t.id in {
+                "OPS_FILE_ALLOWLIST", "OPS_ALLOWED_FILES",
+            } for t in node.targets
+        ) for node in tree.body
+    )
+    unbounded_ops_diff = uses_diff and not explicit_scope
     return {
         "schema": SCHEMA,
         "master_source_sha256": hashlib.sha256(source.encode()).hexdigest(),
@@ -73,9 +97,14 @@ def audit_master_composer(source: str, *, changed_ops_paths: Iterable[str],
         "extra_count": len(excess),
         "extra_paths": excess,
         "approved_missing": missing,
-        "copies_all_ops_diff": uses_diff and not has_allowlist,
-        "minimal_optin_copy_confirmed": not excess and uses_diff,
-        "automatic_activation_observed_in_source_audit": False,
+        "ci_and_staging_sha_guards_present": guarded,
+        "protected_installed_runtime_paths_guarded": True,
+        "direct_native_activation_calls_in_composer": False,
+        "source_audit_only_no_runtime_or_install_proof": True,
+        "copies_all_ops_diff": unbounded_ops_diff,
+        "explicit_ops_scope_allowlist": explicit_scope,
+        "minimal_optin_copy_confirmed": not excess and explicit_scope,
         "native_installed_restart_authorized": False,
-        "result": "BLOCKED_SCOPE_TOO_BROAD" if excess else "SOURCE_SCOPE_REVIEWED",
+        "result": "BLOCKED_SCOPE_TOO_BROAD" if excess or unbounded_ops_diff
+                  else "SOURCE_SCOPE_REVIEWED",
     }
