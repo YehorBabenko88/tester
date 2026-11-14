@@ -1,8 +1,8 @@
 # OPS → MASTER #77: exact opt-in source handoff (2026-11-14)
 
 **Status: SOURCE-ONLY / DRAFT / NO_GO.** This document never authorizes an
-installation or an installed PC4 native restart. MASTER #77 is documentation
-only and remains unchanged by OPS.
+installation or an installed PC4 native restart. MASTER #77 includes a test-only disposable source composer but has no
+committed combined application tree. OPS has not modified MASTER #77.
 
 ## Reviewed producer pins
 
@@ -11,9 +11,9 @@ only and remains unchanged by OPS.
 - #77 frozen RESEARCH #71: `b11b79832d1b0d848773ff077a36e7cb0595fdcb`
 - #77 frozen UI #74 (with #70 ancestry): `fd151168473f4add97ee286b008d4540b49ac566`
 - Independently reviewed current producer pins in CI:
-  DATA `739ff3f54f17082d675afbb3320112069550eb0c`,
-  RESEARCH `bbca84c6f4280ece7476187d7f4dbabaf6d63542`,
-  UI `d692a725b01d98e58c3cd19661dd142f47aa56c4`.
+  DATA `d5bfdad445a1eefb9dc12bf2725a00f171e2c321`,
+  RESEARCH `aeb0ad23eeb7487d93f2a6a2b3bd7f802641d844`,
+  UI `a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96`.
 
 These are two **different** source selections. Never silently substitute a newer
 producer for a frozen #77 SHA; doing so requires a new immutable candidate and
@@ -179,3 +179,27 @@ job. It compares MASTER script AST against actual Git paths and records
 while independently retaining source-only composition smoke `PASS`.
 It does not execute MASTER's composer, connect to PostgreSQL, spawn native
 processes or alter PC4.
+
+## OPS actual composed-source validation — target CI checkpoint
+
+The prior exact OPS branch commit `accfa4b5c39f67720b438645bfab7184557de9ba`
+ran [OPS target workflow 43578944193](https://github.com/YehorBabenko88/tester/actions/runs/43578944193):
+**all eight jobs SUCCESS**, including **Windows-2025 real Win32 handles
+on the uncommitted 125-file MASTER source composition** (3 original-handle,
+8 native fixture and 7 opt-in tests PASS) and **real disposable PostgreSQL16
+on the same frozen MASTER source composition** (8 fenced lease, recovery,
+rollback and CPU/RAM/WAL/I/O tests PASS). The independent source scope audit
+ran 5/5 PASS while correctly returning `BLOCKED_SCOPE_TOO_BROAD`: 59 OPS
+files copied, 29 approved, 30 extras. Those are valid **disposable tests**,
+not proof of narrow opt-in inclusion, native PC4 restart or full global
+PG14/PG18/Chromium source-release acceptance.
+
+The *newer* producer compatibility audit now pins DATA
+`d5bfdad445a1eefb9dc12bf2725a00f171e2c321`, RESEARCH
+`aeb0ad23eeb7487d93f2a6a2b3bd7f802641d844`, UI
+`a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96` for a separate
+read-only source contract check. MASTER's frozen composer still uses
+RESEARCH `7ec35810434e3c9159f36712a4186595ac637efa`; its newer head
+changed only a workflow and tests, and retains the exact same execution
+adapter Git blob. Updating latest checks does NOT silently update MASTER's
+immutable producer SHA set.
