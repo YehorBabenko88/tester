@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import ast
 import re
-from pathlib import Path, PurePath, PurePosixPath
+from pathlib import Path, PurePosixPath
 
 ALLOWED = (".github/", "docs/", "src/", "frontend/", "scripts/", "tests/")
 PROTECTED = frozenset({
@@ -59,6 +59,7 @@ def require_repo_file_path(path: str) -> PurePosixPath:
     if (not isinstance(path, str) or not 0 < len(path) <= 512
             or path.startswith(("/", "\\", ".\\", "./"))
             or "\\" in path or "\x00" in path or ":" in path
+            or "%" in path
             or path.endswith("/") or "//" in path):
         raise MasterComposeRefused("unsafe_repo_path")
     parts = path.split("/")
