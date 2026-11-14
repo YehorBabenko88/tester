@@ -13,6 +13,7 @@ on:
       - 'tests/test_execution_contract_bridge.py'
       - 'tests/test_execution_contract_postgres.py'
       - 'tests/test_master_composed_data_integrity.py'
+      - 'scripts/run_master_composed_data_postgres.py'
       - 'tests/test_composed_data_research_postgres.py'
       - 'tests/test_live_public_bybit_postgres.py'
       - '.github/workflows/public-auxiliary-data.yml'
@@ -270,13 +271,7 @@ jobs:
       - name: Install test-only project requirements
         run: python -m pip install -r requirements-dev.txt
       - name: Real disposable PostgreSQL DATA and RESEARCH tests
-        run: |
-          python -m unittest -v \
-            tests.storage.test_postgres.PostgresTests.test_upgrade_preserves_version_one_raw_data \
-            tests.storage.test_postgres.PostgresTests.test_migrations_repeat_and_checksum \
-            tests.test_execution_contract_postgres \
-            tests.test_public_auxiliary_postgres \
-            tests.test_composed_data_research_postgres
+        run: python .ci-data-driver/scripts/run_master_composed_data_postgres.py
       - name: Preserve exact-head composition evidence
         uses: actions/upload-artifact@v4
         if: always()
