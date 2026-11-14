@@ -33,6 +33,10 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
   expect(unexpectedCatalog).toEqual([]);
   expect(wrongHttp).toEqual([]);
   await page.goto("/research.html");
+  const withoutToken = await page.request.post("/api/control/research", {
+    data: fixture.command,
+  });
+  expect(withoutToken.status()).toBe(401);
   await page.locator("#research-command").fill(JSON.stringify(fixture.command));
   await page.getByRole("button", { name: "Read authorized research chart" }).click();
   await expect(page.locator("#research-status")).toContainText(/DATA_UNAVAILABLE.*(401|403)/);
@@ -52,6 +56,23 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
   expect(submits[0].job_id).toBe(fixture.job_id);
   const result = results.find(r => r.state === "complete");
   expect(result.artifact_digest).toBe(fixture.command.expected_artifact_digest);
+  // A correctly authenticated actor cannot acknowledge a different chart
+  // digest. This negative request must not create/replace the stored ACK.
+  const falseAck = await page.request.post(
+    `/api/control/research/${fixture.job_id}/ack`,
+    {
+      headers: { Authorization: `Bearer ${fixture.token}` },
+      data: {
+        artifact_digest: "0".repeat(64),
+        rendered_fill_ids: result.artifact.markers.map(m => m.fill_id),
+      },
+    },
+  );
+  expect(falseAck.status()).toBe(409);
+  const missingTokenResult = await page.request.get(
+    `/api/control/research/${fixture.job_id}`,
+  );
+  expect(missingTokenResult.status()).toBe(401);
   const ids = result.artifact.markers.map(m => m.fill_id).sort();
   expect(JSON.parse(await canvas.getAttribute("data-rendered-fill-ids")).sort()).toEqual(ids);
   await expect(page.locator("#research-fills tr")).toHaveCount(ids.length);
