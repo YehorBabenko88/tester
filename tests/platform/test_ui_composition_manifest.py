@@ -3,13 +3,17 @@
 No GitHub API, network, PostgreSQL, cross-branch composition or filesystem writes.
 """
 
+import hashlib
 import json
 from pathlib import Path
+
+import pytest
 
 from fastapi.testclient import TestClient
 
 from src.api.config import Settings
 from src.api.main import create_app
+from scripts.verify_ui_source_contracts import verify_shared_pg_hostaddr_test
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "docs/integration/ui74-master77-manifest.json"
@@ -108,3 +112,63 @@ def test_legacy_download_v1_is_not_rewritten_by_handoff():
         "funding",
     ]
     assert load_manifest()["openapi"]["status"] == "CONTRACT_OWNER_REVIEW_REQUIRED"
+
+
+def _git_blob(content: bytes) -> str:
+    return hashlib.sha1(
+        b"blob " + str(len(content)).encode("ascii") + b"\\0" + content
+    ).hexdigest()
+
+
+def test_frozen_v1_openapi_git_blob_unchanged_by_ui_handoff():
+    path = ROOT / "contracts/v1/openapi.json"
+    assert _git_blob(path.read_bytes()) == "fc3f4b20d4bd6d6fed642f9e00ceb099c68c4398"
+    schema = json.loads(path.read_text(encoding="utf-8"))
+    assert schema["components"]["schemas"]["DownloadRequest"]["properties"]["kind"]["enum"] == [
+        "candles", "trades", "footprint", "open_interest", "funding"
+    ]
+    handoff = load_manifest()
+    assert handoff["openapi"]["status"] == "CONTRACT_OWNER_REVIEW_REQUIRED"
+    assert handoff["openapi"]["unapproved_versioned_path"] == "/api/v1_1/downloads"
+
+
+def test_common_pg_hostaddr_blob_matches_current_master_resolution(tmp_path):
+    # Source-only stand-in; hosted CI independently checks the actual exact
+    # DATA/RESEARCH Git blobs against 402c25410 and still runs PG tests.
+    content = (
+        "PGHOSTADDR PGHOST PGPORT PGDATABASE "
+        "conn.info.hostaddr inet_server_addr 127.0.0.2 172.18.0.2 "
+        "test_actual_postgres_hostaddr_environment_cannot_redirect "
+        "test_research_dsn_refuses_explicit_hostaddr_redirect"
+    ).encode("utf-8")
+    data, research = tmp_path / "data.py", tmp_path / "research.py"
+    data.write_bytes(content)
+    research.write_bytes(content)
+    report = verify_shared_pg_hostaddr_test(
+        data, research, expected_blob=_git_blob(content)
+    )
+    assert report["identical_DATA_RESEARCH_bytes"] is True
+    assert report["hostaddr_negative_guards_preserved"] is True
+    assert report["runtime_postgres_acceptance"] == "NOT_RUN_BY_SOURCE_AUDIT"
+
+
+def test_pg_hostaddr_last_writer_wins_and_missing_guard_rejected(tmp_path):
+    content = (
+        "PGHOSTADDR PGHOST PGPORT PGDATABASE "
+        "conn.info.hostaddr inet_server_addr 127.0.0.2 172.18.0.2 "
+        "test_actual_postgres_hostaddr_environment_cannot_redirect "
+        "test_research_dsn_refuses_explicit_hostaddr_redirect"
+    ).encode("utf-8")
+    data, research = tmp_path / "data.py", tmp_path / "research.py"
+    data.write_bytes(content)
+    research.write_bytes(content + b" altered")
+    with pytest.raises(ValueError, match="requires_manual_reconciliation"):
+        verify_shared_pg_hostaddr_test(data, research, expected_blob=_git_blob(content))
+    research.write_bytes(content)
+    with pytest.raises(ValueError, match="unreviewed_git_blob"):
+        verify_shared_pg_hostaddr_test(data, research, expected_blob="0" * 40)
+    weak = content.replace(b"PGHOSTADDR", b"PG_DISABLED")
+    data.write_bytes(weak)
+    research.write_bytes(weak)
+    with pytest.raises(ValueError, match="negative_controls_absent"):
+        verify_shared_pg_hostaddr_test(data, research, expected_blob=_git_blob(weak))
