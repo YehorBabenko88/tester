@@ -117,8 +117,23 @@ def prepare_native_source_handoff(
     if (not isinstance(producer_heads, Mapping)
             or dict(producer_heads) != PINNED_PRODUCERS):
         raise ValueError("staging_77_producer_pin_mismatch")
-    if not isinstance(compatibility_report.get("blockers"), list):
+    blockers = compatibility_report.get("blockers")
+    if not isinstance(blockers, list) or any(not isinstance(x, str) for x in blockers):
         raise ValueError("unqualified_candidate_blocker_evidence")
+    # Unresolved installed native lifecycle is expected: it remains BLOCKED.
+    # But a mismatched DATA/RESEARCH/UI source interface is not a coherent
+    # handoff candidate, even for source-only preview.
+    incompatible = {
+        "data_research_execution_contract_version_mismatch",
+        "data_research_bounded_page_limit_mismatch",
+        "data_read_interface_signature_mismatch",
+        "research_read_interface_signature_mismatch",
+        "missing_expected_data_interface",
+        "missing_expected_research_interface",
+        "ui_capability_route_not_declared",
+    }
+    if incompatible.intersection(blockers):
+        raise ValueError("staging_producer_contracts_incompatible")
     files = (*RUNTIME_FILES, *TEST_FILES, *CI_AND_DOC_FILES)
     if len(files) != len(set(files)) or any(
         path in FORBIDDEN_IMPLICIT_PATCHES or ".." in path.split("/")
