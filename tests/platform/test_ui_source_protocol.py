@@ -76,6 +76,17 @@ def test_data72_research71_version_and_exact_call_seam():
     assert research["requires"] == DATA_EXECUTION_VERSION
     assert research["admitted_to_f"] is False
     assert research["historical_visibility"] == "UNKNOWN"
+    research_ui = value["source_contracts"]["research_ui_observation"]
+    assert research_ui["contract_version"] == "tester.research-ui-observation/1"
+    assert research_ui["trusted_readback"] == (
+        "src.integration.research_ui_projection.read_verified_ui_observation"
+    )
+    assert research_ui["http_route"] is None
+    assert research_ui["http_route_status"] == "NOT_REGISTERED"
+    assert research_ui["readback_state"] == "NOT_BOUND_TO_UI_ROUTE"
+    assert research_ui["coverage"] == "UNKNOWN"
+    assert research_ui["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
+    assert research_ui["g_e_execution"] == "NOT_AUTHORIZED"
     assert aux["readback_state"] == "NOT_BOUND_TO_UI_ROUTE"
     assert aux["native_oi_cadences"] == ["5min", "15min", "30min", "1h", "4h", "1d"]
     assert aux["funding_cadence"] == "event"
