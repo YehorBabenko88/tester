@@ -46,8 +46,7 @@ def compare_contracts(pinned=None, proposal=None, runtime=None):
         ]["enum"],
         "pinned_kind_enum": current,
         "new_v1_1_endpoint_activated": any(
-            str(path).startswith("/api/v1_1/downloads")
-            for path in runtime.get("paths", {})
+            str(path).startswith("/api/v1_1/downloads") for path in runtime.get("paths", {})
         ),
         "approval_required": True,
     }
