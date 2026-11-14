@@ -202,17 +202,17 @@ jobs:
       - name: Checkout current reviewed DATA #72
         uses: actions/checkout@v4
         with:
-          ref: 739ff3f54f17082d675afbb3320112069550eb0c
+          ref: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
           path: latest-data
       - name: Checkout current reviewed RESEARCH #71
         uses: actions/checkout@v4
         with:
-          ref: bbca84c6f4280ece7476187d7f4dbabaf6d63542
+          ref: aeb0ad23eeb7487d93f2a6a2b3bd7f802641d844
           path: latest-research
       - name: Checkout current reviewed UI #74 including #70 ancestry
         uses: actions/checkout@v4
         with:
-          ref: d692a725b01d98e58c3cd19661dd142f47aa56c4
+          ref: a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96
           path: latest-ui
       - uses: actions/setup-python@v5
         with:
@@ -220,9 +220,9 @@ jobs:
       - name: Verify latest exact revisions
         shell: bash
         run: |
-          test "$(git -C latest-data rev-parse HEAD)" = "739ff3f54f17082d675afbb3320112069550eb0c"
-          test "$(git -C latest-research rev-parse HEAD)" = "bbca84c6f4280ece7476187d7f4dbabaf6d63542"
-          test "$(git -C latest-ui rev-parse HEAD)" = "d692a725b01d98e58c3cd19661dd142f47aa56c4"
+          test "$(git -C latest-data rev-parse HEAD)" = "d5bfdad445a1eefb9dc12bf2725a00f171e2c321"
+          test "$(git -C latest-research rev-parse HEAD)" = "aeb0ad23eeb7487d93f2a6a2b3bd7f802641d844"
+          test "$(git -C latest-ui rev-parse HEAD)" = "a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96"
       - name: Verify current DATA RESEARCH UI signatures without activating anything
         env:
           OPS_CANDIDATE_DATA_ROOT: "${{ github.workspace }}/latest-data"
