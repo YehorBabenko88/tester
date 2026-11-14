@@ -3,11 +3,70 @@ import { readFile } from "node:fs/promises";
 
 test("G-created exact job renders and receives D ACK in combined main app", async ({ page }) => {
   const fixture = JSON.parse(await readFile(process.env.TESTER_COMBINED_FIXTURE_FILE, "utf8"));
-  const errors = [];
+  const errors = [], wrongHttp = [], unexpectedCatalog = [];
+  const networkEvidence = [];
   page.on("pageerror", e => errors.push(e.message));
+  page.on("response", response => {
+    const url = new URL(response.url());
+    if (!url.pathname.startsWith("/api/")) return;
+    networkEvidence.push({path: url.pathname, status: response.status()});
+    if ([404, 422, 503].includes(response.status()))
+      wrongHttp.push({path: url.pathname, status: response.status()});
+  });
+  page.on("request", request => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/api/market-catalog/") || path === "/api/analytics")
+      unexpectedCatalog.push(path);
+  });
   await page.goto("/");
-  await expect(page.locator("body")).toContainText(/Tester/i);
+  await expect(page.locator("body")).toContainText(/HISTORICAL LAB/i);
+  await expect(page.locator("#screener-status"))
+    .toContainText("market_catalog_not_configured");
+  const caps = await page.request.get("/api/capabilities");
+  expect(caps.status()).toBe(200);
+  const capabilityData = (await caps.json()).data;
+  expect(capabilityData.features.market_catalog.enabled).toBe(false);
+  expect(capabilityData.features.sources.enabled).toBe(false);
+  expect(capabilityData.observed_page_revision.history_complete).toBe(false);
+  expect(capabilityData.source_contracts.public_executions.contract_version)
+    .toBe("tester-public-execution/1");
+  expect(unexpectedCatalog).toEqual([]);
+  expect(wrongHttp).toEqual([]);
+  // Combined E/G routing must preserve capability negotiation for every
+  // terminal timeframe even when the source provider is unavailable.
+  const intervals = ["1", "3", "5", "15", "30", "60", "120",
+                     "240", "360", "720", "D", "W", "M"];
+  // The timeframe select lives inside a collapsed details element.
+  // Match the regular UI browser test: open it before selectOption.
+  await page.locator("#download-options").evaluate(node => { node.open = true; });
+  await page.locator("#manual-symbol").fill("BTCUSDT");
+  await page.getByRole("button", {name: "Open source symbol"}).click();
+  for (const interval of intervals) {
+    const response = page.waitForResponse(r => {
+      const url = new URL(r.url());
+      return url.pathname === "/api/capabilities" &&
+        url.searchParams.get("interval") === interval;
+    });
+    await page.locator("#interval").selectOption(interval);
+    if (interval === "60") {
+      await page.getByRole("button", {name: "Apply range / Retry charts"}).click();
+    }
+    const observed = await response;
+    expect(observed.status()).toBe(200);
+    const negotiated = (await observed.json()).data;
+    expect(negotiated.source_contracts.public_executions.contract_version)
+      .toBe("tester-public-execution/1");
+    expect(negotiated.observed_page_revision.history_complete).toBe(false);
+    expect(negotiated.panels.footprint.resource).toBeUndefined();
+    expect(negotiated.panels.mark.resource).toBeUndefined();
+  }
+  expect(unexpectedCatalog).toEqual([]);
+  expect(wrongHttp).toEqual([]);
   await page.goto("/research.html");
+  const withoutToken = await page.request.post("/api/control/research", {
+    data: fixture.command,
+  });
+  expect(withoutToken.status()).toBe(401);
   await page.locator("#research-command").fill(JSON.stringify(fixture.command));
   await page.getByRole("button", { name: "Read authorized research chart" }).click();
   await expect(page.locator("#research-status")).toContainText(/DATA_UNAVAILABLE.*(401|403)/);
@@ -27,6 +86,23 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
   expect(submits[0].job_id).toBe(fixture.job_id);
   const result = results.find(r => r.state === "complete");
   expect(result.artifact_digest).toBe(fixture.command.expected_artifact_digest);
+  // A correctly authenticated actor cannot acknowledge a different chart
+  // digest. This negative request must not create/replace the stored ACK.
+  const falseAck = await page.request.post(
+    `/api/control/research/${fixture.job_id}/ack`,
+    {
+      headers: { Authorization: `Bearer ${fixture.token}` },
+      data: {
+        artifact_digest: "0".repeat(64),
+        rendered_fill_ids: result.artifact.markers.map(m => m.fill_id),
+      },
+    },
+  );
+  expect(falseAck.status()).toBe(409);
+  const missingTokenResult = await page.request.get(
+    `/api/control/research/${fixture.job_id}`,
+  );
+  expect(missingTokenResult.status()).toBe(401);
   const ids = result.artifact.markers.map(m => m.fill_id).sort();
   expect(JSON.parse(await canvas.getAttribute("data-rendered-fill-ids")).sort()).toEqual(ids);
   await expect(page.locator("#research-fills tr")).toHaveCount(ids.length);
@@ -39,5 +115,8 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
     return count;
   })).toBeGreaterThan(100);
   expect(errors).toEqual([]);
+  expect(wrongHttp).toEqual([]);
+  expect(unexpectedCatalog).toEqual([]);
+  expect(networkEvidence.some(r => r.path === "/api/capabilities" && r.status === 200)).toBe(true);
   await page.screenshot({ path: test.info().outputPath("combined-synthetic.png"), fullPage: true });
 });

@@ -1,0 +1,363 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/YehorBabenko88/tester/docs/ui-capability-protocol-v1.schema.json",
+  "title": "Experimental tester UI capabilities protocol v1 (not shared market v1 OpenAPI)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "data"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "next_cursor": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "panels",
+        "protocol_version",
+        "source_contracts",
+        "observed_page_revision",
+        "features",
+        "execution_source_evidence"
+      ],
+      "properties": {
+        "protocol_version": {
+          "const": "tester.ui-capabilities/1"
+        },
+        "panels": {
+          "type": "object",
+          "required": [
+            "candles",
+            "volume",
+            "footprint",
+            "delta",
+            "cvd",
+            "profile",
+            "poc",
+            "vwap",
+            "open_interest",
+            "funding",
+            "mark",
+            "index"
+          ],
+          "properties": {
+            "candles": {
+              "$ref": "#/$defs/panel"
+            },
+            "volume": {
+              "$ref": "#/$defs/panel"
+            },
+            "footprint": {
+              "$ref": "#/$defs/panel"
+            },
+            "delta": {
+              "$ref": "#/$defs/panel"
+            },
+            "cvd": {
+              "$ref": "#/$defs/panel"
+            },
+            "profile": {
+              "$ref": "#/$defs/panel"
+            },
+            "poc": {
+              "$ref": "#/$defs/panel"
+            },
+            "vwap": {
+              "$ref": "#/$defs/panel"
+            },
+            "open_interest": {
+              "$ref": "#/$defs/panel"
+            },
+            "funding": {
+              "$ref": "#/$defs/panel"
+            },
+            "mark": {
+              "$ref": "#/$defs/panel"
+            },
+            "index": {
+              "$ref": "#/$defs/panel"
+            }
+          },
+          "additionalProperties": false
+        },
+        "source_contracts": {
+          "type": "object",
+          "required": [
+            "public_executions",
+            "observed_execution_metrics",
+            "public_auxiliary"
+          ]
+        },
+        "observed_page_revision": {
+          "type": "object",
+          "required": [
+            "kind",
+            "historical_dataset_revision",
+            "history_complete",
+            "publication_known",
+            "supports_f_admission"
+          ],
+          "properties": {
+            "kind": {
+              "const": "observed_page_digest"
+            },
+            "historical_dataset_revision": {
+              "const": "UNPINNED"
+            },
+            "history_complete": {
+              "const": false
+            },
+            "publication_known": {
+              "const": false
+            },
+            "supports_f_admission": {
+              "const": false
+            }
+          }
+        },
+        "features": {
+          "type": "object",
+          "required": [
+            "market_catalog",
+            "sources"
+          ],
+          "properties": {
+            "market_catalog": {
+              "$ref": "#/$defs/feature"
+            },
+            "sources": {
+              "$ref": "#/$defs/feature"
+            }
+          }
+        },
+        "execution_source_evidence": {
+          "type": "object",
+          "required": [
+            "status",
+            "reason",
+            "contract_version",
+            "historical_coverage",
+            "publication_time",
+            "admitted_to_f"
+          ],
+          "properties": {
+            "status": {
+              "const": "UNVERIFIED"
+            },
+            "reason": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]{0,79}$"
+            },
+            "contract_version": {
+              "const": "tester-public-execution/1"
+            },
+            "historical_coverage": {
+              "const": "UNKNOWN"
+            },
+            "publication_time": {
+              "const": "UNKNOWN"
+            },
+            "admitted_to_f": {
+              "const": false
+            },
+            "evidence_revision": {
+              "type": "string",
+              "pattern": "^sample:[a-f0-9]{64}$"
+            },
+            "revision_kind": {
+              "const": "observed_execution_sample_digest"
+            },
+            "observed_events": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 99
+            },
+            "first_observed_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "last_observed_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sample_full_page_witness": {
+              "const": false
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "panel": {
+      "type": "object",
+      "required": [
+        "panel",
+        "status",
+        "reason"
+      ],
+      "properties": {
+        "panel": {
+          "type": "string",
+          "enum": [
+            "candles",
+            "volume",
+            "footprint",
+            "delta",
+            "cvd",
+            "profile",
+            "poc",
+            "vwap",
+            "open_interest",
+            "funding",
+            "mark",
+            "index"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "AVAILABLE",
+            "PARTIAL",
+            "UNAVAILABLE",
+            "UNVERIFIED"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,79}$"
+        },
+        "resource": {
+          "type": "string",
+          "pattern": "^/api/[a-zA-Z0-9_/-]+$"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^page:[a-f0-9]{64}$"
+        },
+        "revision_kind": {
+          "const": "observed_page_digest"
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "schema_version": {
+          "type": "string",
+          "enum": [
+            "1.0",
+            "1.1"
+          ]
+        },
+        "source_contract_version": {
+          "type": "string"
+        },
+        "source_contract_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "historical_coverage": {
+          "const": "UNKNOWN"
+        },
+        "coverage_status": {
+          "const": "UNKNOWN"
+        },
+        "historical_dataset_revision": {
+          "const": "UNPINNED"
+        },
+        "history_complete": {
+          "const": false
+        },
+        "publication_known": {
+          "const": false
+        },
+        "admitted_to_f": {
+          "const": false
+        },
+        "candle_kind": {
+          "enum": [
+            "official_mark",
+            "official_index"
+          ]
+        },
+        "observed_rows": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "AVAILABLE",
+                  "PARTIAL"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "resource",
+              "revision",
+              "revision_kind",
+              "source_ref",
+              "schema_version",
+              "coverage_status",
+              "historical_dataset_revision",
+              "history_complete",
+              "publication_known",
+              "admitted_to_f",
+              "source_contract_version"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "resource"
+                  ]
+                },
+                {
+                  "required": [
+                    "revision"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "feature": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "reason"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

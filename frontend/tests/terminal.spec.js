@@ -159,6 +159,46 @@ async function setup(page, options = {}) {
       });
       return;
     }
+    if (u.pathname === "/api/capabilities") {
+      const routes = {
+        candles: "/api/candles", volume: "/api/candles",
+        open_interest: "/api/open-interest",
+        funding: "/api/funding", mark: "/api/price-candles", index: "/api/price-candles",
+      };
+      const panels = Object.fromEntries(
+        ["candles", "volume", "footprint", "delta", "cvd", "profile",
+         "poc", "vwap", "open_interest", "funding", "mark", "index"]
+          .map((panel) => [panel, options.capabilities?.[panel] ||
+            (routes[panel] ? {
+              panel, status: "AVAILABLE", reason: "source_qualified",
+              resource: routes[panel], revision: "fixture:1",
+              source_ref: "fixture:market:1",
+              schema_version: ["mark", "index"].includes(panel) ? "1.1" : "1.0",
+              ...(["mark", "index"].includes(panel)
+                ? { candle_kind: panel === "mark" ? "official_mark" : "official_index" }
+                : {}),
+            } : {
+              panel, status: "UNAVAILABLE", reason: "endpoint_contract_not_supported",
+            })]),
+      );
+      await route.fulfill({
+        json: {
+          schema_version: "1.0",
+          data: { panels, ...(options.routeFeatures ? { features: options.routeFeatures } : {}) },
+        },
+      });
+      return;
+    }
+    if (u.pathname === "/api/price-candles") {
+      await route.fulfill({ json: {
+        schema_version: "1.1", data: [], next_cursor: null,
+        availability: { status: "UNAVAILABLE", reason: "No verified price fixtures" },
+        coverage: { status: "UNKNOWN", start_ms: Number(u.searchParams.get("start_ms")),
+                    end_ms: Number(u.searchParams.get("end_ms")), evidence_refs: [] },
+        provenance: [],
+      }});
+      return;
+    }
     if (u.pathname === "/api/sources")
       data = [
         {
@@ -277,61 +317,26 @@ test("multi-selection survives search and reload, saves exact identities", async
   await page.reload();
   await expect(page.getByTestId("selection-count")).toHaveText("2 selected");
 });
-test("bounded opaque cursor pages preserve equal timestamp footprint levels beyond 1000", async ({
+test("unqualified footprint cannot paginate or request its financial endpoint", async ({
   page,
 }) => {
-  const calls = [];
-  await setup(page, {
-    pagePayload: (u) => {
-      if (u.pathname !== "/api/footprint") return null;
-      calls.push(u);
-      const cursor = u.searchParams.get("cursor");
-      return {
-        schema_version: "1.0",
-        next_cursor: cursor ? null : "opaque:1000:same-time",
-        data: cursor
-          ? [
-              {
-                timestamp_ms: start + 999 * 60000,
-                price: "101",
-                buy_volume: "2",
-                sell_volume: "1",
-                provenance: "fixture://levels",
-              },
-            ]
-          : Array.from({ length: 1000 }, (_, i) => ({
-              timestamp_ms: start + i * 60000,
-              price: "100",
-              buy_volume: "1",
-              sell_volume: "0",
-              provenance: "fixture://levels",
-            })),
-      };
-    },
+  const requests = [];
+  page.on("request", req => {
+    const path = new URL(req.url()).pathname;
+    if (path === "/api/footprint" || path === "/api/analytics")
+      requests.push(path);
   });
+  await setup(page);
   await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
-  await page.getByLabel("Range end UTC").fill("2025-01-01T00:00");
+  await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
   await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
   const panel = page.locator('[data-panel="footprint"]');
-  await expect(
-    panel.getByRole("button", { name: "Next data page" }),
-  ).toBeEnabled();
-  expect(calls.length).toBe(1);
-  await panel.getByRole("button", { name: "Next data page" }).click();
-  await expect(panel).toContainText("Page 2");
-  await expect(panel.locator("details:not(.panel-evidence)")).toContainText(
-    "101",
-  );
-  expect(calls[1].searchParams.get("cursor")).toBe("opaque:1000:same-time");
-  expect(
-    calls.every((u) => u.searchParams.get("limit") === "1000"),
-  ).toBeTruthy();
-  expect(calls[0].searchParams.get("start_ms")).toBe(
-    calls[1].searchParams.get("start_ms"),
-  );
-  await panel.getByRole("button", { name: "Previous data page" }).click();
-  await expect(panel).toContainText("Page 1");
+  await expect(panel).toContainText("endpoint_contract_not_supported");
+  await expect(panel.locator("canvas")).toBeHidden();
+  await expect(panel.getByRole("button", { name: "Next data page" })).toBeDisabled();
+  expect(requests).toEqual([]);
 });
+
 for (const status of ["UNAVAILABLE", "UNVERIFIED"])
   test(`full loadCharts suppresses canonical ${status} and retains evidence`, async ({
     page,
@@ -555,50 +560,32 @@ test("download creates per-instrument jobs with exclusive UTC range", async ({
     bodies.every((b) => b.start_ms === start && b.end_ms === start + 86400000),
   ).toBeTruthy();
 });
-test("all derived panels render server strings, profile accepts many prices at one time", async ({
+test("unimplemented analytics are explicit and no browser request is sent", async ({
   page,
 }) => {
-  const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await setup(page, {
-    footprint: [
-      {
-        timestamp_ms: start,
-        price: "2",
-        buy_volume: "3",
-        sell_volume: "1",
-        provenance: "C from verified trades",
-      },
-    ],
-    analytics: (kind) => ({
-      availability: "PARTIAL",
-      source: "C",
-      reason: "Coverage partial",
-      rows:
-        kind === "profile"
-          ? [
-              { ts: start, price: "1", volume: "3", is_poc: true },
-              { ts: start, price: "2", volume: "2" },
-            ]
-          : [{ ts: start, value: "1.00000000000000000001" }],
-    }),
+  const errors = [], paths = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("request", request => {
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/analytics" || path === "/api/footprint")
+      paths.push(path);
   });
+  await setup(page);
   await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
   await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
   await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
-  for (const kind of [
-    "footprint",
-    "delta",
-    "cvd",
-    "profile",
-    "poc",
-    "vwap",
-    "mark",
-    "index",
-  ])
-    await expect(page.locator(`[data-panel="${kind}"] canvas`)).toBeVisible();
+  for (const kind of ["footprint", "delta", "cvd", "profile", "poc", "vwap"]) {
+    const panel = page.locator(`[data-panel="${kind}"]`);
+    await expect(panel).toContainText("DATA_UNAVAILABLE");
+    await expect(panel.locator("canvas")).toBeHidden();
+  }
+  await expect(page.locator('[data-panel="delta"]')).toContainText(
+    "endpoint_contract_not_supported",
+  );
+  expect(paths).toEqual([]);
   expect(errors).toEqual([]);
 });
+
 test("sort is requested on server and unavailable panels explain why", async ({
   page,
 }) => {
@@ -617,7 +604,7 @@ test("sort is requested on server and unavailable panels explain why", async ({
     "DATA_UNAVAILABLE",
   );
   await expect(page.locator('[data-panel="footprint"]')).toContainText(
-    "Historical trades not ingested",
+    "endpoint_contract_not_supported",
   );
 });
 test("API outage is visible and retry works without fake rows", async ({
@@ -802,16 +789,15 @@ test("strategy workspace fails closed before validated F outputs exist", async (
   await setup(page);
   for (const name of [
     "Strategy preview",
-    "Stop Loss / Take Profit",
-    "Simulation journal",
-    "Equity",
-    "Drawdown",
-    "Trade overlays",
+    "Trader disclosures and hypotheses",
   ]) {
     const panel = page.getByRole("region", { name, exact: true });
     await expect(panel).toContainText("DATA_UNAVAILABLE");
-    await expect(panel).toContainText("validated simulation");
   }
+  await expect(page.locator("#strategy-run")).toBeDisabled();
+  await expect(page.locator("#strategy-execution-status")).toContainText(
+    "DATA_UNAVAILABLE",
+  );
 });
 test("editing range fields invalidates all old chart cursors before paging", async ({
   page,
@@ -1119,4 +1105,77 @@ test("every catalog metric and text header requests global server sort", async (
       ),
     )
     .toBe("inverse");
+});
+
+test("capability denial suppresses unsupported chart requests for all 13 intervals", async ({ page }) => {
+  const failures = [];
+  page.on("pageerror", error => failures.push(error.message));
+  const denied = Object.fromEntries(
+    ["candles","volume","footprint","delta","cvd","profile","poc","vwap",
+     "open_interest","funding","mark","index"].map(panel => [
+      panel, { panel, status: "UNVERIFIED", reason: "source_revision_not_verified" }
+    ])
+  );
+  await setup(page, { capabilities: denied });
+  const chartRequests = [];
+  page.on("request", req => {
+    const path = new URL(req.url()).pathname;
+    if (["/api/candles","/api/footprint","/api/analytics",
+         "/api/open-interest","/api/funding","/api/coverage"].includes(path))
+      chartRequests.push(path);
+  });
+  await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
+  await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
+  await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
+  for (const interval of ["1","3","5","15","30","60","120","240",
+                          "360","720","D","W","M"]) {
+    await page.locator("#interval").selectOption(interval);
+    await expect(page.locator('[data-panel="mark"]')).toContainText("source_revision_not_verified");
+    await expect(page.locator('[data-panel="index"]')).toContainText("source_revision_not_verified");
+  }
+  expect(chartRequests).toEqual([]);
+  expect(failures).toEqual([]);
+});
+
+test("mark and index use separate official candle kinds without analytics fallback", async ({ page }) => {
+  const requested = [];
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await setup(page);
+  page.on("request", req => {
+    const url = new URL(req.url());
+    if (url.pathname === "/api/price-candles") requested.push(
+      [url.searchParams.get("candle_kind"), url.searchParams.get("schema_version")]
+    );
+  });
+  await page.getByLabel("Range start UTC").fill("2024-01-01T00:00");
+  await page.getByLabel("Range end UTC").fill("2024-01-02T00:00");
+  await page.getByRole("button", { name: "Chart BTCUSDT" }).click();
+  await expect(page.locator('[data-panel="mark"]')).not.toContainText("Loading…");
+  await expect(page.locator('[data-panel="index"]')).not.toContainText("Loading…");
+  expect(requested).toContainEqual(["official_mark", "1.1"]);
+  expect(requested).toContainEqual(["official_index", "1.1"]);
+  expect(errors).toEqual([]);
+});
+
+test("disabled optional catalog/source routes avoid 404 and allow safe direct symbol", async ({ page }) => {
+  const calls = [], errors = [];
+  page.on("request", req => calls.push(new URL(req.url()).pathname));
+  page.on("pageerror", e => errors.push(e.message));
+  await setup(page, {
+    routeFeatures: {
+      market_catalog: { enabled: false, reason: "catalog_not_configured" },
+      sources: { enabled: false, reason: "catalog_and_provider_required" },
+    },
+  });
+  await expect(page.locator("#screener-status")).toContainText("market_catalog_not_configured");
+  await page.getByLabel("Direct source symbol").fill("BTCUSDT");
+  await page.getByRole("button", { name: "Open source symbol" }).click();
+  await expect(page.locator("#active-symbol")).toContainText("BTCUSDT");
+  expect(calls.filter(p => p.startsWith("/api/market-catalog/"))).toEqual([]);
+  expect(calls.filter(p => p === "/api/sources")).toEqual([]);
+  await page.getByLabel("Direct source symbol").fill("../BTC");
+  await page.getByRole("button", { name: "Open source symbol" }).click();
+  await expect(page.locator("#chart-status")).toContainText("Invalid source symbol");
+  expect(errors).toEqual([]);
 });

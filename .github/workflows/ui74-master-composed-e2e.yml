@@ -1,0 +1,187 @@
+name: UI74 composed MASTER77 FastAPI Chromium and PostgreSQL E2E
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ui74-master-composed-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  disposable-composed-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_combined_ci
+          POSTGRES_USER: tester_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ["55472:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tester_ci -d tester_research_combined_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      data_pg:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_data_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports: ["55476:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_data_disposable"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      auxiliary_pg:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_composed_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports: ["55477:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_composed_disposable"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: "true"
+      EXPECTED_STAGING_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+      TESTER_COMBINED_CI: synthetic-disposable
+      TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
+      TESTER_TESTED_HEAD_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+      TESTER_DATA_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
+      TESTER_RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
+      TESTER_RESEARCH_DATA_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55476/tester_research_data_disposable
+      TESTER_AUX_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55477/tester_research_composed_disposable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fetch exact source producer heads
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_STAGING_SHA"
+          for sha in 3b2eef8a4139195db1a775545e83f1c1f58bf403 d5bfdad445a1eefb9dc12bf2725a00f171e2c321 7ec35810434e3c9159f36712a4186595ac637efa a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 0d4649f3a7cd3595ea58757f2abaf2f1b0558667; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Compose immutable DATA RESEARCH UI OPS source only in disposable runner
+        run: |
+          python scripts/master_disposable_compose.py | tee composed-manifest.txt
+          grep -Fx "COMPOSED_UNCOMMITTED_FILES=125" composed-manifest.txt
+          test "$(grep -c '^UI' composed-manifest.txt)" -eq 36
+          python -m compileall -q src/api src/integration tests/platform
+      - name: Install test dependencies
+        run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: FastAPI capability and immutable OpenAPI guards on composed source
+        run: |
+          python scripts/compare_download_kind_proposal.py
+          python -m pytest -q tests/platform/test_download_kind_proposal.py tests/platform/test_capability_discovery.py tests/platform/test_capability_data_bridge.py tests/platform/test_ui_source_protocol.py tests/platform/test_ui_composition_manifest.py tests/platform/test_combined_browser_fixture.py
+      - name: DATA PostgreSQL16 -> RESEARCH trusted UI readback (same composed source)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_execution_contract_bridge -v
+          python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres or disposable_pg"
+          python -m unittest tests.test_composed_data_research_postgres -v
+      - name: Verify composed FastAPI 13-timeframe API and fail-closed market panels
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from fastapi.testclient import TestClient
+          from src.api.config import Settings
+          from src.api.main import create_app
+
+          app = create_app(Settings(
+              market_catalog_enabled=False, frontend_dir=Path("frontend").resolve()
+          ))
+          route_paths = {getattr(route, "path", "") for route in app.routes}
+          assert "/api/capabilities" in route_paths
+          assert "/api/analytics" not in route_paths
+          assert "/api/v1_1/downloads" not in route_paths
+          assert "/api/open-interest" in route_paths
+          assert "/api/funding" in route_paths
+          intervals = ("1", "3", "5", "15", "30", "60", "120",
+                       "240", "360", "720", "D", "W", "M")
+          with TestClient(app, base_url="http://127.0.0.1:8765") as client:
+              for interval in intervals:
+                  response = client.get("/api/capabilities", params=dict(
+                      category="linear", symbol="BTCUSDT", interval=interval,
+                      start_ms=1704067200000, end_ms=1711929600000,
+                  ))
+                  assert response.status_code == 200, (interval, response.text)
+                  d = response.json()["data"]
+                  assert d["features"]["market_catalog"]["enabled"] is False
+                  assert d["features"]["sources"]["enabled"] is False
+                  assert d["observed_page_revision"]["history_complete"] is False
+                  assert d["observed_page_revision"]["supports_f_admission"] is False
+                  assert d["source_contracts"]["research_ui_observation"]["http_route"] is None
+                  assert d["source_contracts"]["research_ui_observation"]["g_e_execution"] == "NOT_AUTHORIZED"
+                  for panel in ("footprint", "delta", "cvd", "vwap", "poc", "profile"):
+                      item = d["panels"][panel]
+                      assert item["status"] == "UNAVAILABLE", (interval, panel, item)
+                      assert item["reason"] == "endpoint_contract_not_supported"
+                      assert "resource" not in item
+                  for panel in ("open_interest", "funding", "mark", "index"):
+                      item = d["panels"][panel]
+                      assert item["status"] == "UNVERIFIED", (interval, panel, item)
+                      assert item["reason"] in {
+                          "source_not_authorized", "provider_not_connected",
+                          "reference_price_route_not_enabled", "source_not_connected",
+                      }, (interval, panel, item)
+                      assert "resource" not in item
+          print("COMPOSED_CAPABILITY_13TF_FAIL_CLOSED_PASS", len(intervals))
+          PY
+      - name: Install browser test dependencies
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npm test
+          npx playwright install --with-deps chromium
+      - name: Composed real FastAPI and Chromium across all 13 timeframes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/capability_fixture_server.py >composed-fastapi.log 2>&1 &
+          pid=$!
+          trap 'kill -TERM "$pid" 2>/dev/null || true; wait "$pid" || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000" >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS "http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000" >/dev/null
+          (cd frontend && npx playwright test -c playwright.capability.config.js --reporter=line)
+      - name: Composed real PG16 FastAPI and Chromium G E synthetic digest ACK
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="$RUNNER_TEMP/combined-ui-private.json"
+          export TESTER_COMBINED_FIXTURE_FILE="$fixture"
+          python -m scripts.combined_browser_ci prepare "$fixture"
+          python -m scripts.combined_browser_ci serve "$fixture" >composed-fgd.log 2>&1 &
+          pid=$!
+          trap 'kill -TERM "$pid" 2>/dev/null || true; wait "$pid" || true' EXIT
+          python -m scripts.combined_browser_ci gateway "$fixture"
+          (cd frontend && npx playwright test -c playwright.combined.config.js --reporter=line)
+          python -m scripts.combined_browser_ci verify "$fixture"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui74-master77-synthetic-composed-browser-evidence
+          path: |
+            composed-manifest.txt
+            composed-fastapi.log
+            composed-fgd.log
+            frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
