@@ -67,6 +67,26 @@ def main() -> None:
             "runtime_path_additions_checked": True,
             "admission_status": "NOT_APPROVED",
         }
+    runtime = {}
+    for label, sha in PRODUCERS.items():
+        rows = []
+        for path in sorted(p for p in reviewed["producers"][label] if p.startswith(("src/", "frontend/"))):
+            mode_line = git("ls-tree", sha, "--", path).decode().strip()
+            parts = mode_line.split()
+            if len(parts) < 4 or parts[0] not in {"100644", "100755"} or parts[1] != "blob":
+                raise SystemExit(f"{label}: invalid reviewed runtime Git entry {path}")
+            raw = git("show", f"{sha}:{path}")
+            rows.append({"path": path, "mode": parts[0], "git_blob_sha": parts[2], "sha256": hashlib.sha256(raw).hexdigest()})
+        runtime[label] = rows
+    owners = {}
+    for label, rows in runtime.items():
+        for entry in rows:
+            old = owners.get(entry["path"])
+            if old is not None and (old["git_blob_sha"], old["mode"]) != (entry["git_blob_sha"], entry["mode"]):
+                raise SystemExit("runtime source conflict: " + entry["path"])
+            owners[entry["path"]] = entry
+    result["approved_runtime_blobs"] = runtime
+    result["approved_runtime_unique_paths"] = len(owners)
     print(json.dumps(result, sort_keys=True, indent=2))
 
 
