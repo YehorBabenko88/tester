@@ -309,11 +309,9 @@ def test_actual_postgres_hostaddr_environment_cannot_redirect(persistent, monkey
     monkeypatch.setenv("PGPORT", "1")
     monkeypatch.setenv("PGDATABASE", "postgres")
     with persistent.connection() as conn:
-        # Pin the *client* TCP destination and database, not the server-side
-        # address behind GitHub Actions' Docker port-forwarding.
-        # conn.info.hostaddr is the actual numeric destination libpq used;
-        # inet_server_addr() can legitimately report 172.x:5432 while
-        # the runner connects via 127.0.0.1:55472.
+        # Security boundary: the client's effective, validated libpq target,
+        # not the server's internal Docker socket (172.x:5432) reached through
+        # the runner's pinned published loopback endpoint 127.0.0.1:55472.
         assert conn.info.host == expected["host"]
         assert conn.info.hostaddr == expected["host"]
         assert int(conn.info.port) == int(expected["port"])
