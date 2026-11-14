@@ -63,9 +63,7 @@ def main():
     databases = []
     with psycopg.connect(admin_dsn, autocommit=True) as connection:
         for database, _ in SUITES:
-            connection.execute(
-                sql.SQL("CREATE DATABASE {}").format(sql.Identifier(database))
-            )
+            connection.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(database)))
             databases.append(database)
 
     try:
@@ -91,9 +89,7 @@ def main():
         with psycopg.connect(admin_dsn, autocommit=True) as connection:
             for database in reversed(databases):
                 connection.execute(
-                    sql.SQL("DROP DATABASE {} WITH (FORCE)").format(
-                        sql.Identifier(database)
-                    )
+                    sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(database))
                 )
 
     print("COMPOSED_DATA_PG_ALL_SUITES_PASS", len(SUITES), flush=True)
