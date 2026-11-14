@@ -116,7 +116,7 @@ def test_legacy_download_v1_is_not_rewritten_by_handoff():
 
 def _git_blob(content: bytes) -> str:
     return hashlib.sha1(
-        b"blob " + str(len(content)).encode("ascii") + b"\\0" + content
+        b"blob " + str(len(content)).encode("ascii") + b"\0" + content
     ).hexdigest()
 
 
