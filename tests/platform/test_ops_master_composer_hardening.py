@@ -74,9 +74,6 @@ class MasterComposerHardeningTests(unittest.TestCase):
             "unknown/file.py",
             "tests/x.py/",
         ):
-            # Encoded escapes need explicit decoding policy, tested separately:
-            if "%2e" in value:
-                continue
             with self.subTest(value=value), self.assertRaises(MasterComposeRefused):
                 require_repo_file_path(value)
         self.assertEqual(
@@ -103,6 +100,19 @@ class MasterComposerHardeningTests(unittest.TestCase):
         with self.assertRaisesRegex(MasterComposeRefused, "symlinked_destination_file"):
             require_safe_destination(self.workspace, "scripts/ops_target.py")
         self.assertEqual(original.read_text(), "KEEP ORIGINAL")
+
+    def test_workspace_symlink_and_root_escape_are_rejected(self):
+        link = self.root / "checkout-link"
+        try:
+            link.symlink_to(self.workspace, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("symlink privileges unavailable")
+        with self.assertRaisesRegex(MasterComposeRefused, "untrusted_checkout_root"):
+            require_safe_destination(link, "scripts/ops_readonly.py")
+        with self.assertRaises(MasterComposeRefused):
+            require_repo_file_path("scripts/%2e%2e/outside.py")
+        with self.assertRaises(MasterComposeRefused):
+            require_repo_file_path("scripts/%2Fetc%2Fpasswd")
 
     def test_non_directory_parent_and_checkout_escape_refused(self):
         bad_parent = self.workspace / "scripts"
