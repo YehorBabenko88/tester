@@ -290,8 +290,8 @@ def test_exact_five_new_research_allowlist_blobs_are_pending_not_approved():
     )
     assert content.count(start) == content.count(end) == 1
     embedded = content.split(start, 1)[1].split(end, 1)[0].strip()
-    assert embedded.startswith("&#96;&#96;&#96;json".replace("&#96;", "`"))
-    snapshot = json.loads(embedded.split("\n", 1)[1].rsplit("`" * 3, 1)[0])
+    assert embedded.startswith("```json\n") and embedded.endswith("```")
+    snapshot = json.loads(embedded[len("```json\n"):-3].strip())
     original = "e76b08dbb2b45121c577c84414c56a7218994d0c"
     master = "298d610771d962ee7b796eac1834d74138768fac"
     assert snapshot["schema"] == "research-pr71-allowlist-review/1"
