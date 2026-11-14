@@ -3,6 +3,7 @@
 Requires a trusted Git object reader. Neither this file nor a CI environment
 variable establishes independent GitHub runner attestation.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -28,12 +29,14 @@ def object_sha(data: bytes) -> str:
 
 def verify() -> dict[str, object]:
     manifest = json.loads(LEDGER.read_bytes())
-    if (manifest["schema"] != "tester-data-immutable-review/2"
-            or manifest["status"] != "REVIEW_CANDIDATE_NOT_MASTER_APPROVED"
-            or manifest["base_sha"] != BASE
-            or manifest["reviewed_data_head"] != HEAD
-            or manifest["master_review_head"] != MASTER
-            or manifest["release"] != "NO_GO"):
+    if (
+        manifest["schema"] != "tester-data-immutable-review/2"
+        or manifest["status"] != "REVIEW_CANDIDATE_NOT_MASTER_APPROVED"
+        or manifest["base_sha"] != BASE
+        or manifest["reviewed_data_head"] != HEAD
+        or manifest["master_review_head"] != MASTER
+        or manifest["release"] != "NO_GO"
+    ):
         raise ValueError("wrong immutable DATA review authority")
     if git("rev-parse", HEAD + "^{commit}").decode().strip() != HEAD:
         raise ValueError("missing pinned DATA commit")
@@ -60,10 +63,11 @@ def verify() -> dict[str, object]:
         raise ValueError("reviewed DATA changes do not match source diff")
     pending = set(paths) - old_paths
     if pending != {
-            ".github/workflows/data-private-generation-review.yml",
-            "docs/coordination/data72-private-generation-blob-manifest.json",
-            "docs/coordination/data72-private-generation-replay.md",
-            "tests/test_data_private_generation_compat.py"}:
+        ".github/workflows/data-private-generation-review.yml",
+        "docs/coordination/data72-private-generation-blob-manifest.json",
+        "docs/coordination/data72-private-generation-replay.md",
+        "tests/test_data_private_generation_compat.py",
+    }:
         raise ValueError("unknown or missing DATA pending-file set")
     for item in entries:
         path = item["path"]
@@ -74,13 +78,18 @@ def verify() -> dict[str, object]:
         original = git("show", HEAD + ":" + path)
         if object_sha(original) != item["git_blob_sha1"]:
             raise ValueError("Git object content differs: " + path)
-        category = ("runtime" if path.startswith("src/") else
-                    "ci_driver" if path.startswith("scripts/") else
-                    "test" if path.startswith("tests/") else
-                    "workflow" if path.startswith(".github/workflows/") else
-                    "documentation")
-        if (category != item["category"]
-                or item["master_298d_allowlisted"] != (path in old_paths)):
+        category = (
+            "runtime"
+            if path.startswith("src/")
+            else "ci_driver"
+            if path.startswith("scripts/")
+            else "test"
+            if path.startswith("tests/")
+            else "workflow"
+            if path.startswith(".github/workflows/")
+            else "documentation"
+        )
+        if category != item["category"] or item["master_298d_allowlisted"] != (path in old_paths):
             raise ValueError("file category/allowlist mismatch: " + path)
     if sum(p.startswith("src/") for p in pending) != 0:
         raise ValueError("runtime expansion requires independent review")
@@ -88,9 +97,12 @@ def verify() -> dict[str, object]:
     if object_sha(migration) != "05600c50e3d4598aaa4645ac58e137a719b0eed2":
         raise ValueError("migration 008 changed")
     return {
-        "data_head": HEAD, "master_head": MASTER,
-        "count": len(entries), "approved": len(old_paths),
-        "pending": len(pending), "migration_008": object_sha(migration),
+        "data_head": HEAD,
+        "master_head": MASTER,
+        "count": len(entries),
+        "approved": len(old_paths),
+        "pending": len(pending),
+        "migration_008": object_sha(migration),
         "manifest_sha256": hashlib.sha256(LEDGER.read_bytes()).hexdigest(),
         "status": "PASS_SOURCE_IDENTITY_ONLY_NOT_EXTERNAL_ATTESTATION",
     }
