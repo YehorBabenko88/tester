@@ -58,6 +58,7 @@
       "frontend/observed-research.js",
       "frontend/playwright.capability.config.js",
       "frontend/series.js",
+      "frontend/strategy.js",
       "frontend/tests/capabilities.test.js",
       "frontend/tests/capability-backend.e2e.js",
       "frontend/tests/capability-wiring.test.js",
