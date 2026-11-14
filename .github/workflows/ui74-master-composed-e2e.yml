@@ -113,7 +113,7 @@ jobs:
           assert "/api/funding" in route_paths
           intervals = ("1", "3", "5", "15", "30", "60", "120",
                        "240", "360", "720", "D", "W", "M")
-          with TestClient(app) as client:
+          with TestClient(app, base_url="http://127.0.0.1:8765") as client:
               for interval in intervals:
                   response = client.get("/api/capabilities", params=dict(
                       category="linear", symbol="BTCUSDT", interval=interval,
