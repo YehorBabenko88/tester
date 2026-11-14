@@ -225,6 +225,37 @@ class PostgresTests(unittest.TestCase):
                     self.assertIn('Unknown',definition)
                     self.assertIn('Buy',definition)
                     self.assertIn('Sell',definition)
+                # Rollback-only SQL probe: migration 008 accepts the original
+                # UNKNOWN taker side, while rejecting fabricated Other.
+                # The historical row and provenance must remain untouched.
+                unknown=copy.deepcopy(raw)
+                unknown['timestamp_ms']=raw['timestamp_ms']+1
+                unknown['payload']['trade_id']='upgrade-original-unknown'
+                unknown['payload']['side']='Unknown'
+                u=normalize(unknown)
+                insertion='''INSERT INTO tester_storage.raw_records(
+                    record_key,venue,category,symbol,dataset,interval,schema_version,
+                    timestamp_ms,timestamp_precision,trade_id,id_origin,payload,content_hash)
+                    VALUES(%s,'bybit','linear',%s,'trades','','1.0',%s,'ms',%s,'exchange',%s,%s)'''
+                arguments=(u['record_key'],self.symbol,u['timestamp_ms'],
+                           u['trade_id'],Jsonb(u['payload']),u['content_hash'])
+                c.execute('SAVEPOINT migration_008_unknown_probe')
+                try:
+                    c.execute(insertion,arguments)
+                    self.assertEqual(c.execute('''SELECT payload->>'side'
+                        FROM tester_storage.raw_records WHERE record_key=%s''',
+                        (u['record_key'],)).fetchone()[0],'Unknown')
+                finally:
+                    c.execute('ROLLBACK TO SAVEPOINT migration_008_unknown_probe')
+                    c.execute('RELEASE SAVEPOINT migration_008_unknown_probe')
+                with self.assertRaises(psycopg.errors.CheckViolation):
+                    with c.transaction():
+                        invalid=(*arguments[:4],
+                                 Jsonb({**u['payload'],'side':'Other'}),
+                                 arguments[5])
+                        c.execute(insertion,invalid)
+                self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.raw_records').fetchone()[0],1)
+                self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.record_sources').fetchone()[0],1)
             provenance=Store(target).provenance([n['record_key']])[n['record_key']]
             self.assertFalse(provenance['authentic'])
             self.assertEqual(len(provenance['unlinked_sources']),1)
