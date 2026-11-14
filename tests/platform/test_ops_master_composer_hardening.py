@@ -6,9 +6,9 @@ no Windows service, PC4 process, PostgreSQL or production path is touched.
 from __future__ import annotations
 
 import os
+import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 
 from scripts.ops_master_composer_hardening import (
     MasterComposeRefused,
