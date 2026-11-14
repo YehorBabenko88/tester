@@ -64,6 +64,18 @@ def test_v1_1_activation_detection_is_not_hardcoded():
     assert compare_contracts(legacy, proposal, future)["new_v1_1_endpoint_activated"] is True
 
 
+def test_old_v1_download_kind_values_stay_valid_in_runtime():
+    from src.api.models import DownloadRequest
+
+    legacy = ["candles", "trades", "footprint", "open_interest", "funding"]
+    for kind in legacy:
+        req = DownloadRequest(
+            category="linear", symbol="BTCUSDT", source="public",
+            kind=kind, start_ms=0, end_ms=60000,
+        )
+        assert req.kind == kind
+
+
 def test_mark_index_price_only_source_contract_is_not_a_download_grant():
     proposal = json.loads(PROPOSAL.read_text(encoding="utf-8"))
     for kind in ("mark", "index"):
