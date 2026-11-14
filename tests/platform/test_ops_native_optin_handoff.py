@@ -85,6 +85,23 @@ class OptinHandoffTests(unittest.TestCase):
                 good, producer_heads=bad_pins, opt_in=PREPARE_ONLY,
             )
 
+    def test_incompatible_producer_contract_blocks_even_source_only_plan(self):
+        for blocker in (
+            "data_research_execution_contract_version_mismatch",
+            "data_research_bounded_page_limit_mismatch",
+            "data_read_interface_signature_mismatch",
+            "research_read_interface_signature_mismatch",
+            "ui_capability_route_not_declared",
+        ):
+            report = sample_report()
+            report["blockers"].append(blocker)
+            with self.subTest(blocker=blocker), self.assertRaisesRegex(
+                ValueError, "staging_producer_contracts_incompatible"
+            ):
+                prepare_native_source_handoff(
+                    report, producer_heads=PINNED_PRODUCERS, opt_in=PREPARE_ONLY
+                )
+
     def test_native_autoenable_flags_and_bad_hashes_refused(self):
         for field, value in (
             ("installed_native_activation", "ENABLED"),
