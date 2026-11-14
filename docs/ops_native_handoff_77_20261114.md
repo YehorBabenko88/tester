@@ -38,9 +38,10 @@ Runtime source (opt-in, not installed; 12 files):
 - `scripts/ops_resource_metrics.py`
 - `scripts/ops_win32_handle.py`
 
-Focused tests:
+Focused tests (12 files):
 - `tests/platform/test_ops_candidate_compatibility.py`
 - `tests/platform/test_ops_combined_ci_plan.py`
+- `tests/platform/test_ops_master_composer_audit.py` — read-only exact MASTER overlap regression
 - `tests/platform/test_ops_native_admission.py`
 - `tests/platform/test_ops_native_admission_pg_real.py`
 - `tests/platform/test_ops_native_fixture_launcher.py`
@@ -51,9 +52,10 @@ Focused tests:
 - `tests/platform/test_ops_native_windows_witness.py`
 - `tests/platform/test_ops_resource_metrics.py`
 
-CI / docs:
+CI / docs (7 files):
 - `.github/workflows/ops-portable.yml`
 - `scripts/ops_combined_ci_plan.py` — pure, non-executing full combined-SHA CI matrix
+- `scripts/ops_master_composer_audit.py` — static MASTER opt-in path gate; never launches
 - `docs/ops_native_fixture_launcher_20261113.md`
 - `docs/ops_native_launcher_admission_20261113.md`
 - `docs/ops_native_handoff_77_20261114.md`
@@ -108,8 +110,8 @@ a deterministic and SHA-bound JSON acceptance matrix; it NEVER invokes a
 command. Its test suite requires immutable reviewed producer pins, rejects
 an accidental user-local CI invocation and all live/native activation flags.
 
-Source handoff selection now contains **12 opt-in runtime modules, 11 focused
-OPS tests and 6 CI/documentation items**. Only after all PG14/PG18/PG16,
+Source handoff selection now contains **12 opt-in runtime modules, 12 focused
+OPS tests and 7 CI/documentation items**. Only after all PG14/PG18/PG16,
 Windows original-handle and rollback, FastAPI/Chromium 13TF, security and
 source-manifest jobs pass on the same combined SHA may MASTER consider the
 next integration step. Until separately authorized physical validation,
@@ -129,8 +131,9 @@ or installed Windows service readiness**.
 The revised minimal handoff explicitly includes the previously omitted
 `scripts/ops_pg_claim.py`, a required direct import from the real
 `test_ops_native_admission_pg_real.py`; its approved count is now
-**12 runtime + 11 focused tests + 6 CI/docs = 29 files**. All these files
-exist in MASTER's pinned OPS source. The remaining **30 extra** OPS files
+**12 runtime + 12 focused tests + 7 CI/docs = 31 files**. The frozen
+MASTER OPS pin predates the two new read-only audit files, so **29 of these
+31** are present in that historical source. The remaining **30 extra** OPS files
 which MASTER copied but which are not in the minimal handoff are:
 
 - `docs/ops_dual_resource_receipt.json`
@@ -190,7 +193,7 @@ on the uncommitted 125-file MASTER source composition** (3 original-handle,
 on the same frozen MASTER source composition** (8 fenced lease, recovery,
 rollback and CPU/RAM/WAL/I/O tests PASS). The independent source scope audit
 ran 5/5 PASS while correctly returning `BLOCKED_SCOPE_TOO_BROAD`: 59 OPS
-files copied, 29 approved, 30 extras. Those are valid **disposable tests**,
+files copied, 31 currently approved, 30 extras and 2 post-pin audit files absent. Those are valid **disposable tests**,
 not proof of narrow opt-in inclusion, native PC4 restart or full global
 PG14/PG18/Chromium source-release acceptance.
 
@@ -203,3 +206,22 @@ RESEARCH `7ec35810434e3c9159f36712a4186595ac637efa`; its newer head
 changed only a workflow and tests, and retains the exact same execution
 adapter Git blob. Updating latest checks does NOT silently update MASTER's
 immutable producer SHA set.
+
+### Handoff-pin consistency requirement
+
+An owner-reviewed **new** combined producer pin is required before the
+updated 31-file selection can be reproduced from Git. The current MASTER
+composer pins `0d4649f3a7cd3595ea58757f2abaf2f1b0558667`, which
+contains 29 of the updated selection; the two post-pin static audit paths
+are not in that commit:
+
+- `scripts/ops_master_composer_audit.py`
+- `tests/platform/test_ops_master_composer_audit.py`
+
+This is an explicitly recorded SOURCE-PIN MISMATCH, **not a reason to copy a
+moving OPS branch silently**. The 29 historical paths are still intact;
+no required runtime imports are missing thanks to `ops_pg_claim.py`.
+MASTER can either keep its frozen pin and test the historical list, or
+approve a new exact OPS producer commit and only then use the 31-file
+self-contained handoff, after reviewing every added audit file. Both cases
+must keep installed native activation BLOCKED.
