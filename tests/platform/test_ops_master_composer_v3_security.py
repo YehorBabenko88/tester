@@ -292,6 +292,43 @@ class MasterV3SandboxTests(unittest.TestCase):
         self.assertIn("COMPOSITION_ONLY", output)
         self.assertEqual(unexpected.read_text(encoding="utf-8"), "UNREVIEWED")
 
+    def test_19_hardlink_alias_overwrites_protected_worker_VULNERABILITY(self):
+        # Exact protected path is not in allowlist, but its inode can be reached
+        # through a regular, approved hardlink. All files are disposable.
+        protected = self.root / "src/api/worker.py"
+        protected.parent.mkdir(parents=True)
+        protected.write_text("PROTECTED", encoding="utf-8")
+        (self.root / "scripts").mkdir()
+        try:
+            os.link(protected, self.root / PATH)
+        except OSError as exc:
+            self.skipTest("hardlink unavailable in isolated test FS: " + str(exc))
+        output, _ = self._run()
+        self.assertIn("COMPOSITION_ONLY", output)
+        self.assertEqual(protected.read_bytes(), PAYLOAD)
+
+    def test_20_mid_write_failure_leaves_partial_composition_VULNERABILITY(self):
+        # Preflight cannot promise rollback if a later descriptor-relative
+        # write fails. The first approved file remains modified.
+        second = "docs/ops_portable_checkpoint.md"
+        self.assertIn(second, json.loads(self.manifest.read_text())["producers"]["OPS"])
+        original_open = os.open
+        refused = False
+
+        def intercept(path, flags, *args, **kwargs):
+            nonlocal refused
+            if path == "ops_portable_checkpoint.md" and flags & os.O_TRUNC:
+                refused = True
+                raise OSError("injected late IO failure, sandbox only")
+            return original_open(path, flags, *args, **kwargs)
+
+        with patch.object(os, "open", side_effect=intercept):
+            with self.assertRaises(OSError):
+                self._run((PATH, second))
+        self.assertTrue(refused)
+        self.assertEqual((self.root / PATH).read_bytes(), PAYLOAD)
+        self.assertFalse((self.root / second).exists())
+
     def test_18_invalid_second_destination_preflight_blocks_first_write(self):
         (self.root / "scripts").mkdir()
         (self.root / "docs").mkdir(exist_ok=True)
