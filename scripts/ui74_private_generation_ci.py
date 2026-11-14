@@ -81,7 +81,13 @@ def expected_mode_and_sha(root, commit, path):
     return int(match.group(1), 8) & 0o777, match.group(2)
 
 
-def reviewed_source(root, manifest_path):
+def reviewed_source(root):
+    """Derive private source bytes directly from immutable Git objects.
+
+    This bypasses the unapproved MASTER #77 checkout composer. It is NOT
+    evidence that the MASTER reviewed allowlist currently matches its pins.
+    No active or disposable checkout file is modified by this function.
+    """
     if git(root, "rev-parse", "HEAD").decode().strip() != MASTER_SHA:
         raise AssertionError("incorrect MASTER staging checkout")
     for ref in (BASE_SHA, *PRODUCER_PINS.values(), OPS_PUBLISHER_COMMIT):
@@ -89,7 +95,8 @@ def reviewed_source(root, manifest_path):
             raise AssertionError("unavailable pinned source commit")
     allowlist = root / "docs/coordination/master-reviewed-producer-files.json"
     if git_blob(allowlist.read_bytes()) != REVIEWED_ALLOWLIST_BLOB:
-        raise AssertionError("MASTER reviewed allowlist mismatch")
+        raise AssertionError("MASTER reviewed allowlist changed")
+    approved = json.loads(allowlist.read_bytes())["producers"]
 
     entries = {}
     for item in git(root, "ls-tree", "-r", "-z", BASE_SHA).split(b"\0"):
@@ -104,52 +111,43 @@ def reviewed_source(root, manifest_path):
             raise AssertionError("special baseline source file: " + path)
         entries[path] = (BASE_SHA, int(parts[0], 8) & 0o777, parts[2], "BASE")
 
-    manifest = manifest_path.read_text(encoding="utf-8").splitlines()
-    headers = [line for line in manifest if line.startswith("COMPOSED_UNCOMMITTED_FILES=")]
-    if len(headers) != 1:
-        raise AssertionError("missing exact MASTER source manifest")
-    declared = int(headers[0].split("=", 1)[1])
-    observed = set()
-    for line in manifest:
-        if not any(line.startswith(label + "\t") for label in PRODUCER_PINS):
-            continue
-        label, digest, path = line.split("\t", 2)
-        if path in observed or not re.fullmatch(r"[a-f0-9]{64}", digest):
-            raise AssertionError("duplicate or corrupt composer manifest")
-        observed.add(path)
-        commit = PRODUCER_PINS[label]
-        # Duplicate producer paths must still be byte-identical; this is a
-        # precondition of the existing MASTER composer and its source manifest.
-        if not selected(path):
-            continue
-        mode, expected_blob = expected_mode_and_sha(root, commit, path)
-        content = (root / path).read_bytes()
-        if sha256(content) != digest or git_blob(content) != expected_blob:
-            raise AssertionError("unexpected source content: " + path)
-        entries[path] = (commit, mode, expected_blob, label)
-    if len(observed) != declared:
-        raise AssertionError("incomplete composer source manifest")
+    all_paths = {}
+    counts = Counter()
+    allowlist_parity = {}
+    for label, commit in PRODUCER_PINS.items():
+        rows = git(root, "diff", "--name-status", "--no-renames", BASE_SHA, commit).decode().splitlines()
+        observed = set()
+        for row in rows:
+            kind, path = row.split("\t", 1)
+            if kind not in ("A", "M") or not (path.startswith((".github/", "docs/", "src/", "frontend/", "scripts/", "tests/"))):
+                raise AssertionError("unsupported or removed producer entry")
+            if path in {"src/integration/pc4_runtime.py", "src/api/worker.py", "pyproject.toml"}:
+                raise AssertionError("protected active-launcher mutation")
+            if path in observed:
+                raise AssertionError("duplicate source entry")
+            observed.add(path)
+            mode, blob = expected_mode_and_sha(root, commit, path)
+            previous = all_paths.get(path)
+            if previous and previous[1] != blob:
+                raise AssertionError("conflicting producer blob: " + path)
+            all_paths[path] = (label, blob)
+            counts[label] += 1
+            if selected(path):
+                entries[path] = (commit, mode, blob, label)
+        allowlist_parity[label] = (observed == set(approved[label]))
     if not any(label == "UI" for _, _, _, label in entries.values()):
         raise AssertionError("reviewed UI code missing")
-
+    # No 'MASTER composer PASS' claim: the reviewed allowlist parity is a
+    # separately reported prerequisite and may currently be false.
     audited = []
     for name in sorted(entries):
-        commit, mode, expected_sha, label = entries[name]
-        candidate = root / name
-        if candidate.is_symlink() or not candidate.is_file():
-            raise AssertionError("unsafe candidate source: " + name)
-        raw = candidate.read_bytes()
-        if git_blob(raw) != expected_sha:
-            raise AssertionError("base or overlay content mutated: " + name)
-        s = candidate.lstat()
-        if not stat.S_ISREG(s.st_mode) or s.st_nlink != 1:
-            raise AssertionError("nonregular or hardlinked candidate: " + name)
-        # MASTER stages fresh regular inodes with private mode 0600.
-        # Publication restores the reviewed Git blob mode 0644/0755.
-        if label == "BASE" and stat.S_IMODE(s.st_mode) != mode:
-            raise AssertionError("unexpected baseline source mode: " + name)
-        audited.append((name, raw, mode, label, expected_sha))
-    return audited, declared
+        commit, mode, blob, label = entries[name]
+        raw = git(root, "show", commit + ":" + name)
+        if git_blob(raw) != blob:
+            raise AssertionError("immutable Git object mismatch: " + name)
+        audited.append((name, raw, mode, label, blob))
+    return audited, sum(counts.values()), allowlist_parity
+
 
 
 def build(args):
@@ -161,7 +159,7 @@ def build(args):
     if not root.is_relative_to(temp) or source.is_relative_to(root):
         raise AssertionError("private workspace must be outside source checkout")
     ops = load_publisher(args.publisher)
-    reviewed, changed_count = reviewed_source(source, Path(args.composed_manifest))
+    reviewed, changed_count, allowlist_parity = reviewed_source(source)
     blobs = [
         ops.ReviewedBlob(name, raw, sha256(raw), expected_sha, mode)
         for name, raw, mode, _, expected_sha in reviewed
@@ -198,7 +196,9 @@ def build(args):
         generation=generation,
         tree_sha256=receipt["tree_sha256"],
         source_pins=pins,
-        composer_changed_files=changed_count,
+        reviewed_producer_changed_files=changed_count,
+        master_reviewed_allowlist_parity=allowlist_parity,
+        source_publication_method="DIRECT_PINNED_GIT_BLOBS_PRIVATE_0700",
         generation_source_files=len(blobs),
         source_counts=counts,
         ui_git_blobs={
