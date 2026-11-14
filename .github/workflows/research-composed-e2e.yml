@@ -108,9 +108,7 @@ jobs:
           python -m pip install -e '.[dev]' -c requirements-platform.lock
           python -m compileall -q src/analytics/research_metrics.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py
       - name: Research arithmetic, UI contract, UNKNOWN and no-lookahead
-        run: |
-          python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
-          python -m ruff check src/analytics/research_metrics.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py tests/platform/test_data_research_adapter_issue59.py
+        run: python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
       - name: Actual disposable DATA PostgreSQL 16 → RESEARCH UI readback
         run: |
           python -m unittest tests.test_execution_contract_bridge -v
@@ -118,6 +116,8 @@ jobs:
           python -m unittest tests.test_composed_data_research_postgres -v
       - name: Pinned research control PostgreSQL, F/G/E auth and hostaddr fencing
         run: python -m pytest -q tests/platform/test_research_postgres.py tests/platform/test_combined_routes.py
+      - name: Composed-tree Ruff (separate from real PostgreSQL E2E)
+        run: python -m ruff check src/analytics/research_metrics.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py tests/platform/test_data_research_adapter_issue59.py
       - name: Upload exact immutable composition manifest
         if: always()
         uses: actions/upload-artifact@v4
