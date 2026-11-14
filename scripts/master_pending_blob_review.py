@@ -13,9 +13,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
 PRODUCERS = {
     "DATA": "327e9be91cca1aec2cd79d6d7c4846d3b024c1b9",
-    "RESEARCH": "af143bb73277e7bffea8ae76d84fd0ed7a707ab0",
+    "RESEARCH": "268a9b0eff8a8fa3a51d1878a724469d3ac778a2",
     "UI": "1d6e34907ae2e4972b8ddf2d4b7301cf0920eb3f",
-    "OPS": "9c0ee3a44e78d16d8beb34fbaf2973ee2e126386",
+    "OPS": "ee58cdb4e5d29c0524f2a0436ceae4a309f80aea",
 }
 
 
