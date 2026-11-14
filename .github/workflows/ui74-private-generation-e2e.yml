@@ -1,0 +1,212 @@
+name: UI74 private generation actual FastAPI Chromium and G/E prototype CI
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ui74-private-generation-e2e.yml"
+      - "scripts/ui74_private_generation_ci.py"
+      - "docs/integration/ui74-private-source-blobs.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-published-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_combined_ci
+          POSTGRES_USER: tester_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ["55472:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tester_ci -d tester_research_combined_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+      TESTER_COMBINED_CI: synthetic-disposable
+      TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
+      TESTER_TESTED_HEAD_SHA: a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96
+      TESTER_DATA_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
+      TESTER_RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
+      MASTER_SHA: 5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd
+      OPS_PUBLISHER_SHA: 113d7f3b97f47c86a19dc8590bdbb9809138c4d8
+      TESTER_AUX_LIVE_BYBIT: "no"
+    steps:
+      - name: Checkout exact MASTER source under test
+        uses: actions/checkout@v4
+        with:
+          ref: 5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout UI test driver separately
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: .ci-ui-driver
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Pin Git sources and externally reviewed Git objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$MASTER_SHA"
+          test "$(git -C .ci-ui-driver rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            d5bfdad445a1eefb9dc12bf2725a00f171e2c321 \
+            7ec35810434e3c9159f36712a4186595ac637efa \
+            a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 \
+            0d4649f3a7cd3595ea58757f2abaf2f1b0558667 \
+            113d7f3b97f47c86a19dc8590bdbb9809138c4d8; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+          test "$(git hash-object docs/coordination/master-reviewed-producer-files.json)" = "08482cd45a3f46b5b8168aab2b7b19f63acb30fb"
+          git show "$OPS_PUBLISHER_SHA:scripts/ops_private_generation_prototype.py" > "$RUNNER_TEMP/ops_private_generation_prototype.py"
+          test "$(git hash-object "$RUNNER_TEMP/ops_private_generation_prototype.py")" = "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e"
+      - name: Compose reviewed four-producer sources in ephemeral source checkout
+        shell: bash
+        env:
+          EXPECTED_STAGING_SHA: 5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd
+          GITHUB_SHA: 5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd
+        run: |
+          set -euo pipefail
+          python scripts/master_disposable_compose.py | tee "$RUNNER_TEMP/ui-source-composed-manifest.txt"
+          grep -q "^COMPOSED_UNCOMMITTED_FILES=" "$RUNNER_TEMP/ui-source-composed-manifest.txt"
+      - name: Publish privately sealed generation with real reviewed Git blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .ci-ui-driver/scripts/ui74_private_generation_ci.py build \
+            --source "$GITHUB_WORKSPACE" \
+            --root "$RUNNER_TEMP/ui-private-source" \
+            --publisher "$RUNNER_TEMP/ops_private_generation_prototype.py" \
+            --composed-manifest "$RUNNER_TEMP/ui-source-composed-manifest.txt" \
+            --manifest-out "$RUNNER_TEMP/ui-private-manifest.json" \
+            --receipt-out "$RUNNER_TEMP/ui-private-evidence.json"
+          python .ci-ui-driver/scripts/ui74_private_generation_ci.py verify \
+            --root "$RUNNER_TEMP/ui-private-source" \
+            --publisher "$RUNNER_TEMP/ops_private_generation_prototype.py" \
+            --manifest-out "$RUNNER_TEMP/ui-private-manifest.json" \
+            --receipt-out "$RUNNER_TEMP/ui-private-evidence.json"
+      - name: Install isolated browser dependencies (outside private generation)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -e '.[dev]' -c requirements-platform.lock
+          (cd frontend && npm ci --ignore-scripts && npm test && npx playwright install --with-deps chromium)
+      - name: Check private FastAPI routes and 13-timeframe source semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          export UI_PRIVATE_GENERATION_DIR="$RUNNER_TEMP/ui-private-source/generations/$(python -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/ui-private-evidence.json"))["generation"])')"
+          export PYTHONPATH="$UI_PRIVATE_GENERATION_DIR"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from fastapi.testclient import TestClient
+          from src.api.main import create_app
+          from src.api.config import Settings
+
+          root=Path(os.environ["UI_PRIVATE_GENERATION_DIR"]).resolve()
+          assert Path(create_app.__code__.co_filename).resolve().is_relative_to(root)
+          app=create_app(Settings(
+              frontend_dir=root/"frontend", market_catalog_enabled=False,
+              data_dir=Path(os.environ["RUNNER_TEMP"])/"ui-private-runtime",
+          ))
+          routes={getattr(r,"path","") for r in app.routes}
+          assert "/api/capabilities" in routes
+          assert "/api/analytics" not in routes
+          assert "/api/v1_1/downloads" not in routes
+          assert "/api/open-interest" in routes and "/api/funding" in routes
+          periods=("1","3","5","15","30","60","120","240","360","720","D","W","M")
+          with TestClient(app,base_url="http://127.0.0.1:8765") as client:
+              for period in periods:
+                  response=client.get("/api/capabilities",params=dict(
+                      category="linear",symbol="BTCUSDT",interval=period,
+                      start_ms=1704067200000,end_ms=1711929600000))
+                  assert response.status_code==200,(period,response.text)
+                  data=response.json()["data"]
+                  assert data["protocol_version"]=="tester.ui-capabilities/1"
+                  assert data["observed_page_revision"]["historical_dataset_revision"]=="UNPINNED"
+                  assert not data["observed_page_revision"]["supports_f_admission"]
+                  assert data["source_contracts"]["research_ui_observation"]["http_route"] is None
+                  for panel in ("footprint","delta","cvd","vwap","poc","profile"):
+                      item=data["panels"][panel]
+                      assert item["status"]=="UNAVAILABLE" and "resource" not in item
+                  for panel in ("mark","index","open_interest","funding"):
+                      item=data["panels"][panel]
+                      assert item["status"]=="UNVERIFIED" and "resource" not in item
+          print("UI74_PRIVATE_FASTAPI_13_TF_PASS",len(periods))
+          PY
+      - name: Real Chromium reads PRIVATE source generation over FastAPI HTTP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .ci-ui-driver/scripts/ui74_private_generation_ci.py serve \
+            --root "$RUNNER_TEMP/ui-private-source" \
+            --publisher "$RUNNER_TEMP/ops_private_generation_prototype.py" \
+            --manifest-out "$RUNNER_TEMP/ui-private-manifest.json" \
+            --receipt-out "$RUNNER_TEMP/ui-private-evidence.json" \
+            --runtime "$RUNNER_TEMP/ui-private-runtime" > "$RUNNER_TEMP/ui-private-fastapi.log" 2>&1 &
+          pid=$!
+          trap 'kill -TERM "$pid" 2>/dev/null || true; wait "$pid" || true' EXIT
+          for i in $(seq 1 35); do
+            if curl -fsS "http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000" >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS "http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000" >/dev/null
+          (cd frontend && npx playwright test --config playwright.capability.config.js --reporter=line)
+          python .ci-ui-driver/scripts/ui74_private_generation_ci.py verify \
+            --root "$RUNNER_TEMP/ui-private-source" \
+            --publisher "$RUNNER_TEMP/ops_private_generation_prototype.py" \
+            --manifest-out "$RUNNER_TEMP/ui-private-manifest.json" \
+            --receipt-out "$RUNNER_TEMP/ui-private-evidence.json"
+      - name: Real PG16 G/E Chromium from same sealed generation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export UI_PRIVATE_GENERATION_DIR="$RUNNER_TEMP/ui-private-source/generations/$(python -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/ui-private-evidence.json"))["generation"])')"
+          export PYTHONPATH="$UI_PRIVATE_GENERATION_DIR"
+          export TESTER_COMBINED_FIXTURE_FILE="$RUNNER_TEMP/ui-private-combined.json"
+          mkdir -p "$RUNNER_TEMP/ui-private-cwd"
+          ln -s "$UI_PRIVATE_GENERATION_DIR/frontend" "$RUNNER_TEMP/ui-private-cwd/frontend"
+          (
+            cd "$RUNNER_TEMP/ui-private-cwd"
+            python -m scripts.combined_browser_ci prepare "$TESTER_COMBINED_FIXTURE_FILE"
+            python -m scripts.combined_browser_ci serve "$TESTER_COMBINED_FIXTURE_FILE" > "$RUNNER_TEMP/ui-private-ge.log" 2>&1 &
+            pid=$!
+            trap 'kill -TERM "$pid" 2>/dev/null || true; wait "$pid" || true' EXIT
+            python -m scripts.combined_browser_ci gateway "$TESTER_COMBINED_FIXTURE_FILE"
+            (cd "$GITHUB_WORKSPACE/frontend" && npx playwright test -c playwright.combined.config.js --reporter=line)
+            python -m scripts.combined_browser_ci verify "$TESTER_COMBINED_FIXTURE_FILE"
+          )
+          python .ci-ui-driver/scripts/ui74_private_generation_ci.py verify \
+            --root "$RUNNER_TEMP/ui-private-source" \
+            --publisher "$RUNNER_TEMP/ops_private_generation_prototype.py" \
+            --manifest-out "$RUNNER_TEMP/ui-private-manifest.json" \
+            --receipt-out "$RUNNER_TEMP/ui-private-evidence.json"
+      - name: Archive prototype evidence, not production admission
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui74-private-prototype-source-and-browser
+          path: |
+            ${{ runner.temp }}/ui-private-evidence.json
+            ${{ runner.temp }}/ui-private-manifest.json
+            ${{ runner.temp }}/ui-source-composed-manifest.txt
+            ${{ runner.temp }}/ui-private-fastapi.log
+            ${{ runner.temp }}/ui-private-ge.log
+            frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
