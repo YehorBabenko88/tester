@@ -25,6 +25,7 @@ POST_PIN_AUDIT_FILES = frozenset({
     "tests/platform/test_ops_master_composer_actual_negative.py",
     "tests/platform/test_ops_master_composer_audit.py",
     "tests/platform/test_ops_master_composer_hardening.py",
+    "tests/platform/test_ops_master_composer_v2_negative.py",
 })
 _APPROVED = frozenset((*RUNTIME_FILES, *TEST_FILES, *CI_AND_DOC_FILES))
 _SHA = re.compile(r"^[0-9a-f]{40}$")
