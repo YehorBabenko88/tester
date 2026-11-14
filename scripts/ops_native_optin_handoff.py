@@ -29,6 +29,7 @@ RUNTIME_FILES = (
     "scripts/ops_candidate_compatibility.py",
     "scripts/ops_native_admission.py",
     "scripts/ops_native_fixture_launcher.py",
+    "scripts/ops_native_optin_handoff.py",
     "scripts/ops_native_scoped_stop.py",
     "scripts/ops_native_windows_rollback.py",
     "scripts/ops_native_windows_witness.py",
