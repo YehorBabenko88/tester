@@ -110,6 +110,76 @@ class MasterComposedDataIntegrity(unittest.TestCase):
         self.assertEqual(actual, expected)
         self.assertEqual(blob_sha(original), CANONICAL_008_GIT_BLOB)
 
+    def test_updated_master_composer_rejects_unsafe_source_or_workspace(self):
+        # Run the actual MASTER composer with a mocked Git reader and a
+        # throwaway filesystem, never against the checked-out source tree.
+        import importlib.util
+        import tempfile
+        from unittest import mock
+
+        source = self.root / "scripts/master_disposable_compose.py"
+        spec = importlib.util.spec_from_file_location(
+            "data72_master_composer_negative", source
+        )
+        self.assertIsNotNone(spec)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        for kind, relative, mode, reason in (
+            ("source_symlink", "src/probe.txt", "120000", "nonregular producer source"),
+            ("parent_symlink", "src/probe.txt", "100644", "symlink destination or parent"),
+            ("target_symlink", "src/probe.txt", "100644", "symlink destination or parent"),
+            ("traversal", "src/../outside.txt", "100644", "unsafe relative path"),
+            ("protected", "src/integration/pc4_runtime.py", "100644", "refusing DATA"),
+            ("wrong_actions", "src/probe.txt", "100644", "refuse non-Actions workspace"),
+        ):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temp:
+                parent = Path(temp)
+                root = parent / "checkout"
+                root.mkdir()
+                outside = parent / "outside"
+                outside.mkdir()
+                sentinel = outside / "sentinel"
+                sentinel.write_text("unchanged", encoding="utf-8")
+                if kind == "parent_symlink":
+                    (root / "src").symlink_to(outside, target_is_directory=True)
+                elif kind == "target_symlink":
+                    (root / "src").mkdir()
+                    (root / "src/probe.txt").symlink_to(sentinel)
+
+                def fake_git(*args):
+                    if args == ("rev-parse", "HEAD"):
+                        return (self.staging_sha + "\n").encode()
+                    if args == ("rev-parse", self.data_sha + "^{commit}"):
+                        return (self.data_sha + "\n").encode()
+                    if args[:3] == ("diff", "--name-status", "--no-renames"):
+                        return ("A\t" + relative + "\n").encode()
+                    if args[0] == "ls-tree":
+                        return (mode + " blob " + "a" * 40 + "\t" + relative + "\n").encode()
+                    if args[0] == "show":
+                        return b"only-a-mocked-data-source\n"
+                    raise AssertionError("unexpected fake Git query: " + repr(args))
+
+                env = {
+                    "CI": "true",
+                    "GITHUB_ACTIONS": "false" if kind == "wrong_actions" else "true",
+                    "GITHUB_WORKSPACE": str(root),
+                    "EXPECTED_STAGING_SHA": self.staging_sha,
+                }
+                with (
+                    mock.patch.object(module, "ROOT", root),
+                    mock.patch.object(module, "PRODUCERS", (("DATA", self.data_sha),)),
+                    mock.patch.object(module, "git", side_effect=fake_git),
+                    mock.patch.dict(os.environ, env),
+                ):
+                    with self.assertRaisesRegex(SystemExit, reason):
+                        module.main()
+                self.assertEqual(sentinel.read_text(encoding="utf-8"), "unchanged")
+                self.assertFalse((outside / "probe.txt").exists())
+                if kind != "target_symlink":
+                    self.assertFalse((root / "src/probe.txt").exists())
+
+
     def test_live_bybit_is_not_enabled_by_disposable_composition(self):
         self.assertNotEqual(os.environ.get("TESTER_AUX_LIVE_BYBIT"), "yes")
         self.assertNotEqual(os.environ.get("TESTER_LIVE_BYBIT"), "yes")
