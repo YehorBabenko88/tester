@@ -1,0 +1,114 @@
+{
+  "schema": "research-private-generation-ledger/1",
+  "source_pins": {
+    "base": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "master": "5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd",
+    "data": "ce4467dd5f22f89c9f691cecb768f2c8cf9d606a",
+    "research": "3966e5465b0b7881da4d23883ec82157fcd54aa1",
+    "ui": "f88d374f1ffb1f3a9a2e014f16ef8b266854063a",
+    "ops": "113d7f3b97f47c86a19dc8590bdbb9809138c4d8"
+  },
+  "files": [
+    {
+      "source": "research",
+      "path": "src/analytics/research_metrics.py",
+      "git_blob_sha1": "d565c1239b60e770c0337423c5e014daeec0e457",
+      "mode": 420
+    },
+    {
+      "source": "research",
+      "path": "src/integration/data_research_adapter.py",
+      "git_blob_sha1": "35404adef064a667faef6a8f3f852f5aa492cf76",
+      "mode": 420
+    },
+    {
+      "source": "research",
+      "path": "src/integration/research_ui_projection.py",
+      "git_blob_sha1": "1c165bccaa39fcf73cf33171730e9ea7d7fd6474",
+      "mode": 420
+    },
+    {
+      "source": "research",
+      "path": "src/integration/research_preview.py",
+      "git_blob_sha1": "f80318926340d8a863f091f6bda16fd00fab0e35",
+      "mode": 420
+    },
+    {
+      "source": "research",
+      "path": "tests/platform/test_research_composed_negative_issue59.py",
+      "git_blob_sha1": "1f0c926739ffe262018b897bd9aa2e2818b435fb",
+      "mode": 420
+    },
+    {
+      "source": "research",
+      "path": "tests/platform/test_data_research_adapter_issue59.py",
+      "git_blob_sha1": "6208490199cd8ac10fdc75f3f8eb1d21b8ddfa79",
+      "mode": 420
+    },
+    {
+      "source": "research",
+      "path": "tests/platform/test_research_metrics_issue59.py",
+      "git_blob_sha1": "f43338eec0bc4bb55e23252b326fcc4f403661e5",
+      "mode": 420
+    },
+    {
+      "source": "data",
+      "path": "src/ingest/execution_contract.py",
+      "git_blob_sha1": "8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79",
+      "mode": 420
+    },
+    {
+      "source": "data",
+      "path": "src/ingest/public_auxiliary.py",
+      "git_blob_sha1": "c38db1b74a1d6fbb27cb07e4192a8ef38c2c39d0",
+      "mode": 420
+    },
+    {
+      "source": "data",
+      "path": "src/storage/models.py",
+      "git_blob_sha1": "f63501f991bcbdb6e416a43ba39cef43a4a1f325",
+      "mode": 420
+    },
+    {
+      "source": "data",
+      "path": "src/storage/store.py",
+      "git_blob_sha1": "4540872d511ecb76ca6caafc1d66065e81750a4c",
+      "mode": 420
+    },
+    {
+      "source": "data",
+      "path": "src/storage/migrations.py",
+      "git_blob_sha1": "ce3c3ac4ad5e819295a7fadf9b93df669f29cd9b",
+      "mode": 420
+    },
+    {
+      "source": "data",
+      "path": "src/storage/migrations/008_public_unknown_taker_side.sql",
+      "git_blob_sha1": "05600c50e3d4598aaa4645ac58e137a719b0eed2",
+      "mode": 420
+    },
+    {
+      "source": "data",
+      "path": "tests/test_execution_contract_bridge.py",
+      "git_blob_sha1": "be8fa0157ac050b3b45c8942903f2e3f76e46cb6",
+      "mode": 420
+    },
+    {
+      "source": "data",
+      "path": "tests/test_composed_data_research_postgres.py",
+      "git_blob_sha1": "033dc029e8931f85fd7d7151bd2179cd743fc0c1",
+      "mode": 420
+    },
+    {
+      "source": "ui",
+      "path": "src/api/main.py",
+      "git_blob_sha1": "da62598a06db5caa0977775f8b0291ac70c96c43",
+      "mode": 420
+    }
+  ],
+  "coverage": "UNKNOWN",
+  "f_admission": "DENIED_UNKNOWN_COVERAGE",
+  "native_launcher": "NOT_ACTIVATED",
+  "manifest_authority": "reviewed_Git_blobs_not_external_signature",
+  "private_generation": "CI_ONLY_NO_INSTALLED_RUNTIME"
+}
