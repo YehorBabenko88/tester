@@ -163,6 +163,8 @@ class MasterComposerHardeningTests(unittest.TestCase):
         self.assertFalse(report["runtime_runner_binding_proven"])
         self.assertFalse(report["symlink_path_preflight_present"])
         self.assertFalse(report["atomic_no_follow_open_present"])
+        self.assertFalse(report["git_symlink_mode_rejected"])
+        self.assertFalse(report["explicit_file_allowlist_enforced"])
         self.assertFalse(report["native_launcher_activation_call_found"])
         self.assertFalse(report["safe_to_run_outside_isolated_ci"])
 
