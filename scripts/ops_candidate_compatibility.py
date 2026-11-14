@@ -39,6 +39,18 @@ def _inspect_source(label: str, source: str) -> dict:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
     missing = sorted(set(REQUIRED_METHODS[label]) - funcs)
+    module_constants = {}
+    keyword_params = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    module_constants[target.id] = node.value.value
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            keyword_params[node.name] = sorted(
+                arg.arg for arg in node.args.kwonlyargs
+            )
     strings = {
         node.value for node in ast.walk(tree)
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
@@ -52,6 +64,16 @@ def _inspect_source(label: str, source: str) -> dict:
         "source_sha256": hashlib.sha256(source.encode("utf-8")).hexdigest(),
         "required_functions_present": not missing,
         "missing_functions": missing,
+        "module_constants": {
+            key: module_constants[key] for key in
+            ("VERSION", "DATA_CONTRACT_VERSION", "MAX_ROWS", "MAX_EVENTS")
+            if key in module_constants
+        },
+        "keyword_params": {
+            key: keyword_params[key] for key in
+            ("read_execution_events", "read_research_trades", "read_data_metrics")
+            if key in keyword_params
+        },
         "markers": sorted(nested_strings),
         "stop_request_legacy": any("stop.request" in value for value in strings),
         "pc4_shutdown_legacy": any("pc4-shutdown.request" in value for value in strings),
@@ -78,6 +100,24 @@ def review_candidate_sources(sources: Mapping[str, str], *,
             blockers.append("missing_expected_" + role + "_interface")
     if not api_ui["capabilities_route"]:
         blockers.append("ui_capability_route_not_declared")
+    producer = inspected["data"]["module_constants"]
+    consumer = inspected["research"]["module_constants"]
+    if (producer.get("VERSION") != "tester-public-execution/1"
+            or consumer.get("DATA_CONTRACT_VERSION") != producer.get("VERSION")):
+        blockers.append("data_research_execution_contract_version_mismatch")
+    if (type(producer.get("MAX_ROWS")) is not int
+            or type(consumer.get("MAX_EVENTS")) is not int
+            or producer["MAX_ROWS"] != consumer["MAX_EVENTS"]
+            or not 1 <= producer["MAX_ROWS"] <= 100):
+        blockers.append("data_research_bounded_page_limit_mismatch")
+    required_args = {"category", "symbol", "start_ms", "end_ms", "limit"}
+    for label, function in (
+        ("data", "read_execution_events"),
+        ("research", "read_data_metrics"),
+    ):
+        observed = inspected[label]["keyword_params"].get(function, ())
+        if not required_args.issubset(observed):
+            blockers.append(label + "_read_interface_signature_mismatch")
     if not inspected["worker"]["stop_request_legacy"]:
         blockers.append("worker_stop_contract_not_identified")
     if not inspected["api"]["stop_request_legacy"]:
