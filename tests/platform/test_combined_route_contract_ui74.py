@@ -2,6 +2,7 @@
 
 Do not replace this with a browser mock or activate a native runtime.
 """
+
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -29,10 +30,14 @@ def _fixture_market():
 def test_composed_browser_capabilities_precede_static_frontend_and_keep_13tf():
     market = _fixture_market()
     routes = list(market.router.routes)
-    capability = [i for i, item in enumerate(routes) if getattr(item, "path", "") == "/api/capabilities"]
+    capability = [
+        i for i, item in enumerate(routes) if getattr(item, "path", "") == "/api/capabilities"
+    ]
     frontend = [i for i, item in enumerate(routes) if isinstance(item, Mount) and item.path == ""]
     assert len(capability) == 1, "missing UI74 GET /api/capabilities"
-    assert frontend and capability[0] < frontend[0], "frontend catch-all shadows capability route"
+    assert frontend and capability[0] < frontend[0], (
+        "frontend catch-all shadows capability route"
+    )
     with TestClient(market, base_url="http://127.0.0.1:8765") as client:
         for interval in INTERVALS:
             result = client.get(
