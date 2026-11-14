@@ -94,6 +94,7 @@ class Data25FilePrivateGeneration(unittest.TestCase):
         cls.digest = hashlib.sha256(cls.manifest).hexdigest()
         out = runner_temp / "data72-25file-ops-compatible-manifest.json"
         out.write_bytes(cls.manifest)
+        print("DATA25_CANONICAL_MANIFEST_JSON", cls.manifest.decode("utf-8"), flush=True)
         print("DATA25_MANIFEST_SHA256", cls.digest, flush=True)
         print("DATA25_MANIFEST_GIT_BLOB", blob_hash(cls.manifest), flush=True)
         print("DATA25_SOURCE_HEAD", cls.head, flush=True)
