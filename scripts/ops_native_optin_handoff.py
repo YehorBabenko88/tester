@@ -42,6 +42,7 @@ TEST_FILES = (
     "tests/platform/test_ops_native_admission.py",
     "tests/platform/test_ops_native_admission_pg_real.py",
     "tests/platform/test_ops_native_fixture_launcher.py",
+    "tests/platform/test_ops_native_optin_handoff.py",
     "tests/platform/test_ops_native_scoped_stop.py",
     "tests/platform/test_ops_native_windows_process.py",
     "tests/platform/test_ops_native_windows_rollback.py",
@@ -52,6 +53,7 @@ CI_AND_DOC_FILES = (
     ".github/workflows/ops-portable.yml",
     "docs/ops_native_fixture_launcher_20261113.md",
     "docs/ops_native_launcher_admission_20261113.md",
+    "docs/ops_native_handoff_77_20261114.md",
 )
 FORBIDDEN_IMPLICIT_PATCHES = (
     "src/api/main.py",
