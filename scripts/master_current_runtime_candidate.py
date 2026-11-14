@@ -18,7 +18,7 @@ BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
 PRODUCERS = {
     "DATA": "327e9be91cca1aec2cd79d6d7c4846d3b024c1b9",
     "RESEARCH": "268a9b0eff8a8fa3a51d1878a724469d3ac778a2",
-    "UI": "1d6e34907ae2e4972b8ddf2d4b7301cf0920eb3f",
+    "UI": "016e0d4190c290b96637662e6fa856a252abf2a8",
     "OPS": "ee58cdb4e5d29c0524f2a0436ceae4a309f80aea",
 }
 
