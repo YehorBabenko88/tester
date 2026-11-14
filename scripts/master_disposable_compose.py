@@ -4,6 +4,7 @@ This never modifies a branch, machine installation, or PostgreSQL instance.
 All producer changes are replayed against the immutable PC4 source tree.
 """
 import hashlib
+import stat
 import os
 import pathlib
 import subprocess
@@ -27,8 +28,12 @@ def git(*args):
 
 
 def main():
-    if os.environ.get("CI") != "true":
-        raise SystemExit("CI-only disposable source composition")
+    if (os.environ.get("CI") != "true" or os.environ.get("GITHUB_ACTIONS") != "true"
+            or not os.environ.get("GITHUB_WORKSPACE")
+            or pathlib.Path(os.environ["GITHUB_WORKSPACE"]).resolve() != ROOT):
+        raise SystemExit("refuse non-Actions workspace (environment flags alone are not attestation)")
+    if ROOT.is_symlink() or not ROOT.is_dir():
+        raise SystemExit("unsafe checkout root")
     if git("rev-parse", "HEAD").decode().strip() != os.environ.get("EXPECTED_STAGING_SHA"):
         raise SystemExit("staging SHA changed; refuse unpinned composition")
     seen = {}
@@ -42,6 +47,10 @@ def main():
             status, path = row.split("\t", 1)
             if status not in ("A", "M") or not path.startswith(ALLOWED) or path in PROTECTED:
                 raise SystemExit(f"refusing {label} status/path: {row}")
+            # Only regular Git blobs are eligible: reject symlinks and gitlinks.
+            mode_row = git("ls-tree", sha, "--", path).decode().strip()
+            if not mode_row.startswith("100644 blob ") and not mode_row.startswith("100755 blob "):
+                raise SystemExit(f"nonregular producer source: {path}")
             raw = git("show", f"{sha}:{path}")
             digest = hashlib.sha256(raw).hexdigest()
             previous = seen.get(path)
@@ -51,6 +60,24 @@ def main():
                 continue
             seen[path] = (label, digest)
             changes.append((label, path, raw))
+    # Preflight every destination before any writes, including parent symlinks.
+    for label, path, raw in changes:
+        rel = pathlib.PurePosixPath(path)
+        if rel.is_absolute() or ".." in rel.parts or "\\x00" in path or "\\" in path:
+            raise SystemExit(f"unsafe relative path: {path}")
+        target = ROOT.joinpath(*rel.parts)
+        for candidate in (ROOT, *list(target.relative_to(ROOT).parents)[::-1]):
+            if isinstance(candidate, pathlib.Path) and candidate.is_absolute() and candidate.is_symlink():
+                raise SystemExit(f"symlink path ancestor: {path}")
+        node = ROOT
+        for component in rel.parts:
+            node = node / component
+            if node.is_symlink():
+                raise SystemExit(f"symlink destination or parent: {path}")
+            if node.exists() and not (node.is_dir() or node.is_file()):
+                raise SystemExit(f"nonregular destination: {path}")
+        if target.exists() and not target.is_file():
+            raise SystemExit(f"non-file destination: {path}")
     for label, path, raw in changes:
         target = ROOT / path
         target.parent.mkdir(parents=True, exist_ok=True)
