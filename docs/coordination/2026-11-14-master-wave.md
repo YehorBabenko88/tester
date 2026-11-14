@@ -40,3 +40,12 @@ The above table is the **original pinned wave**, not the latest producer set. La
 **Composition collision:** both DATA and RESEARCH modify `tests/platform/test_research_postgres.py`. The canonical merged test must retain both sets of negative PGHOSTADDR controls, account for container-internal `inet_server_addr()` vs runner-published host, and pass real PG14/18. Do not use last-writer-wins.
 
 **Current staging status:** no producer source imported yet; staging remains documentation-only and non-installable. After conflict resolution, build exact-source combined candidate and run all checks. Baseline Kind enum drift and physical PC4 native restart remain blocked. Real Bybit HTTP403 ACCESS_BLOCKED, historical completeness UNKNOWN and real F admission denied.
+
+
+## Conflict resolution — 2026-11-14 08:27
+
+Reviewed current immutable producer source heads: DATA `d5bfdad445a1eefb9dc12bf2725a00f171e2c321`, RESEARCH `7ec35810434e3c9159f36712a4186595ac637efa`, UI `49a884140ee7b9953b7c0eae862f9cc9a25a4b55`, OPS `0d4649f3a7cd3595ea58757f2abaf2f1b0558667`.
+
+**DATA/RESEARCH shared file resolved**: `tests/platform/test_research_postgres.py` has identical Git blob `402c25410ba4cc6704911148b1ec0c5bba720088` on both producer HEADs. Use this exact blob once in a composed tree. It asserts libpq client hostaddr against explicit DSN, does not confuse Docker server-side `inet_server_addr()` with published host, and rejects environment/explicit hostaddr redirection. Both producer Pinned PG target workflows succeeded.
+
+This resolves the only previously observed same-path collision for those exact versions, **not** runtime/API integration or overall CI. The staging branch still contains no imported producer application code. Next action is a reproducible combined source commit with verified tree SHA, followed by exact combined-head CI; no deployment authorized.
