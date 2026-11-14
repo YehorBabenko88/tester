@@ -11,7 +11,7 @@ def read_admission_pg(dsn: str, *, connector=None) -> dict:
         from src.api.db import connect
         connector = connect
     with connector(dsn) as conn:
-        conn.execute("SET TRANSACTION READ ONLY")
+        conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         row = conn.execute(
             "SELECT (pg_control_system()).system_identifier::text,"
             "pg_postmaster_start_time()"
