@@ -1,0 +1,199 @@
+{
+  "schema_version": "tester.ui74-master77-file-manifest/1",
+  "status": "DRAFT_NO_GO",
+  "source": {
+    "pr": 74,
+    "branch": "workstream/ui-capability-wiring-20261113",
+    "reviewed_head": "41a2282e622eb3f3096d4a18d7e518dcdae99c72",
+    "base_pr": 70,
+    "base_head": "6240b6665fb3125c06eb91ef535b96700988a7ab",
+    "ancestor": "3b2eef8a4139195db1a775545e83f1c1f58bf403"
+  },
+  "strategy": "Apply PR70 ancestor before the PR74 complete delta, never overlay PR70 files after PR74; MASTER PR77 remains untouched",
+  "pr70_included_and_updated": [
+    "frontend/capabilities.js",
+    "frontend/tests/capabilities.test.js"
+  ],
+  "total_changed": 33,
+  "all_changed": [
+    ".github/workflows/capability-browser.yml",
+    "docs/proposals/download-kind-v1_1.json",
+    "docs/ui-capability-contract.md",
+    "docs/ui-capability-protocol-v1.schema.json",
+    "frontend/api.js",
+    "frontend/app.js",
+    "frontend/capabilities.js",
+    "frontend/index.html",
+    "frontend/observed-auxiliary.js",
+    "frontend/observed-research.js",
+    "frontend/playwright.capability.config.js",
+    "frontend/series.js",
+    "frontend/tests/capabilities.test.js",
+    "frontend/tests/capability-backend.e2e.js",
+    "frontend/tests/capability-wiring.test.js",
+    "frontend/tests/combined-backend.e2e.js",
+    "frontend/tests/native-gestures.spec.js",
+    "frontend/tests/observed-auxiliary.test.js",
+    "frontend/tests/observed-research.test.js",
+    "frontend/tests/price-only-timeframes.test.js",
+    "frontend/tests/terminal.spec.js",
+    "scripts/capability_fixture_server.py",
+    "scripts/compare_download_kind_proposal.py",
+    "scripts/diagnose_ui_contract_drift.py",
+    "scripts/verify_ui_source_contracts.py",
+    "src/api/capability_data_bridge.py",
+    "src/api/capability_discovery.py",
+    "src/api/capability_source_contracts.py",
+    "src/api/main.py",
+    "tests/platform/test_capability_data_bridge.py",
+    "tests/platform/test_capability_discovery.py",
+    "tests/platform/test_download_kind_proposal.py",
+    "tests/platform/test_ui_source_protocol.py"
+  ],
+  "groups": {
+    "runtime": [
+      "frontend/api.js",
+      "frontend/app.js",
+      "frontend/capabilities.js",
+      "frontend/index.html",
+      "frontend/observed-auxiliary.js",
+      "frontend/observed-research.js",
+      "frontend/series.js",
+      "src/api/capability_data_bridge.py",
+      "src/api/capability_discovery.py",
+      "src/api/capability_source_contracts.py",
+      "src/api/main.py"
+    ],
+    "tests_and_probes": [
+      "frontend/playwright.capability.config.js",
+      "frontend/tests/capabilities.test.js",
+      "frontend/tests/capability-backend.e2e.js",
+      "frontend/tests/capability-wiring.test.js",
+      "frontend/tests/combined-backend.e2e.js",
+      "frontend/tests/native-gestures.spec.js",
+      "frontend/tests/observed-auxiliary.test.js",
+      "frontend/tests/observed-research.test.js",
+      "frontend/tests/price-only-timeframes.test.js",
+      "frontend/tests/terminal.spec.js",
+      "scripts/capability_fixture_server.py",
+      "scripts/compare_download_kind_proposal.py",
+      "scripts/diagnose_ui_contract_drift.py",
+      "scripts/verify_ui_source_contracts.py",
+      "tests/platform/test_capability_data_bridge.py",
+      "tests/platform/test_capability_discovery.py",
+      "tests/platform/test_download_kind_proposal.py",
+      "tests/platform/test_ui_source_protocol.py"
+    ],
+    "ci_and_documentation": [
+      ".github/workflows/capability-browser.yml",
+      "docs/proposals/download-kind-v1_1.json",
+      "docs/ui-capability-contract.md",
+      "docs/ui-capability-protocol-v1.schema.json"
+    ]
+  },
+  "backend": {
+    "data": {
+      "pr": 72,
+      "head": "37fde4a9efba72eaf1b25a1b00e07385b07fd572",
+      "contract": "tester-public-execution/1",
+      "reader": "src.ingest.execution_contract.read_execution_events",
+      "research_reader": "src.ingest.execution_contract.read_research_trades",
+      "versioned_sql_migration": "src/storage/migrations/008_public_unknown_taker_side.sql",
+      "contract_blob": "8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79"
+    },
+    "research": {
+      "pr": 71,
+      "head": "eadbc2e2e19601bd1d07e8278980812f87f06723",
+      "adapter": "src.integration.data_research_adapter.read_data_metrics",
+      "ui_readback": "src.integration.research_ui_projection.read_verified_ui_observation",
+      "ui_schema": "tester.research-ui-observation/1",
+      "observation_source_module": "src/integration/research_ui_projection.py",
+      "observation_blob": "1c165bccaa39fcf73cf33171730e9ea7d7fd6474",
+      "http_route": null
+    },
+    "endpoints": {
+      "discovery": {
+        "method": "GET",
+        "path": "/api/capabilities",
+        "response": "tester.ui-capabilities/1",
+        "ui_owner": true
+      },
+      "mark_index": {
+        "method": "GET",
+        "path": "/api/price-candles",
+        "schema": "1.1",
+        "requires": "src.integration.reference_prices:create_reader plus explicit route registration",
+        "volume": "NOT_APPLICABLE"
+      },
+      "research_metrics": {
+        "path": null,
+        "status": "UNAVAILABLE_NO_QUALIFIED_HTTP_ROUTE"
+      },
+      "open_interest": {
+        "path": null,
+        "status": "UNVERIFIED_SOURCE_NOT_CONNECTED"
+      },
+      "funding": {
+        "path": null,
+        "status": "UNVERIFIED_SOURCE_NOT_CONNECTED"
+      },
+      "market_catalog": {
+        "path": "/api/market-catalog/{category}",
+        "requires": "market_catalog_enabled=true with configured catalog; do not request when false"
+      },
+      "research_control": {
+        "path": "/api/control/research",
+        "requires": "opt-in compose_research(market,research); explicit bearer ACL and digest-bound ACK; not enabled by UI"
+      }
+    },
+    "forbidden": [
+      "Modify contracts/v1/openapi.json",
+      "Activate /api/v1_1/downloads without Issue 76 owner approval",
+      "Promote UNKNOWN history or unknown publication time to complete",
+      "Use public Bybit HTTP403 as successful live data",
+      "Render real F/G/E trades without qualification"
+    ]
+  },
+  "openapi": {
+    "owner_issue": 76,
+    "pinned_v1_immutable": true,
+    "unapproved_versioned_path": "/api/v1_1/downloads",
+    "proposal": "docs/proposals/download-kind-v1_1.json",
+    "status": "CONTRACT_OWNER_REVIEW_REQUIRED"
+  },
+  "overlap": {
+    "independent_pr70_to_ui74": [
+      "frontend/capabilities.js",
+      "frontend/tests/capabilities.test.js"
+    ],
+    "data72_research71": [
+      "tests/platform/test_research_postgres.py"
+    ],
+    "hostaddr_resolution": "Merge both test intents: assert conn.info.host/hostaddr/port/dbname on the client, verify actual DB identity and TCP connection, reject explicit DSN hostaddr, inject PGHOSTADDR/PGHOST/PGPORT/PGDATABASE hostile values; do not compare Docker inet_server_addr() against host published port",
+    "ui74_overlap_with_data71_72_ops73": []
+  },
+  "admission": {
+    "historical_coverage": "UNKNOWN",
+    "publication": "UNKNOWN",
+    "dataset_revision": "UNPINNED",
+    "admitted_to_f": false,
+    "ge_real_execution": false
+  },
+  "evidence": {
+    "ui_fastapi_chromium": {
+      "run": 43565092242,
+      "result": "PASS",
+      "note": "Fixture-backed FastAPI and Chromium, 13 timeframes; not live history"
+    },
+    "frontend": {
+      "run": 43565091999,
+      "result": "PASS"
+    },
+    "combined_fgd": {
+      "run": 43565092076,
+      "result": "PASS",
+      "note": "Synthetic source, real disposable PostgreSQL16, real G auth + E ACK"
+    },
+    "global_release": "NO_GO"
+  }
+}
