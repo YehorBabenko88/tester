@@ -76,3 +76,74 @@ Live public Bybit HTTP 403 remains `ACCESS_BLOCKED`; do not proxy around it,
 fabricate source coverage or claim historical completeness based on stored
 recent-trade pages. No real trades, no automatic deployment. **NO_GO**
 until full exact-source CI acceptance and independent MASTER authorization.
+
+
+## DATA↔RESEARCH conflict resolved — MASTER 2026-11-14, current source pins
+
+As of DATA HEAD `93d13a8e78ff7c2aacc6610f838732ba22db8234`, reviewed RESEARCH #71 HEAD is
+`c01c32b03aaf04923b33b0513b71776b12af1e09`.
+Direct comparison of the two Draft changed-file lists showed **exactly one
+overlapping path**, `tests/platform/test_research_postgres.py`.
+The path is now **byte-identical** on both producer heads:
+Git blob `402c25410ba4cc6704911148b1ec0c5bba720088`.
+The prior variants both checked the client-side libpq destination, but
+DATA additionally poisoned `PGHOST`, `PGPORT`, `PGDATABASE` and
+rejected explicitly foreign hostaddr; both writers independently converged
+on that strict test. No production `research_ledger` source was changed.
+
+**MASTER composition rule:** adopt the single common blob by exact Git
+identity, not by "last writer wins"; reject any future head whose
+`tests/platform/test_research_postgres.py` hash diverges. Keep the
+post-merge regression verifying `conn.info.host`, `conn.info.hostaddr`,
+`conn.info.port`, `conn.info.dbname` against the validated loopback DSN.
+`inet_server_addr()` and `inet_server_port()` report the PostgreSQL
+server's Docker interface (e.g. 172.x:5432), not the runner's published
+127.0.0.1:55472 endpoint. Host-side and server-side values must not be
+equated. The negative tests for explicit `127.0.0.2` / `172.18.0.2`
+and inherited `PGHOSTADDR` redirection remain mandatory.
+
+**Exact files MASTER needs from DATA #72:**
+
+- Runtime DATA inputs: `src/ingest/execution_contract.py`,
+  `src/ingest/public_auxiliary.py`,
+  `src/ingest/public_auxiliary_runner.py`,
+  `src/storage/models.py`,
+  `src/storage/migrations/008_public_unknown_taker_side.sql`.
+- Unchanged common storage dependencies already present on base:
+  `src/storage/migrations.py`, `src/storage/store.py`,
+  `src/storage/provenance.py`, `src/storage/migrations/001..007`,
+  and `src/quality/candles.py`. Preserve their source identities and
+  the canonical 008 SHA.
+- DATA verification: `tests/storage/test_postgres.py`,
+  `tests/test_public_auxiliary.py`,
+  `tests/test_public_auxiliary_postgres.py`,
+  `tests/test_public_auxiliary_runner.py`,
+  `tests/test_execution_contract_bridge.py`,
+  `tests/test_execution_contract_postgres.py`,
+  `tests/test_composed_data_research_postgres.py`,
+  `tests/test_live_public_bybit_postgres.py`.
+- Shared merge overlap: `tests/platform/test_research_postgres.py`
+  (canonical common blob above; **copy only once**).
+- CI definitions/evidence templates: `.github/workflows/storage.yml`,
+  `.github/workflows/public-auxiliary-data.yml`.
+  On the composed candidate, replace producer workflow branch references
+  with immutable candidate/source SHA attestations and preserve independent
+  PG14/18 jobs and live-bybit manual opt-in. Do not turn on live calls.
+- Documentation: `docs/ingest/EXECUTION_EVENT_CONTRACT_V1.md`,
+  `docs/ingest/PUBLIC_AUXILIARY_DATA.md` and this coordination report.
+
+**Independent RESEARCH source inputs:** keep
+`src/integration/data_research_adapter.py`,
+`src/analytics/research_metrics.py`,
+`src/integration/research_preview.py`,
+`src/integration/research_ui_projection.py` from exact RESEARCH #71 HEAD
+`c01c32b03aaf04923b33b0513b71776b12af1e09`.
+Only the explicitly reviewed `tester-public-execution/1` contract,
+`Unknown` taker semantics and source-original HTTP receipt verifier may
+feed observed metrics; UNKNOWN historical completeness remains immutable.
+UI #74 and OPS #73 must be independently pinned by MASTER.
+
+Candidate #77 is deliberately **not modified** by DATA. Actual composition
+must happen in a new isolated staging HEAD and pass byte-identity,
+migration checksum, PG14+18, cross-module tests, full Python, Node,
+Chromium and security gates before any release or physical deployment.
