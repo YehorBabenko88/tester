@@ -133,13 +133,25 @@ def verify_paths(data, research, metrics, research_ui=None):
         _signature(
             projection,
             "read_verified_ui_observation",
-            {"category", "symbol", "start_ms", "end_ms", "interval_ms",
-             "tick_size", "as_of_ms", "limit"},
+            {
+                "category",
+                "symbol",
+                "start_ms",
+                "end_ms",
+                "interval_ms",
+                "tick_size",
+                "as_of_ms",
+                "limit",
+            },
         )
         _signature(projection, "project_source_observation", set())
         required = {
-            "OBSERVED_UNVERIFIED", "UNKNOWN", "DENIED_UNKNOWN_COVERAGE",
-            "NOT_AUTHORIZED", "NOT_REGISTERED", "metrics_digest",
+            "OBSERVED_UNVERIFIED",
+            "UNKNOWN",
+            "DENIED_UNKNOWN_COVERAGE",
+            "NOT_AUTHORIZED",
+            "NOT_REGISTERED",
+            "metrics_digest",
             "source_receipts_digest",
         }
         if not required <= _literals(projection):
