@@ -12,7 +12,6 @@ import importlib.util
 import json
 import os
 import re
-import stat
 import subprocess
 import sys
 from collections import Counter
@@ -241,11 +240,12 @@ def serve(args):
     if not generation.is_dir():
         raise AssertionError("unavailable generation")
     sys.path.insert(0, str(generation))
+    import uvicorn
+
+    import src.api.main as main_module
     from scripts.capability_fixture_server import CiReferenceReader
     from src.api.config import Settings
     from src.api.main import create_app
-    import src.api.main as main_module
-    import uvicorn
 
     if not Path(main_module.__file__).resolve().is_relative_to(generation):
         raise AssertionError("FastAPI application imported outside private generation")
