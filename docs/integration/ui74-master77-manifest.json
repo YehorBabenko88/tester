@@ -1,6 +1,6 @@
 {
   "schema_version": "tester.ui74-master77-file-manifest/1",
-  "status": "DRAFT_NO_GO",
+  "status": "READY_FOR_COMPOSITION",
   "source": {
     "pr": 74,
     "branch": "workstream/ui-capability-wiring-20261113",
@@ -210,5 +210,18 @@
     "global_release": "NO_GO",
     "combined_master77": "NOT_RUN"
   },
-  "replay_file": "docs/integration/UI74_MASTER77_REPLAY.md"
+  "replay_file": "docs/integration/UI74_MASTER77_REPLAY.md",
+  "composition": {
+    "scope": "SOURCE_ONLY",
+    "ready_for_composition": true,
+    "ready_for_deployment": false,
+    "master_pr77_composed": false,
+    "combined_head_ci": "NOT_RUN",
+    "real_data_admission": "DENIED_UNKNOWN_COVERAGE",
+    "openapi_v1": "IMMUTABLE",
+    "openapi_v1_1_downloads": "OWNER_APPROVAL_REQUIRED_NOT_ACTIVE",
+    "ui_pr70_ancestry_required": true,
+    "producer_contracts_verified_by_exact_blob": true,
+    "pghostaddr_shared_test_blob": "402c25410ba4cc6704911148b1ec0c5bba720088"
+  }
 }
