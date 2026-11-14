@@ -72,12 +72,18 @@ calling unmounted market-catalog resources.
 
 ## Independent pinned Research PostgreSQL integration
 
-MASTER also reports a separate `PGHOSTADDR` test comparison that
-assumes `127.0.0.1` while the isolated GitHub postgres service uses a
-`172.x` container network address. Preserve the security check against
-environment redirection; review actual `conn.info.hostaddr` / pinned
-socket identity before modifying that integration test. No such global
-test changes are made from PR #71.
+MASTER also identified a separate `PGHOSTADDR` test assumption:
+GitHub's PostgreSQL container can report internal `172.x` from
+`inet_server_addr()`, while the pinned **libpq client-side endpoint**
+really is `127.0.0.1:55472`. The integration test now checks
+`conn.info.host`, `conn.info.hostaddr`, `conn.info.port` and
+`conn.info.dbname` against the validated DSN while deliberately setting
+`PGHOSTADDR=127.0.0.2`. It still queries `current_database()` and verifies
+that no foreign 127.0.0.2 server has been reached. This removes the false
+server-side address comparison without weakening the runtime
+`validate_research_dsn` restriction or `psycopg.connect(hostaddr=...)`
+override. Actual Pinned Research PostgreSQL CI is required before claiming
+a corrected integration.
 
 ## Release gates
 

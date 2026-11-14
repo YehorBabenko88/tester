@@ -304,11 +304,17 @@ def test_actual_postgres_hostaddr_environment_cannot_redirect(persistent, monkey
     expected = conninfo_to_dict(persistent.dsn)
     monkeypatch.setenv("PGHOSTADDR", "127.0.0.2")
     with persistent.connection() as conn:
+        # Libpq's effective *client* socket target is the security boundary.
+        # inet_server_addr() is the container's internal server address; with
+        # GitHub service port forwarding it can be 172.x even though libpq
+        # actually connected to the pinned loopback host:55472 endpoint.
         actual = conn.execute(
             "SELECT host(inet_server_addr()) AS host,inet_server_port() AS port,current_database() AS db"
         ).fetchone()
-    assert actual == {
-        "host": expected["host"],
-        "port": int(expected["port"]),
-        "db": expected["dbname"],
-    }
+        assert conn.info.host == expected["host"]
+        assert conn.info.hostaddr == expected["host"]
+        assert conn.info.port == int(expected["port"])
+        assert conn.info.dbname == expected["dbname"]
+    assert actual["db"] == expected["dbname"]
+    assert actual["host"] != "127.0.0.2"
+    assert isinstance(actual["port"], int) and 1 <= actual["port"] <= 65535
