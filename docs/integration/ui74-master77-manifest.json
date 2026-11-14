@@ -14,9 +14,10 @@
     "frontend/capabilities.js",
     "frontend/tests/capabilities.test.js"
   ],
-  "total_changed": 35,
+  "total_changed": 36,
   "all_changed": [
     ".github/workflows/capability-browser.yml",
+    "docs/integration/UI74_MASTER77_REPLAY.md",
     "docs/integration/ui74-master77-manifest.json",
     "docs/proposals/download-kind-v1_1.json",
     "docs/ui-capability-contract.md",
@@ -89,6 +90,7 @@
     ],
     "ci_and_documentation": [
       ".github/workflows/capability-browser.yml",
+      "docs/integration/UI74_MASTER77_REPLAY.md",
       "docs/integration/ui74-master77-manifest.json",
       "docs/proposals/download-kind-v1_1.json",
       "docs/ui-capability-contract.md",
@@ -199,5 +201,6 @@
       "note": "Synthetic source, real disposable PostgreSQL16, real G auth + E ACK"
     },
     "global_release": "NO_GO"
-  }
+  },
+  "replay_file": "docs/integration/UI74_MASTER77_REPLAY.md"
 }
