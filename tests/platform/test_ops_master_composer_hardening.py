@@ -14,8 +14,10 @@ from scripts.ops_master_composer_hardening import (
     MasterComposeRefused,
     audit_composer_runtime_surface,
     require_ci_runner_identity,
+    require_producer_allowlist,
     require_repo_file_path,
     require_safe_destination,
+    require_source_blob_mode,
 )
 
 SHA = "4e64ec9f6a1da453019b68e598e235036701739f"
@@ -80,6 +82,31 @@ class MasterComposerHardeningTests(unittest.TestCase):
             str(require_repo_file_path("scripts/ops_master_composer_audit.py")),
             "scripts/ops_master_composer_audit.py",
         )
+
+    def test_per_producer_exact_allowlist_blocks_unreviewed_source_files(self):
+        reviewed = {"OPS": frozenset({"scripts/ops_native_scoped_stop.py"})}
+        self.assertEqual(
+            str(require_producer_allowlist(
+                "OPS", "scripts/ops_native_scoped_stop.py", reviewed=reviewed
+            )),
+            "scripts/ops_native_scoped_stop.py",
+        )
+        for label, path in (
+            ("OPS", "scripts/installer_hook.py"),
+            ("OPS", "src/api/main.py"),
+            ("DATA", "scripts/ops_native_scoped_stop.py"),
+            ("OPS", "scripts/../src/api/worker.py"),
+        ):
+            with self.subTest(label=label, path=path):
+                with self.assertRaises(MasterComposeRefused):
+                    require_producer_allowlist(label, path, reviewed=reviewed)
+
+    def test_git_symlink_and_submodule_modes_never_count_as_source_files(self):
+        for mode in ("120000", "160000", "040000", "100600", "", None):
+            with self.subTest(mode=mode), self.assertRaises(MasterComposeRefused):
+                require_source_blob_mode(mode)
+        for regular in ("100644", "100755"):
+            require_source_blob_mode(regular)
 
     def test_symlink_parent_and_file_refused_before_any_write(self):
         (self.workspace / "scripts").mkdir()
