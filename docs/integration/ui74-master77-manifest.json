@@ -175,8 +175,10 @@
     "data72_research71": [
       "tests/platform/test_research_postgres.py"
     ],
-    "hostaddr_resolution": "Merge both test intents: assert conn.info.host/hostaddr/port/dbname on the client, verify actual DB identity and TCP connection, reject explicit DSN hostaddr, inject PGHOSTADDR/PGHOST/PGPORT/PGDATABASE hostile values; do not compare Docker inet_server_addr() against host published port",
-    "ui74_overlap_with_data71_72_ops73": []
+    "hostaddr_resolution": "Exact DATA and RESEARCH heads now contain identical PostgreSQL hostaddr tests. Keep blob 402c25410ba4cc6704911148b1ec0c5bba720088 once; verify both hashes and file equality, preserve hostile libpq environment and explicit hostaddr denial; never compare container-internal inet_server_addr to client published port.",
+    "ui74_overlap_with_data71_72_ops73": [],
+    "data72_research71_status": "RESOLVED_IDENTICAL_GIT_BLOB",
+    "data72_research71_shared_blob": "402c25410ba4cc6704911148b1ec0c5bba720088"
   },
   "admission": {
     "historical_coverage": "UNKNOWN",
