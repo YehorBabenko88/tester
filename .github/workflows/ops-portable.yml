@@ -1,0 +1,531 @@
+name: OPS isolated portable lifecycle tests
+on:
+  pull_request:
+    paths:
+      - "scripts/portable_ops*.py"
+      - "scripts/ops_*.py"
+      - "tests/platform/test_portable_ops*.py"
+      - "tests/platform/test_ops_*.py"
+      - ".github/workflows/ops-portable.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portable-pure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated tester dependencies
+        run: python -m pip install -e . psutil
+      - name: Pure checks and real child-process lifecycle (no DB/network)
+        run: |
+          python -m unittest discover -s tests/platform -p 'test_portable_ops*.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_load_receipt.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_snapshot.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_claim.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_disposable_lifecycle.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_isolation.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_dual_lifecycle.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_resource_metrics.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_windows_witness.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_windows_rollback.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_admission.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_scoped_stop.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_optin_handoff.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_combined_ci_plan.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_audit.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_hardening.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_actual_negative.py' -v
+  portable-pg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ops_tester
+          POSTGRES_PASSWORD: isolated-only
+          POSTGRES_DB: ops_isolated
+        ports:
+          - 55479:5432
+        options: >-
+          --health-cmd "pg_isready -U ops_tester -d ops_isolated"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_OPS_ISOLATED_DSN: "host=127.0.0.1 port=55479 dbname=ops_isolated user=ops_tester password=isolated-only"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install isolated tester dependencies
+        run: python -m pip install -e . psutil
+      - name: Execute real PostgreSQL lease fencing on disposable CI service
+        run: |
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_lifecycle_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_dual_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_load_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_admission_pg_real.py' -v
+      - name: Publish disposable PG queue/WAL/process evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-dual-pg-evidence
+          path: |
+            ops-dual-pg-evidence.json
+            ops-load-pg-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
+  windows-native-witness:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Windows observer dependency
+        run: python -m pip install psutil
+      - name: Verify original Win32 child handles and two cooperative generations
+        run: |
+          python -m unittest discover -s tests/platform -p "test_ops_native_windows_process.py" -v
+          python -m unittest discover -s tests/platform -p "test_ops_native_fixture_launcher.py" -v
+      - name: Upload Windows original-handle resource receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-native-win32-evidence
+          path: ops-native-win32-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  candidate-readonly-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout immutable DATA #72 producer
+        uses: actions/checkout@v4
+        with:
+          ref: f78349b1ad7bb754baee380f59bca67f2b1d2009
+          path: candidate-data
+      - name: Checkout immutable RESEARCH #71 producer
+        uses: actions/checkout@v4
+        with:
+          ref: b11b79832d1b0d848773ff077a36e7cb0595fdcb
+          path: candidate-research
+      - name: Checkout immutable UI #74 with #70 ancestry
+        uses: actions/checkout@v4
+        with:
+          ref: fd151168473f4add97ee286b008d4540b49ac566
+          path: candidate-ui
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Assert exact producer SHA pins before static compatibility review
+        shell: bash
+        run: |
+          test "$(git -C candidate-data rev-parse HEAD)" = "f78349b1ad7bb754baee380f59bca67f2b1d2009"
+          test "$(git -C candidate-research rev-parse HEAD)" = "b11b79832d1b0d848773ff077a36e7cb0595fdcb"
+          test "$(git -C candidate-ui rev-parse HEAD)" = "fd151168473f4add97ee286b008d4540b49ac566"
+      - name: Verify read-only DATA/RESEARCH/UI interfaces and native BLOCKED
+        env:
+          OPS_CANDIDATE_DATA_ROOT: "${{ github.workspace }}/candidate-data"
+          OPS_CANDIDATE_RESEARCH_ROOT: "${{ github.workspace }}/candidate-research"
+          OPS_CANDIDATE_UI_ROOT: "${{ github.workspace }}/candidate-ui"
+        run: python -m unittest discover -s tests/platform -p 'test_ops_candidate_compatibility.py' -v
+      - name: Emit immutable source-only OPS compatibility report
+        env:
+          OPS_CANDIDATE_DATA_ROOT: "${{ github.workspace }}/candidate-data"
+          OPS_CANDIDATE_RESEARCH_ROOT: "${{ github.workspace }}/candidate-research"
+          OPS_CANDIDATE_UI_ROOT: "${{ github.workspace }}/candidate-ui"
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.ops_candidate_compatibility import review_candidate_sources
+          from scripts.ops_native_optin_handoff import (PREPARE_ONLY, PINNED_PRODUCERS, prepare_native_source_handoff)
+
+          root = Path.cwd()
+          sources = {
+              "pc4": root / "src/integration/pc4_runtime.py",
+              "api": root / "src/api/main.py",
+              "worker": root / "src/api/worker.py",
+              "data": Path(os.environ["OPS_CANDIDATE_DATA_ROOT"]) / "src/ingest/execution_contract.py",
+              "research": Path(os.environ["OPS_CANDIDATE_RESEARCH_ROOT"]) / "src/integration/data_research_adapter.py",
+          }
+          ui = Path(os.environ["OPS_CANDIDATE_UI_ROOT"]) / "src/api/main.py"
+          report = review_candidate_sources(
+              {key: path.read_text(encoding="utf-8") for key, path in sources.items()},
+              ui_api_source=ui.read_text(encoding="utf-8"),
+          )
+          if report["installed_native_activation"] != "BLOCKED" or report["pc4_restart_authorized"]:
+              raise SystemExit("Refusing unauthorized native activation")
+          Path("ops-candidate-compatibility.json").write_text(
+              json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8"
+          )
+          plan = prepare_native_source_handoff(
+              report, producer_heads=PINNED_PRODUCERS, opt_in=PREPARE_ONLY
+          )
+          if plan["automatic_activation"] or plan["ready_to_merge_or_install"]:
+              raise SystemExit("OPS source handoff attempted live installation")
+          Path("ops-77-native-source-handoff.json").write_text(
+              json.dumps(plan, sort_keys=True, indent=2) + chr(10), encoding="utf-8"
+          )
+          print("OPS candidate manifest:", report["manifest_sha256"])
+          print("OPS opt-in source-only handoff:", plan["plan_sha256"])
+          print("Native blocked; unresolved gates:", len(report["blockers"]))
+          PY
+      - name: Upload immutable OPS source compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-77-source-compatibility
+          path: |
+            ops-candidate-compatibility.json
+            ops-77-native-source-handoff.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  latest-producer-readonly-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout current reviewed DATA #72
+        uses: actions/checkout@v4
+        with:
+          ref: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
+          path: latest-data
+      - name: Checkout current reviewed RESEARCH #71
+        uses: actions/checkout@v4
+        with:
+          ref: aeb0ad23eeb7487d93f2a6a2b3bd7f802641d844
+          path: latest-research
+      - name: Checkout current reviewed UI #74 including #70 ancestry
+        uses: actions/checkout@v4
+        with:
+          ref: a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96
+          path: latest-ui
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify latest exact revisions
+        shell: bash
+        run: |
+          test "$(git -C latest-data rev-parse HEAD)" = "d5bfdad445a1eefb9dc12bf2725a00f171e2c321"
+          test "$(git -C latest-research rev-parse HEAD)" = "aeb0ad23eeb7487d93f2a6a2b3bd7f802641d844"
+          test "$(git -C latest-ui rev-parse HEAD)" = "a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96"
+      - name: Verify current DATA RESEARCH UI signatures without activating anything
+        env:
+          OPS_CANDIDATE_DATA_ROOT: "${{ github.workspace }}/latest-data"
+          OPS_CANDIDATE_RESEARCH_ROOT: "${{ github.workspace }}/latest-research"
+          OPS_CANDIDATE_UI_ROOT: "${{ github.workspace }}/latest-ui"
+        run: python -m unittest discover -s tests/platform -p 'test_ops_candidate_compatibility.py' -v
+
+  master-composer-scope-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout reviewed MASTER #77 exact composer (read-only)
+        uses: actions/checkout@v4
+        with:
+          ref: 4e64ec9f6a1da453019b68e598e235036701739f
+          path: .ci-master77
+          persist-credentials: false
+      - name: Checkout immutable OPS producer used by MASTER
+        uses: actions/checkout@v4
+        with:
+          ref: 0d4649f3a7cd3595ea58757f2abaf2f1b0558667
+          path: .ci-ops-pinned
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pin exact master and OPS commits, derive full OPS changed-file inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .ci-master77 rev-parse HEAD)" = "4e64ec9f6a1da453019b68e598e235036701739f"
+          test "$(git -C .ci-ops-pinned rev-parse HEAD)" = "0d4649f3a7cd3595ea58757f2abaf2f1b0558667"
+          git -C .ci-ops-pinned diff --name-only --no-renames             3b2eef8a4139195db1a775545e83f1c1f58bf403             0d4649f3a7cd3595ea58757f2abaf2f1b0558667             > ops-master-pinned-changed-files.txt
+          test "$(wc -l <ops-master-pinned-changed-files.txt)" -eq 59
+      - name: Refuse to classify 59-file broad OPS copy as minimal approved opt-in
+        env:
+          OPS_PINNED_MASTER_COMPOSER_FILE: "${{ github.workspace }}/.ci-master77/scripts/master_disposable_compose.py"
+          OPS_PINNED_CHANGED_PATHS_FILE: "${{ github.workspace }}/ops-master-pinned-changed-files.txt"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_audit.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_hardening.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_actual_negative.py' -v
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.ops_master_composer_audit import audit_master_composer
+          report = audit_master_composer(
+              Path(os.environ["OPS_PINNED_MASTER_COMPOSER_FILE"]).read_text(encoding="utf-8"),
+              changed_ops_paths=Path(os.environ["OPS_PINNED_CHANGED_PATHS_FILE"]).read_text(encoding="utf-8").splitlines(),
+              expected_ops_sha="0d4649f3a7cd3595ea58757f2abaf2f1b0558667",
+          )
+          if (report["result"] != "BLOCKED_SCOPE_TOO_BROAD"
+                  or report["approved_count"] != 35
+                  or report["actually_composed_ops_count"] != 59
+                  or report["extra_count"] != 30
+                  or report["approved_missing"] != [
+                      "scripts/ops_master_composer_audit.py",
+                      "scripts/ops_master_composer_hardening.py",
+                      "tests/platform/test_ops_master_composer_actual_negative.py",
+                      "tests/platform/test_ops_master_composer_audit.py",
+                      "tests/platform/test_ops_master_composer_hardening.py",
+                      "tests/platform/test_ops_master_composer_v2_negative.py",
+                  ]
+                  or report["minimal_optin_copy_confirmed"]):
+              raise SystemExit("MASTER composer scope changed; explicit re-review required")
+          Path("ops-master-composer-scope-audit.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True) + chr(10), encoding="utf-8"
+          )
+          print("SOURCE_COMPOSE_SMOKE_PASS; MINIMAL_OPS_SCOPE_BLOCKED: 30 extra, 6 post-pin security audit files absent")
+          PY
+      - name: Emit explicit MASTER hardening BLOCKED evidence (read-only)
+        env:
+          OPS_PINNED_MASTER_COMPOSER_FILE: "${{ github.workspace }}/.ci-master77/scripts/master_disposable_compose.py"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.ops_master_composer_hardening import audit_composer_runtime_surface
+          source = Path(os.environ["OPS_PINNED_MASTER_COMPOSER_FILE"]).read_text(encoding="utf-8")
+          report = audit_composer_runtime_surface(source)
+          if (report["overall"] != "BLOCKED_HARDENING_REQUIRED"
+                  or report["native_launcher_activation_call_found"]
+                  or report["runtime_runner_binding_proven"]
+                  or report["symlink_path_preflight_present"]
+                  or report["atomic_no_follow_open_present"]
+                  or report["git_symlink_mode_rejected"]
+                  or report["explicit_file_allowlist_enforced"]):
+              raise SystemExit("Pinned MASTER source changed: repeat explicit security review")
+          Path("ops-master-hardening-audit.json").write_text(
+              json.dumps(report, sort_keys=True, indent=2) + chr(10), encoding="utf-8"
+          )
+          print("MASTER_COMPOSER_HARDENING_BLOCKED; sandbox negative scenarios PASS")
+          PY
+      - name: Retain exact source-scope evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-master-composer-scope-evidence
+          path: |
+            ops-master-composer-scope-audit.json
+            ops-master-pinned-changed-files.txt
+            ops-master-hardening-audit.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  master-composed-ops-win32-smoke:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4e64ec9f6a1da453019b68e598e235036701739f
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch exact source producer commit objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "4e64ec9f6a1da453019b68e598e235036701739f"
+          for sha in 3b2eef8a4139195db1a775545e83f1c1f58bf403 d5bfdad445a1eefb9dc12bf2725a00f171e2c321 7ec35810434e3c9159f36712a4186595ac637efa a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 0d4649f3a7cd3595ea58757f2abaf2f1b0558667; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Compose uncommitted exact MASTER source in ephemeral workspace
+        env:
+          CI: "true"
+          EXPECTED_STAGING_SHA: 4e64ec9f6a1da453019b68e598e235036701739f
+        run: python scripts/master_disposable_compose.py > master-composition-test-only.txt
+      - name: Assert broad test-only source scope, no installed service files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^COMPOSED_UNCOMMITTED_FILES=125' master-composition-test-only.txt
+          grep -q 'COMPOSITION_ONLY: not a commit' master-composition-test-only.txt
+          test "$(git status --porcelain -- src/api/worker.py src/integration/pc4_runtime.py pyproject.toml)" = ""
+          test ! -f native-activation-authorized.json
+
+      - name: Real original-handle API/worker Windows subprocess smoke
+        run: |
+          python -m pip install psutil
+          python -m unittest discover -s tests/platform -p "test_ops_native_windows_process.py" -v
+          python -m unittest discover -s tests/platform -p "test_ops_native_fixture_launcher.py" -v
+          python -m unittest discover -s tests/platform -p "test_ops_native_optin_handoff.py" -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ops-master-composed-windows-testonly
+          path: |
+            master-composition-test-only.txt
+            ops-native-win32-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  master-composed-ops-pg16-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ops_tester
+          POSTGRES_PASSWORD: isolated-only
+          POSTGRES_DB: ops_isolated
+        ports:
+          - 55479:5432
+        options: >-
+          --health-cmd "pg_isready -U ops_tester -d ops_isolated"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_OPS_ISOLATED_DSN: "host=127.0.0.1 port=55479 dbname=ops_isolated user=ops_tester password=isolated-only"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4e64ec9f6a1da453019b68e598e235036701739f
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch exact source producer commit objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "4e64ec9f6a1da453019b68e598e235036701739f"
+          for sha in 3b2eef8a4139195db1a775545e83f1c1f58bf403 d5bfdad445a1eefb9dc12bf2725a00f171e2c321 7ec35810434e3c9159f36712a4186595ac637efa a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 0d4649f3a7cd3595ea58757f2abaf2f1b0558667; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Compose uncommitted exact MASTER source in ephemeral workspace
+        env:
+          CI: "true"
+          EXPECTED_STAGING_SHA: 4e64ec9f6a1da453019b68e598e235036701739f
+        run: python scripts/master_disposable_compose.py > master-composition-test-only.txt
+      - name: Assert broad test-only source scope, no installed service files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^COMPOSED_UNCOMMITTED_FILES=125' master-composition-test-only.txt
+          grep -q 'COMPOSITION_ONLY: not a commit' master-composition-test-only.txt
+          test "$(git status --porcelain -- src/api/worker.py src/integration/pc4_runtime.py pyproject.toml)" = ""
+          test ! -f native-activation-authorized.json
+
+      - name: Real fenced lease, rollback and WAL resources on composed sources
+        run: |
+          python -m pip install -e . psutil
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_lifecycle_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_dual_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_pg_load_real.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_native_admission_pg_real.py' -v
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ops-master-composed-pg16-testonly
+          path: |
+            master-composition-test-only.txt
+            ops-dual-pg-evidence.json
+            ops-load-pg-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  master-v2-security-readonly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout revised MASTER composer at immutable HEAD
+        uses: actions/checkout@v4
+        with:
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+          path: .ci-master-v2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Attest exact pinned source before negative tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .ci-master-v2 rev-parse HEAD)" = "88ad7a7a82f35d1829b5eb07c0c1d4878741f527"
+          test "$(git hash-object .ci-master-v2/scripts/master_disposable_compose.py)" = "$(git -C .ci-master-v2 rev-parse HEAD:scripts/master_disposable_compose.py)"
+      - name: Exercise new guards and still-open race in disposable sandbox
+        env:
+          OPS_PINNED_MASTER_V2_COMPOSER_FILE: "${{ github.workspace }}/.ci-master-v2/scripts/master_disposable_compose.py"
+        run: |
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_v2_negative.py' -v
+          python - <<'PY'
+          import ast
+          import json
+          import os
+          from pathlib import Path
+          path = Path(os.environ["OPS_PINNED_MASTER_V2_COMPOSER_FILE"])
+          source = path.read_text(encoding="utf-8")
+          ast.parse(source, filename=str(path))
+          report = {
+              "master_sha": "88ad7a7a82f35d1829b5eb07c0c1d4878741f527",
+              "runner": "GITHUB_HOSTED_DISPOSABLE_TEST_ONLY",
+              "symlink_blob_mode_rejection": "PASS_IN_SANDBOX",
+              "parent_and_target_symlink_preflight": "PASS_IN_SANDBOX",
+              "traversal_rejection": "PASS_IN_SANDBOX",
+              "native_activation_call": "NOT_DETECTED",
+              "runner_identity_attested": False,
+              "no_follow_atomic_write": False,
+              "race_between_preflight_and_write": "REPRODUCED_IN_SANDBOX",
+              "exact_producer_file_allowlist": False,
+              "safe_to_use_on_installed_PC4": False,
+              "status": "BLOCKED_RESIDUAL_TOCTOU_AND_TRUST",
+          }
+          Path("ops-master-v2-security-evidence.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True) + chr(10), encoding="utf-8"
+          )
+          print("MASTER_V2_SANDBOX_TESTS_PASS; HARDENING_STILL_BLOCKED")
+          PY
+      - name: Upload MASTER v2 security evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-master-v2-security-evidence
+          path: ops-master-v2-security-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14

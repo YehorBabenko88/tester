@@ -1,0 +1,90 @@
+name: OPS independent MASTER 5ee448fa exact composer security audit
+on:
+  pull_request:
+    paths:
+      - "tests/platform/test_ops_master_composer_v3_security.py"
+      - "tests/platform/test_ops_master_composer_v4_security.py"
+      - "tests/platform/test_ops_master_composer_v5_security.py"
+      - "docs/ops_master_d6d6548_security_audit_20261114.md"
+      - "docs/ops_master_f3417969_security_audit_20261114.md"
+      - "docs/ops_master_5ee448fa_security_audit_20261114.md"
+      - ".github/workflows/ops-master-v3-security-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  master-v5-exact-negative:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout OPS PR branch (test source only)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout exact audited MASTER v5 commit
+        uses: actions/checkout@v4
+        with:
+          ref: 5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd
+          path: exact-master-v5
+          persist-credentials: false
+      - name: Checkout prior MASTER v4
+        uses: actions/checkout@v4
+        with:
+          ref: f341796916768b4f6b0acb1bd7d7b69cbde55155
+          path: exact-master-v4
+          persist-credentials: false
+      - name: Checkout prior MASTER v3 for comparisons
+        uses: actions/checkout@v4
+        with:
+          ref: d6d6548fee441710e34f716d29adb4c25c7e4660
+          path: exact-master-v3
+          persist-credentials: false
+      - name: Checkout previous MASTER v2 for regression comparison
+        uses: actions/checkout@v4
+        with:
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+          path: exact-master-v2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify immutable Git commits and reviewed file SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C exact-master-v5 rev-parse HEAD)" = "5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd"
+          test "$(git -C exact-master-v4 rev-parse HEAD)" = "f341796916768b4f6b0acb1bd7d7b69cbde55155"
+          test "$(git -C exact-master-v3 rev-parse HEAD)" = "d6d6548fee441710e34f716d29adb4c25c7e4660"
+          test "$(git -C exact-master-v2 rev-parse HEAD)" = "88ad7a7a82f35d1829b5eb07c0c1d4878741f527"
+          test "$(git -C exact-master-v5 hash-object scripts/master_disposable_compose.py)" = "c107f861144b9ef5adcc41eb8460fb5c9178e119"
+          test "$(git -C exact-master-v4 hash-object scripts/master_disposable_compose.py)" = "02a8447b26a0a6e311e70fabfa349309fc83f7e4"
+          test "$(git -C exact-master-v3 hash-object scripts/master_disposable_compose.py)" = "f151161576d5e61013b3981aad255a4df247cb10"
+          test "$(git -C exact-master-v5 hash-object docs/coordination/master-reviewed-producer-files.json)" = "08482cd45a3f46b5b8168aab2b7b19f63acb30fb"
+          test "$(git -C exact-master-v4 hash-object docs/coordination/master-reviewed-producer-files.json)" = "08482cd45a3f46b5b8168aab2b7b19f63acb30fb"
+      - name: Reproduce original MASTER v2 vulnerabilities in sandbox
+        env:
+          OPS_PINNED_MASTER_V2_COMPOSER_FILE: ${{ github.workspace }}/exact-master-v2/scripts/master_disposable_compose.py
+        run: python -m unittest discover -s tests/platform -p 'test_ops_master_composer_v2_negative.py' -v
+      - name: Audit exact MASTER v3 with isolated Git and filesystem
+        env:
+          OPS_MASTER_V3_COMPOSER_FILE: ${{ github.workspace }}/exact-master-v3/scripts/master_disposable_compose.py
+          OPS_MASTER_V3_MANIFEST_FILE: ${{ github.workspace }}/exact-master-v3/docs/coordination/master-reviewed-producer-files.json
+        run: python -m unittest discover -s tests/platform -p 'test_ops_master_composer_v3_security.py' -v
+      - name: Audit exact MASTER v4 hardlinks manifest and filesystem races
+        env:
+          OPS_MASTER_V4_COMPOSER_FILE: ${{ github.workspace }}/exact-master-v4/scripts/master_disposable_compose.py
+          OPS_MASTER_V4_MANIFEST_FILE: ${{ github.workspace }}/exact-master-v4/docs/coordination/master-reviewed-producer-files.json
+        run: python -m unittest discover -s tests/platform -p 'test_ops_master_composer_v4_security.py' -v
+      - name: Audit exact MASTER v5 duplicate diff and inode races
+        env:
+          OPS_MASTER_V5_COMPOSER_FILE: ${{ github.workspace }}/exact-master-v5/scripts/master_disposable_compose.py
+          OPS_MASTER_V5_MANIFEST_FILE: ${{ github.workspace }}/exact-master-v5/docs/coordination/master-reviewed-producer-files.json
+        run: python -m unittest discover -s tests/platform -p 'test_ops_master_composer_v5_security.py' -v
+      - name: Verify audit tests did not execute service or network calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e exact-master-v5/scripts/ops_master_v5_test_output
+          echo "SANDBOX_ONLY: no native Windows launcher/PC4/PG operations"

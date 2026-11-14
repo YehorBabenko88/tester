@@ -1,0 +1,125 @@
+{
+  "schema": "tester-ops-producer-delta-ledger/1",
+  "source": {
+    "repo": "YehorBabenko88/tester",
+    "base_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+    "ops_source_sha": "36774155e1b624143cba848110bf83a5f9a6437b",
+    "master_review_sha": "298d610771d962ee7b796eac1834d74138768fac",
+    "master_allowlist_git_blob_sha1": "08482cd45a3f46b5b8168aab2b7b19f63acb30fb"
+  },
+  "counts": {
+    "old_approved": 65,
+    "ops_changed_at_source": 79,
+    "reviewed_delta": 14,
+    "production_new_files": 0
+  },
+  "reviewed_delta": [
+    {
+      "path": ".github/workflows/ops-master-v3-security-audit.yml",
+      "git_blob_sha1": "53992a3df2243d35a55a50b4aeb019fa2f7667d7",
+      "mode": "100644",
+      "role": "ci_only_workflow",
+      "production_admission": false
+    },
+    {
+      "path": ".github/workflows/ops-private-generation-ci.yml",
+      "git_blob_sha1": "bc410103f9ff6a9dc71b4e2d7c68504cae5ef68d",
+      "mode": "100644",
+      "role": "ci_only_workflow",
+      "production_admission": false
+    },
+    {
+      "path": "docs/ops_master_5ee448fa_security_audit_20261114.md",
+      "git_blob_sha1": "adb6aba88ae7d5ee8becd66ebc8e8e351ec601b1",
+      "mode": "100644",
+      "role": "documentation",
+      "production_admission": false
+    },
+    {
+      "path": "docs/ops_master_77_private_generation_integration.md",
+      "git_blob_sha1": "4b019578a847cf158f9fbf08539f1d8c97ca9b78",
+      "mode": "100644",
+      "role": "documentation",
+      "production_admission": false
+    },
+    {
+      "path": "docs/ops_master_d6d6548_security_audit_20261114.md",
+      "git_blob_sha1": "92f331ccd2517adcf488c6c282d8126f10f2754b",
+      "mode": "100644",
+      "role": "documentation",
+      "production_admission": false
+    },
+    {
+      "path": "docs/ops_master_f3417969_security_audit_20261114.md",
+      "git_blob_sha1": "cc65656decdf640bdf540dc93daa3bfec00b4ca8",
+      "mode": "100644",
+      "role": "documentation",
+      "production_admission": false
+    },
+    {
+      "path": "docs/ops_private_generation_protocol.md",
+      "git_blob_sha1": "ee531a71f0b558e46da6bd6cb62129332e27f862",
+      "mode": "100644",
+      "role": "documentation",
+      "production_admission": false
+    },
+    {
+      "path": "scripts/ops_private_generation_prototype.py",
+      "git_blob_sha1": "d8e42103c15824d7ff316314127074ee983804b3",
+      "mode": "100644",
+      "role": "ci_only_prototype",
+      "production_admission": false
+    },
+    {
+      "path": "tests/platform/test_ops_master_composer_v3_security.py",
+      "git_blob_sha1": "fd4b8531bef6b11a77bb59e634a8871a6562e663",
+      "mode": "100644",
+      "role": "ci_only_test",
+      "production_admission": false
+    },
+    {
+      "path": "tests/platform/test_ops_master_composer_v4_security.py",
+      "git_blob_sha1": "4c226dade8326da41aa3faaddbd91c4bf77337c4",
+      "mode": "100644",
+      "role": "ci_only_test",
+      "production_admission": false
+    },
+    {
+      "path": "tests/platform/test_ops_master_composer_v5_security.py",
+      "git_blob_sha1": "b8b6817dd5014d135055c6711be718627263ae67",
+      "mode": "100644",
+      "role": "ci_only_test",
+      "production_admission": false
+    },
+    {
+      "path": "tests/platform/test_ops_private_generation_crash.py",
+      "git_blob_sha1": "f0789ba79aed0aa12605e71e9c61ef60d0b4b224",
+      "mode": "100644",
+      "role": "ci_only_test",
+      "production_admission": false
+    },
+    {
+      "path": "tests/platform/test_ops_private_generation_prototype.py",
+      "git_blob_sha1": "d352d0e33e898beb1dcefd70a84183079a012908",
+      "mode": "100644",
+      "role": "ci_only_test",
+      "production_admission": false
+    },
+    {
+      "path": "tests/platform/test_ops_private_generation_recovery.py",
+      "git_blob_sha1": "8d45f86c7ed20a1ce1d593619f489f2a91148b7a",
+      "mode": "100644",
+      "role": "ci_only_test",
+      "production_admission": false
+    }
+  ],
+  "policy": {
+    "status": "REVIEWED_SOURCE_ONLY_NOT_MASTER_ADMITTED",
+    "production_admission": false,
+    "workflows_executable_in_separate_disposable_ci": true,
+    "source_manifest_authority": "REVIEW_LEDGER_NOT_EXTERNAL_ATTESTATION",
+    "prototype_requires_opt_in": true,
+    "native_launcher_automatic_activation": false,
+    "full_4_producer_integration": "BLOCKED"
+  }
+}

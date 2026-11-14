@@ -1,0 +1,53 @@
+name: OPS exact MASTER runtime candidate private generation integration (CI only)
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ops-master-current-runtime-private-gen.yml"
+      - "tests/platform/test_ops_master_current_runtime_private_generation.py"
+      - "docs/ops_master_current_runtime_frozen_3eb400b9.json"
+      - "docs/ops_master_current_private_generation_review.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-private-generation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      RUNNER_OS: "Linux"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch exact frozen MASTER candidate and producers, no checkout writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            3eb400b9d8eafe9268787dc2744721e1b83b858a \
+            327e9be91cca1aec2cd79d6d7c4846d3b024c1b9 \
+            af143bb73277e7bffea8ae76d84fd0ed7a707ab0 \
+            1d6e34907ae2e4972b8ddf2d4b7301cf0920eb3f \
+            9c0ee3a44e78d16d8beb34fbaf2973ee2e126386; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Exact 30 Git blobs and private generation security negatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest discover -s tests/platform -p 'test_ops_master_current_runtime_private_generation.py' -v
+          echo "OPS_MASTER_RUNTIME_OVERLAY_SOURCE_ONLY"
+          echo "NO_FULL_BASE_TREE_NO_PG_NO_BROWSER_NO_NATIVE_LAUNCHER"
+          echo "GIT_RUNNER_EXTERNAL_ATTESTATION_NOT_PROVEN"
