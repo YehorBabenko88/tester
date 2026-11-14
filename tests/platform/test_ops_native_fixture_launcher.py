@@ -94,6 +94,53 @@ class FixtureLauncherTests(unittest.TestCase):
         with self.assertRaises(NativeRestartBlocked):
             self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
 
+    def test_post_spawn_pg_incarnation_change_rolls_back_both(self):
+        calls = [0]
+
+        def pg():
+            calls[0] += 1
+            return {"pg_system_identifier": (
+                "disposable-pg" if calls[0] <= 2 else "different-postmaster"
+            ), "pg_postmaster_start": "start-time"}
+
+        self.launcher.pg_probe = pg
+        with self.assertRaises(NativeRestartBlocked):
+            self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
+        self.assertGreaterEqual(calls[0], 3)
+        self.assertEqual(len(self.launcher._children), 2)
+        self.assertEqual([child.poll() for child in self.launcher._children], [0, 0])
+        import json
+        receipt = json.loads(
+            (Path(self.temp.name) / "native-generation-0000-rollback.json").read_text()
+        )
+        self.assertEqual(receipt["status"], "SEALED_PARTIAL")
+        self.assertEqual(set(receipt["sealed_roles"]), {"worker", "api"})
+        self.assertIs(receipt["restart_permitted"], False)
+        with self.assertRaises(NativeRestartBlocked):
+            self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
+
+    def test_post_spawn_running_lease_rolls_back_both(self):
+        probes = [0]
+
+        def leases():
+            probes[0] += 1
+            return {"owned-job": "queued" if probes[0] <= 2 else "running"}
+
+        self.launcher.leases_probe = leases
+        with self.assertRaises(NativeRestartBlocked):
+            self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
+        self.assertGreaterEqual(probes[0], 3)
+        self.assertEqual(len(self.launcher._children), 2)
+        self.assertEqual([child.poll() for child in self.launcher._children], [0, 0])
+        import json
+        receipt = json.loads(
+            (Path(self.temp.name) / "native-generation-0000-rollback.json").read_text()
+        )
+        self.assertEqual(receipt["status"], "SEALED_PARTIAL")
+        self.assertIs(receipt["restart_permitted"], False)
+        with self.assertRaises(NativeRestartBlocked):
+            self.launcher.start_pair(api_argv=self.argv, worker_argv=self.argv)
+
     def test_pg_incarnation_mismatch_blocks_before_spawn(self):
         self.launcher.pg_probe=lambda: {"pg_system_identifier":"foreign",
                                         "pg_postmaster_start":"start-time"}
