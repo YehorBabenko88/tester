@@ -8,12 +8,11 @@ import json
 from pathlib import Path
 
 import pytest
-
 from fastapi.testclient import TestClient
 
+from scripts.verify_ui_source_contracts import verify_shared_pg_hostaddr_test
 from src.api.config import Settings
 from src.api.main import create_app
-from scripts.verify_ui_source_contracts import verify_shared_pg_hostaddr_test
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "docs/integration/ui74-master77-manifest.json"
