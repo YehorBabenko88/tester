@@ -1,9 +1,10 @@
 """OPS #73 explicit review-only #77 handoff, no installer or runtime mutation."""
+import ast
 import copy
 import hashlib
 import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 from scripts.ops_candidate_compatibility import SCHEMA
 from scripts.ops_native_optin_handoff import (
@@ -124,7 +125,6 @@ class OptinHandoffTests(unittest.TestCase):
                 sort_keys=True, separators=(",", ":"),
             ).encode()).hexdigest()
         )
-        import ast
         root = Path(__file__).resolve().parents[2]
         # A static guard, not proof of OS runtime state: installed entrypoints
         # cannot import OPS launcher through ordinary Python import statements.
