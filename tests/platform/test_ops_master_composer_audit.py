@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 from scripts.ops_master_composer_audit import (
     EXPECTED_BASE,
