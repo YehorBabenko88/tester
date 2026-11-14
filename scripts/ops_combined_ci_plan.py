@@ -21,7 +21,7 @@ PLAN_SCHEMA = "ops-immutable-combined-ci-plan/1"
 _SHA = re.compile(r"[a-f0-9]{40}\Z")
 _ALLOWED_PRODUCERS = ("data", "research", "ui", "ops")
 # GitHub-hosted runner snapshots only, never a local user's default PG5432.
-_ALLOWED_PORTS = (55449, 55472, 55473, 55479, 55480, 55481)
+_ALLOWED_PORTS = (55449, 55472, 55473, 55478, 55479, 55480, 55481)
 
 
 def _digest(value: object) -> str:
@@ -84,9 +84,19 @@ def combined_acceptance_plan(*, combined_sha: str, ops_sha: str,
                 "python -m compileall -q .",
                 "python -m unittest discover -p 'test_*.py' -v",
                 "python scripts/acceptance.py",
-                "python scripts/acceptance.py --integration --security",
             ],
             "requires": ["requirements-dev.txt", "requirements-platform.lock"],
+        },
+        {
+            "id": "platform_security_postgres16",
+            "runner": "ubuntu-24.04",
+            "dependencies": ["source_and_security"],
+            "postgres": {"major": 16, "published_port": 55478,
+                         "database": "tester_combined_platform_isolated"},
+            "commands": [
+                "python scripts/acceptance.py --integration --security",
+            ],
+            "requires": ["TEST_DATABASE_URL", "isolated PG16 Docker service"],
         },
         {
             "id": "postgres14_storage_migration_and_http",
@@ -168,6 +178,7 @@ def combined_acceptance_plan(*, combined_sha: str, ops_sha: str,
             ],
             "requires": ["TESTER_COMBINED_CI=synthetic-disposable",
                          "TEST_RESEARCH_DATABASE_URL", "API process owned by CI"],
+            "orchestration": "serve subprocess must run under CI-owned background guard and graceful cleanup",
         },
         {
             "id": "win32_native_original_handle_and_rollback",
@@ -202,9 +213,13 @@ def combined_acceptance_plan(*, combined_sha: str, ops_sha: str,
         "producer_pins": dict(producer_shas),
         "ops_handoff_sha256": handoff["plan_sha256"],
         "source_checkout_policy": "EXACT_SHA_NO_BRANCH_FALLBACK",
+        "source_checkout_verification": [
+            'test "$(git rev-parse HEAD)" = "' + combined_sha + '"',
+            'test "$(git rev-parse HEAD^{tree})" = "' + source_tree_sha + '"',
+        ],
         "stages": stages,
         "execution": "NOT_RUN",
-        "expected_all_stages_pass": True,
+        "all_stages_must_pass": True,
         "staging_release_authorized": False,
         "installed_native_activation": "BLOCKED",
         "automatic_native_start": False,
