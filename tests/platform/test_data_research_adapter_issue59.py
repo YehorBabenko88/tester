@@ -4,6 +4,7 @@ import hashlib
 import importlib
 import json
 import os
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from unittest.mock import Mock
 from urllib.parse import urlencode
@@ -20,6 +21,49 @@ from src.integration.data_research_adapter import (
 START = 1704067200000
 END = START + 60000
 OBSERVED_MS = 1794560000000
+
+def _constraint_definitions(rows):
+    """Extract pg_constraint names from psycopg dict_row or tuple_row safely."""
+    definitions = {}
+    for row in rows:
+        if isinstance(row, Mapping):
+            name, clause = row["conname"], row["definition"]
+        else:
+            name, clause = row
+        if (not isinstance(name, str) or not isinstance(clause, str)
+                or not name or not clause or name in definitions):
+            raise ValueError("invalid_or_duplicate_pg_constraint_row")
+        definitions[name] = clause
+    return definitions
+
+
+@pytest.mark.parametrize("rows", [
+    [
+        {"conname": "raw_records_check2", "definition": "CHECK (price > 0 AND side IN ('Buy', 'Sell', 'Unknown'))"},
+        {"conname": "trade_side_required", "definition": "CHECK (side IN ('Buy', 'Sell', 'Unknown'))"},
+    ],
+    [
+        ("raw_records_check2", "CHECK (price > 0 AND side IN ('Buy', 'Sell', 'Unknown'))"),
+        ("trade_side_required", "CHECK (side IN ('Buy', 'Sell', 'Unknown'))"),
+    ],
+], ids=("dict_row", "tuple_row"))
+def test_pg_constraint_result_rows_keep_names_and_definitions(rows):
+    constraints = _constraint_definitions(rows)
+    assert set(constraints) == {"raw_records_check2", "trade_side_required"}
+    assert all("'Unknown'" in clause for clause in constraints.values())
+    assert "price > 0" in constraints["raw_records_check2"]
+
+
+@pytest.mark.parametrize("rows", [
+    [{"conname": "raw_records_check2", "definition": "CHECK (x > 0)"},
+     {"conname": "raw_records_check2", "definition": "CHECK (x > 0)"}],
+    [("raw_records_check2", "CHECK (x > 0)"),
+     ("raw_records_check2", "CHECK (x > 0)")],
+], ids=("duplicate_dict_row", "duplicate_tuple_row"))
+def test_pg_constraint_duplicate_rows_fail_closed(rows):
+    with pytest.raises(ValueError, match="invalid_or_duplicate_pg_constraint_row"):
+        _constraint_definitions(rows)
+
 
 
 def event(trade_id="a", *, price="100", quantity="2", side="Buy",
@@ -429,14 +473,23 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     # Inspect the actual migrated database, not just the Python normalizer.
     # Existing legacy price/size/exchange-ID checks must still be enforced.
     with reopened.connect() as connection:
-        constraints = dict(connection.execute(
-            """SELECT conname, pg_get_constraintdef(oid)
-               FROM pg_constraint
-               WHERE conrelid = 'tester_storage.raw_records'::regclass
-                 AND conname IN ('raw_records_check2', 'trade_side_required')"""
-        ).fetchall())
-        assert set(constraints) == {"raw_records_check2", "trade_side_required"}
-        assert all("'Unknown'" in clause for clause in constraints.values())
+        from psycopg.rows import dict_row, tuple_row
+
+        query = """SELECT conname, pg_get_constraintdef(oid) AS definition
+                   FROM pg_constraint
+                   WHERE conrelid = 'tester_storage.raw_records'::regclass
+                     AND conname IN ('raw_records_check2', 'trade_side_required')"""
+        for row_factory in (dict_row, tuple_row):
+            with connection.cursor(row_factory=row_factory) as cursor:
+                cursor.execute(query)
+                constraints = _constraint_definitions(cursor.fetchall())
+            assert set(constraints) == {"raw_records_check2", "trade_side_required"}
+            assert all("'Unknown'" in clause for clause in constraints.values())
+            # Migration 008 must preserve identity, positive price/size and
+            # constrained taker side; never weaken the SQL CHECKs.
+            detailed = constraints["raw_records_check2"]
+            for fragment in ("trade_id IS NOT NULL", "price >", "size >"):
+                assert fragment in detailed
         persisted = connection.execute(
             """SELECT payload->>'side' AS side, price, size, trade_id
                FROM tester_storage.raw_records
