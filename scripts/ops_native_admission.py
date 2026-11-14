@@ -264,10 +264,17 @@ class NativeAdmission:
                 and pg.get("pg_postmaster_start") == self.pin.pg_postmaster_start
             )
             states = dict(leases_probe())
-            result["active_or_unknown_leases"] = any(
+            unsafe = any(
                 state not in {"queued", "completed", "failed", "paused"}
                 for state in states.values()
-            ) or pg.get("active_running", 0) != 0
+            )
+            active = pg.get("active_running")
+            if unsafe:
+                result["active_or_unknown_leases"] = True
+            elif type(active) is int and active >= 0:
+                result["active_or_unknown_leases"] = active != 0
+            else:
+                result["active_or_unknown_leases"] = None  # no durable count proof
         except Exception:
             # Missing database evidence is UNKNOWN, never a false zero.
             result["status"] = "PG_OR_LEASE_EVIDENCE_UNAVAILABLE"
