@@ -4,6 +4,7 @@ The source overlay is composed by the reviewed MASTER runner separately.
 This driver NEVER edits the MASTER checkout or activates an installed launcher.
 Authenticity of Git, the caller, and the runner is NOT independently attested.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,8 +31,11 @@ OPS_PUBLISHER_BLOB = "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e"
 REVIEWED_ALLOWLIST_BLOB = "08482cd45a3f46b5b8168aab2b7b19f63acb30fb"
 INCLUDE_PREFIXES = ("src/", "scripts/", "frontend/", "tests/")
 INCLUDE_DOCS = (
-    "docs/integration/", "docs/ingest/", "docs/proposals/",
-    "docs/ui-capability-", "docs/coordination/master-reviewed-producer-files.json",
+    "docs/integration/",
+    "docs/ingest/",
+    "docs/proposals/",
+    "docs/ui-capability-",
+    "docs/coordination/master-reviewed-producer-files.json",
 )
 EXCLUDE = {"scripts/master_disposable_compose.py"}
 HEX40 = re.compile(r"[a-f0-9]{40}\Z")
@@ -42,21 +46,16 @@ def sha256(raw):
 
 
 def git_blob(raw):
-    return hashlib.sha1(
-        b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw
-    ).hexdigest()
+    return hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
 
 
 def git(root, *args):
-    return subprocess.check_output(
-        ("git", "-C", str(root), *args), stderr=subprocess.PIPE
-    )
+    return subprocess.check_output(("git", "-C", str(root), *args), stderr=subprocess.PIPE)
 
 
 def selected(path):
-    return (
-        path not in EXCLUDE
-        and (path.startswith(INCLUDE_PREFIXES) or path.startswith(INCLUDE_DOCS))
+    return path not in EXCLUDE and (
+        path.startswith(INCLUDE_PREFIXES) or path.startswith(INCLUDE_DOCS)
     )
 
 
@@ -114,11 +113,17 @@ def reviewed_source(root):
     counts = Counter()
     allowlist_parity = {}
     for label, commit in PRODUCER_PINS.items():
-        rows = git(root, "diff", "--name-status", "--no-renames", BASE_SHA, commit).decode().splitlines()
+        rows = (
+            git(root, "diff", "--name-status", "--no-renames", BASE_SHA, commit)
+            .decode()
+            .splitlines()
+        )
         observed = set()
         for row in rows:
             kind, path = row.split("\t", 1)
-            if kind not in ("A", "M") or not (path.startswith((".github/", "docs/", "src/", "frontend/", "scripts/", "tests/"))):
+            if kind not in ("A", "M") or not (
+                path.startswith((".github/", "docs/", "src/", "frontend/", "scripts/", "tests/"))
+            ):
                 raise AssertionError("unsupported or removed producer entry")
             if path in {"src/integration/pc4_runtime.py", "src/api/worker.py", "pyproject.toml"}:
                 raise AssertionError("protected active-launcher mutation")
@@ -133,7 +138,7 @@ def reviewed_source(root):
             counts[label] += 1
             if selected(path):
                 entries[path] = (commit, mode, blob, label)
-        allowlist_parity[label] = (observed == set(approved[label]))
+        allowlist_parity[label] = observed == set(approved[label])
     if not any(label == "UI" for _, _, _, label in entries.values()):
         raise AssertionError("reviewed UI code missing")
     # No 'MASTER composer PASS' claim: the reviewed allowlist parity is a
@@ -146,7 +151,6 @@ def reviewed_source(root):
             raise AssertionError("immutable Git object mismatch: " + name)
         audited.append((name, raw, mode, label, blob))
     return audited, sum(counts.values()), allowlist_parity
-
 
 
 def build(args):
@@ -163,25 +167,38 @@ def build(args):
         ops.ReviewedBlob(name, raw, sha256(raw), expected_sha, mode)
         for name, raw, mode, _, expected_sha in reviewed
     ]
-    pins = {"BASE": BASE_SHA, "MASTER": MASTER_SHA, **PRODUCER_PINS,
-            "OPS_PUBLISHER": OPS_PUBLISHER_COMMIT}
-    manifest = ops.canonical(dict(
-        schema=ops.SCHEMA,
-        source_pins=pins,
-        files=[dict(path=b.path, sha256=b.sha256,
-                    git_blob_sha1=b.git_blob_sha1, mode=b.mode) for b in blobs],
-    ))
+    pins = {
+        "BASE": BASE_SHA,
+        "MASTER": MASTER_SHA,
+        **PRODUCER_PINS,
+        "OPS_PUBLISHER": OPS_PUBLISHER_COMMIT,
+    }
+    manifest = ops.canonical(
+        dict(
+            schema=ops.SCHEMA,
+            source_pins=pins,
+            files=[
+                dict(path=b.path, sha256=b.sha256, git_blob_sha1=b.git_blob_sha1, mode=b.mode)
+                for b in blobs
+            ],
+        )
+    )
     manifest_sha = sha256(manifest)
     root.mkdir(mode=0o700)
     root.chmod(0o700)
     generation = ops.publish_generation(
-        root, blobs=blobs, manifest=manifest,
-        manifest_sha256=manifest_sha, source_pins=pins,
+        root,
+        blobs=blobs,
+        manifest=manifest,
+        manifest_sha256=manifest_sha,
+        source_pins=pins,
     )
     if ops.read_current(root, manifest=manifest, manifest_sha256=manifest_sha) != generation:
         raise AssertionError("CURRENT was not verified")
-    if ops.read_pinned(root, generation, manifest=manifest,
-                       manifest_sha256=manifest_sha) != generation:
+    if (
+        ops.read_pinned(root, generation, manifest=manifest, manifest_sha256=manifest_sha)
+        != generation
+    ):
         raise AssertionError("published pin was not verified")
     receipt = json.loads((root / "generations" / generation / "generation.json").read_bytes())
     counts = dict(Counter(label for _, _, _, label, _ in reviewed))
@@ -200,9 +217,7 @@ def build(args):
         source_publication_method="DIRECT_PINNED_GIT_BLOBS_PRIVATE_0700",
         generation_source_files=len(blobs),
         source_counts=counts,
-        ui_git_blobs={
-            name: b for name, _, _, label, b in reviewed if label == "UI"
-        },
+        ui_git_blobs={name: b for name, _, _, label, b in reviewed if label == "UI"},
     )
     Path(args.manifest_out).write_bytes(manifest)
     Path(args.receipt_out).write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
@@ -219,11 +234,17 @@ def verify(args):
     manifest = Path(args.manifest_out).read_bytes()
     if sha256(manifest) != record["manifest_sha256"]:
         raise AssertionError("private manifest mutated")
-    if ops.read_current(root, manifest=manifest,
-                        manifest_sha256=record["manifest_sha256"]) != record["generation"]:
+    if (
+        ops.read_current(root, manifest=manifest, manifest_sha256=record["manifest_sha256"])
+        != record["generation"]
+    ):
         raise AssertionError("CURRENT moved or became invalid")
-    if ops.read_pinned(root, record["generation"], manifest=manifest,
-                       manifest_sha256=record["manifest_sha256"]) != record["generation"]:
+    if (
+        ops.read_pinned(
+            root, record["generation"], manifest=manifest, manifest_sha256=record["manifest_sha256"]
+        )
+        != record["generation"]
+    ):
         raise AssertionError("pinned generation invalid")
     receipt = json.loads(
         (root / "generations" / record["generation"] / "generation.json").read_bytes()
