@@ -39,6 +39,7 @@ RUNTIME_FILES = (
 )
 TEST_FILES = (
     "tests/platform/test_ops_candidate_compatibility.py",
+    "tests/platform/test_ops_combined_ci_plan.py",
     "tests/platform/test_ops_native_admission.py",
     "tests/platform/test_ops_native_admission_pg_real.py",
     "tests/platform/test_ops_native_fixture_launcher.py",
@@ -51,9 +52,11 @@ TEST_FILES = (
 )
 CI_AND_DOC_FILES = (
     ".github/workflows/ops-portable.yml",
+    "scripts/ops_combined_ci_plan.py",
     "docs/ops_native_fixture_launcher_20261113.md",
     "docs/ops_native_launcher_admission_20261113.md",
     "docs/ops_native_handoff_77_20261114.md",
+    "docs/ops_77_combined_ci_commands_20261114.md",
 )
 FORBIDDEN_IMPLICIT_PATCHES = (
     "src/api/main.py",
