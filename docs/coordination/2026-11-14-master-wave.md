@@ -24,3 +24,19 @@ These are **producer CI results, not combined-release acceptance**. Full Python/
 ## Immutable safety and data quality
 
 No real orders; no UAC, force-kill, reboot, SCM, installed PC4 modifications, ADMINIT/office access, PG5432 changes or other repositories. Keep real market historical completeness UNKNOWN, publication/known-at unknown, and real F admission denied. Live Bybit HTTP403 is ACCESS_BLOCKED; do not bypass or mislabel recorded fixtures as live data. Report PASS/FAIL/BLOCKED/NOT_RUN separately.
+
+
+## Producer refresh — 2026-11-14 07:19
+
+The above table is the **original pinned wave**, not the latest producer set. Latest exact heads reviewed:
+
+| Producer | Latest SHA | Target CI | Full CI |
+|---|---|---|---|
+| DATA #72 | `d5bfdad445a1eefb9dc12bf2725a00f171e2c321` | Public auxiliary, Storage PG14/18 and pinned research PG **SUCCESS** | Python/static, Platform, combined browser **FAIL** |
+| RESEARCH #71 | `c01c32b03aaf04923b33b0513b71776b12af1e09` | Research Issue59 and pinned research PG **SUCCESS** | Python/static, Platform, combined browser **FAIL** |
+| UI #74 | `a27011713c3ee8a2c5f135b8ec2e366d49ccca7c` | UI browser, frontend fixtures and combined synthetic F-G-D **SUCCESS** | Python/static, Platform and pinned research PG **FAIL** |
+| OPS #73 | `be4c82e9c2a8d4d11ae0add0d1f47ba56ece9ced` | OPS isolated pure/PG/Win32/compatibility **SUCCESS** | Python/static, Platform, pinned research PG and combined browser **FAIL** |
+
+**Composition collision:** both DATA and RESEARCH modify `tests/platform/test_research_postgres.py`. The canonical merged test must retain both sets of negative PGHOSTADDR controls, account for container-internal `inet_server_addr()` vs runner-published host, and pass real PG14/18. Do not use last-writer-wins.
+
+**Current staging status:** no producer source imported yet; staging remains documentation-only and non-installable. After conflict resolution, build exact-source combined candidate and run all checks. Baseline Kind enum drift and physical PC4 native restart remain blocked. Real Bybit HTTP403 ACCESS_BLOCKED, historical completeness UNKNOWN and real F admission denied.
