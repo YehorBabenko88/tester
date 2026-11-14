@@ -24,7 +24,7 @@ RESEARCH or UI changed-file paths in the reviewed PRs.
 
 ## Exact proposed OPS-only file selection
 
-Runtime source (opt-in, not installed):
+Runtime source (opt-in, not installed; 12 files):
 - `scripts/ops_admission_pg.py`
 - `scripts/ops_candidate_compatibility.py`
 - `scripts/ops_native_admission.py`
@@ -33,6 +33,7 @@ Runtime source (opt-in, not installed):
 - `scripts/ops_native_scoped_stop.py` — validates a birth-bound stop; no signalling
 - `scripts/ops_native_windows_rollback.py`
 - `scripts/ops_native_windows_witness.py`
+- `scripts/ops_pg_claim.py` — needed by real PG native-admission test, opt-in lease claim only
 - `scripts/ops_pg_isolation.py` — exact disposable DSN, never user PG5432
 - `scripts/ops_resource_metrics.py`
 - `scripts/ops_win32_handle.py`
@@ -107,9 +108,74 @@ a deterministic and SHA-bound JSON acceptance matrix; it NEVER invokes a
 command. Its test suite requires immutable reviewed producer pins, rejects
 an accidental user-local CI invocation and all live/native activation flags.
 
-Source handoff selection now contains **11 opt-in runtime modules, 11 focused
+Source handoff selection now contains **12 opt-in runtime modules, 11 focused
 OPS tests and 6 CI/documentation items**. Only after all PG14/PG18/PG16,
 Windows original-handle and rollback, FastAPI/Chromium 13TF, security and
 source-manifest jobs pass on the same combined SHA may MASTER consider the
 next integration step. Until separately authorized physical validation,
 installed native PC4 restart stays **BLOCKED**.
+
+## Actual MASTER source composer scope — audited against immutable OPS pin
+
+MASTER #77 at `4e64ec9f6a1da453019b68e598e235036701739f` executed its
+source-only workflow [43575511227](https://github.com/YehorBabenko88/tester/actions/runs/43575511227)
+with **SUCCESS: 125 changed files, 325 Python AST checks**. Its compositor
+replays *all* `git diff --name-status` paths from OPS exact source pin
+`0d4649f3a7cd3595ea58757f2abaf2f1b0558667`, not an OPS-specific
+allowlist. It therefore copied **59 OPS paths**. This is a valid source-only
+smoke test, **not proof of a minimal opt-in selection, full candidate CI,
+or installed Windows service readiness**.
+
+The revised minimal handoff explicitly includes the previously omitted
+`scripts/ops_pg_claim.py`, a required direct import from the real
+`test_ops_native_admission_pg_real.py`; its approved count is now
+**12 runtime + 11 focused tests + 6 CI/docs = 29 files**. All these files
+exist in MASTER's pinned OPS source. The remaining **30 extra** OPS files
+which MASTER copied but which are not in the minimal handoff are:
+
+- `docs/ops_dual_resource_receipt.json`
+- `docs/ops_issue60_followup_20261113.md`
+- `docs/ops_load_and_rollback_evidence_20261113.md`
+- `docs/ops_master_20261113.md`
+- `docs/ops_master_resource_receipt.json`
+- `docs/ops_native_windows_restart_protocol.md`
+- `docs/ops_portable_checkpoint.md`
+- `docs/ops_portable_checkpoint_addendum.md`
+- `docs/ops_rollback_evidence_20261113.md`
+- `docs/ops_win32_original_handle_20261113.md`
+- `scripts/ops_disposable_api.py`
+- `scripts/ops_disposable_lifecycle.py`
+- `scripts/ops_dual_lifecycle.py`
+- `scripts/ops_load_receipt.py`
+- `scripts/ops_pg_disposable_worker.py`
+- `scripts/ops_pg_snapshot.py`
+- `scripts/portable_ops.py`
+- `scripts/portable_ops_guard.py`
+- `tests/platform/test_ops_disposable_lifecycle.py`
+- `tests/platform/test_ops_dual_lifecycle.py`
+- `tests/platform/test_ops_load_receipt.py`
+- `tests/platform/test_ops_pg_claim.py`
+- `tests/platform/test_ops_pg_dual_real.py`
+- `tests/platform/test_ops_pg_isolation.py`
+- `tests/platform/test_ops_pg_lifecycle_real.py`
+- `tests/platform/test_ops_pg_load_real.py`
+- `tests/platform/test_ops_pg_real.py`
+- `tests/platform/test_ops_pg_snapshot.py`
+- `tests/platform/test_portable_ops.py`
+- `tests/platform/test_portable_ops_guard.py`
+
+**Required MASTER action (owner review only):** choose whether these
+30 extras are justified as independent portable/CI fixtures. For an exact
+minimal native-only integration, add a reviewed, explicitly pinned OPS path
+allowlist to the next disposable composer revision and refuse unexpected
+OPS paths rather than copying the entire branch diff. Keep any load-test
+fixtures in an isolated optional test layer, not a production bootstrap.
+Do not mutate `scripts/master_disposable_compose.py` in PR #77 from OPS.
+
+OPS now includes a **read-only** `scripts/ops_master_composer_audit.py`
+with focused negative regressions and a dedicated hosted GitHub Actions
+job. It compares MASTER script AST against actual Git paths and records
+`BLOCKED_SCOPE_TOO_BROAD` as a deliberate, honest scope verdict,
+while independently retaining source-only composition smoke `PASS`.
+It does not execute MASTER's composer, connect to PostgreSQL, spawn native
+processes or alter PC4.
