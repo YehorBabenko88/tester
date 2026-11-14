@@ -12,9 +12,9 @@ import subprocess
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
 PRODUCERS = {
-    "DATA": "9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb",
+    "DATA": "327e9be91cca1aec2cd79d6d7c4846d3b024c1b9",
     "RESEARCH": "af143bb73277e7bffea8ae76d84fd0ed7a707ab0",
-    "UI": "2de6428b48e2b468d15aa8c9e40e4e47719e168f",
+    "UI": "1d6e34907ae2e4972b8ddf2d4b7301cf0920eb3f",
     "OPS": "9c0ee3a44e78d16d8beb34fbaf2973ee2e126386",
 }
 
