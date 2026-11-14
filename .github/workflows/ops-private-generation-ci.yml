@@ -1,0 +1,43 @@
+name: OPS private generation composer prototype isolated acceptance
+on:
+  pull_request:
+    paths:
+      - "scripts/ops_private_generation_prototype.py"
+      - "tests/platform/test_ops_private_generation_prototype.py"
+      - "docs/ops_private_generation_protocol.md"
+      - ".github/workflows/ops-private-generation-ci.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  private-generation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ensure prototype cannot target installed runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/ops_private_generation_prototype.py tests/platform/test_ops_private_generation_prototype.py
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("scripts/ops_private_generation_prototype.py").read_text()
+          for forbidden in ("subprocess.Popen(", "subprocess.run(", "StartService(",
+                            "sc.exe", "powershell.exe", "winrm", "ssh "):
+              assert forbidden not in source, forbidden
+          assert "O_NOFOLLOW" in source
+          assert "fsync" in source
+          print("PRIVATE_COMPOSER_NO_NATIVE_ACTIVATION_PASS")
+          PY
+      - name: Linux-only disposable 0700 generation and rollback tests
+        run: python -m unittest discover -s tests/platform -p 'test_ops_private_generation_prototype.py' -v
+      - name: Explicitly retain NO_GO release boundary
+        run: |
+          echo "CI_ONLY_PROTOTYPE: not integrated into MASTER #77"
+          echo "NO_PC4_NO_POSTGRES_NO_NATIVE_LAUNCHER"
