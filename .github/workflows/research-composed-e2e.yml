@@ -26,6 +26,16 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres -d tester_research_data_disposable"
           --health-interval 5s --health-timeout 5s --health-retries 10
+      auxiliary_pg:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_composed_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports: ['55477:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_composed_disposable"
+          --health-interval 5s --health-timeout 5s --health-retries 10
       control_pg:
         image: postgres:16
         env:
@@ -41,7 +51,7 @@ jobs:
       DATA_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
       RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
       TESTER_RESEARCH_DATA_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55476/tester_research_data_disposable
-      TESTER_AUX_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55476/tester_research_data_disposable
+      TESTER_AUX_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55477/tester_research_composed_disposable
       TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
       CI: "true"
     steps:
@@ -109,6 +119,9 @@ jobs:
           python -m compileall -q src/analytics/research_metrics.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py
       - name: Research arithmetic, UI contract, UNKNOWN and no-lookahead
         run: python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+      # The pinned MASTER tree may predate RESEARCH's Ruff-only import fix.
+      # Independent Research Issue59 CI runs Ruff on the latest producer HEAD.
+      # This workflow does NOT certify composed-tree Ruff or full release.
       - name: Actual disposable DATA PostgreSQL 16 → RESEARCH UI readback
         run: |
           python -m unittest tests.test_execution_contract_bridge -v
@@ -116,8 +129,6 @@ jobs:
           python -m unittest tests.test_composed_data_research_postgres -v
       - name: Pinned research control PostgreSQL, F/G/E auth and hostaddr fencing
         run: python -m pytest -q tests/platform/test_research_postgres.py tests/platform/test_combined_routes.py
-      - name: Composed-tree Ruff (separate from real PostgreSQL E2E)
-        run: python -m ruff check src/analytics/research_metrics.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py tests/platform/test_data_research_adapter_issue59.py
       - name: Upload exact immutable composition manifest
         if: always()
         uses: actions/upload-artifact@v4
