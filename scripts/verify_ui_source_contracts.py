@@ -52,7 +52,7 @@ def verify_shared_pg_hostaddr_test(data_path, research_path, *,
     if not data or len(data) > 256_000 or data != research:
         raise ValueError("data_research_pghostaddr_overlap_requires_manual_reconciliation")
     sha = hashlib.sha1(
-        b"blob " + str(len(data)).encode("ascii") + b"\\0" + data
+        b"blob " + str(len(data)).encode("ascii") + b"\0" + data
     ).hexdigest()
     if sha != expected_blob:
         raise ValueError("pghostaddr_overlap_unreviewed_git_blob")
