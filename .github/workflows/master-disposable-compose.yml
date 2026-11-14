@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - scripts/master_disposable_compose.py
+      - docs/coordination/master-reviewed-producer-files.json
       - .github/workflows/master-disposable-compose.yml
       - docs/coordination/2026-11-14-master-wave.md
   workflow_dispatch:
