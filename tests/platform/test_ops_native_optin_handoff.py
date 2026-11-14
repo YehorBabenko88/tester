@@ -70,7 +70,7 @@ class OptinHandoffTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         selected = set((*RUNTIME_FILES, *TEST_FILES, *CI_AND_DOC_FILES))
         self.assertIn("scripts/ops_pg_claim.py", selected)
-        self.assertEqual(len(selected), 34)
+        self.assertEqual(len(selected), 35)
         for name in selected:
             self.assertTrue((root / name).is_file(), name)
         for name in (*RUNTIME_FILES, *TEST_FILES):
