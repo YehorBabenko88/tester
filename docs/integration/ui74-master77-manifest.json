@@ -15,12 +15,14 @@
     "frontend/capabilities.js",
     "frontend/tests/capabilities.test.js"
   ],
-  "total_changed": 41,
+  "total_changed": 44,
   "all_changed": [
     ".github/workflows/capability-browser.yml",
+    ".github/workflows/ui74-current-head-private-e2e.yml",
     ".github/workflows/ui74-master-composed-e2e.yml",
     ".github/workflows/ui74-private-generation-e2e.yml",
     "docs/integration/UI74_MASTER77_REPLAY.md",
+    "docs/integration/ui74-current-head-audit.json",
     "docs/integration/ui74-master77-manifest.json",
     "docs/integration/ui74-master77-pending-allowlist-additions.json",
     "docs/proposals/download-kind-v1_1.json",
@@ -46,6 +48,7 @@
     "scripts/capability_fixture_server.py",
     "scripts/compare_download_kind_proposal.py",
     "scripts/diagnose_ui_contract_drift.py",
+    "scripts/ui74_current_head_ci.py",
     "scripts/ui74_private_generation_ci.py",
     "scripts/verify_ui_source_contracts.py",
     "src/api/capability_data_bridge.py",
@@ -87,6 +90,7 @@
       "scripts/capability_fixture_server.py",
       "scripts/compare_download_kind_proposal.py",
       "scripts/diagnose_ui_contract_drift.py",
+      "scripts/ui74_current_head_ci.py",
       "scripts/ui74_private_generation_ci.py",
       "scripts/verify_ui_source_contracts.py",
       "tests/platform/test_capability_data_bridge.py",
@@ -98,9 +102,11 @@
     ],
     "ci_and_documentation": [
       ".github/workflows/capability-browser.yml",
+      ".github/workflows/ui74-current-head-private-e2e.yml",
       ".github/workflows/ui74-master-composed-e2e.yml",
       ".github/workflows/ui74-private-generation-e2e.yml",
       "docs/integration/UI74_MASTER77_REPLAY.md",
+      "docs/integration/ui74-current-head-audit.json",
       "docs/integration/ui74-master77-manifest.json",
       "docs/integration/ui74-master77-pending-allowlist-additions.json",
       "docs/proposals/download-kind-v1_1.json",
@@ -287,6 +293,24 @@
       "status": "PENDING_MASTER_APPROVAL",
       "official_allowlist_mutation": false,
       "executable_publisher_approval": false
+    },
+    "current_head_separate_candidate": {
+      "status": "CI_ONLY_NOT_MASTER_COMBINED_PASS",
+      "workflow": ".github/workflows/ui74-current-head-private-e2e.yml",
+      "driver": "scripts/ui74_current_head_ci.py",
+      "audit": "docs/integration/ui74-current-head-audit.json",
+      "source_master": "de95aef6ed46842063fc7c2ef766b7da75fe540e",
+      "source_ui": "2de6428b48e2b468d15aa8c9e40e4e47719e168f",
+      "producer_shas": {
+        "DATA": "9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb",
+        "RESEARCH": "af143bb73277e7bffea8ae76d84fd0ed7a707ab0",
+        "UI": "2de6428b48e2b468d15aa8c9e40e4e47719e168f",
+        "OPS": "9c0ee3a44e78d16d8beb34fbaf2973ee2e126386"
+      },
+      "original_frozen_replay_unchanged": true,
+      "external_attestation": false,
+      "master_allowlist_approved": false,
+      "release_authorized": false
     }
   },
   "nonself_current_ui_file_blobs": {
@@ -448,6 +472,18 @@
     },
     "tests/platform/test_ui_pending_allowlist.py": {
       "git_blob_sha1": "cfe7f45a3c5a3f2476c8786b200325188e0ad3f3",
+      "mode": "100644"
+    },
+    "scripts/ui74_current_head_ci.py": {
+      "git_blob_sha1": "f7bfc58dedcefa522bca26da404d93f4962a3421",
+      "mode": "100644"
+    },
+    "docs/integration/ui74-current-head-audit.json": {
+      "git_blob_sha1": "4a738a2d4728fad1d4094cd5ee8f1ae78a726b7d",
+      "mode": "100644"
+    },
+    ".github/workflows/ui74-current-head-private-e2e.yml": {
+      "git_blob_sha1": "300a384bcd59278ca2cc38c7e0fc43d570af721c",
       "mode": "100644"
     }
   }
