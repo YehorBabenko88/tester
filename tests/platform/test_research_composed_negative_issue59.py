@@ -267,6 +267,65 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
         read_verified_ui_observation(reopened, **scope, as_of_ms=stamp + 60000)
 
 
+
+@pytest.mark.integration
+@pytest.mark.parametrize("ambient_hostaddr", ("127.0.0.2", "172.18.0.2"))
+def test_actual_postgres_client_hostaddr_is_pinned_despite_libpq_environment(
+    monkeypatch, ambient_hostaddr
+):
+    """Client transport pinning is not Docker's server-side SQL address.
+
+    The Docker runner publishes 127.0.0.1:55472 to the PostgreSQL server's
+    independent 172.x:5432 network namespace. Server-side inet_server_addr()
+    is not the client destination and must never be compared to the DSN host.
+    We instead assert the actual libpq client connection's hostaddr/port,
+    while explicitly poisoning PGHOSTADDR, PGHOST, PGPORT and PGDATABASE.
+    """
+    dsn = os.getenv("TEST_RESEARCH_DATABASE_URL")
+    if not dsn:
+        pytest.skip("explicit disposable RESEARCH PostgreSQL DSN required")
+
+    from psycopg.conninfo import conninfo_to_dict
+
+    from src.api.research_ledger import (
+        PersistentResearchLedger,
+        validate_research_dsn,
+    )
+
+    endpoint = conninfo_to_dict(dsn)
+    assert endpoint["host"] == "127.0.0.1"
+    assert endpoint["port"] == "55472"
+    assert endpoint["dbname"] == "tester_research_combined_ci"
+    assert validate_research_dsn(dsn)["host"] == "127.0.0.1"
+    monkeypatch.setenv("PGHOSTADDR", ambient_hostaddr)
+    monkeypatch.setenv("PGHOST", ambient_hostaddr)
+    monkeypatch.setenv("PGPORT", "1")
+    monkeypatch.setenv("PGDATABASE", "postgres")
+
+    with PersistentResearchLedger(dsn).connection() as conn:
+        # These are the actual client-side libpq parameters. Both must
+        # remain exactly pinned despite a hostile libpq environment.
+        assert conn.info.host == endpoint["host"]
+        assert conn.info.hostaddr == endpoint["host"]
+        assert int(conn.info.port) == int(endpoint["port"])
+        assert conn.info.dbname == endpoint["dbname"]
+        server = conn.execute(
+            "SELECT host(inet_server_addr()) AS address, "
+            "inet_server_port() AS port, current_database() AS db"
+        ).fetchone()
+
+    # Never conflate server namespace address/port with the client endpoint.
+    assert server["db"] == endpoint["dbname"]
+    assert server["address"] is not None
+    assert isinstance(server["port"], int) and 1 <= server["port"] <= 65535
+    for explicit in ("127.0.0.2", "172.18.0.2", "127.0.0.1"):
+        with pytest.raises(ValueError, match="explicit isolated"):
+            validate_research_dsn(
+                "host=127.0.0.1 hostaddr=" + explicit
+                + " port=55472 dbname=tester_research_test"
+            )
+
+
 def test_exact_five_new_research_allowlist_blobs_are_pending_not_approved():
     """Immutable Git evidence for MASTER #77 allowlist delta (CI only).
 
