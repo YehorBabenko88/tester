@@ -6,7 +6,7 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
   const errors = [];
   page.on("pageerror", e => errors.push(e.message));
   await page.goto("/");
-  await expect(page.locator("body")).toContainText(/Tester/i);
+  await expect(page.locator("body")).toContainText(/Historical data, source coverage and order-flow analytics/i);
   await page.goto("/research.html");
   await page.locator("#research-command").fill(JSON.stringify(fixture.command));
   await page.getByRole("button", { name: "Read authorized research chart" }).click();
