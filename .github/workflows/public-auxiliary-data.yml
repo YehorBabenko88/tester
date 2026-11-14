@@ -76,6 +76,28 @@ jobs:
           after="$(git status --porcelain --untracked-files=normal)"
           test "$before" = "$after"
           echo "DATA_PRIVATE_GENERATION_SOURCE_ONLY_PASS_NOT_EXTERNAL_ATTESTATION"
+      - name: Current 25-file Git tree and OPS recovery source-only compatibility
+        shell: bash
+        env:
+          DATA_25_FILE_CI: 'true'
+          DATA_25_OPS_MODULE: ${{ runner.temp }}/data25-ops-private-generation.py
+        run: |
+          set -euo pipefail
+          for sha in \
+            298d610771d962ee7b796eac1834d74138768fac \
+            4581e415bd8979a4debee1eb56120bb21b9d95fd \
+            36774155e1b624143cba848110bf83a5f9a6437b; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+          git show 36774155e1b624143cba848110bf83a5f9a6437b:scripts/ops_private_generation_prototype.py > "$DATA_25_OPS_MODULE"
+          test "$(git hash-object "$DATA_25_OPS_MODULE")" = "d8e42103c15824d7ff316314127074ee983804b3"
+          before="$(git status --porcelain --untracked-files=normal)"
+          python scripts/verify_data72_head_manifest.py
+          python -m unittest tests.test_data_25file_private_generation -v
+          after="$(git status --porcelain --untracked-files=normal)"
+          test "$before" = "$after"
+          echo "DATA25_CURRENT_SOURCE_ONLY_COMPAT_PASS_NOT_EXTERNAL_ATTESTATION"
   postgres-contract:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
