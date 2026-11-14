@@ -34,9 +34,7 @@ def test_composed_browser_capabilities_precede_static_frontend_and_keep_13tf():
     ]
     frontend = [i for i, item in enumerate(routes) if isinstance(item, Mount) and item.path == ""]
     assert len(capability) == 1, "missing UI74 GET /api/capabilities"
-    assert frontend and capability[0] < frontend[0], (
-        "frontend catch-all shadows capability route"
-    )
+    assert frontend and capability[0] < frontend[0], "frontend catch-all shadows capability route"
     with TestClient(market, base_url="http://127.0.0.1:8765") as client:
         for interval in INTERVALS:
             result = client.get(
@@ -68,9 +66,7 @@ def test_legacy_market_is_incompatible_with_new_combined_browser():
     older_market = FastAPI()
     route_paths = {getattr(item, "path", "") for item in older_market.routes}
     assert "/api/capabilities" not in route_paths
-    assert "/api/capabilities" in {
-        getattr(item, "path", "") for item in _fixture_market().routes
-    }
+    assert "/api/capabilities" in {getattr(item, "path", "") for item in _fixture_market().routes}
 
 
 def test_research_routes_are_before_static_mount_without_security_bypass():
