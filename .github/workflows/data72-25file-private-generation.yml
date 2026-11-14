@@ -1,0 +1,65 @@
+name: DATA72 current 25-file private generation source-only review
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/data72-25file-private-generation.yml"
+      - "tests/test_data_25file_private_generation.py"
+      - "docs/coordination/data72-25file-ops-canonical-manifest.json"
+      - "docs/coordination/data72-current-head-immutable-review.json"
+      - "scripts/verify_data72_head_manifest.py"
+      - "docs/coordination/data72-298d-allowlist-final-review.md"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      DATA_25_FILE_CI: "true"
+      DATA_25_OPS_MODULE: ${{ runner.temp }}/data25-ops-private-generation.py
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Import frozen reviewed commits, never materialize in checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            298d610771d962ee7b796eac1834d74138768fac \
+            4581e415bd8979a4debee1eb56120bb21b9d95fd \
+            36774155e1b624143cba848110bf83a5f9a6437b; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+          git show 36774155e1b624143cba848110bf83a5f9a6437b:scripts/ops_private_generation_prototype.py > "$DATA_25_OPS_MODULE"
+          test "$(git hash-object "$DATA_25_OPS_MODULE")" = "d8e42103c15824d7ff316314127074ee983804b3"
+      - name: Git-tree identity and reviewed 25-path allowlist checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/verify_data72_head_manifest.py
+      - name: Private 25-file source-only generation and negative tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(git status --porcelain --untracked-files=normal)"
+          python -m unittest tests.test_data_25file_private_generation -v
+          after="$(git status --porcelain --untracked-files=normal)"
+          test "$before" = "$after"
+          echo "PASS_SOURCE_ONLY_NOT_FULL_MASTER_OR_EXTERNAL_ATTESTATION"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data72-current-25file-self-attested-manifest
+          path: ${{ runner.temp }}/data72-25file-ops-compatible-manifest.json
+          retention-days: 7
+          if-no-files-found: ignore

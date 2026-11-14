@@ -1,0 +1,47 @@
+{
+  "schema": "tester-data-minimal-runtime-admission/1",
+  "status": "REVIEW_CANDIDATE_NOT_APPROVED",
+  "source_commit": "9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb",
+  "base_commit": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "master_checkpoint": "de95aef6ed46842063fc7c2ef766b7da75fe540e",
+  "source_tree_sha1": "19436ec7157e2634d2e6cf032b201793ece1aeaf",
+  "files": [
+    {
+      "path": "src/ingest/execution_contract.py",
+      "git_blob_sha1": "8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ingest/public_auxiliary.py",
+      "git_blob_sha1": "c38db1b74a1d6fbb27cb07e4192a8ef38c2c39d0",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ingest/public_auxiliary_runner.py",
+      "git_blob_sha1": "f0f7063526c00b700533eaeac312ec608ee6ba86",
+      "mode": "100644"
+    },
+    {
+      "path": "src/storage/migrations/008_public_unknown_taker_side.sql",
+      "git_blob_sha1": "05600c50e3d4598aaa4645ac58e137a719b0eed2",
+      "mode": "100644"
+    },
+    {
+      "path": "src/storage/models.py",
+      "git_blob_sha1": "f63501f991bcbdb6e416a43ba39cef43a4a1f325",
+      "mode": "100644"
+    }
+  ],
+  "runtime_files": 5,
+  "pending_nonruntime_paths": 10,
+  "approved_already_in_legacy_allowlist": true,
+  "composition_authorization": false,
+  "physical_database_changed": false,
+  "requires": [
+    "externally pinned review digest",
+    "base full tree and cross-producer conflict audit",
+    "same-generation PG14/18 tests",
+    "same-generation Chromium and security negatives"
+  ],
+  "release": "NO_GO"
+}

@@ -1,0 +1,203 @@
+{
+  "schema": "tester-data-immutable-review/2",
+  "status": "REVIEW_CANDIDATE_NOT_MASTER_APPROVED",
+  "base_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "master_review_head": "298d610771d962ee7b796eac1834d74138768fac",
+  "master_allowlist_git_blob_sha1": "08482cd45a3f46b5b8168aab2b7b19f63acb30fb",
+  "reviewed_data_head": "4581e415bd8979a4debee1eb56120bb21b9d95fd",
+  "reviewed_data_tree_sha1": "5fe2e95d33e5356108b8f4567567ed6b9239ae66",
+  "prior_frozen_data_source_sha": "d5bfdad445a1eefb9dc12bf2725a00f171e2c321",
+  "prior_19_blob_manifest_git_blob_sha1": "f1f60a8af7eb60a83c3367c30e73bae2a4e33ac2",
+  "delta_review": {
+    "approved_old_count": 21,
+    "pending_new_count": 4
+  },
+  "files": [
+    {
+      "path": ".github/workflows/data-private-generation-review.yml",
+      "git_blob_sha1": "0d7ffed1a52d51f8da748204e46441ab768e3d35",
+      "mode": "100644",
+      "category": "workflow",
+      "master_298d_allowlisted": false
+    },
+    {
+      "path": ".github/workflows/public-auxiliary-data.yml",
+      "git_blob_sha1": "b39b5ca569f391905489c01896fce5f51a47ca2f",
+      "mode": "100644",
+      "category": "workflow",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": ".github/workflows/storage.yml",
+      "git_blob_sha1": "9d180e10919b8221d6cda0f584d652086cf0ca40",
+      "mode": "100644",
+      "category": "workflow",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "docs/coordination/data72-migration008-candidate77.md",
+      "git_blob_sha1": "9b849d142df7dc85ce14c81559582838960cd7fe",
+      "mode": "100644",
+      "category": "documentation",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "docs/coordination/data72-private-generation-blob-manifest.json",
+      "git_blob_sha1": "f1f60a8af7eb60a83c3367c30e73bae2a4e33ac2",
+      "mode": "100644",
+      "category": "documentation",
+      "master_298d_allowlisted": false
+    },
+    {
+      "path": "docs/coordination/data72-private-generation-replay.md",
+      "git_blob_sha1": "7c62363259c8918e245ef7f9a1103da866818d4c",
+      "mode": "100644",
+      "category": "documentation",
+      "master_298d_allowlisted": false
+    },
+    {
+      "path": "docs/ingest/EXECUTION_EVENT_CONTRACT_V1.md",
+      "git_blob_sha1": "2813ae7b9739b4f5a2bd33fef539873c7dcc5dff",
+      "mode": "100644",
+      "category": "documentation",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "docs/ingest/PUBLIC_AUXILIARY_DATA.md",
+      "git_blob_sha1": "357b2b18c5f77068abe356f441f28eb1444bbdf0",
+      "mode": "100644",
+      "category": "documentation",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "scripts/run_master_composed_data_postgres.py",
+      "git_blob_sha1": "c7a981cc81a165706bdc938f304a44afab43de99",
+      "mode": "100644",
+      "category": "ci_driver",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "src/ingest/execution_contract.py",
+      "git_blob_sha1": "8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79",
+      "mode": "100644",
+      "category": "runtime",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "src/ingest/public_auxiliary.py",
+      "git_blob_sha1": "c38db1b74a1d6fbb27cb07e4192a8ef38c2c39d0",
+      "mode": "100644",
+      "category": "runtime",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "src/ingest/public_auxiliary_runner.py",
+      "git_blob_sha1": "f0f7063526c00b700533eaeac312ec608ee6ba86",
+      "mode": "100644",
+      "category": "runtime",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "src/storage/migrations/008_public_unknown_taker_side.sql",
+      "git_blob_sha1": "05600c50e3d4598aaa4645ac58e137a719b0eed2",
+      "mode": "100644",
+      "category": "runtime",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "src/storage/models.py",
+      "git_blob_sha1": "f63501f991bcbdb6e416a43ba39cef43a4a1f325",
+      "mode": "100644",
+      "category": "runtime",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/platform/test_research_postgres.py",
+      "git_blob_sha1": "402c25410ba4cc6704911148b1ec0c5bba720088",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/storage/test_postgres.py",
+      "git_blob_sha1": "f44442894b6bc41f83a3a684cae5d6cfbf962d69",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/test_composed_data_research_postgres.py",
+      "git_blob_sha1": "033dc029e8931f85fd7d7151bd2179cd743fc0c1",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/test_data_private_generation_compat.py",
+      "git_blob_sha1": "815f13387e013f25e63b6309ee95cbcd630e493a",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": false
+    },
+    {
+      "path": "tests/test_execution_contract_bridge.py",
+      "git_blob_sha1": "be8fa0157ac050b3b45c8942903f2e3f76e46cb6",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/test_execution_contract_postgres.py",
+      "git_blob_sha1": "d52d0b75ce12aaf3b4a6aa286d11fccaf3d3503b",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/test_live_public_bybit_postgres.py",
+      "git_blob_sha1": "fcad14d81f54159caa6622adcf4a6a2435b708c3",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/test_master_composed_data_integrity.py",
+      "git_blob_sha1": "c47e013a71d7277f0d1083cf4aa71d551d7d46a0",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/test_public_auxiliary.py",
+      "git_blob_sha1": "82cea05f7283ea77ed5cb7d3b07d960c35e71ec2",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/test_public_auxiliary_postgres.py",
+      "git_blob_sha1": "c325531c294d03435abe6508dc77b7ed148e5a56",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    },
+    {
+      "path": "tests/test_public_auxiliary_runner.py",
+      "git_blob_sha1": "49777dd23882e9133859490b78b0c7f076c6d89f",
+      "mode": "100644",
+      "category": "test",
+      "master_298d_allowlisted": true
+    }
+  ],
+  "review_decision": {
+    "runtime_module_changes_in_pending_four": 0,
+    "required_before_master_admission": [
+      "independent source and blob review",
+      "externally pinned immutable digest",
+      "exact allowlist equality",
+      "four producer full-tree generation acceptance",
+      "PG14/18 and Chromium on identical generated tree"
+    ]
+  },
+  "release": "NO_GO"
+}

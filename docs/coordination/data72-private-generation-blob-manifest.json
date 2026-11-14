@@ -1,0 +1,129 @@
+{
+  "schema": "tester-data-private-generation-review/1",
+  "base_sha": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "master_source_pinned_data_sha": "d5bfdad445a1eefb9dc12bf2725a00f171e2c321",
+  "branch_reviewed_head": "ce4467dd5f22f89c9f691cecb768f2c8cf9d606a",
+  "ops_prototype_head": "113d7f3b97f47c86a19dc8590bdbb9809138c4d8",
+  "ops_prototype_path": "scripts/ops_private_generation_prototype.py",
+  "master_staging_reviewed_head": "5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd",
+  "migration_order": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "migration_008_blob": "05600c50e3d4598aaa4645ac58e137a719b0eed2",
+  "shared_pg_hostaddr_blob": "402c25410ba4cc6704911148b1ec0c5bba720088",
+  "reviewed_master_files": [
+    {
+      "path": ".github/workflows/public-auxiliary-data.yml",
+      "git_blob_sha1": "74004a5370ded9ce11a9ef0bf9a4d7c44cac5c82",
+      "mode": "100644"
+    },
+    {
+      "path": ".github/workflows/storage.yml",
+      "git_blob_sha1": "9d180e10919b8221d6cda0f584d652086cf0ca40",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/coordination/data72-migration008-candidate77.md",
+      "git_blob_sha1": "9b849d142df7dc85ce14c81559582838960cd7fe",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/ingest/EXECUTION_EVENT_CONTRACT_V1.md",
+      "git_blob_sha1": "2813ae7b9739b4f5a2bd33fef539873c7dcc5dff",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/ingest/PUBLIC_AUXILIARY_DATA.md",
+      "git_blob_sha1": "357b2b18c5f77068abe356f441f28eb1444bbdf0",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ingest/execution_contract.py",
+      "git_blob_sha1": "8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ingest/public_auxiliary.py",
+      "git_blob_sha1": "c38db1b74a1d6fbb27cb07e4192a8ef38c2c39d0",
+      "mode": "100644"
+    },
+    {
+      "path": "src/ingest/public_auxiliary_runner.py",
+      "git_blob_sha1": "f0f7063526c00b700533eaeac312ec608ee6ba86",
+      "mode": "100644"
+    },
+    {
+      "path": "src/storage/migrations/008_public_unknown_taker_side.sql",
+      "git_blob_sha1": "05600c50e3d4598aaa4645ac58e137a719b0eed2",
+      "mode": "100644"
+    },
+    {
+      "path": "src/storage/models.py",
+      "git_blob_sha1": "f63501f991bcbdb6e416a43ba39cef43a4a1f325",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/platform/test_research_postgres.py",
+      "git_blob_sha1": "402c25410ba4cc6704911148b1ec0c5bba720088",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/storage/test_postgres.py",
+      "git_blob_sha1": "f44442894b6bc41f83a3a684cae5d6cfbf962d69",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/test_composed_data_research_postgres.py",
+      "git_blob_sha1": "033dc029e8931f85fd7d7151bd2179cd743fc0c1",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/test_execution_contract_bridge.py",
+      "git_blob_sha1": "be8fa0157ac050b3b45c8942903f2e3f76e46cb6",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/test_execution_contract_postgres.py",
+      "git_blob_sha1": "d52d0b75ce12aaf3b4a6aa286d11fccaf3d3503b",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/test_live_public_bybit_postgres.py",
+      "git_blob_sha1": "fcad14d81f54159caa6622adcf4a6a2435b708c3",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/test_public_auxiliary.py",
+      "git_blob_sha1": "82cea05f7283ea77ed5cb7d3b07d960c35e71ec2",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/test_public_auxiliary_postgres.py",
+      "git_blob_sha1": "c325531c294d03435abe6508dc77b7ed148e5a56",
+      "mode": "100644"
+    },
+    {
+      "path": "tests/test_public_auxiliary_runner.py",
+      "git_blob_sha1": "49777dd23882e9133859490b78b0c7f076c6d89f",
+      "mode": "100644"
+    }
+  ],
+  "release_status": "BLOCKED",
+  "manifest_authority": "IN_BRANCH_REVIEW_MATERIAL_NOT_EXTERNALLY_ATTESTED",
+  "generation_scope": "CI_ONLY_OWNER_0700_SOURCE_FILES_NOT_FULL_COMPOSED_TREE",
+  "prohibited": [
+    "Installed PC4",
+    "Existing PostgreSQL 5432",
+    "Live Bybit API",
+    "Trading/native launcher activation",
+    "GC without reader leases"
+  ],
+  "evidence": "Existing PG14/18 passes are separate from this private-generation compatibility test"
+}
