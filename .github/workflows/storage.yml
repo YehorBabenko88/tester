@@ -8,6 +8,7 @@ jobs:
   postgres:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         postgres: ['14', '18']
         python: ['3.11', '3.13']
