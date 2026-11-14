@@ -1,7 +1,6 @@
 """OPS #73 compatibility with immutable #77 producer tree; no processes or DB."""
 import os
 from pathlib import Path
-from tempfile import TemporaryDirectory
 import unittest
 
 from scripts.ops_candidate_compatibility import (
