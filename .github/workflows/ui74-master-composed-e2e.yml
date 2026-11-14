@@ -88,6 +88,7 @@ jobs:
         run: |
           set -euo pipefail
           fixture="$RUNNER_TEMP/combined-ui-private.json"
+          export TESTER_COMBINED_FIXTURE_FILE="$fixture"
           python -m scripts.combined_browser_ci prepare "$fixture"
           python -m scripts.combined_browser_ci serve "$fixture" >composed-fgd.log 2>&1 &
           pid=$!
