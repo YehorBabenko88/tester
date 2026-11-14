@@ -23,18 +23,40 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U tester_ci -d tester_research_combined_ci"
           --health-interval 5s --health-timeout 5s --health-retries 10
+      data_pg:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_data_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports: ["55476:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_data_disposable"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      auxiliary_pg:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_composed_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports: ["55477:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_composed_disposable"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       CI: "true"
-      EXPECTED_STAGING_SHA: 4e64ec9f6a1da453019b68e598e235036701739f
+      EXPECTED_STAGING_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
       TESTER_COMBINED_CI: synthetic-disposable
       TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
-      TESTER_TESTED_HEAD_SHA: 4e64ec9f6a1da453019b68e598e235036701739f
+      TESTER_TESTED_HEAD_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
       TESTER_DATA_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
       TESTER_RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
+      TESTER_RESEARCH_DATA_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55476/tester_research_data_disposable
+      TESTER_AUX_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55477/tester_research_composed_disposable
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 4e64ec9f6a1da453019b68e598e235036701739f
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v5
@@ -64,6 +86,13 @@ jobs:
         run: |
           python scripts/compare_download_kind_proposal.py
           python -m pytest -q tests/platform/test_download_kind_proposal.py tests/platform/test_capability_discovery.py tests/platform/test_capability_data_bridge.py tests/platform/test_ui_source_protocol.py tests/platform/test_ui_composition_manifest.py tests/platform/test_combined_browser_fixture.py
+      - name: DATA PostgreSQL16 -> RESEARCH trusted UI readback (same composed source)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_execution_contract_bridge -v
+          python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k "actual_data72 or disposable_postgres or disposable_pg"
+          python -m unittest tests.test_composed_data_research_postgres -v
       - name: Install browser test dependencies
         working-directory: frontend
         run: |
