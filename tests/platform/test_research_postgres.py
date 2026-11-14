@@ -302,19 +302,37 @@ def test_actual_postgres_hostaddr_environment_cannot_redirect(persistent, monkey
     from psycopg.conninfo import conninfo_to_dict
 
     expected = conninfo_to_dict(persistent.dsn)
+    # These untrusted libpq environment values must not supersede the
+    # explicitly validated numeric loopback target, mapped host port or DB.
     monkeypatch.setenv("PGHOSTADDR", "127.0.0.2")
+    monkeypatch.setenv("PGHOST", "127.0.0.2")
+    monkeypatch.setenv("PGPORT", "1")
+    monkeypatch.setenv("PGDATABASE", "postgres")
     with persistent.connection() as conn:
-        # Libpq's effective *client* socket target is the security boundary.
-        # inet_server_addr() is the container's internal server address; with
-        # GitHub service port forwarding it can be 172.x even though libpq
-        # actually connected to the pinned loopback host:55472 endpoint.
-        actual = conn.execute(
-            "SELECT host(inet_server_addr()) AS host,inet_server_port() AS port,current_database() AS db"
-        ).fetchone()
-        assert conn.info.host == expected["host"]
+        # libpq reports the actual TCP destination used by this client.
+        # PostgreSQL's inet_server_addr()/inet_server_port() are the *server*
+        # container interface/port (e.g. 172.x:5432), not the runner's
+        # published 127.0.0.1:55472 endpoint.
         assert conn.info.hostaddr == expected["host"]
-        assert conn.info.port == int(expected["port"])
+        assert conn.info.host == expected["host"]
+        assert int(conn.info.port) == int(expected["port"])
         assert conn.info.dbname == expected["dbname"]
+        actual = conn.execute(
+            "SELECT current_database() AS db,"
+            " inet_server_addr() IS NOT NULL AS tcp,"
+            " inet_server_port() AS internal_port"
+        ).fetchone()
     assert actual["db"] == expected["dbname"]
-    assert actual["host"] != "127.0.0.2"
-    assert isinstance(actual["port"], int) and 1 <= actual["port"] <= 65535
+    assert actual["tcp"] is True
+    assert type(actual["internal_port"]) is int
+    assert 1 <= actual["internal_port"] <= 65535
+
+
+def test_research_dsn_refuses_explicit_hostaddr_redirect():
+    for explicit_hostaddr in ("127.0.0.2", "172.18.0.2"):
+        with pytest.raises(ValueError, match="explicit isolated"):
+            validate_research_dsn(
+                "host=127.0.0.1 hostaddr="
+                + explicit_hostaddr
+                + " port=55472 dbname=tester_research_test"
+            )
