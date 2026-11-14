@@ -37,6 +37,7 @@ jobs:
           python -m unittest discover -s tests/platform -p 'test_ops_native_scoped_stop.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_native_optin_handoff.py' -v
           python -m unittest discover -s tests/platform -p 'test_ops_combined_ci_plan.py' -v
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_audit.py' -v
   portable-pg:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -228,3 +229,74 @@ jobs:
           OPS_CANDIDATE_RESEARCH_ROOT: "${{ github.workspace }}/latest-research"
           OPS_CANDIDATE_UI_ROOT: "${{ github.workspace }}/latest-ui"
         run: python -m unittest discover -s tests/platform -p 'test_ops_candidate_compatibility.py' -v
+
+  master-composer-scope-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout reviewed MASTER #77 exact composer (read-only)
+        uses: actions/checkout@v4
+        with:
+          ref: 4e64ec9f6a1da453019b68e598e235036701739f
+          path: .ci-master77
+          persist-credentials: false
+      - name: Checkout immutable OPS producer used by MASTER
+        uses: actions/checkout@v4
+        with:
+          ref: 0d4649f3a7cd3595ea58757f2abaf2f1b0558667
+          path: .ci-ops-pinned
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pin exact master and OPS commits, derive full OPS changed-file inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .ci-master77 rev-parse HEAD)" = "4e64ec9f6a1da453019b68e598e235036701739f"
+          test "$(git -C .ci-ops-pinned rev-parse HEAD)" = "0d4649f3a7cd3595ea58757f2abaf2f1b0558667"
+          git -C .ci-ops-pinned diff --name-only --no-renames             3b2eef8a4139195db1a775545e83f1c1f58bf403             0d4649f3a7cd3595ea58757f2abaf2f1b0558667             > ops-master-pinned-changed-files.txt
+          test "$(wc -l <ops-master-pinned-changed-files.txt)" -eq 59
+      - name: Refuse to classify 59-file broad OPS copy as minimal approved opt-in
+        env:
+          OPS_PINNED_MASTER_COMPOSER_FILE: "${{ github.workspace }}/.ci-master77/scripts/master_disposable_compose.py"
+          OPS_PINNED_CHANGED_PATHS_FILE: "${{ github.workspace }}/ops-master-pinned-changed-files.txt"
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_audit.py' -v
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from scripts.ops_master_composer_audit import audit_master_composer
+          report = audit_master_composer(
+              Path(os.environ["OPS_PINNED_MASTER_COMPOSER_FILE"]).read_text(encoding="utf-8"),
+              changed_ops_paths=Path(os.environ["OPS_PINNED_CHANGED_PATHS_FILE"]).read_text(encoding="utf-8").splitlines(),
+              expected_ops_sha="0d4649f3a7cd3595ea58757f2abaf2f1b0558667",
+          )
+          if (report["result"] != "BLOCKED_SCOPE_TOO_BROAD"
+                  or report["approved_count"] != 29
+                  or report["actually_composed_ops_count"] != 59
+                  or report["extra_count"] != 30
+                  or report["minimal_optin_copy_confirmed"]):
+              raise SystemExit("MASTER composer scope changed; explicit re-review required")
+          Path("ops-master-composer-scope-audit.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True) + chr(10), encoding="utf-8"
+          )
+          print("SOURCE_COMPOSE_SMOKE_PASS; MINIMAL_OPS_SCOPE_BLOCKED: 30 extra files")
+          PY
+      - name: Retain exact source-scope evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-master-composer-scope-evidence
+          path: |
+            ops-master-composer-scope-audit.json
+            ops-master-pinned-changed-files.txt
+          if-no-files-found: ignore
+          retention-days: 14
