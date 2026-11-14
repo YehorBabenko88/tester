@@ -4,6 +4,7 @@ This never modifies a branch, machine installation, or PostgreSQL instance.
 All producer changes are replayed against the immutable PC4 source tree.
 """
 import hashlib
+import json
 import os
 import pathlib
 import subprocess
@@ -30,10 +31,19 @@ def main():
             or not os.environ.get("GITHUB_WORKSPACE")
             or pathlib.Path(os.environ["GITHUB_WORKSPACE"]).resolve() != ROOT):
         raise SystemExit("refuse non-Actions workspace (environment flags alone are not attestation)")
+    if (os.environ.get("GITHUB_REPOSITORY") != "YehorBabenko88/tester"
+            or os.environ.get("GITHUB_SHA") != os.environ.get("EXPECTED_STAGING_SHA")
+            or not os.environ.get("GITHUB_RUN_ID", "").isdigit()
+            or os.environ.get("RUNNER_OS") != "Linux"):
+        raise SystemExit("refuse unbound Actions job metadata")
     if ROOT.is_symlink() or not ROOT.is_dir():
         raise SystemExit("unsafe checkout root")
     if git("rev-parse", "HEAD").decode().strip() != os.environ.get("EXPECTED_STAGING_SHA"):
         raise SystemExit("staging SHA changed; refuse unpinned composition")
+    reviewed = json.loads((ROOT / "docs/coordination/master-reviewed-producer-files.json").read_text(encoding="utf-8"))
+    if reviewed.get("schema") != "master-reviewed-producer-files/1":
+        raise SystemExit("invalid reviewed file manifest")
+    approved = {key: set(paths) for key, paths in reviewed["producers"].items()}
     seen = {}
     changes = []
     for label, sha in PRODUCERS:
@@ -43,7 +53,7 @@ def main():
         rows = git("diff", "--name-status", "--no-renames", BASE, sha).decode().splitlines()
         for row in rows:
             status, path = row.split("\t", 1)
-            if status not in ("A", "M") or not path.startswith(ALLOWED) or path in PROTECTED:
+            if status not in ("A", "M") or not path.startswith(ALLOWED) or path in PROTECTED or path not in approved[label]:
                 raise SystemExit(f"refusing {label} status/path: {row}")
             # Only regular Git blobs are eligible: reject symlinks and gitlinks.
             mode_row = git("ls-tree", sha, "--", path).decode().strip()
@@ -73,10 +83,29 @@ def main():
                 raise SystemExit(f"nonregular destination: {path}")
         if target.exists() and not target.is_file():
             raise SystemExit(f"non-file destination: {path}")
-    for label, path, raw in changes:
-        target = ROOT / path
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(raw)
+    # Descriptor-relative writes prevent symlink swaps between preflight and open.
+    # This workflow runs only on Linux, with O_NOFOLLOW and directory fds.
+    rootfd = os.open(ROOT, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for label, path, raw in changes:
+            parts = pathlib.PurePosixPath(path).parts
+            parentfd = os.dup(rootfd)
+            try:
+                for part in parts[:-1]:
+                    try:
+                        os.mkdir(part, mode=0o700, dir_fd=parentfd)
+                    except FileExistsError:
+                        pass
+                    nextfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parentfd)
+                    os.close(parentfd)
+                    parentfd = nextfd
+                fd = os.open(parts[-1], os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600, dir_fd=parentfd)
+                with os.fdopen(fd, "wb") as output:
+                    output.write(raw)
+            finally:
+                os.close(parentfd)
+    finally:
+        os.close(rootfd)
     print(f"COMPOSED_UNCOMMITTED_FILES={len(changes)}")
     for label, path, raw in changes:
         print(f"{label}\t{hashlib.sha256(raw).hexdigest()}\t{path}")
