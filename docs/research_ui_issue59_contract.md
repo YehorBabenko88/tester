@@ -159,3 +159,119 @@ Remaining unresolved: complete actual historical source coverage
 (UNKNOWN), atomic B+execution revision/known-at, real-market F admission
 DENIED, genuine hosted PG14+PG18 and full combined-browser acceptance,
 and other shared CI gates. PR #77 is documentation-only and unchanged.
+
+
+## FINAL RESEARCH #71 integration handoff — MASTER checkpoint 2026-11-14 07:19
+
+**Producer snapshot for composition:**
+- DATA #72 immutable HEAD `d5bfdad445a1eefb9dc12bf2725a00f171e2c321`.
+- RESEARCH #71 code HEAD `c01c32b03aaf04923b33b0513b71776b12af1e09`.
+- UI #74 producer HEAD `a27011713c3ee8a2c5f135b8ec2e366d49ccca7c`.
+- MASTER #77 documentation-only HEAD `f988e4a7613d8f51fd2a5378b964ab7cd37eaf8f` — untouched here.
+
+**Conflict closure, verified:** DATA and RESEARCH
+`tests/platform/test_research_postgres.py` are IDENTICAL Git blob
+`402c25410ba4cc6704911148b1ec0c5bba720088` at the exact producer
+snapshot above. Apply that file **once**, not twice, after overlaying
+producer trees; fail integration if the chosen DATA and RESEARCH blobs
+diverge again. The reconciled test contains both negative suites:
+ambient `PGHOSTADDR`, `PGHOST`, `PGPORT`, `PGDATABASE` redirects must
+not supersede the explicit libpq client target; explicit DSN
+`hostaddr=127.0.0.2` and `hostaddr=172.18.0.2` must be rejected.
+Never equate the PostgreSQL server's internal Docker `inet_server_addr()`
+with the runner's published loopback endpoint.
+
+**Migration 008 verification:** at DATA HEAD `d5bfdad4...`,
+`src/storage/migrations/008_public_unknown_taker_side.sql` is Git blob
+`05600c50e3d4598aaa4645ac58e137a719b0eed2`, and
+`src/ingest/execution_contract.py` is blob
+`8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79`. Both blobs are identical
+to reviewed RESEARCH CI DATA pin `f78349b1...`. The migration preserves
+`raw_records_check2` and `trade_side_required`, positive price and
+size, nonempty exchange trade identity, and exact source `Unknown`
+without inventing Buy/Sell. Historical raw rows remain append-only.
+
+### RESEARCH file inventory from frozen PC4 base
+
+Copy the RESEARCH producer version of:
+- `src/analytics/research_metrics.py`
+- `src/integration/research_preview.py`
+- `src/integration/data_research_adapter.py`
+- `src/integration/research_ui_projection.py`
+- `tests/platform/test_research_metrics_issue59.py`
+- `tests/platform/test_research_preview_issue59.py`
+- `tests/platform/test_research_preview_adapter_issue59.py`
+- `tests/platform/test_data_research_adapter_issue59.py`
+- `.github/workflows/research-issue59.yml`
+- `docs/coordination/2026-11-13-data72-research71-adapter.md`
+- `docs/research_ui_issue59_contract.md`
+
+Shared overlap `tests/platform/test_research_postgres.py`: use the
+single exact common blob `402c25410ba4cc6704911148b1ec0c5bba720088`.
+Do not override it from an older producer HEAD. All data ingestion
+or storage migration files are owned by DATA #72, not RESEARCH.
+
+### Required executable gates on the single new PR #77 combined HEAD
+
+Run only on an independently created disposable candidate/CI environment.
+Do not deploy, merge to main, or connect to any installed PC4/office DB.
+
+```bash
+set -euo pipefail
+python -m pip install -e '.[dev]' -c requirements-platform.lock
+python -m compileall -q src/analytics/research_metrics.py src/integration/research_preview.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py
+python -m ruff check src/analytics/research_metrics.py src/integration/research_preview.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py tests/platform/test_research_postgres.py
+python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+```
+
+On a **separately provisioned** PostgreSQL test service (no production DSN),
+run both entrypoint suites and full composed transaction tests:
+```bash
+# Prerequisite: approved exact disposable DB and test-only DATA composition.
+# The actual workflow sets TESTER_RESEARCH_DATA_TEST_DSN and TEST_RESEARCH_DATABASE_URL.
+python -m unittest tests.test_execution_contract_bridge -v
+python -m pytest -q tests/platform/test_data_research_adapter_issue59.py -k 'actual_data72 or disposable_postgres or disposable_pg'
+python -m pytest -q tests/platform/test_research_postgres.py tests/platform/test_combined_routes.py
+```
+
+On the combined immutable SHA run GitHub required checks:
+`Public auxiliary DATA contracts`, `Storage integrity` (PostgreSQL 14/18),
+`Research Issue 59 isolated checks`, `Pinned research PostgreSQL integration`,
+`Python static and unit tests`, `Platform acceptance`,
+`combined synthetic F-G-D browser`, UI Node/Chromium 13TF/security,
+and OPS isolated CI. **Every** required check must pass on the **same**
+combined HEAD. Producer-level CI is not combined acceptance.
+
+Tested at RESEARCH HEAD `c01c32b0...`:
+- `Research Issue 59 isolated checks` run 43567373636: SUCCESS,
+  metrics **93 passed / 5 skipped**, Ruff PASS, DATA contract **10/10**,
+  composed DATA→PostgreSQL16→RESEARCH **4/4**.
+- `Pinned research PostgreSQL integration` run 43567373672:
+  SUCCESS **11/11**, one warning. Includes hostile libpq
+  environment/explicit hostaddr refusal and authenticated synthetic
+  F→PostgreSQL→G HTTP render ACK tests.
+
+### RESEARCH→UI/Strategy Lab admission rules
+
+`read_verified_ui_observation(store,...)` is a read-only DATA72
+provenance-checked projection. Its output preserves observed footprint
+price levels, buy/sell/unknown quantities, exact Decimal Delta and
+window-anchored CVD, VWAP/POC, UTC ranges, source hashes and data
+fidelity. This is **not a mounted HTTP route** and cannot start F, G,
+or E. The historical completeness remains `UNKNOWN`;
+`require_strategy_lab_f_input(...)` must reject REAL input with
+`real_historical_visibility_unknown_f_denied`. Synthetic F fixtures
+have a separate explicitly authorized path.
+
+Do not infer browser success from the RESEARCH interface: the combined
+app test still needs an actual catalog-router/fixture alignment and
+valid synthetic G/E ACK; no fake 200, no synthetic market-fill data,
+and no disabling real 404 errors.
+
+### Acceptance boundary
+
+RESEARCH code is **READY_FOR_COMPOSITION**, not ready for release.
+MASTER #77 remains documentation-only until its compositor creates
+an exact combined source tree and all CI gates pass. Full PC4 native
+restart, REAL Strategy Lab F, live Bybit source completeness and
+trading remain NO_GO. No Codex/main/PC4/PG5432 changes.
