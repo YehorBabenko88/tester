@@ -13,6 +13,9 @@ on:
       - 'tests/test_execution_contract_bridge.py'
       - 'tests/test_execution_contract_postgres.py'
       - 'tests/test_master_composed_data_integrity.py'
+      - 'tests/test_data_private_generation_compat.py'
+      - 'docs/coordination/data72-private-generation-blob-manifest.json'
+      - 'docs/coordination/data72-private-generation-replay.md'
       - 'scripts/run_master_composed_data_postgres.py'
       - 'tests/test_composed_data_research_postgres.py'
       - 'tests/test_live_public_bybit_postgres.py'
@@ -50,6 +53,29 @@ jobs:
         run: python -m compileall -q src/ingest/execution_contract.py tests/test_execution_contract_bridge.py tests/test_execution_contract_postgres.py tests/test_composed_data_research_postgres.py tests/test_live_public_bybit_postgres.py
       - name: Offline DATA contracts
         run: python -m unittest tests.test_public_auxiliary tests.test_public_auxiliary_runner tests.test_execution_contract_bridge -v
+      - name: Private generation DATA Git source review (no database or native service)
+        shell: bash
+        env:
+          DATA_PRIVATE_GENERATION_CI: 'true'
+          DATA_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          DATA_PRIVATE_OPS_SOURCE: ${{ runner.temp }}/ops-private-generation-prototype.py
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DATA_TESTED_HEAD_SHA"
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            d5bfdad445a1eefb9dc12bf2725a00f171e2c321 \
+            113d7f3b97f47c86a19dc8590bdbb9809138c4d8; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+          git show 113d7f3b97f47c86a19dc8590bdbb9809138c4d8:scripts/ops_private_generation_prototype.py > "$DATA_PRIVATE_OPS_SOURCE"
+          test "$(git hash-object "$DATA_PRIVATE_OPS_SOURCE")" = "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e"
+          before="$(git status --porcelain --untracked-files=normal)"
+          python -m unittest tests.test_data_private_generation_compat -v
+          after="$(git status --porcelain --untracked-files=normal)"
+          test "$before" = "$after"
+          echo "DATA_PRIVATE_GENERATION_SOURCE_ONLY_PASS_NOT_EXTERNAL_ATTESTATION"
   postgres-contract:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
