@@ -118,6 +118,56 @@ class NativeAdmissionTests(unittest.TestCase):
                 pg_probe=self.pg, leases_probe=self.lease)
         self.assertFalse((self.admission.generations/"0000"/"closure.json").exists())
 
+    def test_crashed_controller_inventory_refuses_pid_adoption(self):
+        self.reserve()
+        fresh = NativeAdmission(self.root, self.pin)
+        report = fresh.inspect_crashed_controller(
+            pg_probe=self.pg, leases_probe=self.lease
+        )
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertEqual(report["generations"], [0])
+        self.assertEqual(report["incomplete_generations"], [0])
+        self.assertTrue(report["pg_incarnation_matches"])
+        self.assertFalse(report["active_or_unknown_leases"])
+        self.assertFalse(report["independent_handle_witness"])
+        self.assertFalse(report["pid_adoption_allowed"])
+        self.assertFalse(report["restart_allowed"])
+
+    def test_crash_inventory_never_trusts_hash_consistent_closure_as_exit(self):
+        self.reserve()
+        self.admission.seal_reservation(
+            0, witness=self.witness, receipt=self.receipt,
+            pg_probe=self.pg, leases_probe=self.lease
+        )
+        fresh = NativeAdmission(self.root, self.pin)
+        report = fresh.inspect_crashed_controller(
+            pg_probe=self.pg, leases_probe=self.lease
+        )
+        self.assertTrue(report["ledger_consistent"])
+        self.assertEqual(report["incomplete_generations"], [])
+        self.assertFalse(report["restart_allowed"])
+        self.assertFalse(report["independent_handle_witness"])
+
+    def test_crash_inventory_flags_corrupt_ledger_and_unknown_pg(self):
+        self.reserve()
+        (self.admission.generations / "0000" / "unexpected.txt").write_text("foreign")
+        report = self.admission.inspect_crashed_controller(
+            pg_probe=self.pg, leases_probe=self.lease
+        )
+        self.assertEqual(report["status"], "CORRUPT_OR_UNKNOWN_LEDGER")
+        self.assertFalse(report["restart_allowed"])
+
+        # A clean but incomplete ledger still cannot infer free PG leases.
+        (self.admission.generations / "0000" / "unexpected.txt").unlink()
+        unavailable = self.admission.inspect_crashed_controller(
+            pg_probe=lambda: (_ for _ in ()).throw(RuntimeError("PG offline")),
+            leases_probe=self.lease
+        )
+        self.assertEqual(unavailable["status"], "PG_OR_LEASE_EVIDENCE_UNAVAILABLE")
+        self.assertIsNone(unavailable["pg_incarnation_matches"])
+        self.assertIsNone(unavailable["active_or_unknown_leases"])
+        self.assertFalse(unavailable["restart_allowed"])
+
     def test_no_successor_without_lease_fence(self):
         self.reserve()
         with self.assertRaises(NativeRestartBlocked):
