@@ -102,13 +102,15 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install -e '.[dev]' -c requirements-platform.lock
-          (cd frontend && npm ci --ignore-scripts && npm test && npx playwright install --with-deps chromium)
+          (cd .ci-ui-driver/frontend && npm ci --ignore-scripts && npm test && npx playwright install --with-deps chromium)
       - name: Check private FastAPI routes and 13-timeframe source semantics
         shell: bash
         run: |
           set -euo pipefail
           export UI_PRIVATE_GENERATION_DIR="$RUNNER_TEMP/ui-private-source/generations/$(python -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/ui-private-evidence.json"))["generation"])')"
-          export PYTHONPATH="$UI_PRIVATE_GENERATION_DIR"
+          export PYTHONPATH="$UI_PRIVATE_GENERATION_DIR:$GITHUB_WORKSPACE"
+          mkdir -p "$RUNNER_TEMP/ui-private-cwd"
+          cd "$RUNNER_TEMP/ui-private-cwd"
           python - <<'PY'
           import os
           from pathlib import Path
@@ -164,7 +166,7 @@ jobs:
             sleep 1
           done
           curl -fsS "http://127.0.0.1:18874/api/capabilities?category=linear&symbol=BTCUSDT&interval=1&start_ms=0&end_ms=60000" >/dev/null
-          (cd frontend && npx playwright test --config playwright.capability.config.js --reporter=line)
+          (cd .ci-ui-driver/frontend && npx playwright test --config playwright.capability.config.js --reporter=line)
           python .ci-ui-driver/scripts/ui74_private_generation_ci.py verify \
             --root "$RUNNER_TEMP/ui-private-source" \
             --publisher "$RUNNER_TEMP/ops_private_generation_prototype.py" \
@@ -175,7 +177,7 @@ jobs:
         run: |
           set -euo pipefail
           export UI_PRIVATE_GENERATION_DIR="$RUNNER_TEMP/ui-private-source/generations/$(python -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/ui-private-evidence.json"))["generation"])')"
-          export PYTHONPATH="$UI_PRIVATE_GENERATION_DIR"
+          export PYTHONPATH="$UI_PRIVATE_GENERATION_DIR:$GITHUB_WORKSPACE"
           export TESTER_COMBINED_FIXTURE_FILE="$RUNNER_TEMP/ui-private-combined.json"
           mkdir -p "$RUNNER_TEMP/ui-private-cwd"
           ln -s "$UI_PRIVATE_GENERATION_DIR/frontend" "$RUNNER_TEMP/ui-private-cwd/frontend"
@@ -186,7 +188,7 @@ jobs:
             pid=$!
             trap 'kill -TERM "$pid" 2>/dev/null || true; wait "$pid" || true' EXIT
             python -m scripts.combined_browser_ci gateway "$TESTER_COMBINED_FIXTURE_FILE"
-            (cd "$GITHUB_WORKSPACE/frontend" && npx playwright test -c playwright.combined.config.js --reporter=line)
+            (cd "$GITHUB_WORKSPACE/.ci-ui-driver/frontend" && npx playwright test -c playwright.combined.config.js --reporter=line)
             python -m scripts.combined_browser_ci verify "$TESTER_COMBINED_FIXTURE_FILE"
           )
           python .ci-ui-driver/scripts/ui74_private_generation_ci.py verify \
