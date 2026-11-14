@@ -463,3 +463,68 @@ jobs:
             ops-load-pg-evidence.json
           if-no-files-found: ignore
           retention-days: 14
+
+  master-v2-security-readonly:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Checkout revised MASTER composer at immutable HEAD
+        uses: actions/checkout@v4
+        with:
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+          path: .ci-master-v2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Attest exact pinned source before negative tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .ci-master-v2 rev-parse HEAD)" = "88ad7a7a82f35d1829b5eb07c0c1d4878741f527"
+          test "$(git hash-object .ci-master-v2/scripts/master_disposable_compose.py)" = "$(git -C .ci-master-v2 rev-parse HEAD:scripts/master_disposable_compose.py)"
+      - name: Exercise new guards and still-open race in disposable sandbox
+        env:
+          OPS_PINNED_MASTER_V2_COMPOSER_FILE: "${{ github.workspace }}/.ci-master-v2/scripts/master_disposable_compose.py"
+        run: |
+          python -m unittest discover -s tests/platform -p 'test_ops_master_composer_v2_negative.py' -v
+          python - <<'PY'
+          import ast
+          import json
+          import os
+          from pathlib import Path
+          path = Path(os.environ["OPS_PINNED_MASTER_V2_COMPOSER_FILE"])
+          source = path.read_text(encoding="utf-8")
+          ast.parse(source, filename=str(path))
+          report = {
+              "master_sha": "88ad7a7a82f35d1829b5eb07c0c1d4878741f527",
+              "runner": "GITHUB_HOSTED_DISPOSABLE_TEST_ONLY",
+              "symlink_blob_mode_rejection": "PASS_IN_SANDBOX",
+              "parent_and_target_symlink_preflight": "PASS_IN_SANDBOX",
+              "traversal_rejection": "PASS_IN_SANDBOX",
+              "native_activation_call": "NOT_DETECTED",
+              "runner_identity_attested": False,
+              "no_follow_atomic_write": False,
+              "race_between_preflight_and_write": "REPRODUCED_IN_SANDBOX",
+              "exact_producer_file_allowlist": False,
+              "safe_to_use_on_installed_PC4": False,
+              "status": "BLOCKED_RESIDUAL_TOCTOU_AND_TRUST",
+          }
+          Path("ops-master-v2-security-evidence.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True) + chr(10), encoding="utf-8"
+          )
+          print("MASTER_V2_SANDBOX_TESTS_PASS; HARDENING_STILL_BLOCKED")
+          PY
+      - name: Upload MASTER v2 security evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ops-master-v2-security-evidence
+          path: ops-master-v2-security-evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
