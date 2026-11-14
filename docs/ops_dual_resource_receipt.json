@@ -1,0 +1,11 @@
+{
+  "source": "linux_disposable_two_process_fixture",
+  "api": {"rss_bytes": 2895872, "cpu_percent": 99.8, "cpu_sample_seconds": 0.1, "threads": 1, "read_bytes": 0, "write_bytes": 0, "exit_code": 0},
+  "worker": {"rss_bytes": 18403328, "cpu_percent": 99.8, "cpu_sample_seconds": 0.1, "threads": 1, "read_bytes": 0, "write_bytes": 0, "exit_code": 0},
+  "postgresql": {"status": "NOT_RUN", "queue_depth": null, "wal_bytes": null, "wal_delta_bytes": null, "pg_system_identifier": null, "pg_postmaster_start": null},
+  "unknown_fields": ["queue_depth", "wal_bytes", "wal_delta_bytes", "pg_system_identifier", "pg_postmaster_start"],
+  "ten_symbol_sustained_load": "NOT_RUN",
+  "native_pc4": "NOT_RUN",
+  "limits_enforced": false,
+  "release": "NO_GO"
+}
