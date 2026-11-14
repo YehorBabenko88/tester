@@ -135,11 +135,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: YehorBabenko88/tester
-          ref: e60d2aee4c6b849e6e9c0e1302f3e0f92e930534
+          ref: b11b79832d1b0d848773ff077a36e7cb0595fdcb
           path: .ci-research-pin
       - name: Test-only exact RESEARCH composition (never committed)
         run: |
-          test "$(git -C .ci-research-pin rev-parse HEAD)" = "e60d2aee4c6b849e6e9c0e1302f3e0f92e930534"
+          test "$(git -C .ci-research-pin rev-parse HEAD)" = "b11b79832d1b0d848773ff077a36e7cb0595fdcb"
           test ! -e src/integration/data_research_adapter.py
           test ! -e src/analytics/research_metrics.py
           cp .ci-research-pin/src/integration/data_research_adapter.py src/integration/data_research_adapter.py
@@ -182,11 +182,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: YehorBabenko88/tester
-          ref: e60d2aee4c6b849e6e9c0e1302f3e0f92e930534
+          ref: b11b79832d1b0d848773ff077a36e7cb0595fdcb
           path: .ci-research-pin
       - name: Compose RESEARCH only inside disposable runner
         run: |
-          test "$(git -C .ci-research-pin rev-parse HEAD)" = "e60d2aee4c6b849e6e9c0e1302f3e0f92e930534"
+          test "$(git -C .ci-research-pin rev-parse HEAD)" = "b11b79832d1b0d848773ff077a36e7cb0595fdcb"
           test ! -e src/integration/data_research_adapter.py
           test ! -e src/analytics/research_metrics.py
           cp .ci-research-pin/src/integration/data_research_adapter.py src/integration/data_research_adapter.py
