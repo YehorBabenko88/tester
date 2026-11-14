@@ -64,6 +64,9 @@ jobs:
             --data .ci-source-data72/src/ingest/execution_contract.py \
             --research .ci-source-research71/src/integration/data_research_adapter.py \
             --metrics .ci-source-research71/src/analytics/research_metrics.py
+          test "$(git hash-object .ci-source-data72/src/ingest/execution_contract.py)" = "8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79"
+          test "$(git hash-object .ci-source-research71/src/integration/data_research_adapter.py)" = "1f1c244361caa8dbbeb2fb0008bf346946a3092d"
+          test "$(git hash-object .ci-source-research71/src/analytics/research_metrics.py)" = "d565c1239b60e770c0337423c5e014daeec0e457"
       - name: Exercise real FastAPI capability discovery
         run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py tests/platform/test_capability_data_bridge.py -q
       - uses: actions/setup-node@v4
