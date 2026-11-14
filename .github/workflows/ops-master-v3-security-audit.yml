@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "tests/platform/test_ops_master_composer_v3_security.py"
+      - "docs/ops_master_d6d6548_security_audit_20261114.md"
       - ".github/workflows/ops-master-v3-security-audit.yml"
   workflow_dispatch:
 
