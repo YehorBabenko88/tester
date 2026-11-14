@@ -1,0 +1,43 @@
+name: MASTER pending blob inventory (read only)
+on:
+  pull_request:
+    paths:
+      - scripts/master_pending_blob_review.py
+      - docs/coordination/master-reviewed-producer-files.json
+      - .github/workflows/master-pending-blob-review.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch pinned commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb \
+            af143bb73277e7bffea8ae76d84fd0ed7a707ab0 \
+            2de6428b48e2b468d15aa8c9e40e4e47719e168f \
+            9c0ee3a44e78d16d8beb34fbaf2973ee2e126386; do
+            git fetch --no-tags origin "$sha"
+          done
+      - name: Generate unapproved SHA inventory
+        run: python scripts/master_pending_blob_review.py > pending-blob-inventory.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: master-unapproved-blob-inventory
+          path: pending-blob-inventory.json
