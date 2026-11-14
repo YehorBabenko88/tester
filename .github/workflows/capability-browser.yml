@@ -8,6 +8,8 @@ on:
       - 'tests/platform/test_capability_discovery.py'
       - 'scripts/capability_fixture_server.py'
       - 'scripts/verify_ui_source_contracts.py'
+      - 'docs/integration/ui74-master77-manifest.json'
+      - 'tests/platform/test_ui_composition_manifest.py'
       - 'scripts/diagnose_ui_contract_drift.py'
       - 'scripts/compare_download_kind_proposal.py'
       - 'docs/proposals/download-kind-v1_1.json'
@@ -37,11 +39,12 @@ jobs:
       - name: Pin reviewed RESEARCH #71 observed-metrics contracts
         uses: actions/checkout@v4
         with:
-          ref: b11b79832d1b0d848773ff077a36e7cb0595fdcb
+          ref: eadbc2e2e19601bd1d07e8278980812f87f06723
           path: .ci-source-research71
           sparse-checkout: |
             src/integration/data_research_adapter.py
             src/analytics/research_metrics.py
+            src/integration/research_ui_projection.py
           sparse-checkout-cone-mode: false
       - uses: actions/setup-python@v5
         with:
@@ -59,14 +62,16 @@ jobs:
         shell: bash
         run: |
           test "$(git -C .ci-source-data72 rev-parse HEAD)" = "37fde4a9efba72eaf1b25a1b00e07385b07fd572"
-          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "b11b79832d1b0d848773ff077a36e7cb0595fdcb"
+          test "$(git -C .ci-source-research71 rev-parse HEAD)" = "eadbc2e2e19601bd1d07e8278980812f87f06723"
           python scripts/verify_ui_source_contracts.py \
             --data .ci-source-data72/src/ingest/execution_contract.py \
             --research .ci-source-research71/src/integration/data_research_adapter.py \
-            --metrics .ci-source-research71/src/analytics/research_metrics.py
+            --metrics .ci-source-research71/src/analytics/research_metrics.py \
+            --research-ui .ci-source-research71/src/integration/research_ui_projection.py
           test "$(git hash-object .ci-source-data72/src/ingest/execution_contract.py)" = "8dc34f5fc73c4d9a1199efb8081be63ecdbf1d79"
-          test "$(git hash-object .ci-source-research71/src/integration/data_research_adapter.py)" = "c043f4eeac2c4119eb9fa4dd0983677cad3e40b0"
+          test "$(git hash-object .ci-source-research71/src/integration/data_research_adapter.py)" = "35404adef064a667faef6a8f3f852f5aa492cf76"
           test "$(git hash-object .ci-source-research71/src/analytics/research_metrics.py)" = "d565c1239b60e770c0337423c5e014daeec0e457"
+          test "$(git hash-object .ci-source-research71/src/integration/research_ui_projection.py)" = "1c165bccaa39fcf73cf33171730e9ea7d7fd6474"
       - name: Exercise real FastAPI capability discovery
         run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py tests/platform/test_capability_data_bridge.py -q
       - uses: actions/setup-node@v4
@@ -107,7 +112,7 @@ jobs:
         env:
           TESTER_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           TESTER_DATA_SOURCE_SHA: 37fde4a9efba72eaf1b25a1b00e07385b07fd572
-          TESTER_RESEARCH_SOURCE_SHA: b11b79832d1b0d848773ff077a36e7cb0595fdcb
+          TESTER_RESEARCH_SOURCE_SHA: eadbc2e2e19601bd1d07e8278980812f87f06723
         run: npx playwright test --config playwright.capability.config.js
         working-directory: frontend
       - name: Store browser screenshot, traces and backend log
