@@ -103,7 +103,6 @@ class CombinedAcceptancePlanTests(unittest.TestCase):
         ]
         self.assertNotIn(5432, ports)
         self.assertTrue(all(55400 <= p <= 55499 for p in ports))
-        self.assertIn("CPU", "CPU/RAM/WAL/I/O")
 
     def test_invalid_or_unreviewed_inputs_refuse_without_any_execution(self):
         bad_cases = [
@@ -116,6 +115,7 @@ class CombinedAcceptancePlanTests(unittest.TestCase):
             {"ops_sha": "invalid"},
             {"producer_shas": {**PRODUCERS, "ops": "4" * 40}},
             {"producer_shas": {"data": "a" * 40}},
+            {"producer_shas": {**PRODUCERS, "data": "4" * 40}},
         ]
         for case in bad_cases:
             with self.subTest(case=case), self.assertRaises(
