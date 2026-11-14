@@ -73,7 +73,7 @@ jobs:
           test "$(git hash-object .ci-source-research71/src/analytics/research_metrics.py)" = "d565c1239b60e770c0337423c5e014daeec0e457"
           test "$(git hash-object .ci-source-research71/src/integration/research_ui_projection.py)" = "1c165bccaa39fcf73cf33171730e9ea7d7fd6474"
       - name: Exercise real FastAPI capability discovery
-        run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py tests/platform/test_capability_data_bridge.py -q
+        run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py tests/platform/test_capability_data_bridge.py tests/platform/test_ui_composition_manifest.py -q
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
