@@ -47,6 +47,10 @@ def test_exact_manifest_has_all_files_and_no_overwrites():
         assert name not in paths
     assert handoff["overlap"]["ui74_overlap_with_data71_72_ops73"] == []
     assert handoff["overlap"]["data72_research71"] == ["tests/platform/test_research_postgres.py"]
+    assert handoff["overlap"]["data72_research71_status"] == "RESOLVED_IDENTICAL_GIT_BLOB"
+    assert handoff["overlap"]["data72_research71_shared_blob"] == (
+        "402c25410ba4cc6704911148b1ec0c5bba720088"
+    )
 
 
 def test_manifest_research_entrypoint_stays_unmounted_and_f_denied():
