@@ -109,7 +109,7 @@
     },
     "research": {
       "pr": 71,
-      "head": "c01c32b03aaf04923b33b0513b71776b12af1e09",
+      "head": "7ec35810434e3c9159f36712a4186595ac637efa",
       "adapter": "src.integration.data_research_adapter.read_data_metrics",
       "ui_readback": "src.integration.research_ui_projection.read_verified_ui_observation",
       "ui_schema": "tester.research-ui-observation/1",
