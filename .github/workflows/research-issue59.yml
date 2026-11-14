@@ -5,6 +5,7 @@ on:
       - "src/analytics/research_metrics.py"
       - "src/integration/research_preview.py"
       - "src/integration/data_research_adapter.py"
+      - "src/integration/research_ui_projection.py"
       - "tests/platform/test_research_metrics_issue59.py"
       - "tests/platform/test_research_preview_issue59.py"
       - "tests/platform/test_research_preview_adapter_issue59.py"
@@ -27,11 +28,11 @@ jobs:
       - name: Install isolated test dependencies
         run: python -m pip install "pytest>=8,<10" "ruff>=0.11,<1" "psycopg[binary]>=3.2,<4"
       - name: Compile research sources and tests
-        run: python -m compileall -q src/analytics/research_metrics.py src/integration/research_preview.py src/integration/data_research_adapter.py tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+        run: python -m compileall -q src/analytics/research_metrics.py src/integration/research_preview.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
       - name: Focused tests
         run: python -m pytest -q tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
       - name: Ruff research sources
-        run: python -m ruff check src/analytics/research_metrics.py src/integration/research_preview.py src/integration/data_research_adapter.py tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
+        run: python -m ruff check src/analytics/research_metrics.py src/integration/research_preview.py src/integration/data_research_adapter.py src/integration/research_ui_projection.py tests/platform/test_research_metrics_issue59.py tests/platform/test_research_preview_issue59.py tests/platform/test_research_preview_adapter_issue59.py tests/platform/test_data_research_adapter_issue59.py
 
   research-disposable-postgres:
     runs-on: ubuntu-latest
@@ -60,7 +61,7 @@ jobs:
       - name: Checkout reviewed DATA #72 at exact immutable HEAD
         uses: actions/checkout@v4
         with:
-          ref: 0d7ff246ebfe2a3f2eab003b35601d1709456b7f
+          ref: f78349b1ad7bb754baee380f59bca67f2b1d2009
           path: data72-reviewed
       - name: Test-only composition, no git commit or merge
         run: |

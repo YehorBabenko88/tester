@@ -17,6 +17,8 @@ from src.integration.data_research_adapter import (
     read_data_metrics,
     require_strategy_lab_f_input,
 )
+from src.integration.research_ui_projection import project_source_observation
+from src.storage.models import digest
 
 START = 1704067200000
 END = START + 60000
@@ -221,6 +223,12 @@ def test_actual_data72_versioned_event_projection_on_composed_branch():
     assert outcome["metrics"]["bars"][0]["unknown_side_volume"] == "0.125"
     assert outcome["metrics"]["bars"][0]["delta_known"] == "0"
     assert outcome["f_input"] is None
+    ui = project_source_observation(outcome)
+    assert ui["bars"][0]["unknown_side_volume"] == "0.125"
+    assert ui["source_coverage"] == "UNKNOWN"
+    assert ui["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
+    assert ui["g_e_execution"] == "NOT_AUTHORIZED"
+    assert ui["http_route"] is None
     store.read.assert_called_once_with(
         "trades", "bybit", "linear", "BTCUSDT", window, window + 60000, "",
         limit=10, compact_provenance=False
@@ -562,6 +570,14 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     )
     bar = actual["metrics"]["bars"][0]
     assert actual["observed_window"]["observed_unique_trades"] == 2
+    ui = project_source_observation(actual)
+    assert ui["bars"][0]["unknown_side_volume"] == "0.25"
+    assert ui["bars"][0]["delta_known"] == "0.5"
+    assert ui["source_verification"] == "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
+    assert ui["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
+    assert ui["g_e_execution"] == "NOT_AUTHORIZED"
+    assert ui["historical_known_at_ms"] is None
+    assert ui["http_route"] is None
     assert bar["unknown_side_volume"] == "0.25"
     assert bar["buy_volume"] == "0.5"
     assert bar["delta_known"] == "0.5"
@@ -665,3 +681,118 @@ def test_non_execution_dataset_cannot_be_projected(dataset):
     wrong["contract_version"] = f"tester-{dataset}/1"
     with pytest.raises(ValueError, match="unknown_data_execution_contract"):
         preview([wrong])
+
+
+def _research_ui_contract_fixture():
+    """Synthetic shape-only fixture; cannot certify actual DATA provenance."""
+    source = preview([
+        event("ui-buy", price="100", quantity="2", side="Buy"),
+        event("ui-sell", price="102", quantity="1", side="Sell"),
+        event("ui-unknown", price="100", quantity="0.25", side="Unknown"),
+    ])
+    source["source_verification"] = "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
+    source["persisted_dataset_revision"] = None
+    source["historical_known_at_ms"] = None
+    source["data_source_receipts_digest"] = digest(["test-shape-only"])
+    source["observed_sample_fingerprint"] = digest({"test": "shape-only"})
+    return source
+
+
+def test_research_ui_observation_shape_preserves_exact_decimal_and_denies_f_g_e():
+    source = _research_ui_contract_fixture()
+    projected = project_source_observation(source)
+    bar = projected["bars"][0]
+    assert bar["volume"] == "3.25"
+    assert bar["buy_volume"] == "2"
+    assert bar["sell_volume"] == "1"
+    assert bar["unknown_side_volume"] == "0.25"
+    assert bar["delta_known"] == "1"
+    assert bar["cvd_known"] == "1"
+    assert bar["poc"] == "100"
+    assert bar["vwap"].startswith("100.615384615")
+    assert projected["unknown_side_present"] is True
+    assert projected["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
+    assert projected["g_e_execution"] == "NOT_AUTHORIZED"
+    assert projected["http_route"] is None
+    assert projected["http_route_status"] == "NOT_REGISTERED"
+    assert projected["historical_known_at_ms"] is None
+    with pytest.raises(ValueError, match="invalid_research_preview_contract"):
+        require_strategy_lab_f_input(projected)
+
+
+def test_research_ui_refuses_unattested_or_missing_persisted_source():
+    source = preview([event()])
+    source["persisted_dataset_revision"] = None
+    source["historical_known_at_ms"] = None
+    with pytest.raises(ValueError, match="research_ui_not_source_backed"):
+        project_source_observation(source)
+    source = _research_ui_contract_fixture()
+    source["source_verification"] = "CALLER_UNATTESTED"
+    with pytest.raises(ValueError, match="research_ui_not_source_backed"):
+        project_source_observation(source)
+
+
+@pytest.mark.parametrize("key,value", [
+    ("coverage", "COMPLETE"),
+    ("admitted_to_f", True),
+    ("f_input", {"forged": True}),
+    ("g_e_result", {"forged": True}),
+    ("publication_time", "KNOWN"),
+    ("persisted_dataset_revision", "fabricated"),
+    ("historical_known_at_ms", START + 1000),
+])
+def test_research_ui_never_promotes_unknown_to_historical_authority(key, value):
+    source = _research_ui_contract_fixture()
+    source[key] = value
+    with pytest.raises(ValueError, match="research_ui_historical_authority_refused"):
+        project_source_observation(source)
+
+
+def test_research_ui_rejects_mutated_metrics_with_valid_fingerprint():
+    source = _research_ui_contract_fixture()
+    source["metrics"]["bars"][0]["delta_known"] = "999"
+    with pytest.raises(ValueError, match="research_ui_metric_digest_mismatch"):
+        project_source_observation(source)
+    source["metrics_digest"] = digest(source["metrics"])
+    with pytest.raises(ValueError, match="research_ui_execution_volume_mismatch"):
+        project_source_observation(source)
+
+
+@pytest.mark.parametrize("field,value,reason", [
+    ("cvd_known", "999", "research_ui_cvd_anchor_mismatch"),
+    ("poc", "102", "research_ui_poc_mismatch"),
+    ("vwap", "-1", "research_ui_negative_volume"),
+])
+def test_research_ui_cannot_be_forged_by_rehashing_wrong_math(field, value, reason):
+    source = _research_ui_contract_fixture()
+    source["metrics"]["bars"][0][field] = value
+    source["metrics_digest"] = digest(source["metrics"])
+    with pytest.raises(ValueError, match=reason):
+        project_source_observation(source)
+
+
+def test_research_ui_refuses_malformed_footprint_even_if_digest_recalculated():
+    source = _research_ui_contract_fixture()
+    source["metrics"]["bars"][0]["footprint"][0]["unknown_side_volume"] = "4"
+    source["metrics_digest"] = digest(source["metrics"])
+    with pytest.raises(ValueError, match="research_ui_level_volume_mismatch"):
+        project_source_observation(source)
+
+
+def test_research_ui_cvd_window_and_utc_boundaries_are_not_lookahead_claims():
+    source = _research_ui_contract_fixture()
+    source["metrics"]["bars"][0]["start_ms"] += 1
+    source["metrics_digest"] = digest(source["metrics"])
+    with pytest.raises(ValueError, match="research_ui_noncontiguous_utc_bars"):
+        project_source_observation(source)
+    source = _research_ui_contract_fixture()
+    source["observed_window"]["historical_completeness_state"] = "COMPLETE"
+    with pytest.raises(ValueError, match="research_ui_coverage_unverified"):
+        project_source_observation(source)
+
+
+def test_research_ui_refuses_invalid_receipt_fingerprint():
+    source = _research_ui_contract_fixture()
+    source["data_source_receipts_digest"] = "not-an-http-hash"
+    with pytest.raises(ValueError, match="research_ui_unqualified_hash"):
+        project_source_observation(source)
