@@ -183,6 +183,7 @@ def test_pg_hostaddr_last_writer_wins_and_missing_guard_rejected(tmp_path):
     with pytest.raises(ValueError, match="negative_controls_absent"):
         verify_shared_pg_hostaddr_test(data, research, expected_blob=_git_blob(weak))
 
+
 def test_exact_current_ui_nonself_git_blobs_are_pinned():
     """Each pinned UI path is exact content, not merely a plausible filename."""
     handoff = load_manifest()
