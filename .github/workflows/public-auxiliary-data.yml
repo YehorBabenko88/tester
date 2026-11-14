@@ -1,0 +1,307 @@
+name: Public auxiliary DATA contracts
+on:
+  pull_request:
+    paths:
+      - 'src/ingest/public_auxiliary.py'
+      - 'src/ingest/public_auxiliary_runner.py'
+      - 'tests/test_public_auxiliary.py'
+      - 'tests/test_public_auxiliary_runner.py'
+      - 'tests/test_public_auxiliary_postgres.py'
+      - 'src/ingest/execution_contract.py'
+      - 'src/storage/models.py'
+      - 'src/storage/migrations/**'
+      - 'tests/test_execution_contract_bridge.py'
+      - 'tests/test_execution_contract_postgres.py'
+      - 'tests/test_master_composed_data_integrity.py'
+      - 'tests/test_data_private_generation_compat.py'
+      - 'docs/coordination/data72-private-generation-blob-manifest.json'
+      - 'docs/coordination/data72-private-generation-replay.md'
+      - 'scripts/run_master_composed_data_postgres.py'
+      - 'tests/test_composed_data_research_postgres.py'
+      - 'tests/test_live_public_bybit_postgres.py'
+      - '.github/workflows/public-auxiliary-data.yml'
+  workflow_dispatch:
+    inputs:
+      live_bybit:
+        description: 'Explicitly authorize public Bybit smoke-test (never trading)'
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: data72-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  offline-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install locked project dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Pin tested source
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Compile all DATA integration test sources
+        run: python -m compileall -q src/ingest/execution_contract.py tests/test_execution_contract_bridge.py tests/test_execution_contract_postgres.py tests/test_composed_data_research_postgres.py tests/test_live_public_bybit_postgres.py
+      - name: Offline DATA contracts
+        run: python -m unittest tests.test_public_auxiliary tests.test_public_auxiliary_runner tests.test_execution_contract_bridge -v
+      - name: Private generation DATA Git source review (no database or native service)
+        shell: bash
+        env:
+          DATA_PRIVATE_GENERATION_CI: 'true'
+          DATA_TESTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          DATA_PRIVATE_OPS_SOURCE: ${{ runner.temp }}/ops-private-generation-prototype.py
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$DATA_TESTED_HEAD_SHA"
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            d5bfdad445a1eefb9dc12bf2725a00f171e2c321 \
+            113d7f3b97f47c86a19dc8590bdbb9809138c4d8; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+          git show 113d7f3b97f47c86a19dc8590bdbb9809138c4d8:scripts/ops_private_generation_prototype.py > "$DATA_PRIVATE_OPS_SOURCE"
+          test "$(git hash-object "$DATA_PRIVATE_OPS_SOURCE")" = "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e"
+          before="$(git status --porcelain --untracked-files=normal)"
+          python -m unittest tests.test_data_private_generation_compat -v
+          after="$(git status --porcelain --untracked-files=normal)"
+          test "$before" = "$after"
+          echo "DATA_PRIVATE_GENERATION_SOURCE_ONLY_PASS_NOT_EXTERNAL_ATTESTATION"
+  postgres-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_ci
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Isolated PostgreSQL DATA roundtrip
+        run: python -m unittest tests.test_public_auxiliary_postgres tests.test_execution_contract_postgres -v
+  storage-unknown-side-matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['14', '18']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_ci
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact DATA HEAD
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Real PostgreSQL compatibility — ${{ matrix.postgres }}
+        run: python -m unittest tests.test_public_auxiliary_postgres tests.test_execution_contract_postgres -v
+  research-composed-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_ci
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Pin DATA exact tested HEAD
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/checkout@v4
+        with:
+          repository: YehorBabenko88/tester
+          ref: c01c32b03aaf04923b33b0513b71776b12af1e09
+          path: .ci-research-pin
+      - name: Test-only exact RESEARCH composition (never committed)
+        run: |
+          test "$(git -C .ci-research-pin rev-parse HEAD)" = "c01c32b03aaf04923b33b0513b71776b12af1e09"
+          test ! -e src/integration/data_research_adapter.py
+          test ! -e src/analytics/research_metrics.py
+          cp .ci-research-pin/src/integration/data_research_adapter.py src/integration/data_research_adapter.py
+          cp .ci-research-pin/src/analytics/research_metrics.py src/analytics/research_metrics.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Bounded original HTTP → PostgreSQL → RESEARCH metrics
+        run: python -m unittest tests.test_composed_data_research_postgres -v
+  live-bybit-postgres:
+    if: github.event_name == 'workflow_dispatch' && inputs.live_bybit == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: tester-data72-public-live
+      cancel-in-progress: true
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_disposable_live
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_disposable_live"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_disposable_live
+      TESTER_AUX_LIVE_BYBIT: 'yes'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify DATA exact SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/checkout@v4
+        with:
+          repository: YehorBabenko88/tester
+          ref: c01c32b03aaf04923b33b0513b71776b12af1e09
+          path: .ci-research-pin
+      - name: Compose RESEARCH only inside disposable runner
+        run: |
+          test "$(git -C .ci-research-pin rev-parse HEAD)" = "c01c32b03aaf04923b33b0513b71776b12af1e09"
+          test ! -e src/integration/data_research_adapter.py
+          test ! -e src/analytics/research_metrics.py
+          cp .ci-research-pin/src/integration/data_research_adapter.py src/integration/data_research_adapter.py
+          cp .ci-research-pin/src/analytics/research_metrics.py src/analytics/research_metrics.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Public Bybit 1→10 and Funding/OI to isolated PostgreSQL to RESEARCH
+        run: python -m unittest tests.test_live_public_bybit_postgres -v
+
+  master-composed-data-postgres:
+    # This composes the exact MASTER #77 test tree in a disposable runner,
+    # never on PC4 or in the installed PostgreSQL 5432 instance.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['14', '18']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_ci
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      MASTER_COMPOSED_DATA_TEST: 'true'
+      MASTER_DATA_SOURCE_SHA: d5bfdad445a1eefb9dc12bf2725a00f171e2c321
+      MASTER_RESEARCH_SOURCE_SHA: 7ec35810434e3c9159f36712a4186595ac637efa
+      MASTER_STAGING_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+      TESTER_AUX_LIVE_BYBIT: 'no'
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
+      TESTER_TEST_ADMIN_DSN: host=127.0.0.1 port=55479 user=tester_aux_ci password=disposable-only dbname=tester_aux_ci connect_timeout=5
+    steps:
+      - name: Checkout exact MASTER staging tree
+        uses: actions/checkout@v4
+        with:
+          ref: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout current DATA test-only gate (never applied to staging)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: .ci-data-driver
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch immutable BASE and four producer commits
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$MASTER_STAGING_SHA"
+          test "$(git -C .ci-data-driver rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            d5bfdad445a1eefb9dc12bf2725a00f171e2c321 \
+            7ec35810434e3c9159f36712a4186595ac637efa \
+            a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96 \
+            0d4649f3a7cd3595ea58757f2abaf2f1b0558667; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+      - name: Compose actual MASTER source tree (no commit, no deployment)
+        env:
+          CI: 'true'
+          EXPECTED_STAGING_SHA: 88ad7a7a82f35d1829b5eb07c0c1d4878741f527
+        run: python scripts/master_disposable_compose.py | tee master-data-compose-manifest.txt
+      - name: Verify exact DATA files, 008 checksum and RESEARCH conflict SHA
+        env:
+          CI: 'true'
+        run: python .ci-data-driver/tests/test_master_composed_data_integrity.py -v
+      - name: Install test-only project requirements
+        run: python -m pip install -r requirements-dev.txt
+      - name: Real disposable PostgreSQL DATA and RESEARCH tests
+        run: python .ci-data-driver/scripts/run_master_composed_data_postgres.py
+      - name: Preserve exact-head composition evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: data72-master-composed-pg${{ matrix.postgres }}
+          path: master-data-compose-manifest.txt
+          if-no-files-found: ignore

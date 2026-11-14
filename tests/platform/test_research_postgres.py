@@ -302,13 +302,38 @@ def test_actual_postgres_hostaddr_environment_cannot_redirect(persistent, monkey
     from psycopg.conninfo import conninfo_to_dict
 
     expected = conninfo_to_dict(persistent.dsn)
+    # These untrusted libpq environment values must not supersede the
+    # explicitly validated numeric loopback target, mapped host port or DB.
     monkeypatch.setenv("PGHOSTADDR", "127.0.0.2")
+    monkeypatch.setenv("PGHOST", "127.0.0.2")
+    monkeypatch.setenv("PGPORT", "1")
+    monkeypatch.setenv("PGDATABASE", "postgres")
     with persistent.connection() as conn:
+        # Pin the *client* TCP destination and database, not the server-side
+        # address behind GitHub Actions' Docker port-forwarding.
+        # conn.info.hostaddr is the actual numeric destination libpq used;
+        # inet_server_addr() can legitimately report 172.x:5432 while
+        # the runner connects via 127.0.0.1:55472.
+        assert conn.info.host == expected["host"]
+        assert conn.info.hostaddr == expected["host"]
+        assert int(conn.info.port) == int(expected["port"])
+        assert conn.info.dbname == expected["dbname"]
         actual = conn.execute(
-            "SELECT host(inet_server_addr()) AS host,inet_server_port() AS port,current_database() AS db"
+            "SELECT host(inet_server_addr()) AS host,"
+            " inet_server_port() AS port,current_database() AS db"
         ).fetchone()
-    assert actual == {
-        "host": expected["host"],
-        "port": int(expected["port"]),
-        "db": expected["dbname"],
-    }
+    assert actual["db"] == expected["dbname"]
+    assert actual["host"] is not None
+    assert actual["host"] != "127.0.0.2"
+    assert type(actual["port"]) is int
+    assert 1 <= actual["port"] <= 65535
+
+
+def test_research_dsn_refuses_explicit_hostaddr_redirect():
+    for explicit_hostaddr in ("127.0.0.2", "172.18.0.2"):
+        with pytest.raises(ValueError, match="explicit isolated"):
+            validate_research_dsn(
+                "host=127.0.0.1 hostaddr="
+                + explicit_hostaddr
+                + " port=55472 dbname=tester_research_test"
+            )

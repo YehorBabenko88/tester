@@ -189,10 +189,77 @@ class PostgresTests(unittest.TestCase):
                     (n['record_key'],self.symbol,n['timestamp_ms'],n['trade_id'],Jsonb(n['payload']),n['content_hash']))
                 c.execute('INSERT INTO tester_storage.record_sources VALUES(%s,%s,%s,%s,%s,now())',
                     (digest([n['record_key'],n['source'],raw]),n['record_key'],self.symbol,Jsonb(n['source']),Jsonb(raw)))
+            # A historical v1 row and its unattested original source are
+            # immutable across the 001 -> 008 upgrade, including exact Decimal
+            # payloads, trade identity and original source JSON bytes.
+            with psycopg.connect(target) as c:
+                raw_before=c.execute('''SELECT record_key,trade_id,id_origin,
+                    timestamp_ms,payload,content_hash FROM tester_storage.raw_records
+                    WHERE record_key=%s''',(n['record_key'],)).fetchone()
+                sources_before=c.execute('''SELECT source_id,record_key,symbol,
+                    source,raw_envelope FROM tester_storage.record_sources
+                    WHERE record_key=%s ORDER BY source_id''',(n['record_key'],)).fetchall()
+                self.assertIsNotNone(raw_before)
+                self.assertEqual(len(sources_before),1)
             with psycopg.connect(target) as c:
                 migrate(c)
                 self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.raw_records').fetchone()[0],1)
-                self.assertEqual(c.execute('SELECT max(version) FROM tester_storage.schema_migrations').fetchone()[0],7)
+                self.assertEqual(c.execute('SELECT max(version) FROM tester_storage.schema_migrations').fetchone()[0],8)
+                raw_after=c.execute('''SELECT record_key,trade_id,id_origin,
+                    timestamp_ms,payload,content_hash FROM tester_storage.raw_records
+                    WHERE record_key=%s''',(n['record_key'],)).fetchone()
+                sources_after=c.execute('''SELECT source_id,record_key,symbol,
+                    source,raw_envelope FROM tester_storage.record_sources
+                    WHERE record_key=%s ORDER BY source_id''',(n['record_key'],)).fetchall()
+                self.assertEqual(raw_after,raw_before)
+                self.assertEqual(sources_after,sources_before)
+                self.assertEqual(raw_after[0],n['record_key'])
+                self.assertEqual(raw_after[1],n['trade_id'])
+                self.assertEqual(raw_after[4],n['payload'])
+                self.assertEqual(raw_after[5],n['content_hash'])
+                constraints=dict(c.execute('''SELECT conname,pg_get_constraintdef(oid)
+                    FROM pg_constraint WHERE conrelid='tester_storage.raw_records'::regclass
+                    AND conname IN ('raw_records_check2','trade_side_required')''').fetchall())
+                self.assertEqual(set(constraints),{'raw_records_check2','trade_side_required'})
+                for definition in constraints.values():
+                    self.assertIn('Unknown',definition)
+                    self.assertIn('Buy',definition)
+                    self.assertIn('Sell',definition)
+                # Rollback-only SQL probe: migration 008 accepts the original
+                # UNKNOWN taker side, while rejecting fabricated Other.
+                # The historical row and provenance must remain untouched.
+                unknown=copy.deepcopy(raw)
+                unknown['timestamp_ms']=raw['timestamp_ms']+1
+                unknown['payload']['trade_id']='upgrade-original-unknown'
+                unknown['payload']['side']='Unknown'
+                u=normalize(unknown)
+                insertion='''INSERT INTO tester_storage.raw_records(
+                    record_key,venue,category,symbol,dataset,interval,schema_version,
+                    timestamp_ms,timestamp_precision,trade_id,id_origin,payload,content_hash)
+                    VALUES(%s,'bybit','linear',%s,'trades','','1.0',%s,'ms',%s,'exchange',%s,%s)'''
+                arguments=(u['record_key'],self.symbol,u['timestamp_ms'],
+                           u['trade_id'],Jsonb(u['payload']),u['content_hash'])
+                c.execute('SAVEPOINT migration_008_unknown_probe')
+                try:
+                    c.execute(insertion,arguments)
+                    self.assertEqual(c.execute('''SELECT payload->>'side'
+                        FROM tester_storage.raw_records WHERE record_key=%s''',
+                        (u['record_key'],)).fetchone()[0],'Unknown')
+                finally:
+                    c.execute('ROLLBACK TO SAVEPOINT migration_008_unknown_probe')
+                    c.execute('RELEASE SAVEPOINT migration_008_unknown_probe')
+                invalid_cases=[
+                    (*arguments[:4],Jsonb({**u['payload'],'side':'Other'}),arguments[5]),
+                    (*arguments[:4],Jsonb({**u['payload'],'size':'0'}),arguments[5]),
+                    (arguments[0],arguments[1],arguments[2],'',
+                     arguments[4],arguments[5]),
+                ]
+                for invalid in invalid_cases:
+                    with self.assertRaises(psycopg.errors.CheckViolation):
+                        with c.transaction():
+                            c.execute(insertion,invalid)
+                self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.raw_records').fetchone()[0],1)
+                self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.record_sources').fetchone()[0],1)
             provenance=Store(target).provenance([n['record_key']])[n['record_key']]
             self.assertFalse(provenance['authentic'])
             self.assertEqual(len(provenance['unlinked_sources']),1)
