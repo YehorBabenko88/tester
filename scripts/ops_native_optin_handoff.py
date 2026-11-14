@@ -44,6 +44,7 @@ TEST_FILES = (
     "tests/platform/test_ops_master_composer_audit.py",
     "tests/platform/test_ops_master_composer_actual_negative.py",
     "tests/platform/test_ops_master_composer_hardening.py",
+    "tests/platform/test_ops_master_composer_v2_negative.py",
     "tests/platform/test_ops_native_admission.py",
     "tests/platform/test_ops_native_admission_pg_real.py",
     "tests/platform/test_ops_native_fixture_launcher.py",
