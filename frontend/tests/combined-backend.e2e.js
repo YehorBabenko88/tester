@@ -36,6 +36,9 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
   // terminal timeframe even when the source provider is unavailable.
   const intervals = ["1", "3", "5", "15", "30", "60", "120",
                      "240", "360", "720", "D", "W", "M"];
+  // The timeframe select lives inside a collapsed details element.
+  // Match the regular UI browser test: open it before selectOption.
+  await page.locator("#download-options").evaluate(node => { node.open = true; });
   await page.locator("#manual-symbol").fill("BTCUSDT");
   await page.getByRole("button", {name: "Open source symbol"}).click();
   for (const interval of intervals) {
