@@ -248,12 +248,16 @@ class PostgresTests(unittest.TestCase):
                 finally:
                     c.execute('ROLLBACK TO SAVEPOINT migration_008_unknown_probe')
                     c.execute('RELEASE SAVEPOINT migration_008_unknown_probe')
-                with self.assertRaises(psycopg.errors.CheckViolation):
-                    with c.transaction():
-                        invalid=(*arguments[:4],
-                                 Jsonb({**u['payload'],'side':'Other'}),
-                                 arguments[5])
-                        c.execute(insertion,invalid)
+                invalid_cases=[
+                    (*arguments[:4],Jsonb({**u['payload'],'side':'Other'}),arguments[5]),
+                    (*arguments[:4],Jsonb({**u['payload'],'size':'0'}),arguments[5]),
+                    (arguments[0],arguments[1],arguments[2],'',
+                     arguments[4],arguments[5]),
+                ]
+                for invalid in invalid_cases:
+                    with self.assertRaises(psycopg.errors.CheckViolation):
+                        with c.transaction():
+                            c.execute(insertion,invalid)
                 self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.raw_records').fetchone()[0],1)
                 self.assertEqual(c.execute('SELECT count(*) FROM tester_storage.record_sources').fetchone()[0],1)
             provenance=Store(target).provenance([n['record_key']])[n['record_key']]
