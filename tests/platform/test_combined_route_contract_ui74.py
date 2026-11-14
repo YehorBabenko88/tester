@@ -4,7 +4,6 @@ Do not replace this with a browser mock or activate a native runtime.
 """
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 from starlette.routing import Mount
 
@@ -59,17 +58,15 @@ def test_composed_browser_capabilities_precede_static_frontend_and_keep_13tf():
                 assert "resource" not in data["panels"][panel]
 
 
-def test_composition_requires_market_capabilities_before_wiring():
+def test_legacy_market_is_incompatible_with_new_combined_browser():
     from fastapi import FastAPI
 
-    from src.integration.combined_routes import compose_research
-
     older_market = FastAPI()
-    with pytest.raises(AssertionError, match="missing.*capabilities"):
-        assert any(
-            getattr(route, "path", None) == "/api/capabilities"
-            for route in older_market.routes
-        ), "missing composed /api/capabilities; reject old market source before browser"
+    route_paths = {getattr(item, "path", "") for item in older_market.routes}
+    assert "/api/capabilities" not in route_paths
+    assert "/api/capabilities" in {
+        getattr(item, "path", "") for item in _fixture_market().routes
+    }
 
 
 def test_research_routes_are_before_static_mount_without_security_bypass():
