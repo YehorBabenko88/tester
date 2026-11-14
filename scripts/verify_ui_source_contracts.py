@@ -38,7 +38,6 @@ def _parse(file):
     return ast.parse(Path(file).read_text(encoding="utf-8"), filename=str(file))
 
 
-
 def verify_shared_pg_hostaddr_test(
     data_path, research_path, *, expected_blob="402c25410ba4cc6704911148b1ec0c5bba720088"
 ):
