@@ -149,13 +149,19 @@ def audit_composer_runtime_surface(source: str) -> dict:
     )
     nofollow = "O_NOFOLLOW" in text or "openat" in text
     path_checked = "is_symlink" in text and "relative_to" in text
+    source_mode_checked = "ls-tree" in text and "120000" in text
+    explicit_file_scope_checked = (
+        "OPS_FILE_ALLOWLIST" in text or "OPS_ALLOWED_FILES" in text
+    )
     native_spawn = bool(call_names & {
         "Popen", "runpy", "exec", "eval", "CreateProcess", "StartService",
         "start_service", "reboot", "system", "kill", "terminate",
     })
     return {
         "schema": "ops-master-composer-hardening-proposal/1",
-        "git_only_source": True,
+        "git_only_source": not native_spawn,
+        "git_symlink_mode_rejected": source_mode_checked,
+        "explicit_file_allowlist_enforced": explicit_file_scope_checked,
         "runtime_runner_binding_proven": runner_bound,
         "symlink_path_preflight_present": path_checked,
         "atomic_no_follow_open_present": nofollow,
@@ -164,5 +170,6 @@ def audit_composer_runtime_surface(source: str) -> dict:
         "safe_to_run_outside_isolated_ci": False,
         "overall": "BLOCKED_HARDENING_REQUIRED" if not (
             runner_bound and path_checked and nofollow
+            and source_mode_checked and explicit_file_scope_checked
         ) or native_spawn else "SOURCE_REVIEW_ONLY",
     }
