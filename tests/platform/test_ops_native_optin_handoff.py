@@ -63,6 +63,30 @@ class OptinHandoffTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             require_live_native_activation(plan)
 
+    def test_minimal_handoff_includes_all_test_runtime_ops_dependencies(self):
+        from scripts.ops_native_optin_handoff import (
+            CI_AND_DOC_FILES, RUNTIME_FILES, TEST_FILES,
+        )
+
+        root = Path(__file__).resolve().parents[2]
+        selected = set((*RUNTIME_FILES, *TEST_FILES, *CI_AND_DOC_FILES))
+        self.assertIn("scripts/ops_pg_claim.py", selected)
+        self.assertEqual(len(selected), 29)
+        for name in selected:
+            self.assertTrue((root / name).is_file(), name)
+        for name in (*RUNTIME_FILES, *TEST_FILES):
+            tree = ast.parse((root / name).read_text(encoding="utf-8"), filename=name)
+            imported = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported.append(node.module)
+                elif isinstance(node, ast.Import):
+                    imported.extend(alias.name for alias in node.names)
+            for module in imported:
+                if module.startswith(("scripts.ops_", "scripts.portable_ops")):
+                    self.assertIn(module.replace(".", "/") + ".py", selected,
+                                  f"{name} requires {module} missing in minimal OPS selection")
+
     def test_no_optin_or_enable_attempt_refused_before_any_work(self):
         for action in (None, "", "ENABLE", "INSTALL", "RESTART_PC4"):
             with self.subTest(action=action), self.assertRaises(PermissionError):
