@@ -3,6 +3,7 @@ import ast
 import copy
 import hashlib
 import json
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -69,6 +70,34 @@ class OptinHandoffTests(unittest.TestCase):
                     sample_report(), producer_heads=PINNED_PRODUCERS,
                     opt_in=action,
                 )
+
+    def test_installer_and_bootstrap_cannot_auto_import_ops_native(self):
+        root = Path(__file__).resolve().parents[2]
+        data = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+        package_patterns = data["tool"]["setuptools"]["packages"]["find"]["include"]
+        self.assertFalse(any(
+            pattern.startswith("scripts") or pattern == "*"
+            for pattern in package_patterns
+        ), "OPS scripts must never be included in installed setuptools package list")
+        self.assertNotIn("scripts", data.get("project", {}).get("scripts", {}))
+        for path in (
+            "src/api/lab_install.py",
+            "src/api/lab_scm.py",
+            "src/api/lab_service_bootstrap.py",
+            "src/api/lab_sitecustomize.py",
+        ):
+            source = (root / path).read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=path)
+            modules = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    modules.extend(alias.name for alias in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    modules.append(node.module)
+            with self.subTest(path=path):
+                self.assertFalse(any(name.startswith("scripts.ops_native")
+                                     for name in modules))
+                self.assertNotIn("ops_native_fixture_launcher", source)
 
     def test_source_manifest_and_exact_pins_cannot_be_forged(self):
         good = sample_report()
