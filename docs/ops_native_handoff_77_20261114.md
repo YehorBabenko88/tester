@@ -39,6 +39,7 @@ Runtime source (opt-in, not installed):
 
 Focused tests:
 - `tests/platform/test_ops_candidate_compatibility.py`
+- `tests/platform/test_ops_combined_ci_plan.py`
 - `tests/platform/test_ops_native_admission.py`
 - `tests/platform/test_ops_native_admission_pg_real.py`
 - `tests/platform/test_ops_native_fixture_launcher.py`
@@ -51,9 +52,11 @@ Focused tests:
 
 CI / docs:
 - `.github/workflows/ops-portable.yml`
+- `scripts/ops_combined_ci_plan.py` — pure, non-executing full combined-SHA CI matrix
 - `docs/ops_native_fixture_launcher_20261113.md`
 - `docs/ops_native_launcher_admission_20261113.md`
 - `docs/ops_native_handoff_77_20261114.md`
+- `docs/ops_77_combined_ci_commands_20261114.md` — executable CI commands for future combined SHA
 
 The list is generated in code by
 `scripts.ops_native_optin_handoff.prepare_native_source_handoff`. It
@@ -89,3 +92,24 @@ Future *separately authorized* activation would require all of:
 Until these are met: `installed_native_activation=BLOCKED`,
 `default_activation_enabled=false`, `ready_to_merge_or_install=false`.
 This work cannot be installed by simply copying this OPS file set.
+
+## Full exact combined SHA acceptance
+
+The immutable combined candidate **does not yet exist** in staging PR #77.
+The standalone OPS source-only handoff is ready for review, not native
+installation. Once MASTER has built and approved a new immutable combined
+commit/tree and resolved the DATA/RESEARCH `test_research_postgres.py`
+PGHOSTADDR overlap, run the commands in
+`docs/ops_77_combined_ci_commands_20261114.md` on *fresh disposable runners*.
+
+The optional `python -m scripts.ops_combined_ci_plan` command only prints
+a deterministic and SHA-bound JSON acceptance matrix; it NEVER invokes a
+command. Its test suite requires immutable reviewed producer pins, rejects
+an accidental user-local CI invocation and all live/native activation flags.
+
+Source handoff selection now contains **11 opt-in runtime modules, 11 focused
+OPS tests and 6 CI/documentation items**. Only after all PG14/PG18/PG16,
+Windows original-handle and rollback, FastAPI/Chromium 13TF, security and
+source-manifest jobs pass on the same combined SHA may MASTER consider the
+next integration step. Until separately authorized physical validation,
+installed native PC4 restart stays **BLOCKED**.
