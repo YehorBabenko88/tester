@@ -6,13 +6,13 @@ This NEVER contacts GitHub, PostgreSQL, PC4, SCM, or the installed tester.
 """
 from __future__ import annotations
 
-from contextlib import redirect_stdout
-from io import StringIO
 import importlib.util
 import os
+import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
-import unittest
 from unittest.mock import patch
 
 from scripts.ops_master_composer_hardening import (
