@@ -52,6 +52,18 @@ def test_no_versioned_download_route_is_exposed_without_owner_approval():
         assert response.json()["data"]["observed_page_revision"]["history_complete"] is False
 
 
+def test_v1_1_activation_detection_is_not_hardcoded():
+    legacy = json.loads(PINNED.read_text(encoding="utf-8"))
+    proposal = json.loads(PROPOSAL.read_text(encoding="utf-8"))
+    runtime = create_app(Settings()).openapi()
+    assert compare_contracts(legacy, proposal, runtime)["new_v1_1_endpoint_activated"] is False
+    from copy import deepcopy
+
+    future = deepcopy(runtime)
+    future["paths"]["/api/v1_1/downloads"] = {"post": {}}
+    assert compare_contracts(legacy, proposal, future)["new_v1_1_endpoint_activated"] is True
+
+
 def test_mark_index_price_only_source_contract_is_not_a_download_grant():
     proposal = json.loads(PROPOSAL.read_text(encoding="utf-8"))
     for kind in ("mark", "index"):
