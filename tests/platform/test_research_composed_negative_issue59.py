@@ -7,8 +7,8 @@ on read-only copies. Never disables append-only triggers or promotes REAL F.
 import base64
 import copy
 import hashlib
-import json
 import importlib
+import json
 import os
 from datetime import UTC, datetime
 from fractions import Fraction
@@ -16,6 +16,7 @@ from unittest.mock import Mock
 from urllib.parse import urlencode
 
 import pytest
+from tests.test_execution_contract_bridge import MS, fixture
 
 from src.analytics.exact import decimal
 from src.integration.data_research_adapter import (
@@ -27,7 +28,6 @@ from src.integration.research_ui_projection import (
     read_verified_ui_observation,
 )
 from src.storage.models import digest
-from tests.test_execution_contract_bridge import MS, fixture
 
 WINDOW = MS // 60000 * 60000
 SCOPE = {
@@ -159,6 +159,7 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
         raise ValueError("refusing non-disposable receipt test database")
 
     import psycopg
+
     from src.storage.migrations import migrate
     from src.storage.store import Store
 
