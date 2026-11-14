@@ -72,7 +72,7 @@ def main() -> None:
                 handle.write(raw)
                 handle.flush()
                 os.fsync(handle.fileno())
-            target.chmod(int(mode, 8))
+            target.chmod(int(mode[-3:], 8))
             if hashlib.sha256(target.read_bytes()).digest() != hashlib.sha256(raw).digest():
                 raise SystemExit("staged source changed " + path)
         receipt = {
