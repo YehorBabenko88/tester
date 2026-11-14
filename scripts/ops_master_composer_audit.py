@@ -21,7 +21,10 @@ EXPECTED_BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
 MASTER_PINNED_OPS = "0d4649f3a7cd3595ea58757f2abaf2f1b0558667"
 POST_PIN_AUDIT_FILES = frozenset({
     "scripts/ops_master_composer_audit.py",
+    "scripts/ops_master_composer_hardening.py",
+    "tests/platform/test_ops_master_composer_actual_negative.py",
     "tests/platform/test_ops_master_composer_audit.py",
+    "tests/platform/test_ops_master_composer_hardening.py",
 })
 _APPROVED = frozenset((*RUNTIME_FILES, *TEST_FILES, *CI_AND_DOC_FILES))
 _SHA = re.compile(r"^[0-9a-f]{40}$")
@@ -59,7 +62,7 @@ def audit_master_composer(source: str, *, changed_ops_paths: Iterable[str],
     missing = sorted(_APPROVED - set(files))
     if missing:
         # MASTER pinned a historic OPS source before this read-only audit
-        # existed. Only those TWO explicitly reviewed CI-only additions may
+        # existed. Only these five explicitly reviewed CI-only additions may
         # be absent; any missing runtime or other test remains a hard refusal.
         historical_only = (
             expected_ops_sha == MASTER_PINNED_OPS
