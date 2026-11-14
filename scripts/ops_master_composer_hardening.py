@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ast
 import re
+from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 
 ALLOWED = (".github/", "docs/", "src/", "frontend/", "scripts/", "tests/")
@@ -68,6 +69,33 @@ def require_repo_file_path(path: str) -> PurePosixPath:
             or path in PROTECTED):
         raise MasterComposeRefused("path_traversal_or_unapproved_file")
     return PurePosixPath(path)
+
+
+
+def require_producer_allowlist(
+    label: str, path: str, *,
+    reviewed: Mapping[str, frozenset[str]]
+) -> PurePosixPath:
+    """Fail closed unless a reviewed exact path belongs to this producer.
+
+    An allowed folder prefix is insufficient. Every DATA, RESEARCH, UI or
+    OPS path needs a SHA-pinned review manifest, not the unbounded branch diff.
+    """
+    normalized = require_repo_file_path(path)
+    if (label not in {"DATA", "RESEARCH", "UI", "OPS"}
+            or not isinstance(reviewed, Mapping)
+            or label not in reviewed
+            or not isinstance(reviewed[label], frozenset)
+            or str(normalized) not in reviewed[label]):
+        raise MasterComposeRefused("unreviewed_producer_file")
+    return normalized
+
+
+def require_source_blob_mode(mode: str) -> None:
+    """A text blob must not be a Git symlink, submodule or other special mode."""
+    if mode not in ("100644", "100755"):
+        raise MasterComposeRefused("unsafe_git_source_mode")
+
 
 
 def require_safe_destination(root: Path, path: str) -> Path:
