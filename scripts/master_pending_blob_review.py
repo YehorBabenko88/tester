@@ -1,0 +1,66 @@
+"""Read-only review of current producer deltas against the frozen MASTER allowlist.
+
+Run only in a disposable full-history checkout. Never modifies source files.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import pathlib
+import subprocess
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
+PRODUCERS = {
+    "DATA": "9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb",
+    "RESEARCH": "af143bb73277e7bffea8ae76d84fd0ed7a707ab0",
+    "UI": "2de6428b48e2b468d15aa8c9e40e4e47719e168f",
+    "OPS": "9c0ee3a44e78d16d8beb34fbaf2973ee2e126386",
+}
+
+
+def git(*args: str) -> bytes:
+    return subprocess.check_output(("git", *args), cwd=ROOT)
+
+
+def main() -> None:
+    reviewed = json.loads((ROOT / "docs/coordination/master-reviewed-producer-files.json").read_text())
+    result = {"schema": "master-pending-source-review/1", "base": BASE, "producers": {}}
+    for label, sha in PRODUCERS.items():
+        assert git("rev-parse", sha + "^{commit}").decode().strip() == sha
+        approved = set(reviewed["producers"][label])
+        rows = git("diff", "--name-status", "--no-renames", BASE, sha).decode().splitlines()
+        observed: set[str] = set()
+        pending = []
+        for row in rows:
+            status, path = row.split("\t", 1)
+            if path in observed or status not in {"A", "M"}:
+                raise SystemExit(f"invalid source change: {label} {row}")
+            observed.add(path)
+            if path in approved:
+                continue
+            mode_line = git("ls-tree", sha, "--", path).decode().strip()
+            mode = mode_line.split(" ", 1)[0]
+            if mode not in {"100644", "100755"}:
+                raise SystemExit(f"unsafe pending Git mode: {label} {path}")
+            blob_sha = mode_line.split()[2]
+            raw = git("show", f"{sha}:{path}")
+            pending.append({
+                "path": path,
+                "git_blob_sha": blob_sha,
+                "sha256": hashlib.sha256(raw).hexdigest(),
+                "mode": mode,
+                "role_guess": (
+                    "workflow" if path.startswith(".github/workflows/")
+                    else "documentation" if path.startswith("docs/")
+                    else "test" if path.startswith("tests/")
+                    else "script_review_required"
+                ),
+                "approved": False,
+            })
+        result["producers"][label] = {"head": sha, "pending": pending}
+    print(json.dumps(result, sort_keys=True, indent=2))
+
+
+if __name__ == "__main__":
+    main()
