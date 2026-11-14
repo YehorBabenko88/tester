@@ -1,0 +1,221 @@
+# RESEARCH negative coverage on MASTER disposable composition
+
+Scope: RESEARCH Draft PR #71. **No changes to PR #77, main, PC4 or production
+PostgreSQL 5432. No Codex, real orders or native launcher activation.**
+
+## Pinning and execution contract
+
+The combined runtime is composed **only in GitHub Actions** by
+`scripts/master_disposable_compose.py` from MASTER #77 exact source
+`4e64ec9f6a1da453019b68e598e235036701739f`, with DATA #72
+`d5bfdad445a1eefb9dc12bf2725a00f171e2c321`, RESEARCH #71 original
+pin `7ec35810434e3c9159f36712a4186595ac637efa`, UI #74
+`a61a2c3bceec8747d7b2424d91c9a4a6c3ec9d96` (includes #70),
+and OPS #73 `0d4649f3a7cd3595ea58757f2abaf2f1b0558667`.
+
+The workflow independently checks bytes and versions, then fetches the **exact
+invoking PR #71 HEAD** and overlays only
+`tests/platform/test_research_composed_negative_issue59.py`.
+It MUST NOT overlay application source from the newer RESEARCH branch or
+silently modify MASTER pins. CI logs the test-only HEAD. No claimed
+`MASTER #77 combined commit SHA` exists yet.
+
+## Coverage matrix and provenance boundaries
+
+| Boundary | Test | Expected |
+|---|---|---|
+| Original HTTP body SHA, base64 bytes, page hash, row hash | Parameterized DATA readback rejects malformed copies | FAIL CLOSED, not attributed |
+| Missing source/provenance/evidence or parent refs | DATA v1 verifies immutable record/page/evidence lineage | FAIL CLOSED |
+| Original trade price or false COMPLETE status | DATA stored content hash and original receipt checks | FAIL CLOSED |
+| Source unavailable | `read_verified_ui_observation` on no verified rows | `research_ui_not_source_backed`; no UI success |
+| Fabricated `persisted_dataset_revision`, `historical_known_at_ms`, or coverage | UI preview projection | `research_ui_historical_authority_refused` |
+| Unknown taker side | DATA contract + RESEARCH exact sample, real PG | Preserve unknown quantity; no inferred Buy/Sell/Bid/Ask |
+| Delta and window-local CVD | Source-backed Buy−Sell exact arithmetic; rehashed forged values | Exact Decimal; reject inconsistent values |
+| Footprint/POC | Per-level conservation; observed volume POC and lower-price tie break | Exact; no fabricated levels |
+| VWAP and Decimal | Independently recompute source price×quantity / volume via Fractions | Exact decimal string; reject NaN/negative |
+| UTC and lookahead | Source observation later than requested as-of | Reject before UI/Strategy F |
+| Real F on UNKNOWN | `require_strategy_lab_f_input` against actual readback | `real_historical_visibility_unknown_f_denied` |
+| G/E authorization | Projected UI fields | `NOT_AUTHORIZED`, no route registered |
+| PostgreSQL append-only | Corrupt *read-only copies* of actual persisted source rows | Refuse projection; raw DB remains intact |
+
+Pure negative cases use authenticated-looking DATA v1 **fixture rows** to
+exercise the actual DATA v1 verifier, not a fake metrics provider. The
+separate DB integration persists **recorded HTTP response bytes** in an
+isolated PostgreSQL 16 database, reopens it, computes Footprint, Delta, CVD,
+VWAP and POC, and verifies bad in-memory readback copies are rejected.
+No historical rows are deleted, patched or loosened in SQL.
+
+Data integrity caveat: `project_source_observation(dict)` is only a
+**shape/arithmetic verifier**. A caller may forge its dictionaries and
+hashes. `read_verified_ui_observation(store, ...)` is the intended
+read-only trusted entrypoint because DATA validates persisted HTTP/row/page
+provenance before RESEARCH calculation. Neither entrypoint is a registered
+FastAPI route, a complete-history certificate or permission to start F/G/E.
+
+## Real test environments and remaining gates
+
+The disposable workflow uses three **separate** PostgreSQL16 containers,
+published only inside GitHub CI at ports 55476 (DATA source readback), 55477
+(composed DATA E2E) and 55472 (authenticated Research Control). This prevents
+known cross-test contamination of fixed historical intervals.
+
+The workflow has distinct steps for the pure negative matrix and the real
+PostgreSQL negative test, plus existing composed DATA/E2E and Research
+Control PGHOSTADDR tests. A SUCCESS is valid only for the exact new PR #71
+HEAD and frozen MASTER source pin shown in the workflow logs.
+
+Still UNKNOWN/BLOCKED: genuine Bybit historical availability (403), complete
+revision-coupled market history, publication known-at, real Strategy Lab F
+admission, one immutable combined PR #77 runtime SHA, PG14/PG18 whole-tree
+migration acceptance, native PC4 restart, and combined Chromium security
+coverage. **Release NO_GO** regardless of producer test success.
+
+## MASTER #77 updated composer validation — 2026-11-14
+
+Reviewed the exact MASTER #77 HEAD
+`88ad7a7a82f35d1829b5eb07c0c1d4878741f527`, composer blob
+`2837616952af052d60fd191e035fc29479a96d2b`.
+
+Compared with previous staging `4e64ec9f6a1da453019b68e598e235036701739f`,
+the new source composer still pins immutable PC4 base `3b2eef8a` and
+DATA `d5bfdad4`, RESEARCH `7ec35810`, UI `a61a2c3b`, OPS `0d4649f3`.
+It additionally rejects symlink source modes (Git `100644/100755` regular
+blobs only), destination and parent symlinks, unsupported paths, and files
+outside an approved workspace before applying the 125-file ephemeral
+composition. A new guard requires `CI=true`, `GITHUB_ACTIONS=true` and
+matching `GITHUB_WORKSPACE`. **These are not cryptographic runner
+attestation:** forged environment flags and preflight/write path races still
+require independent review. The RESEARCH branch does not modify this
+MASTER-owned security logic.
+
+The separate RESEARCH composed workflow was re-pinned to this new MASTER
+HEAD, while retaining the same frozen producer set. In addition to the
+existing 27 negative pure tests and 1 actual-PG negative test, the workflow
+now verifies the byte identity of **all** RESEARCH analytics/preview/UI
+source modules and their associated tests, DATA execution contract/migration
+008 and shared PGHOSTADDR test, the checked-out composer itself, and that
+protected native PC4/worker/bootstrap files exactly equal the pinned
+pre-composition base.
+
+The combined workflow still performs real disposable PostgreSQL16
+DATA→RESEARCH→UI readback and separate Research Control PG tests on three
+independent databases (host ports 55476/55477/55472), with no real trading,
+no native launch and no production PostgreSQL 5432 access. The HTTP receipt,
+provenance, revision, Unknown-side, Decimal, Footprint, Delta, CVD, VWAP,
+POC and as-of/lookahead negatives are retained unchanged.
+
+**Acceptance boundaries:** a new workflow SUCCESS validates this exact
+frozen MASTER *source composition* and its RESEARCH E2E. It does not certify
+that MASTER PR #77 has merged the newer RESEARCH feature branch, does not
+prove the composer is immune to forged runner conditions or path races,
+and is not the required single committed combined SHA with full PG14/18,
+FastAPI/Chromium, Python static and Platform gates. REAL F remains denied
+on UNKNOWN historical coverage, and the overall release remains NO_GO.
+
+
+## MASTER 298d6107 — immutable RESEARCH five-file allowlist review proposal
+
+The MASTER document `docs/coordination/2026-11-14-producer-allowlist-review.md` is an **inventory, not authorization**. Its exact committed Git blob is `fbb49ef29188b8ddb5531b31578ef40e7987dcbc`. The RESEARCH review below pins the **five** files missing from MASTER's enforced allowlist to Git commit `e76b08dbb2b45121c577c84414c56a7218994d0c`; it is a **REVIEW_PENDING** proposal and never mutates the MASTER allowlist. To avoid creating a sixth unapproved RESEARCH file, the machine-readable proposal is embedded in this already reviewed RESEARCH documentation path.
+
+<!-- RESEARCH_ALLOWLIST_JSON_BEGIN -->
+```json
+{
+  "schema": "research-pr71-allowlist-review/1",
+  "producer": "RESEARCH",
+  "review_status": "REVIEW_PENDING_MASTER_NOT_APPROVED",
+  "master_review_commit": "298d610771d962ee7b796eac1834d74138768fac",
+  "master_allowlist_review_path": "docs/coordination/2026-11-14-producer-allowlist-review.md",
+  "master_allowlist_review_git_blob_sha1": "fbb49ef29188b8ddb5531b31578ef40e7987dcbc",
+  "research_immutable_source_commit": "e76b08dbb2b45121c577c84414c56a7218994d0c",
+  "reviewed_files": [
+    {
+      "path": ".github/workflows/research-private-generation.yml",
+      "git_blob_sha1": "7f382dd526b2e030af59a69ba5ba352983638a41",
+      "mode": "100644",
+      "role": "ci_disposable_pg16"
+    },
+    {
+      "path": "docs/research_private_generation_e2e_commands.md",
+      "git_blob_sha1": "a1f05176b56ad323736e92dbda44a06861168c3a",
+      "mode": "100644",
+      "role": "docs_ci_replay"
+    },
+    {
+      "path": "docs/research_private_generation_source_ledger.json",
+      "git_blob_sha1": "1447406f01ff1c200059a89a7556dd404be3f9be",
+      "mode": "100644",
+      "role": "reviewed_23_blob_data_research_ui_ledger"
+    },
+    {
+      "path": "scripts/research_private_generation_issue59.py",
+      "git_blob_sha1": "9845ac1f3ef1be49deea4c5e32a0c9da34b5bfd3",
+      "mode": "100644",
+      "role": "ci_only_private_generation_test_runner"
+    },
+    {
+      "path": "tests/platform/test_research_private_generation_issue59.py",
+      "git_blob_sha1": "7da3cf46fb93541e5f58b1bdb785c234002d850b",
+      "mode": "100644",
+      "role": "negative_trust_and_receipt_tests"
+    }
+  ],
+  "private_generation_input_blobs": 23,
+  "private_generation_test_only": true,
+  "installable_runtime_files": [],
+  "native_launcher_activation": "FORBIDDEN",
+  "broadened_master_allowlist_approved": false,
+  "full_combined_candidate_sha": null,
+  "f_admission": "DENIED_UNKNOWN_COVERAGE",
+  "historical_completeness": "UNKNOWN"
+}
+```
+<!-- RESEARCH_ALLOWLIST_JSON_END -->
+
+**Separation:** the workflow, runner and tests are disposable CI tooling; the two documents are review/replay artifacts. None is a native launcher, installed API/worker route, DATA trading input or automatically authorized runtime blob. The existing **23-blob** DATA/RESEARCH/UI ledger is a different inner integrity manifest; no approval to add these five files to a private generation tree is implied. The producer sha and every file mode/hash above must be re-verified if the RESEARCH source branch advances.
+
+**Required acceptance after MASTER approval:** external reviewer pins this exact five-file list and the original SHA set; a new MASTER private generation composed from one immutable combined candidate must pass PG14/18, RESEARCH PG16, FastAPI/Chromium, security and native lifecycle gates. Until then `FULL_COMBINED_RELEASE=NO_GO` and real F remains `DENIED_UNKNOWN_COVERAGE`; do not claim historical completeness or invent Bid/Ask.
+
+
+## PostgreSQL hostaddr security — MASTER 43618643107 regression
+
+The failed MASTER pinned-PG workflow `43618643107` (9 PASS, 1 FAIL)
+used the **old** `tests/platform/test_research_postgres.py` Git blob
+`989aef873fd6445f2a5f6bf012ec1ad7156605cb`. It incorrectly equated
+the validated libpq client connection endpoint `127.0.0.1:55472` with
+the PostgreSQL server's own `inet_server_addr()/inet_server_port()`.
+GitHub Actions Docker NAT in that run returned
+`172.18.0.2:5432` on the server side. These are two legitimate views
+of the **same connection**, not proof of DSN redirection.
+
+The canonical DATA #72 / RESEARCH #71 shared test already has reviewed
+Git blob `402c25410ba4cc6704911148b1ec0c5bba720088`. It checks
+**`conn.info.host`, `conn.info.hostaddr`, `conn.info.port`,
+`conn.info.dbname`** against the explicit validated client DSN, while
+asserting only that the server-side `current_database()` matches.
+`src.api.research_ledger.validate_research_dsn` requires numeric loopback
+and a non-5432 `tester_research_*` database, rejecting any explicit
+`hostaddr`, `service` or `options`. Its `connection()` supplies
+`hostaddr=endpoint["host"]` to psycopg, taking precedence over libpq
+`PGHOSTADDR` and preventing the ambient redirect.
+
+The RESEARCH-owned (not shared DATA) negative E2E adds
+`test_actual_postgres_client_hostaddr_is_pinned_despite_libpq_environment`
+with **two** malicious `PGHOSTADDR` candidates:
+`127.0.0.2` and `172.18.0.2`; `PGHOST/PGPORT/PGDATABASE` are poisoned
+simultaneously. It connects to an **actual disposable PostgreSQL16**
+on `127.0.0.1:55472`, asserts the libpq client endpoint, and verifies
+server DB identity without asserting a Docker-internal address or port.
+It also refuses a forged explicit `hostaddr` even if it matches loopback.
+Nothing in this change modifies the PostgreSQL runtime, weakens the
+client address guard, or alters DATA's shared regression source.
+
+For future immutable MASTER composition, use **both** DATA and RESEARCH
+byte-identical corrected test Git blob `402c25410ba4cc6704911148b1ec0c5bba720088`
+instead of the stale `989a...` master checkout version. The MASTER owner
+must perform and verify that replacement on an approved combined source
+commit; RESEARCH does **not** change PR #77. A successful producer-only
+run cannot retroactively mark `43618643107` PASS.
+
+All pending full-release gates remain: PG14/18, FastAPI/Chromium, signed
+source authority, native Windows and physical PC4 acceptance. Real F is
+still `DENIED_UNKNOWN_COVERAGE` and release `NO_GO`.
