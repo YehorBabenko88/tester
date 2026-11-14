@@ -35,6 +35,7 @@ jobs:
           path: .ci-source-data72
           sparse-checkout: |
             src/ingest/execution_contract.py
+            tests/platform/test_research_postgres.py
           sparse-checkout-cone-mode: false
       - name: Pin reviewed RESEARCH #71 observed-metrics contracts
         uses: actions/checkout@v4
@@ -45,6 +46,7 @@ jobs:
             src/integration/data_research_adapter.py
             src/analytics/research_metrics.py
             src/integration/research_ui_projection.py
+            tests/platform/test_research_postgres.py
           sparse-checkout-cone-mode: false
       - uses: actions/setup-python@v5
         with:
@@ -72,6 +74,11 @@ jobs:
           test "$(git hash-object .ci-source-research71/src/integration/data_research_adapter.py)" = "35404adef064a667faef6a8f3f852f5aa492cf76"
           test "$(git hash-object .ci-source-research71/src/analytics/research_metrics.py)" = "d565c1239b60e770c0337423c5e014daeec0e457"
           test "$(git hash-object .ci-source-research71/src/integration/research_ui_projection.py)" = "1c165bccaa39fcf73cf33171730e9ea7d7fd6474"
+          # Previously overlapping DATA/RESEARCH PGHOSTADDR test is byte-identical
+          # at these reviewed producer SHAs. Never copy with last-writer-wins.
+          test "$(git hash-object .ci-source-data72/tests/platform/test_research_postgres.py)" = "402c25410ba4cc6704911148b1ec0c5bba720088"
+          test "$(git hash-object .ci-source-research71/tests/platform/test_research_postgres.py)" = "402c25410ba4cc6704911148b1ec0c5bba720088"
+          cmp .ci-source-data72/tests/platform/test_research_postgres.py .ci-source-research71/tests/platform/test_research_postgres.py
       - name: Exercise real FastAPI capability discovery
         run: python -m pytest tests/platform/test_capability_discovery.py tests/platform/test_ui_source_protocol.py tests/platform/test_capability_data_bridge.py tests/platform/test_ui_composition_manifest.py -q
       - uses: actions/setup-node@v4
