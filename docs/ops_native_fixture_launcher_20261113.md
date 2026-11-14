@@ -59,3 +59,54 @@ Pure unit tests inject a deliberately limited fake witness and therefore do
 not alone certify Win32. The separate Windows fixture uses the real original
 Win32 handles while the independent PostgreSQL hosted job provides real DB
 proofs. A single combined native Windows+PG E2E remains **NOT_RUN/BLOCKED**.
+
+
+## MASTER 2026-11-14 05:58 follow-up — post-spawn fence and crash inventory
+
+The hosted OPS workflow at `ae3d0de953b3b5ce35b6717598ac3b820c665713`
+had **117/117 PASS** (102 pure, 8 actual PostgreSQL16, 7 real Win32).
+This was isolated disposable acceptance, not a PC4 restart.
+
+An important time-of-check/time-of-use race was found in the CI launcher:
+PG incarnation and lease state were checked during generation reservation,
+but a lease or PostgreSQL restart could occur while worker and API were
+birth-enrolling. `DisposableWin32Launcher._post_spawn_fence()` now repeats
+PG system ID/postmaster birth verification and requires quiescent lease
+states after both children have real original-handle birth attestations.
+The witness then re-observes BOTH children before returning the pair.
+If the post-spawn fence fails, `rollback_partial_start` cooperatively stops
+the *already enrolled* roles, retains hashed drain/exit evidence and permanently
+blocks the incomplete reservation; it never force-kills or reuses the
+generation. No filesystem preflight can claim to be an atomic PG lease lock.
+
+The CI-only `sample_pair` read-only API brackets each process CPU/RSS/I/O
+sample with exact original Win32 handle and OS identity checks. It explicitly
+marks hard limits NOT_ENFORCED and atomic PG+process snapshot FALSE. WAL is
+measured separately by the existing isolated PostgreSQL resource workflow.
+`read_admission_pg` now reads PG system incarnation and job lease counts
+within one REPEATABLE READ, READ ONLY transaction (still not an atomic
+cross-process startup lock).
+
+`NativeAdmission.inspect_crashed_controller` provides a read-only
+controller-crash inventory: immutable generation/closure digest continuity,
+PG incarnation and any verifiable active leases. It never reuses a PID,
+imports a saved JSON closure as Win32 exit proof, changes job states or starts
+processes. Missing PG active lease count is UNKNOWN, not zero. Even a
+hash-consistent closure cannot replace lost original handles: after controller
+crash native restart remains BLOCKED pending an independent persistent
+handle-owning guardian established *before* startup.
+
+New focused tests include real Windows child-process PG incarnation/lease
+changes after both births, automatic cooperative partial rollback with
+permanent reservation refusal, birth-bound resource collection and
+independent real disposable-PG admission-state transition checks. Pure
+tests cover corrupted/incomplete crash records, unavailable PG and
+unverifiable lease counts.
+
+**Remaining release blockers:** no integrated installed `pc4_runtime`
+generation-scoped API/worker stop, no protected persistent external handle
+owner across controller crash, no atomic startup lease reservation spanning
+PostgreSQL and Windows process creation, no combined physical native Windows
++ PostgreSQL acceptance, no sustained real Bybit workload or hard CPU/RAM/I/O
+caps. Installed PC4 stays untouched and BLOCKED; neither these source changes
+nor successful prior CI implies release GO.
