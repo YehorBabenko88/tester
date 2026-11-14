@@ -379,7 +379,7 @@
       "mode": "100644"
     },
     "scripts/ui74_private_generation_ci.py": {
-      "git_blob_sha1": "032a4dc9602199310ccfb40840317725537d4e66",
+      "git_blob_sha1": "dd7726c2478d47a2c3acab89d18747e5b1824dc1",
       "mode": "100644"
     },
     "scripts/verify_ui_source_contracts.py": {
