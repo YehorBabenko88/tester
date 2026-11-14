@@ -175,7 +175,7 @@ jobs:
           if plan["automatic_activation"] or plan["ready_to_merge_or_install"]:
               raise SystemExit("OPS source handoff attempted live installation")
           Path("ops-77-native-source-handoff.json").write_text(
-              json.dumps(plan, sort_keys=True, indent=2) + "\\n", encoding="utf-8"
+              json.dumps(plan, sort_keys=True, indent=2) + chr(10), encoding="utf-8"
           )
           print("OPS candidate manifest:", report["manifest_sha256"])
           print("OPS opt-in source-only handoff:", plan["plan_sha256"])
