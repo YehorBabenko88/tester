@@ -10,7 +10,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import stat
 import uuid
 from collections.abc import Callable, Iterable
@@ -233,16 +232,11 @@ def publish_generation(root: Path, *, blobs: Iterable[ReviewedBlob],
         sync_dir(root)
         return generation
     except BaseException:
-        if candidate.exists():
-            shutil.rmtree(candidate)
-        if final.exists():
-            try:
-                referenced = json.loads((root / "CURRENT").read_bytes())["generation"]
-            except (OSError, ValueError, KeyError, TypeError):
-                referenced = None
-            if referenced != generation:
-                shutil.rmtree(final)
-        pointer_tmp.unlink(missing_ok=True)
+        # Fail closed. A CURRENT swap may already be visible even if root
+        # fsync then raises. Do not unlink a newly published or pinned tree.
+        # Likewise preserve staging and temporary pointer for forensic
+        # recovery: same-UID writers make recursive cleanup unsafe.
+        # Incomplete candidates remain unreferenced and are NEVER activated.
         raise
 
 
@@ -321,3 +315,111 @@ def read_pinned(root: Path, generation: str, *, manifest: bytes,
 def retire_generation(*_args, **_kwargs) -> None:
     """Fail closed: safe GC needs cross-process reader leases and recovery."""
     raise CompositionRefused("gc_disabled_without_reader_leases")
+
+
+def inspect_recovery(root: Path, *, manifest: bytes,
+                     manifest_sha256: str) -> dict:
+    """Read-only, fail-closed recovery inspection; never rewires CURRENT.
+
+    No candidate is selected by creation time and no directory is deleted.
+    A valid historical generation is *not* automatically safe to activate:
+    source trust, concurrent writers, and crash-durability are external gates.
+    """
+    private_root(root)
+    if not isinstance(manifest, bytes) or not HEX64.fullmatch(manifest_sha256):
+        raise CompositionRefused("untrusted_manifest")
+    if hash256(manifest) != manifest_sha256:
+        raise CompositionRefused("untrusted_manifest")
+    try:
+        doc = json.loads(manifest)
+        if (doc.get("schema") != SCHEMA or not isinstance(doc.get("files"), list)
+                or not isinstance(doc.get("source_pins"), dict)):
+            raise ValueError("invalid recovery manifest")
+        # Parse the reviewed entries even when CURRENT is missing.
+        entries = doc["files"]
+        seen = set()
+        for item in entries:
+            if not isinstance(item, dict) or set(item) != {
+                    "path", "sha256", "git_blob_sha1", "mode"}:
+                raise ValueError("invalid manifest entry")
+            valid_path(item["path"])
+            if (item["path"] in seen or item["mode"] not in (0o644, 0o755)
+                    or not HEX64.fullmatch(item["sha256"])
+                    or not HEX40.fullmatch(item["git_blob_sha1"])):
+                raise ValueError("invalid or duplicate manifest entry")
+            seen.add(item["path"])
+        if not seen:
+            raise ValueError("empty manifest")
+    except (ValueError, KeyError, TypeError) as exc:
+        raise CompositionRefused("invalid_recovery_manifest") from exc
+
+    entries_in_root = sorted(root.iterdir(), key=lambda item: item.name)
+    extra = [p.name for p in entries_in_root
+             if p.name not in {"CURRENT", "generations", ".staging"}
+             and not p.name.startswith(".CURRENT.")]
+    temp_pointers = [p.name for p in entries_in_root
+                     if p.name.startswith(".CURRENT.")]
+    problems = []
+    if extra:
+        problems.append("unexpected_root_entries")
+    if temp_pointers:
+        problems.append("unfinished_pointer_write")
+    for name in ("generations", ".staging"):
+        folder = root / name
+        if folder.is_symlink() or (folder.exists() and not folder.is_dir()):
+            problems.append("unsafe_" + name.replace(".", "") + "_directory")
+    if problems and any(item.startswith("unsafe_") for item in problems):
+        return {
+            "state": "BLOCKED_UNSAFE_WORKSPACE", "current": None,
+            "verified": [], "unverified": [], "staging": [],
+            "pointer_temps": temp_pointers, "problems": problems,
+            "auto_switch": False, "gc_allowed": False,
+        }
+    gens = root / "generations"
+    staging = root / ".staging"
+    verified, unverified = [], []
+    if gens.is_dir():
+        for item in sorted(gens.iterdir(), key=lambda p: p.name):
+            if (not re.fullmatch(r"[a-f0-9]{32}", item.name)
+                    or item.is_symlink() or not item.is_dir()):
+                unverified.append(item.name)
+                continue
+            try:
+                read_pinned(root, item.name, manifest=manifest,
+                            manifest_sha256=manifest_sha256)
+            except CompositionRefused:
+                unverified.append(item.name)
+            else:
+                verified.append(item.name)
+    stages = sorted(p.name for p in staging.iterdir()) if staging.is_dir() else []
+    current = None
+    try:
+        current = read_current(root, manifest=manifest,
+                               manifest_sha256=manifest_sha256)
+        state = "CURRENT_VALID"
+    except CompositionRefused:
+        pointer = root / "CURRENT"
+        state = ("CURRENT_INVALID" if pointer.exists() or pointer.is_symlink()
+                 else "CURRENT_MISSING")
+        problems.append(state.lower())
+    if unverified:
+        problems.append("unverified_published_generations")
+    if stages:
+        problems.append("unreferenced_staging_entries")
+    return {
+        "state": state, "current": current,
+        "verified": verified, "unverified": unverified,
+        "staging": stages, "pointer_temps": temp_pointers,
+        "problems": problems, "auto_switch": False, "gc_allowed": False,
+    }
+
+
+def recovery_candidate(root: Path, generation: str, *, manifest: bytes,
+                       manifest_sha256: str) -> str:
+    """Read-only operator-selected candidate check, never alter CURRENT.
+
+    This confirms only the current bytes, not their crash persistence or
+    authenticity against a hostile same-UID process.
+    """
+    return read_pinned(root, generation, manifest=manifest,
+                       manifest_sha256=manifest_sha256)

@@ -93,3 +93,42 @@ a durable open-fd lease. Generation deletion is unconditionally refused until
 lease fencing and recovery are designed. External Git authenticity/runner
 attestation, production crash durability, concurrent malicious writer isolation
 and four-producer application integration remain **BLOCKED / NO_GO**.
+
+
+## Crash recovery and data-retention hardening
+
+A failed publish no longer calls recursive cleanup on either staging or
+published generations. This is essential: an exception AFTER CURRENT swap
+may have committed the visible pointer and an old reader may still be pinned
+to the previous tree. Recursive delete also creates a same-UID relocation
+hazard. On exception retain pending staging, orphan published generations
+and temporary pointer files for read-only inspection. **No auto-GC.**
+
+`inspect_recovery(root, manifest=..., manifest_sha256=...)` only reads state:
+`CURRENT_VALID`, `CURRENT_INVALID`, `CURRENT_MISSING`, or
+`BLOCKED_UNSAFE_WORKSPACE`, plus lists of verified/unverified generations,
+staging and pointer temps. It never edits CURRENT, deletes generations,
+chooses the newest generation, repairs receipt, or activates a launcher.
+`recovery_candidate()` checks a manually specified generation against
+the externally reviewed manifest, but does not publish it. In a
+`CURRENT_INVALID` state downstream CI and consumers **must stop**.
+A complete prior generation can be a recovery candidate only after separate
+trusted-operator authorization and runner/filesystem checks. The prototype
+deliberately provides no auto-rollback or pointer rewiring.
+
+The additional read-only recovery negatives use injected faults, not
+hardware resets or process-shared malicious writers. They check before/after
+pointer swap, root fsync failure, orphan preservation, stale temp pointer,
+receipt corruption, source corruption, invalid CURRENT with valid older
+candidate, old reader pinning, symlink generation, unknown file, and refusal
+to delete current/previous/orphan trees. An orphan is NOT a deletion license.
+
+**Separate verdicts:**
+- Atomic visibility in isolated single-writer tests: PASS.
+- Process exceptions and forensic recovery classification: PASS (simulated).
+- Power-loss durability after root fsync failure: BLOCKED / NOT_RUN.
+- Same-UID adversarial filesystem containment: BLOCKED.
+- Authenticated Git source, protected runner, independent manifest review:
+  BLOCKED until MASTER establishes an external trust root.
+- Multi-reader GC/leases: BLOCKED; all retirement refused by design.
+- Full four-producer composed application, PG14/PG18, Chromium: NOT_RUN here.
