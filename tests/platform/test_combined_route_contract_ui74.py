@@ -12,7 +12,6 @@ from src.api.config import Settings
 from src.api.main import create_app
 from src.integration.combined_routes import compose_research
 
-
 ROOT = Path(__file__).resolve().parents[2]
 INTERVALS = ("1", "3", "5", "15", "30", "60", "120", "240", "360", "720", "D", "W", "M")
 
