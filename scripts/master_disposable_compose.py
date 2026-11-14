@@ -8,6 +8,7 @@ import json
 import os
 import pathlib
 import subprocess
+import uuid
 
 BASE = "3b2eef8a4139195db1a775545e83f1c1f58bf403"
 PRODUCERS = (
@@ -40,7 +41,11 @@ def main():
         raise SystemExit("unsafe checkout root")
     if git("rev-parse", "HEAD").decode().strip() != os.environ.get("EXPECTED_STAGING_SHA"):
         raise SystemExit("staging SHA changed; refuse unpinned composition")
-    reviewed = json.loads((ROOT / "docs/coordination/master-reviewed-producer-files.json").read_text(encoding="utf-8"))
+    manifest_path = "docs/coordination/master-reviewed-producer-files.json"
+    committed_manifest = git("show", "HEAD:" + manifest_path)
+    if (ROOT / manifest_path).is_symlink() or (ROOT / manifest_path).read_bytes() != committed_manifest:
+        raise SystemExit("mutable or symlinked reviewed allowlist")
+    reviewed = json.loads(committed_manifest)
     if reviewed.get("schema") != "master-reviewed-producer-files/1":
         raise SystemExit("invalid reviewed file manifest")
     approved = {key: set(paths) for key, paths in reviewed["producers"].items()}
@@ -51,10 +56,12 @@ def main():
             raise SystemExit(f"{label}: missing exact producer SHA")
         # The UI branch includes the #70 ancestry. A common BASE diff captures it.
         rows = git("diff", "--name-status", "--no-renames", BASE, sha).decode().splitlines()
+        observed = set()
         for row in rows:
             status, path = row.split("\t", 1)
             if status not in ("A", "M") or not path.startswith(ALLOWED) or path in PROTECTED or path not in approved[label]:
                 raise SystemExit(f"refusing {label} status/path: {row}")
+            observed.add(path)
             # Only regular Git blobs are eligible: reject symlinks and gitlinks.
             mode_row = git("ls-tree", sha, "--", path).decode().strip()
             if not mode_row.startswith("100644 blob ") and not mode_row.startswith("100755 blob "):
@@ -68,6 +75,8 @@ def main():
                 continue
             seen[path] = (label, digest)
             changes.append((label, path, raw))
+        if observed != approved[label]:
+            raise SystemExit(f"{label}: producer diff does not exactly match reviewed allowlist")
     # Preflight every destination before any writes, including parent symlinks.
     for label, path, raw in changes:
         rel = pathlib.PurePosixPath(path)
@@ -99,9 +108,21 @@ def main():
                     nextfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parentfd)
                     os.close(parentfd)
                     parentfd = nextfd
-                fd = os.open(parts[-1], os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600, dir_fd=parentfd)
-                with os.fdopen(fd, "wb") as output:
-                    output.write(raw)
+                # Write a new inode and atomically replace: never truncate an
+                # existing leaf, which could be a hardlink outside checkout.
+                tmpname = ".master-compose-" + uuid.uuid4().hex
+                fd = os.open(tmpname, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parentfd)
+                try:
+                    with os.fdopen(fd, "wb") as output:
+                        output.write(raw)
+                        output.flush()
+                        os.fsync(output.fileno())
+                    os.replace(tmpname, parts[-1], src_dir_fd=parentfd, dst_dir_fd=parentfd)
+                finally:
+                    try:
+                        os.unlink(tmpname, dir_fd=parentfd)
+                    except FileNotFoundError:
+                        pass
             finally:
                 os.close(parentfd)
     finally:
