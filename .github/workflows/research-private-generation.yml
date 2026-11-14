@@ -1,0 +1,106 @@
+name: RESEARCH private generation source and PG16 acceptance (disposable)
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/research-private-generation.yml"
+      - "scripts/research_private_generation_issue59.py"
+      - "tests/platform/test_research_private_generation_issue59.py"
+      - "docs/research_private_generation_source_ledger.json"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pinned-private-generation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_data_disposable
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-research-only
+        ports: ['55476:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tester_research_data_disposable"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: "true"
+      TESTER_RESEARCH_DATA_TEST_DSN: postgresql://postgres:ci-research-only@127.0.0.1:55476/tester_research_data_disposable
+    steps:
+      - name: Checkout exact PR71 source only
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout immutable standalone OPS private-generation prototype
+        uses: actions/checkout@v4
+        with:
+          ref: 113d7f3b97f47c86a19dc8590bdbb9809138c4d8
+          path: .ci-reviewed-ops
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify exact OPS prototype, immutable source ledger and all producer SHA objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .ci-reviewed-ops rev-parse HEAD)" = "113d7f3b97f47c86a19dc8590bdbb9809138c4d8"
+          test "$(git hash-object .ci-reviewed-ops/scripts/ops_private_generation_prototype.py)" = "1a28603452efaaf9d69e4446b5ee2bf8bf7a5d9e"
+          test "$(git hash-object docs/research_private_generation_source_ledger.json)" = "1447406f01ff1c200059a89a7556dd404be3f9be"
+          for sha in \
+            3b2eef8a4139195db1a775545e83f1c1f58bf403 \
+            5ee448fa6e0c356034e33b6f54f2ddbf6bdbc1cd \
+            ce4467dd5f22f89c9f691cecb768f2c8cf9d606a \
+            3966e5465b0b7881da4d23883ec82157fcd54aa1 \
+            f88d374f1ffb1f3a9a2e014f16ef8b266854063a \
+            113d7f3b97f47c86a19dc8590bdbb9809138c4d8; do
+            git fetch --no-tags origin "$sha"
+            test "$(git rev-parse "$sha^{commit}")" = "$sha"
+          done
+          echo "RESEARCH_EXACT_GIT_BLOB_SOURCE_PINS_PASS"
+      - name: Install test-only Python dependencies
+        run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Negative independent source ledger and Git mode tests
+        run: python -m pytest -q tests/platform/test_research_private_generation_issue59.py
+      - name: Publish private 0700 generation from reviewed Git blobs; actual research PG16
+        shell: bash
+        env:
+          OPS_PRIVATE_MODULE: "${{ github.workspace }}/.ci-reviewed-ops/scripts/ops_private_generation_prototype.py"
+        run: |
+          set -euo pipefail
+          python scripts/research_private_generation_issue59.py \
+            --ledger docs/research_private_generation_source_ledger.json \
+            --expected-ledger-git-blob 1447406f01ff1c200059a89a7556dd404be3f9be \
+            --ops-module "$OPS_PRIVATE_MODULE" \
+            --report "$RUNNER_TEMP/research-private-generation-report.json" \
+            --pytest
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          evidence = json.loads(
+              (Path(os.environ["RUNNER_TEMP"]) / "research-private-generation-report.json").read_text()
+          )
+          assert evidence["source_blob_count"] == 23
+          assert evidence["status"] == "DISPOSABLE_PRIVATE_GENERATION_TEST_PASS"
+          assert evidence["results"]["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
+          assert evidence["results"]["http_tamper_refused"]
+          assert evidence["results"]["lookahead_refused"]
+          assert evidence["results"]["fake_dataset_revision_refused"]
+          assert evidence["results"]["private_pytest"] == "PASS"
+          assert evidence["results"]["modules_loaded_from_private_generation"] == 10
+          assert evidence["trust_boundary"]["full_immutable_MASTER_combined_commit_sha"] is None
+          assert evidence["native_pc4_restart"] == "BLOCKED"
+          print("PRIVATE_GENERATION_RESEARCH_PASS; FULL_COMBINED_RELEASE_NO_GO")
+          PY
+      - name: Preserve exact private generation source SHA receipt evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-private-generation-evidence
+          path: ${{ runner.temp }}/research-private-generation-report.json
+          if-no-files-found: ignore
+          retention-days: 14
