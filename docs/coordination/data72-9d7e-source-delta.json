@@ -1,0 +1,73 @@
+{
+  "schema": "tester-data-head-delta/1",
+  "status": "NOT_APPROVED",
+  "source_commit": "9d7e45be0872c4c5efa17c06bc107e1dc6a0d2fb",
+  "master_checkpoint": "de95aef6ed46842063fc7c2ef766b7da75fe540e",
+  "base_commit": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
+  "expected_total_diff": 31,
+  "already_approved": 21,
+  "pending_count": 10,
+  "pending": [
+    {
+      "path": ".github/workflows/data-private-generation-review.yml",
+      "git_blob_sha1": "0d7ffed1a52d51f8da748204e46441ab768e3d35",
+      "mode": "100644",
+      "kind": "workflow"
+    },
+    {
+      "path": ".github/workflows/data72-25file-private-generation.yml",
+      "git_blob_sha1": "11943d4b14dc5f612fcf5b81e4b832347f272d29",
+      "mode": "100644",
+      "kind": "workflow"
+    },
+    {
+      "path": "docs/coordination/data72-25file-ops-canonical-manifest.json",
+      "git_blob_sha1": "f31261f2811208bc4a023cf50171a0125dfc32e0",
+      "mode": "100644",
+      "kind": "documentation"
+    },
+    {
+      "path": "docs/coordination/data72-298d-allowlist-final-review.md",
+      "git_blob_sha1": "c2e9f483f697841ef54267457158f026b2bfa46a",
+      "mode": "100644",
+      "kind": "documentation"
+    },
+    {
+      "path": "docs/coordination/data72-current-head-immutable-review.json",
+      "git_blob_sha1": "a44b514d274fd45da46efcdb88773d7a0bc49382",
+      "mode": "100644",
+      "kind": "documentation"
+    },
+    {
+      "path": "docs/coordination/data72-private-generation-blob-manifest.json",
+      "git_blob_sha1": "f1f60a8af7eb60a83c3367c30e73bae2a4e33ac2",
+      "mode": "100644",
+      "kind": "documentation"
+    },
+    {
+      "path": "docs/coordination/data72-private-generation-replay.md",
+      "git_blob_sha1": "7c62363259c8918e245ef7f9a1103da866818d4c",
+      "mode": "100644",
+      "kind": "documentation"
+    },
+    {
+      "path": "scripts/verify_data72_head_manifest.py",
+      "git_blob_sha1": "f88dbb6055a483367591e91caf1db28199ae523f",
+      "mode": "100644",
+      "kind": "audit_script"
+    },
+    {
+      "path": "tests/test_data_25file_private_generation.py",
+      "git_blob_sha1": "fa080b84b86db9aa819949f7a9b9071730ffa66d",
+      "mode": "100644",
+      "kind": "test"
+    },
+    {
+      "path": "tests/test_data_private_generation_compat.py",
+      "git_blob_sha1": "815f13387e013f25e63b6309ee95cbcd630e493a",
+      "mode": "100644",
+      "kind": "test"
+    }
+  ],
+  "release": "NO_GO"
+}
