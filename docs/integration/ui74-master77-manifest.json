@@ -7,7 +7,7 @@
     "base_pr": 70,
     "base_head": "6240b6665fb3125c06eb91ef535b96700988a7ab",
     "ancestor": "3b2eef8a4139195db1a775545e83f1c1f58bf403",
-    "last_verified_ui_head": "bc4209ac604dba913a4b8e3fc562059b512c5aea",
+    "last_verified_ui_head": "8819b86f329a2958a7989800e802b6a40fa58aa2",
     "live_head_policy": "Take exact PR74 HEAD from GitHub immediately before composition; this manifest is a source-only handoff, not a self-pinned commit"
   },
   "strategy": "Apply PR70 ancestor before the PR74 complete delta, never overlay PR70 files after PR74; MASTER PR77 remains untouched",
@@ -15,13 +15,14 @@
     "frontend/capabilities.js",
     "frontend/tests/capabilities.test.js"
   ],
-  "total_changed": 39,
+  "total_changed": 41,
   "all_changed": [
     ".github/workflows/capability-browser.yml",
     ".github/workflows/ui74-master-composed-e2e.yml",
     ".github/workflows/ui74-private-generation-e2e.yml",
     "docs/integration/UI74_MASTER77_REPLAY.md",
     "docs/integration/ui74-master77-manifest.json",
+    "docs/integration/ui74-master77-pending-allowlist-additions.json",
     "docs/proposals/download-kind-v1_1.json",
     "docs/ui-capability-contract.md",
     "docs/ui-capability-protocol-v1.schema.json",
@@ -55,6 +56,7 @@
     "tests/platform/test_capability_discovery.py",
     "tests/platform/test_download_kind_proposal.py",
     "tests/platform/test_ui_composition_manifest.py",
+    "tests/platform/test_ui_pending_allowlist.py",
     "tests/platform/test_ui_source_protocol.py"
   ],
   "groups": {
@@ -91,6 +93,7 @@
       "tests/platform/test_capability_discovery.py",
       "tests/platform/test_download_kind_proposal.py",
       "tests/platform/test_ui_composition_manifest.py",
+      "tests/platform/test_ui_pending_allowlist.py",
       "tests/platform/test_ui_source_protocol.py"
     ],
     "ci_and_documentation": [
@@ -99,6 +102,7 @@
       ".github/workflows/ui74-private-generation-e2e.yml",
       "docs/integration/UI74_MASTER77_REPLAY.md",
       "docs/integration/ui74-master77-manifest.json",
+      "docs/integration/ui74-master77-pending-allowlist-additions.json",
       "docs/proposals/download-kind-v1_1.json",
       "docs/ui-capability-contract.md",
       "docs/ui-capability-protocol-v1.schema.json"
@@ -267,7 +271,23 @@
       "COMMITTED_COMBINED_SHA_NOT_CREATED",
       "REAL_BYBIT_HISTORY_UNKNOWN"
     ],
-    "artifact_url": "https://github.com/YehorBabenko88/tester/actions/runs/43596673650/artifacts/14115076484"
+    "artifact_url": "https://github.com/YehorBabenko88/tester/actions/runs/43596673650/artifacts/14115076484",
+    "master_allowlist_review": {
+      "inventory_head": "298d610771d962ee7b796eac1834d74138768fac",
+      "review_document_git_blob": "fbb49ef29188b8ddb5531b31578ef40e7987dcbc",
+      "enforced_allowlist_git_blob": "08482cd45a3f46b5b8168aab2b7b19f63acb30fb",
+      "unreviewed_existing_producer_paths": [
+        ".github/workflows/ui74-private-generation-e2e.yml",
+        "scripts/ui74_private_generation_ci.py"
+      ],
+      "new_ui_review_artifacts": [
+        "docs/integration/ui74-master77-pending-allowlist-additions.json",
+        "tests/platform/test_ui_pending_allowlist.py"
+      ],
+      "status": "PENDING_MASTER_APPROVAL",
+      "official_allowlist_mutation": false,
+      "executable_publisher_approval": false
+    }
   },
   "nonself_current_ui_file_blobs": {
     ".github/workflows/capability-browser.yml": {
@@ -420,6 +440,14 @@
     },
     "tests/platform/test_ui_source_protocol.py": {
       "git_blob_sha1": "15e107f8645baef6f1f653388b241612e12329a8",
+      "mode": "100644"
+    },
+    "docs/integration/ui74-master77-pending-allowlist-additions.json": {
+      "git_blob_sha1": "8b3b64ccbe84a00b05bc3b21d5b2a1c450311cdc",
+      "mode": "100644"
+    },
+    "tests/platform/test_ui_pending_allowlist.py": {
+      "git_blob_sha1": "cfe7f45a3c5a3f2476c8786b200325188e0ad3f3",
       "mode": "100644"
     }
   }
