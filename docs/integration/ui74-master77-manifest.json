@@ -98,7 +98,7 @@
   "backend": {
     "data": {
       "pr": 72,
-      "head": "37fde4a9efba72eaf1b25a1b00e07385b07fd572",
+      "head": "93d13a8e78ff7c2aacc6610f838732ba22db8234",
       "contract": "tester-public-execution/1",
       "reader": "src.ingest.execution_contract.read_execution_events",
       "research_reader": "src.ingest.execution_contract.read_research_trades",
@@ -107,7 +107,7 @@
     },
     "research": {
       "pr": 71,
-      "head": "eadbc2e2e19601bd1d07e8278980812f87f06723",
+      "head": "c01c32b03aaf04923b33b0513b71776b12af1e09",
       "adapter": "src.integration.data_research_adapter.read_data_metrics",
       "ui_readback": "src.integration.research_ui_projection.read_verified_ui_observation",
       "ui_schema": "tester.research-ui-observation/1",
