@@ -1,6 +1,5 @@
 """Pure negative trust-boundary tests for research private generation handoff."""
 import copy
-import hashlib
 import json
 from pathlib import Path
 from unittest.mock import patch
@@ -55,7 +54,7 @@ def test_duplicate_path_or_revision_forgery_rejected(tmp_path):
         if mutation == "duplicate":
             altered["files"].append(copy.deepcopy(altered["files"][0]))
         elif mutation == "unverified_source":
-            altered["files"][0]["git_blob_sha1"] = "0" * 40
+            altered["files"][0]["git_blob_sha1"] = "0" * 39
         elif mutation == "fake_f":
             altered["f_admission"] = "GRANTED"
         elif mutation == "fake_mode":
