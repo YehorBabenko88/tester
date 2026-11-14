@@ -211,6 +211,6 @@ jobs:
             ${{ runner.temp }}/ui-private-manifest.json
             ${{ runner.temp }}/ui-private-fastapi.log
             ${{ runner.temp }}/ui-private-ge.log
-            frontend/test-results/
+            .ci-ui-driver/frontend/test-results/
           retention-days: 7
           if-no-files-found: ignore
