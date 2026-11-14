@@ -98,3 +98,64 @@ remain UNKNOWN. Bybit REST 403 remains ACCESS_BLOCKED. Strategy Lab F
 REAL remains DENIED; G/E and UI should not run any real historical
 simulation until an independently reviewed complete-evidence contract
 is available. No main/PC4/PG5432 changes, no Codex and no trading.
+
+
+## MASTER PR #77 exact overlap resolution (2026-11-14)
+
+Conflict path: `tests/platform/test_research_postgres.py`, touched by
+DATA Draft #72 and RESEARCH Draft #71. **Do not apply last-writer-wins.**
+DATA updated the file during review multiple times. Freeze the following
+immutable facts for PR #77 composition:
+
+- RESEARCH HEAD `bbca84c6f4280ece7476187d7f4dbabaf6d63542`;
+  reviewed file blob `402c25410ba4cc6704911148b1ec0c5bba720088`.
+- DATA contemporary HEAD `e326a5cc92fc3ecbe48bee358eebb8c0ded81173`;
+  reviewed file blob `6fdaad02ee754d4aef9f158d5969d49877ec6959`.
+- These versions differ in explanatory comments and server-side address
+  expression, not in the core guard requirements. Both test explicit
+  `conn.info.host`, `hostaddr`, `port`, `dbname`; resist ambient
+  `PGHOSTADDR`, `PGHOST`, `PGPORT`, `PGDATABASE`; retain
+  `test_research_dsn_refuses_explicit_hostaddr_redirect` for both
+  `127.0.0.2` and Docker `172.18.0.2`.
+
+**Recommended compositor choice:** pin a single immutable HEAD of DATA #72
+after its edits stop, copy the complete `tests/platform/test_research_postgres.py`
+blob from that pin into the combined tree, verify all requirements above and
+exact byte/blob SHA, and do not overwrite with an older RESEARCH copy.
+All other RESEARCH-only paths should come from the exact RESEARCH PR HEAD.
+Run `Pinned research PostgreSQL integration` on the **combined tree**,
+including real env-redirection negative tests. Revalidate DATA SQL migration
+`008_public_unknown_taker_side.sql` and the CHECK/append-only tests.
+Do not claim production PG14/18 PASS based only on these PG16 tests.
+
+Suggested deterministic integration inventory from PR #71
+(relative to source `b11b79832d1b0d848773ff077a36e7cb0595fdcb`):
+- `src/integration/research_ui_projection.py`: read-only trusted
+  `read_verified_ui_observation` seam; no new HTTP route.
+- `tests/platform/test_data_research_adapter_issue59.py`: Decimal,
+  Footprint/Delta/CVD/VWAP/POC, UNKNOWN, provenance, UTC, lookahead,
+  negative F/G/E and real DATA→PostgreSQL→RESEARCH readback checks.
+- `src/integration/data_research_adapter.py`: reviewed DATA #72
+  informational pin (not a new trade/coverage authority).
+- `.github/workflows/research-issue59.yml`: isolated tests and
+  immutable DATA pin, not a production deployment workflow.
+- `tests/platform/test_research_postgres.py`: shared overlap,
+  resolve to **one DATA-pinned blob** as specified above.
+- `docs/research_ui_issue59_contract.md`: scoped integration and
+  safety evidence.
+
+The combined F-G-D browser HTTP 404 is independently traced:
+`frontend/app.js:loadInstruments()` requests
+`GET /api/market-catalog/linear` while
+`scripts/combined_browser_ci.py` explicitly starts its API with
+`market_catalog_enabled=False`. A true route/fixture fix must be
+authored by the UI/combined owner, not RESEARCH; absent catalog data
+must remain visibly unavailable. Combined Playwright additionally expects
+`/Tester/i` in the homepage, while currently rendered heading is
+`HISTORICAL LAB / BYBIT MARKET RESEARCH`. No RESEARCH code may
+silence the 404 or falsely certify F→G→D.
+
+Remaining unresolved: complete actual historical source coverage
+(UNKNOWN), atomic B+execution revision/known-at, real-market F admission
+DENIED, genuine hosted PG14+PG18 and full combined-browser acceptance,
+and other shared CI gates. PR #77 is documentation-only and unchanged.
