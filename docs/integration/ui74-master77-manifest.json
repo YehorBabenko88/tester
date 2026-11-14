@@ -15,9 +15,10 @@
     "frontend/capabilities.js",
     "frontend/tests/capabilities.test.js"
   ],
-  "total_changed": 36,
+  "total_changed": 37,
   "all_changed": [
     ".github/workflows/capability-browser.yml",
+    ".github/workflows/ui74-master-composed-e2e.yml",
     "docs/integration/UI74_MASTER77_REPLAY.md",
     "docs/integration/ui74-master77-manifest.json",
     "docs/proposals/download-kind-v1_1.json",
@@ -91,6 +92,7 @@
     ],
     "ci_and_documentation": [
       ".github/workflows/capability-browser.yml",
+      ".github/workflows/ui74-master-composed-e2e.yml",
       "docs/integration/UI74_MASTER77_REPLAY.md",
       "docs/integration/ui74-master77-manifest.json",
       "docs/proposals/download-kind-v1_1.json",
@@ -222,6 +224,8 @@
     "openapi_v1_1_downloads": "OWNER_APPROVAL_REQUIRED_NOT_ACTIVE",
     "ui_pr70_ancestry_required": true,
     "producer_contracts_verified_by_exact_blob": true,
-    "pghostaddr_shared_test_blob": "402c25410ba4cc6704911148b1ec0c5bba720088"
+    "pghostaddr_shared_test_blob": "402c25410ba4cc6704911148b1ec0c5bba720088",
+    "composed_browser_ci": "UI74_DISPOSABLE_WORKFLOW_ADDED_PENDING_EXECUTION",
+    "composed_browser_workflow": ".github/workflows/ui74-master-composed-e2e.yml"
   }
 }
