@@ -332,6 +332,7 @@ def test_research_dsn_refuses_explicit_hostaddr_redirect():
     for explicit_hostaddr in ("127.0.0.2", "172.18.0.2"):
         with pytest.raises(ValueError, match="explicit isolated"):
             validate_research_dsn(
-                "host=127.0.0.1 hostaddr=" + explicit_hostaddr
+                "host=127.0.0.1 hostaddr="
+                + explicit_hostaddr
                 + " port=55472 dbname=tester_research_test"
             )
