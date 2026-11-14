@@ -3,6 +3,7 @@
 This never modifies a branch, machine installation, or PostgreSQL instance.
 All producer changes are replayed against the immutable PC4 source tree.
 """
+
 import hashlib
 import json
 import os
@@ -29,14 +30,21 @@ def git(*args):
 
 
 def main():
-    if (os.environ.get("CI") != "true" or os.environ.get("GITHUB_ACTIONS") != "true"
-            or not os.environ.get("GITHUB_WORKSPACE")
-            or pathlib.Path(os.environ["GITHUB_WORKSPACE"]).resolve() != ROOT):
-        raise SystemExit("refuse non-Actions workspace (environment flags alone are not attestation)")
-    if (os.environ.get("GITHUB_REPOSITORY") != "YehorBabenko88/tester"
-            or os.environ.get("GITHUB_SHA") != os.environ.get("EXPECTED_STAGING_SHA")
-            or not os.environ.get("GITHUB_RUN_ID", "").isdigit()
-            or os.environ.get("RUNNER_OS") != "Linux"):
+    if (
+        os.environ.get("CI") != "true"
+        or os.environ.get("GITHUB_ACTIONS") != "true"
+        or not os.environ.get("GITHUB_WORKSPACE")
+        or pathlib.Path(os.environ["GITHUB_WORKSPACE"]).resolve() != ROOT
+    ):
+        raise SystemExit(
+            "refuse non-Actions workspace (environment flags alone are not attestation)"
+        )
+    if (
+        os.environ.get("GITHUB_REPOSITORY") != "YehorBabenko88/tester"
+        or os.environ.get("GITHUB_SHA") != os.environ.get("EXPECTED_STAGING_SHA")
+        or not os.environ.get("GITHUB_RUN_ID", "").isdigit()
+        or os.environ.get("RUNNER_OS") != "Linux"
+    ):
         raise SystemExit("refuse unbound Actions job metadata")
     if ROOT.is_symlink() or not ROOT.is_dir():
         raise SystemExit("unsafe checkout root")
@@ -44,7 +52,9 @@ def main():
         raise SystemExit("staging SHA changed; refuse unpinned composition")
     manifest_path = "docs/coordination/master-reviewed-producer-files.json"
     committed_manifest = git("show", "HEAD:" + manifest_path)
-    if (ROOT / manifest_path).is_symlink() or (ROOT / manifest_path).read_bytes() != committed_manifest:
+    if (ROOT / manifest_path).is_symlink() or (
+        ROOT / manifest_path
+    ).read_bytes() != committed_manifest:
         raise SystemExit("mutable or symlinked reviewed allowlist")
     reviewed = json.loads(committed_manifest)
     if reviewed.get("schema") != "master-reviewed-producer-files/1":
@@ -60,7 +70,12 @@ def main():
         observed = set()
         for row in rows:
             status, path = row.split("\t", 1)
-            if status not in ("A", "M") or not path.startswith(ALLOWED) or path in PROTECTED or path not in approved[label]:
+            if (
+                status not in ("A", "M")
+                or not path.startswith(ALLOWED)
+                or path in PROTECTED
+                or path not in approved[label]
+            ):
                 raise SystemExit(f"refusing {label} status/path: {row}")
             if path in observed:
                 raise SystemExit(f"{label}: duplicate producer diff entry: {path}")
@@ -108,13 +123,20 @@ def main():
                         os.mkdir(part, mode=0o700, dir_fd=parentfd)
                     except FileExistsError:
                         pass
-                    nextfd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parentfd)
+                    nextfd = os.open(
+                        part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parentfd
+                    )
                     os.close(parentfd)
                     parentfd = nextfd
                 # Write a new inode and atomically replace: never truncate an
                 # existing leaf, which could be a hardlink outside checkout.
                 tmpname = ".master-compose-" + uuid.uuid4().hex
-                fd = os.open(tmpname, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parentfd)
+                fd = os.open(
+                    tmpname,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                    0o600,
+                    dir_fd=parentfd,
+                )
                 created = os.fstat(fd)
                 try:
                     with os.fdopen(fd, "wb") as output:
@@ -123,8 +145,12 @@ def main():
                         os.fsync(output.fileno())
                     # Reject substituted temporary entries, including symlinks.
                     staged = os.stat(tmpname, dir_fd=parentfd, follow_symlinks=False)
-                    if (not stat.S_ISREG(staged.st_mode) or staged.st_ino != created.st_ino
-                            or staged.st_dev != created.st_dev or staged.st_nlink != 1):
+                    if (
+                        not stat.S_ISREG(staged.st_mode)
+                        or staged.st_ino != created.st_ino
+                        or staged.st_dev != created.st_dev
+                        or staged.st_nlink != 1
+                    ):
                         raise SystemExit(f"temporary inode replaced: {path}")
                     os.replace(tmpname, parts[-1], src_dir_fd=parentfd, dst_dir_fd=parentfd)
                 finally:
