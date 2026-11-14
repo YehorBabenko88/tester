@@ -38,10 +38,12 @@ Runtime source (opt-in, not installed; 12 files):
 - `scripts/ops_resource_metrics.py`
 - `scripts/ops_win32_handle.py`
 
-Focused tests (12 files):
+Focused tests (14 files):
 - `tests/platform/test_ops_candidate_compatibility.py`
 - `tests/platform/test_ops_combined_ci_plan.py`
 - `tests/platform/test_ops_master_composer_audit.py` — read-only exact MASTER overlap regression
+- `tests/platform/test_ops_master_composer_actual_negative.py` — mocked Git diff, isolated symlink/traversal/CI-spoof reproductions
+- `tests/platform/test_ops_master_composer_hardening.py` — negative guard tests in disposable TemporaryDirectory
 - `tests/platform/test_ops_native_admission.py`
 - `tests/platform/test_ops_native_admission_pg_real.py`
 - `tests/platform/test_ops_native_fixture_launcher.py`
@@ -52,10 +54,11 @@ Focused tests (12 files):
 - `tests/platform/test_ops_native_windows_witness.py`
 - `tests/platform/test_ops_resource_metrics.py`
 
-CI / docs (7 files):
+CI / docs (8 files):
 - `.github/workflows/ops-portable.yml`
 - `scripts/ops_combined_ci_plan.py` — pure, non-executing full combined-SHA CI matrix
 - `scripts/ops_master_composer_audit.py` — static MASTER opt-in path gate; never launches
+- `scripts/ops_master_composer_hardening.py` — proposal for CI/path/symlink guards (NOT wired into MASTER)
 - `docs/ops_native_fixture_launcher_20261113.md`
 - `docs/ops_native_launcher_admission_20261113.md`
 - `docs/ops_native_handoff_77_20261114.md`
@@ -110,8 +113,8 @@ a deterministic and SHA-bound JSON acceptance matrix; it NEVER invokes a
 command. Its test suite requires immutable reviewed producer pins, rejects
 an accidental user-local CI invocation and all live/native activation flags.
 
-Source handoff selection now contains **12 opt-in runtime modules, 12 focused
-OPS tests and 7 CI/documentation items**. Only after all PG14/PG18/PG16,
+Source handoff selection now contains **12 opt-in runtime modules, 14 focused
+OPS tests and 8 CI/documentation items**. Only after all PG14/PG18/PG16,
 Windows original-handle and rollback, FastAPI/Chromium 13TF, security and
 source-manifest jobs pass on the same combined SHA may MASTER consider the
 next integration step. Until separately authorized physical validation,
@@ -131,9 +134,9 @@ or installed Windows service readiness**.
 The revised minimal handoff explicitly includes the previously omitted
 `scripts/ops_pg_claim.py`, a required direct import from the real
 `test_ops_native_admission_pg_real.py`; its approved count is now
-**12 runtime + 12 focused tests + 7 CI/docs = 31 files**. The frozen
-MASTER OPS pin predates the two new read-only audit files, so **29 of these
-31** are present in that historical source. The remaining **30 extra** OPS files
+**12 runtime + 14 focused tests + 8 CI/docs = 34 files**. The frozen
+MASTER OPS pin predates five read-only security-audit files, so **29 of these
+34** are present in that historical source. The remaining **30 extra** OPS files
 which MASTER copied but which are not in the minimal handoff are:
 
 - `docs/ops_dual_resource_receipt.json`
@@ -193,7 +196,7 @@ on the uncommitted 125-file MASTER source composition** (3 original-handle,
 on the same frozen MASTER source composition** (8 fenced lease, recovery,
 rollback and CPU/RAM/WAL/I/O tests PASS). The independent source scope audit
 ran 5/5 PASS while correctly returning `BLOCKED_SCOPE_TOO_BROAD`: 59 OPS
-files copied, 31 currently approved, 30 extras and 2 post-pin audit files absent. Those are valid **disposable tests**,
+files copied, 34 currently approved, 30 extras and 5 post-pin security files absent. Those are valid **disposable tests**,
 not proof of narrow opt-in inclusion, native PC4 restart or full global
 PG14/PG18/Chromium source-release acceptance.
 
@@ -210,18 +213,56 @@ immutable producer SHA set.
 ### Handoff-pin consistency requirement
 
 An owner-reviewed **new** combined producer pin is required before the
-updated 31-file selection can be reproduced from Git. The current MASTER
+updated 34-file selection can be reproduced from Git. The current MASTER
 composer pins `0d4649f3a7cd3595ea58757f2abaf2f1b0558667`, which
-contains 29 of the updated selection; the two post-pin static audit paths
+contains 29 of the updated selection; the five post-pin static security-audit paths
 are not in that commit:
 
 - `scripts/ops_master_composer_audit.py`
+- `scripts/ops_master_composer_hardening.py`
+- `tests/platform/test_ops_master_composer_actual_negative.py`
 - `tests/platform/test_ops_master_composer_audit.py`
+- `tests/platform/test_ops_master_composer_hardening.py`
 
 This is an explicitly recorded SOURCE-PIN MISMATCH, **not a reason to copy a
 moving OPS branch silently**. The 29 historical paths are still intact;
 no required runtime imports are missing thanks to `ops_pg_claim.py`.
 MASTER can either keep its frozen pin and test the historical list, or
-approve a new exact OPS producer commit and only then use the 31-file
+approve a new exact OPS producer commit and only then use the 34-file
 self-contained handoff, after reviewing every added audit file. Both cases
 must keep installed native activation BLOCKED.
+
+## MASTER #77 composer security assessment — user-requested negative tests
+
+The exact source of MASTER `scripts/master_disposable_compose.py` at
+`4e64ec9f6a1da453019b68e598e235036701739f` was reviewed **without
+changing PR #77**. It checks `CI=true` and a pinned staging SHA and refuses
+certain status/path strings, but the checks **do not authenticate a hosted
+runner** and do **not** normalize/reject all relative traversal components
+or follow symlink-safe filesystem writes. It performs
+`(ROOT / path).parent.mkdir(...)` and `target.write_bytes(raw)`, which can
+follow existing directory or file symlinks. The `PROTECTED` check compares
+raw filenames and can be bypassed by unnormalized aliases in synthetic
+`git diff` rows. No direct native process launch is present in the reviewed
+composer. These are **source safety gaps**, not evidence of any actual PC4
+compromise or an exploit from a valid Git tree.
+
+New tests execute only the *pinned source with its `git()` replaced by a
+stub* and `ROOT` redirected to a disposable `TemporaryDirectory`;
+they demonstrate that malformed diff rows can reach a sibling directory,
+write through a symlink, alias a protected worker path or inject an
+unapproved file. They also demonstrate that `CI=true` plus a fake staging
+SHA is insufficient to attest a hosted runner. No real system path is
+written. The separate `require_repo_file_path`,
+`require_safe_destination` and `require_ci_runner_identity` validators
+propose fail-closed preflight. They are **not called by MASTER**.
+
+**Owner review needed before non-ephemeral reuse:** require explicit hosted
+GitHub runner/workspace binding, validate every normalized Git path and mode,
+refuse `..`, `.`, backslashes/drive/absolute paths and unapproved files,
+verify root and every path component are not symlinks, and use OS-level
+no-follow, directory-fd-relative atomic writes/rename (not a racy
+`resolve()`-then-write). Any such change must be reviewed and implemented
+**in MASTER's own branch**, not silently imported from OPS. Until then the
+verified hosted CI smoke can remain source-only; use elsewhere and native
+PC4 restart are **BLOCKED**.
