@@ -23,8 +23,16 @@ def git(*args: str) -> bytes:
     return subprocess.check_output(("git", *args), cwd=ROOT)
 
 
+def git_blob_hash(raw: bytes) -> str:
+    return hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\\0" + raw).hexdigest()
+
+
 def main() -> None:
-    reviewed = json.loads((ROOT / "docs/coordination/master-reviewed-producer-files.json").read_text())
+    manifest_path = "docs/coordination/master-reviewed-producer-files.json"
+    committed = git("show", "HEAD:" + manifest_path)
+    if (ROOT / manifest_path).is_symlink() or (ROOT / manifest_path).read_bytes() != committed:
+        raise SystemExit("mutable or symlinked approved manifest")
+    reviewed = json.loads(committed)
     result = {"schema": "master-pending-source-review/1", "base": BASE, "producers": {}}
     for label, sha in PRODUCERS.items():
         assert git("rev-parse", sha + "^{commit}").decode().strip() == sha
@@ -45,6 +53,8 @@ def main() -> None:
                 raise SystemExit(f"unsafe pending Git mode: {label} {path}")
             blob_sha = mode_line.split()[2]
             raw = git("show", f"{sha}:{path}")
+            if git_blob_hash(raw) != blob_sha:
+                raise SystemExit(f"{label}: Git blob digest mismatch: {path}")
             pending.append({
                 "path": path,
                 "git_blob_sha": blob_sha,
@@ -76,6 +86,8 @@ def main() -> None:
             if len(parts) < 4 or parts[0] not in {"100644", "100755"} or parts[1] != "blob":
                 raise SystemExit(f"{label}: invalid reviewed runtime Git entry {path}")
             raw = git("show", f"{sha}:{path}")
+            if git_blob_hash(raw) != parts[2]:
+                raise SystemExit(f"{label}: approved runtime blob digest mismatch: {path}")
             rows.append({"path": path, "mode": parts[0], "git_blob_sha": parts[2], "sha256": hashlib.sha256(raw).hexdigest()})
         runtime[label] = rows
     owners = {}
@@ -85,6 +97,10 @@ def main() -> None:
             if old is not None and (old["git_blob_sha"], old["mode"]) != (entry["git_blob_sha"], entry["mode"]):
                 raise SystemExit("runtime source conflict: " + entry["path"])
             owners[entry["path"]] = entry
+    result["pending_executable_scripts"] = {
+        label: [entry for entry in result["producers"][label]["pending"] if entry["path"].startswith("scripts/")]
+        for label in PRODUCERS
+    }
     result["approved_runtime_blobs"] = runtime
     result["approved_runtime_unique_paths"] = len(owners)
     print(json.dumps(result, sort_keys=True, indent=2))
