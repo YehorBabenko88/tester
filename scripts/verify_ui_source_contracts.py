@@ -82,6 +82,10 @@ def verify_paths(data, research, metrics):
         raise ValueError("consumer_data_contract_version_mismatch")
     if _constant(calculator, "METHOD") != RESEARCH_METRICS_VERSION:
         raise ValueError("research_metrics_contract_version_mismatch")
+    # The RESEARCH source may record a reviewed producer commit as advisory
+    # metadata; runtime authorization is based on exact version, shape and
+    # independent source blob attestations, never that stale commit literal.
+    # The CI job separately verifies every checkout HEAD and source blob.
     if _constant(producer, "MAX_ROWS") != 100:
         raise ValueError("data_page_budget_mismatch")
     if _constant(consumer, "MAX_EVENTS") != 100:
@@ -105,6 +109,12 @@ def verify_paths(data, research, metrics):
     }
     if not required_event_fields <= _literals(producer):
         raise ValueError("data_provenance_time_or_quantity_semantics_mismatch")
+    data_literals = _literals(producer)
+    research_literals = _literals(consumer)
+    if not {"Unknown", "UNKNOWN", "UNVERIFIED"} <= data_literals:
+        raise ValueError("unknown_taker_side_or_visibility_not_preserved")
+    if not {"Unknown", "UNKNOWN", "UNVERIFIED", "source_native_linear_size"} <= research_literals:
+        raise ValueError("research_unknown_side_or_coverage_not_preserved")
     required_metric_fields = {
         "unknown_side_volume",
         "delta_known",
