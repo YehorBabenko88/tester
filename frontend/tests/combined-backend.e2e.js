@@ -3,10 +3,35 @@ import { readFile } from "node:fs/promises";
 
 test("G-created exact job renders and receives D ACK in combined main app", async ({ page }) => {
   const fixture = JSON.parse(await readFile(process.env.TESTER_COMBINED_FIXTURE_FILE, "utf8"));
-  const errors = [];
+  const errors = [], wrongHttp = [], unexpectedCatalog = [];
+  const networkEvidence = [];
   page.on("pageerror", e => errors.push(e.message));
+  page.on("response", response => {
+    const url = new URL(response.url());
+    if (!url.pathname.startsWith("/api/")) return;
+    networkEvidence.push({path: url.pathname, status: response.status()});
+    if ([404, 422, 503].includes(response.status()))
+      wrongHttp.push({path: url.pathname, status: response.status()});
+  });
+  page.on("request", request => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/api/market-catalog/") || path === "/api/analytics")
+      unexpectedCatalog.push(path);
+  });
   await page.goto("/");
-  await expect(page.locator("body")).toContainText(/Tester/i);
+  await expect(page.locator("body")).toContainText(/HISTORICAL LAB/i);
+  await expect(page.locator("#screener-status"))
+    .toContainText("market_catalog_not_configured");
+  const caps = await page.request.get("/api/capabilities");
+  expect(caps.status()).toBe(200);
+  const capabilityData = (await caps.json()).data;
+  expect(capabilityData.features.market_catalog.enabled).toBe(false);
+  expect(capabilityData.features.sources.enabled).toBe(false);
+  expect(capabilityData.observed_page_revision.history_complete).toBe(false);
+  expect(capabilityData.source_contracts.public_executions.contract_version)
+    .toBe("tester-public-execution/1");
+  expect(unexpectedCatalog).toEqual([]);
+  expect(wrongHttp).toEqual([]);
   await page.goto("/research.html");
   await page.locator("#research-command").fill(JSON.stringify(fixture.command));
   await page.getByRole("button", { name: "Read authorized research chart" }).click();
@@ -39,5 +64,8 @@ test("G-created exact job renders and receives D ACK in combined main app", asyn
     return count;
   })).toBeGreaterThan(100);
   expect(errors).toEqual([]);
+  expect(wrongHttp).toEqual([]);
+  expect(unexpectedCatalog).toEqual([]);
+  expect(networkEvidence.some(r => r.path === "/api/capabilities" && r.status === 200)).toBe(true);
   await page.screenshot({ path: test.info().outputPath("combined-synthetic.png"), fullPage: true });
 });
