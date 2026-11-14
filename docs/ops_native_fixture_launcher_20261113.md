@@ -148,3 +148,39 @@ combined F/G/D 404 route. Those require separate owner-reviewed changes.
 GitHub Actions children. It is not imported by installed `pc4_runtime`,
 `src.api.main`, or `src.api.worker`. PC4 native restart remains BLOCKED,
 regardless of independent producer CI successes.
+
+## #77 compatibility gate: versioned sources and scoped-stop consumer
+
+The OPS candidate scanner now parses source AST (no producer imports or
+execution), checks exact `tester-public-execution/1` VERSION against
+RESEARCH `DATA_CONTRACT_VERSION`, `MAX_ROWS==MAX_EVENTS==100`, and the
+required keyword-only bounded reader arguments. A mismatch is a blocker, not
+an automatic source rewrite. Legacy API/worker/PC4 stop requests are identified
+and reported separately from the missing real generation-scoped consumer and
+persistent external handle guardian. Even a forged module containing marker
+names cannot authorize installed startup.
+
+The opt-in `scripts/ops_native_scoped_stop.py` validates the exact
+`ops-native-stop/1` JSON already written by the external Win32 witness, with
+role, generation, PID, original birth hash and config SHA. Malformed,
+symlinked, stale-generation, wrong-role and foreign-process request files
+cause refusal; a missing request simply returns False. The future installed
+API and worker must independently authenticate their *own* birth-bound
+enrolment before trusting that input. This helper is **not wired** to the
+running API/worker and cannot stop, start or update anything by itself.
+
+The OPS CI now includes
+`candidate-readonly-compatibility`, which checks out exactly the producer
+SHAs recorded in #77 (DATA f78349b1, RESEARCH b11b7983, UI fd151168 including
+#70 ancestry), verifies Git SHA pins, executes the source contract regression
+suite and uploads `ops-77-source-compatibility` as a JSON artifact. The
+report explicitly records `installed_native_activation=BLOCKED`; its
+manifest digest is source-content evidence, not a runtime signing authority,
+birth witness or physical PC4 installation approval. The scoped-stop
+validation tests run inside `portable-pure` and cannot be taken as a native
+service end-to-end acceptance.
+
+The user's installed PC4 and PostgreSQL 5432 remain untouched. This Draft
+stays NO_GO until separate explicit permission, permanent original-handle
+guardian, actual API/worker generation protocol, atomic durable lease
+reservation and combined native Windows+PG/physical E2E.
