@@ -35,7 +35,8 @@ function Wait-Port([int]$p,[int]$seconds=40) {
   throw "PostgreSQL did not start on $p"
 }
 function Protect-String([string]$value,[string]$path) {
-  $cipher=ConvertFrom-SecureString -SecureString (ConvertTo-SecureString -String $value -AsPlainText -Force)\n  [IO.File]::WriteAllText($path,$cipher,[Text.Encoding]::ASCII)
+  $cipher=ConvertFrom-SecureString -SecureString (ConvertTo-SecureString -String $value -AsPlainText -Force)
+  [IO.File]::WriteAllText($path,$cipher,[Text.Encoding]::ASCII)
 }
 function Is-Preview-Process([int]$processId) {
   $p=Get-CimInstance Win32_Process -Filter "ProcessId=$processId" -ErrorAction SilentlyContinue
