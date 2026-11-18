@@ -33,3 +33,7 @@ Scope: only resources explicitly owned by **TesterPreview-ADMINIT**, never other
 - v2.x: backups accumulated on reinstall and uninstall; v3 cleans only positively verified Preview backups.
 
 This contract is for an isolated local Preview, not a production installer. Physical ADMINIT acceptance must confirm installation, two shortcuts, port isolation, restart, complete uninstall and no remaining Preview-owned artifacts.
+
+## v3.1 task principal correction
+
+Physical ADMINIT v3 failed at `Register-ScheduledTask` with HRESULT `0x80070534` (`UserId` name/SID mapping). The revised script `scripts/windows_preview/Install-TesterPreview-ADMINIT-v3.1.ps1` resolves `COMPUTERNAME\\TesterPgPreview` via `NTAccount.Translate(SecurityIdentifier)` and requires an exact match with `Get-LocalUser` SID before registering either task. It also checks task action ownership before unregistering the temporary init task and self-elevates the desktop uninstaller. This is a targeted correction, not yet a physical acceptance pass. If Windows still refuses a task logon, inspect local task logon rights and security policy; do not disable rights or weaken account isolation automatically.
