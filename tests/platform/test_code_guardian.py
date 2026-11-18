@@ -4,7 +4,10 @@ import unittest
 from dataclasses import replace
 
 from src.api.guardians.code_guardian import (
-    CodeGuardian, Identity, Probe, request_code_review,
+    CodeGuardian,
+    Identity,
+    Probe,
+    request_code_review,
 )
 
 HEAD = "a" * 40
@@ -46,15 +49,18 @@ class TestCodeGuardian(unittest.TestCase):
     def test_two_failures_or_one_healthy(self):
         g = CodeGuardian(enabled=True)
         self.assertEqual(g.evaluate(ident(), probes()[:2], now=100, restarts_last_hour=0).action, "ALERT")
-        samples = list(probes()); samples[2] = replace(samples[2], healthy=True)
+        samples = list(probes())
+        samples[2] = replace(samples[2], healthy=True)
         self.assertEqual(g.evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).action, "ALERT")
 
     def test_source_independence(self):
-        samples = list(probes()); samples[2] = replace(samples[2], source="scm")
+        samples = list(probes())
+        samples[2] = replace(samples[2], source="scm")
         self.assertEqual(CodeGuardian(enabled=True).evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).reason, "independence_unverified")
 
     def test_stale_probe_and_bad_evidence(self):
-        samples = list(probes()); samples[0] = replace(samples[0], timestamp=10)
+        samples = list(probes())
+        samples[0] = replace(samples[0], timestamp=10)
         self.assertEqual(CodeGuardian(enabled=True).evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).action, "ALERT")
         samples[0] = replace(samples[0], timestamp=100, evidence="garbage")
         self.assertEqual(CodeGuardian(enabled=True).evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).action, "ALERT")
