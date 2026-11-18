@@ -136,7 +136,7 @@ class ExchangeGuardian:
                                  "monotonic_clock_rollback", None)
         state["last_now"] = now
         # A TLS fault is a safety signal even during a rate-limit cooldown.
-        if observation.kind == "tls_failure":
+        if observation.kind == "tls_failure" and state["circuit"] != "HALTED":
             state["circuit"] = "HALTED"
             state["seen"].add(observation.evidence_ref)
             return self._verdict(state, observation, "UNAVAILABLE",
@@ -147,8 +147,8 @@ class ExchangeGuardian:
                                  "NONE", "duplicate_evidence", None)
         # Reject observations while breaker is open; never bypass a TLS halt.
         if state["circuit"] == "HALTED":
-            return self._verdict(state, observation, "UNAVAILABLE", "tls_verification_failed",
-                                 "PROPOSE_STOP_SOURCE", "tls_requires_manual_reset", None)
+            return self._verdict(state, observation, "UNAVAILABLE", "circuit_halted",
+                                 "NONE", "manual_reset_required", None)
         if now < state["until"]:
             return self._verdict(state, observation, "DEGRADED", "cooldown",
                                  "NONE", "backoff_active", state["until"])
