@@ -42,7 +42,21 @@ def _valid_int(value):
 
 
 def _positive(value):
-    return type(value) in (int, float) and math.isfinite(value) and value > 0
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(value) and value > 0
+    except (OverflowError, ValueError):
+        return False
+
+
+def _nonnegative_finite(value):
+    if type(value) not in (int, float):
+        return False
+    try:
+        return math.isfinite(value) and value >= 0
+    except (OverflowError, ValueError):
+        return False
 
 
 def _scope(category, symbol, interval):
@@ -75,14 +89,12 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
         return _alert("snapshot_not_read_only")
     if snapshot.get("baseline_verified") is not True or snapshot.get("history_state") != "bounded_verified":
         return _alert("baseline_unavailable")
-    if snapshot.get("baseline_verified") is not True:
-        return _alert("baseline_unavailable")
     category, symbol, interval = (
         snapshot.get("category"), snapshot.get("symbol"), snapshot.get("interval")
     )
     if category not in ("linear", "inverse", "spot") or (
         type(symbol) is not str or not SYMBOL.fullmatch(symbol)
-    ) or interval not in INTERVALS:
+    ) or type(interval) is not str or interval not in INTERVALS:
         return _alert("invalid_identity")
     scope = _scope(category, symbol, interval)
     start, end = snapshot.get("start_ms"), snapshot.get("end_ms")
@@ -96,8 +108,6 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
     if (snapshot.get("source") != "bybit"
             or snapshot.get("source_verified") is not True
             or not _valid_sha(snapshot.get("source_evidence_sha256"))):
-        return _alert("source_unverified", scope)
-    if snapshot.get("source") != "bybit" or snapshot.get("source_verified") is not True:
         return _alert("source_unverified", scope)
     if not _valid_sha(snapshot.get("baseline_sha256")):
         return _alert("baseline_hash_unverified", scope)
@@ -127,7 +137,7 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
             return _conflict("invalid_ohlc", scope, snapshot)
         if not (low <= o <= h and low <= close <= h):
             return _conflict("invalid_ohlc", scope, snapshot)
-        if type(vol) not in (int, float) or not math.isfinite(vol) or vol < 0:
+        if not _nonnegative_finite(vol):
             return _conflict("invalid_volume", scope, snapshot)
         if row.get("closed") is not True:
             return _alert("unclosed_candle", scope)
@@ -141,8 +151,6 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
             or snapshot.get("source_gap_proof_scope") != scope
             or snapshot.get("source_gap_proof_start_ms") != start
             or snapshot.get("source_gap_proof_end_ms") != end):
-        return _alert("gap_source_proof_missing", scope)
-    if snapshot.get("source_gap_proof_verified") is not True:
         return _alert("gap_source_proof_missing", scope)
     if (snapshot.get("catalog_verified") is not True
             or snapshot.get("catalog_handler") != "CatalogHandler"
