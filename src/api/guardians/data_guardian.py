@@ -124,9 +124,9 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
         keys.add(ts)
         if (row.get("source") != "bybit"
                 or row.get("provenance_verified") is not True
-                or row.get("category", category) != category
-                or row.get("symbol", symbol) != symbol
-                or row.get("interval", interval) != interval):
+                or row.get("category") != category
+                or row.get("symbol") != symbol
+                or row.get("interval") != interval):
             return _conflict("source_mismatch", scope, snapshot)
         if not (_valid_sha(row.get("source_sha256"))
                 and _valid_sha(row.get("observed_sha256"))
