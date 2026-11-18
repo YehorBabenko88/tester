@@ -1,4 +1,4 @@
-from src.api.guardian_policy import decide, Decision
+from src.api import guardian_policy as policy
 
 EVIDENCE = {"environment": "tester_preview", "evidence_ref": "sha256:verified"}
 
@@ -8,13 +8,13 @@ def event(component, signal, **fields):
 
 
 def test_unknown_and_foreign_events_fail_closed():
-    assert decide(None).action == "ALERT"
-    assert decide(event("something", "anything")).action == "ALERT"
+    assert policy.decide(None).action == "ALERT"
+    assert policy.decide(event("something", "anything")).action == "ALERT"
     assert (
-        decide({**event("code", "service_unhealthy"), "environment": "production"}).action
+        policy.decide({**event("code", "service_unhealthy"), "environment": "production"}).action
         == "ALERT"
     )
-    assert decide({**event("code", "service_unhealthy"), "evidence_ref": ""}).action == "ALERT"
+    assert policy.decide({**event("code", "service_unhealthy"), "evidence_ref": ""}).action == "ALERT"
 
 
 def test_code_restart_requires_ownership_and_budget():
@@ -25,15 +25,15 @@ def test_code_restart_requires_ownership_and_budget():
         consecutive_failed_probes=3,
         restarts_last_hour=0,
     )
-    assert decide(qualified) == Decision("PROPOSE_OWNED_RESTART", "failed_health_probes")
+    assert policy.decide(qualified) == policy.Decision("PROPOSE_OWNED_RESTART", "failed_health_probes")
     for overrides in (
         {"ownership_verified": False},
         {"consecutive_failed_probes": 2},
         {"restarts_last_hour": 2},
         {"restarts_last_hour": True},
     ):
-        assert decide({**qualified, **overrides}).action == "ALERT"
-    assert decide(event("code", "unhandled_exception")).action == "REQUEST_CODE_REVIEW"
+        assert policy.decide({**qualified, **overrides}).action == "ALERT"
+    assert policy.decide(event("code", "unhandled_exception")).action == "REQUEST_CODE_REVIEW"
 
 
 def test_data_backfill_requires_verified_catalog_and_fencing():
@@ -46,19 +46,19 @@ def test_data_backfill_requires_verified_catalog_and_fencing():
         fenced_writer_verified=True,
         window_ms=60_000,
     )
-    assert decide(qualified).action == "PROPOSE_BOUNDED_BACKFILL"
+    assert policy.decide(qualified).action == "PROPOSE_BOUNDED_BACKFILL"
     for overrides in (
         {"fenced_writer_verified": False},
         {"catalog_verified": False},
         {"source": "unknown"},
         {"window_ms": 86_400_001},
     ):
-        assert decide({**qualified, **overrides}).action == "ALERT"
+        assert policy.decide({**qualified, **overrides}).action == "ALERT"
 
 
 def test_quarantine_only_with_independent_integrity_evidence():
     assert (
-        decide(
+        policy.decide(
             event(
                 "data",
                 "hash_conflict",
@@ -68,7 +68,7 @@ def test_quarantine_only_with_independent_integrity_evidence():
         ).action
         == "PROPOSE_QUARANTINE"
     )
-    assert decide(event("data", "hash_conflict")).action == "ALERT"
+    assert policy.decide(event("data", "hash_conflict")).action == "ALERT"
 
 
 def test_cleanup_only_owned_old_direct_part_files():
@@ -80,25 +80,25 @@ def test_cleanup_only_owned_old_direct_part_files():
         reparse_checked=True,
         age_seconds=86_400,
     )
-    assert decide(qualified).action == "PROPOSE_TEMP_CLEANUP"
-    assert decide({**qualified, "reparse_checked": False}).action == "ALERT"
-    assert decide({**qualified, "age_seconds": 100}).action == "ALERT"
-    assert decide({**qualified, "age_seconds": True}).action == "ALERT"
-    assert decide(event("storage", "low_disk", disk_telemetry_verified=True)).action == (
+    assert policy.decide(qualified).action == "PROPOSE_TEMP_CLEANUP"
+    assert policy.decide({**qualified, "reparse_checked": False}).action == "ALERT"
+    assert policy.decide({**qualified, "age_seconds": 100}).action == "ALERT"
+    assert policy.decide({**qualified, "age_seconds": True}).action == "ALERT"
+    assert policy.decide(event("storage", "low_disk", disk_telemetry_verified=True)).action == (
         "PROPOSE_PAUSE_DOWNLOADS"
     )
 
 
 def test_tls_failures_never_propose_tls_bypass():
-    assert decide(event("exchange", "tls_verification_failed")).action == ("PROPOSE_STOP_SOURCE")
+    assert policy.decide(event("exchange", "tls_verification_failed")).action == ("PROPOSE_STOP_SOURCE")
 
 
 def test_rate_limit_and_retry_budgets():
-    assert decide(event("exchange", "http_429", retry_after_seconds=30)).action == (
+    assert policy.decide(event("exchange", "http_429", retry_after_seconds=30)).action == (
         "PROPOSE_RATE_BACKOFF"
     )
-    assert decide(event("exchange", "http_429", retry_after_seconds=3601)).action == "ALERT"
-    assert decide(event("exchange", "transient_timeout", attempts=2)).action == (
+    assert policy.decide(event("exchange", "http_429", retry_after_seconds=3601)).action == "ALERT"
+    assert policy.decide(event("exchange", "transient_timeout", attempts=2)).action == (
         "PROPOSE_BOUNDED_RETRY"
     )
-    assert decide(event("exchange", "transient_timeout", attempts=3)).action == "ALERT"
+    assert policy.decide(event("exchange", "transient_timeout", attempts=3)).action == "ALERT"
