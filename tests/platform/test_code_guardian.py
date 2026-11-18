@@ -174,5 +174,24 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         self.assertEqual(wrong_head.reason, "ownership_unverified")
 
 
+    def test_distinct_sources_must_not_reuse_evidence_digest(self):
+        samples = list(probes())
+        samples[1] = replace(samples[1], evidence=samples[0].evidence)
+        decision = CodeGuardian(enabled=True).evaluate(
+            ident(), tuple(samples), now=100, restarts_last_hour=0
+        )
+        self.assertEqual((decision.action, decision.reason), ("ALERT", "evidence_not_independent"))
+
+    def test_after_check_rejects_reused_evidence_digest(self):
+        samples = list(probes(healthy=True))
+        samples[2] = replace(samples[2], evidence=samples[0].evidence)
+        decision = CodeGuardian.verify(
+            ident(), tuple(samples), now=100, independent_verifier=True
+        )
+        self.assertEqual(
+            (decision.action, decision.reason),
+            ("ALERT", "after_check_evidence_not_independent"),
+        )
+
 if __name__ == "__main__":
     unittest.main()
