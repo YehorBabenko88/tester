@@ -7,8 +7,8 @@ network, service control and arbitrary SQL. This module NEVER performs I/O.
 import hashlib
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from .guardian_policy import decide
 
