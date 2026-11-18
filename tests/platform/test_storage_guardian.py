@@ -179,14 +179,14 @@ def test_toctou_root_revalidation(tmp_path):
         nonlocal checks
         if path == folder:
             checks += 1
-            if checks == 3:
+            if checks == 2:
                 return False
         return _safe(path)
 
     with patch("src.api.guardians.storage_guardian._safe", side_effect=changed):
         result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
                            now=100000, enabled=True)
-    assert checks >= 3
+    assert checks >= 2
     assert result["status"] == "ALERT_ROOT_CHANGED"
     assert result["candidates"] == []
     assert target.exists()
@@ -207,3 +207,39 @@ def test_toctou_file_replaced_with_link(tmp_path):
                            now=100000, enabled=True)
     assert result["candidates"] == []
     assert target.exists()
+
+
+def test_candidate_identity_swap_fail_closed(tmp_path):
+    """Inject a changing size on the second stat; manifest must be discarded."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    target = folder / "swap.part"
+    target.write_bytes(b"safe")
+    os.utime(target, (100, 100))
+    original = Path.lstat
+    calls = 0
+
+    class ChangedStat:
+        def __init__(self, source):
+            self.__dict__.update({
+                "st_dev": source.st_dev, "st_ino": source.st_ino,
+                "st_mode": source.st_mode, "st_size": source.st_size + 1,
+                "st_mtime_ns": source.st_mtime_ns,
+                "st_file_attributes": getattr(source, "st_file_attributes", 0),
+            })
+
+    def injected(path):
+        nonlocal calls
+        info = original(path)
+        if path == target:
+            calls += 1
+            if calls == 3:
+                return ChangedStat(info)
+        return info
+
+    with patch.object(Path, "lstat", injected):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
+                           now=100000, enabled=True)
+    assert result["status"] == "ALERT_FILE_CHANGED"
+    assert result["candidates"] == []
+    assert target.read_bytes() == b"safe"
