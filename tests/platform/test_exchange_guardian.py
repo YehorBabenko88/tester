@@ -271,3 +271,22 @@ def test_unknown_response_type_and_invalid_freshness_fail_closed():
     assert g.inspect(obs(kind="redirect"), now=0).proposal == "NONE"
     assert g.inspect(obs(freshness_limit_seconds=0), now=0).status == "UNAVAILABLE"
     assert g.inspect(obs(source_age_seconds=-1), now=0).status == "UNAVAILABLE"
+
+
+def test_fault_injection_monotonic_clock_rollback_halts_circuit():
+    g = ExchangeGuardian(enabled=True)
+    first = g.inspect(obs(status_code=429, retry_after="60"), now=100)
+    assert first.retry_at == 160
+    rolled = g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=99)
+    assert rolled.status == "UNAVAILABLE"
+    assert rolled.circuit == "HALTED"
+    assert rolled.proposal == "NONE"
+    assert not g.reset_tls_halt(URL, manual_authorized=False)
+
+
+def test_fault_injection_duplicate_clock_time_is_not_rollback():
+    g = ExchangeGuardian(enabled=True)
+    assert g.inspect(obs(), now=100).status == "MONITORING"
+    second = g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=100)
+    assert second.status == "MONITORING"
+    assert not second.history_complete
