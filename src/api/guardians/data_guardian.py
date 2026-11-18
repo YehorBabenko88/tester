@@ -5,6 +5,7 @@ in this module. All evidence is supplied by an independently controlled reader.
 """
 import hashlib
 import json
+import math
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -41,7 +42,7 @@ def _valid_int(value):
 
 
 def _positive(value):
-    return type(value) in (int, float) and not isinstance(value, bool) and value > 0
+    return type(value) in (int, float) and math.isfinite(value) and value > 0
 
 
 def _scope(category, symbol, interval):
@@ -63,10 +64,17 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
         return _alert("environment_out_of_scope")
     if snapshot.get("schema_verified") is not True:
         return _alert("postgresql_schema_unverified")
-    if snapshot.get("dsn_isolated") is not True or snapshot.get("postgres_port") == 5432:
+    if (snapshot.get("dsn_isolated") is not True
+            or type(snapshot.get("postgres_port")) is not int
+            or snapshot["postgres_port"] != 55432
+            or snapshot.get("database_name") != "tester_preview"
+            or snapshot.get("database_role") != "guardian_readonly"
+            or snapshot.get("dsn_identity_verified") is not True):
         return _alert("database_isolation_unverified")
     if snapshot.get("read_only_snapshot") is not True:
         return _alert("snapshot_not_read_only")
+    if snapshot.get("baseline_verified") is not True or snapshot.get("history_state") != "bounded_verified":
+        return _alert("baseline_unavailable")
     if snapshot.get("baseline_verified") is not True:
         return _alert("baseline_unavailable")
     category, symbol, interval = (
@@ -85,6 +93,10 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
     rows = snapshot.get("rows")
     if not isinstance(rows, (list, tuple)) or len(rows) > MAX_ROWS:
         return _alert("invalid_row_batch", scope)
+    if (snapshot.get("source") != "bybit"
+            or snapshot.get("source_verified") is not True
+            or not _valid_sha(snapshot.get("source_evidence_sha256"))):
+        return _alert("source_unverified", scope)
     if snapshot.get("source") != "bybit" or snapshot.get("source_verified") is not True:
         return _alert("source_unverified", scope)
     if not _valid_sha(snapshot.get("baseline_sha256")):
@@ -115,7 +127,7 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
             return _conflict("invalid_ohlc", scope, snapshot)
         if not (low <= o <= h and low <= close <= h):
             return _conflict("invalid_ohlc", scope, snapshot)
-        if type(vol) not in (int, float) or vol < 0 or vol != vol or vol == float("inf"):
+        if type(vol) not in (int, float) or not math.isfinite(vol) or vol < 0:
             return _conflict("invalid_volume", scope, snapshot)
         if row.get("closed") is not True:
             return _alert("unclosed_candle", scope)
@@ -124,6 +136,12 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
     if not missing:
         return Finding("OBSERVED_CONSISTENT", "sample_consistent_not_full_history", scope,
                        _digest(scope, start, end, sorted(keys)))
+    if (snapshot.get("source_gap_proof_verified") is not True
+            or not _valid_sha(snapshot.get("source_gap_proof_sha256"))
+            or snapshot.get("source_gap_proof_scope") != scope
+            or snapshot.get("source_gap_proof_start_ms") != start
+            or snapshot.get("source_gap_proof_end_ms") != end):
+        return _alert("gap_source_proof_missing", scope)
     if snapshot.get("source_gap_proof_verified") is not True:
         return _alert("gap_source_proof_missing", scope)
     if (snapshot.get("catalog_verified") is not True
@@ -132,7 +150,9 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
             or not _valid_int(snapshot.get("lease_epoch"))
             or snapshot.get("lease_epoch") == 0
             or snapshot.get("overlapping_writer") is not False
-            or snapshot.get("queue_identity_verified") is not True):
+            or snapshot.get("queue_identity_verified") is not True
+            or snapshot.get("lease_scope") != scope
+            or not _valid_sha(snapshot.get("lease_evidence_sha256"))):
         return _alert("catalog_or_fencing_unverified", scope)
     if len(missing) > MAX_ROWS:
         return _alert("gap_budget_exceeded", scope)
@@ -140,6 +160,7 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
     return Finding(
         "PROPOSE_BOUNDED_BACKFILL", "verified_missing_closed_candles", scope, evidence,
         {"adapter": "CatalogHandler", "category": category, "symbol": symbol,
+         "history_complete": False, "preserve_raw": True,
          "interval": interval, "start_ms": min(missing),
          "end_ms_exclusive": max(missing) + step,
          "missing_open_times_ms": missing, "lease_epoch": snapshot["lease_epoch"],
@@ -156,5 +177,5 @@ def _digest(scope, start, end, timestamps):
 def _conflict(reason, scope, snapshot):
     evidence = _digest(scope, snapshot["start_ms"], snapshot["end_ms"], [reason])
     return Finding("PROPOSE_QUARANTINE", reason, scope, evidence,
-                   {"scope": scope, "evidence_ref": evidence,
+                   {"scope": scope, "evidence_ref": evidence, "history_complete": False,
                     "execution_authorized": False, "preserve_raw": True})
