@@ -357,3 +357,18 @@ def test_fault_injection_duplicate_identity_has_stable_evidence():
     assert first.action == second.action == "PROPOSE_QUARANTINE"
     assert first.evidence_ref == second.evidence_ref
     assert first.proposal["execution_authorized"] is False
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("category", "spot"),
+    ("symbol", "ETHUSDT"),
+    ("interval", "5"),
+])
+def test_cross_scope_row_provenance_quarantined(field, bad):
+    data = snapshot()
+    data["rows"][0][field] = bad
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_QUARANTINE"
+    assert result.reason == "source_mismatch"
+    assert result.proposal["execution_authorized"] is False
+    assert result.proposal["preserve_raw"] is True
