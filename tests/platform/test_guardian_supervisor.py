@@ -1,4 +1,5 @@
 from src.api.guardian_supervisor import GuardianSupervisor
+from src.api.guardians.supervisor import DurableSupervisor
 
 DIGEST = "sha256:" + "a" * 64
 
@@ -72,9 +73,6 @@ def test_cross_component_policy_does_not_grant_other_actions():
     assert result.allowed
     assert result.action == "PROPOSE_PAUSE_DOWNLOADS"
     assert result.action != "PROPOSE_OWNED_RESTART"
-
-
-from src.api.guardians.supervisor import DurableSupervisor
 
 
 def test_durable_proposals_fencing_kill_and_reopen(tmp_path):
