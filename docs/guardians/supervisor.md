@@ -67,3 +67,26 @@ the current file has a single sorted import statement. Capture the exact
 Ruff version and failing log before modifying unrelated lines. Historical
 CI failure from PR #90 is not proof that this HEAD fails. CI is not reported
 as PASS without an actual exact-HEAD run.
+
+
+## 2026-11-18 independent fault review
+
+Journal admission now validates the existing SHA chain and receipt sequence
+continuity under `BEGIN IMMEDIATE`. SQLite AUTOINCREMENT high-water sequence
+detects naive deletion of the last receipt as well as interior gaps. Any
+mismatch aborts a write and raises `guardian_receipt_chain_corrupt`.
+This is defense in depth, **not** cryptographic protection against a
+privileged SQLite actor able to alter `sqlite_sequence` or rewrite all hashes.
+
+Windows physical gate must test: two separate processes contending for the
+same scope; crash between lease acquisition and completion; process reopen;
+expired leases and wall-clock rollback; forged receipt identity/action;
+journal body modification, middle deletion, tail deletion and full rewrite;
+persistent kill; restart budget over reboot; disk-full and SQLite corruption.
+No success should be inferred from an executor's own report. Require an
+external independent verifier and signed external checkpoint before enabling
+any effectful adapter.
+
+Ruff 0.17.4 Platform logs on HEAD `eee0a33` still reported I001 in the
+foundation test. Replaced the multi-name import with a single module import
+on the newer branch. Exact-head CI remains the authoritative check.
