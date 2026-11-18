@@ -42,3 +42,28 @@ string blacklist as security boundary and untrusted subprocess sandbox.
 Ruff I001 ownership: shared tests/platform/test_guardian_policy.py belongs
 to MASTER/foundation, not Code Guardian #90. Resolve only after exact-head
 Ruff diagnostics; no unsupported claim of a fix or CI PASS.
+
+
+## Security audit follow-up
+
+Receipt admission now compares the persisted role, status AND action reason;
+a caller cannot rewrite `PROPOSE_OWNED_RESTART` into a review proposal to
+evade the restart budget. Lease completion requires the exact persisted
+reservation sequence and fencing epoch. Reusing a proposal after a reservation
+is rejected. New negative tests cover forged receipt objects and reopen of
+the dedicated SQLite store.
+
+**Still NO_GO:** an attacker with direct SQLite write permission can forge
+records and recompute the unkeyed chain; tail truncation is not independently
+detectable. Production needs append-only external anchoring or signed
+checkpoints, verified on startup, with restricted service identity. This
+prototype does not prove an independent after-check. Wall-clock lease expiry,
+lease release after crash and clock rollback must be fault-injected. The
+`observed_volatility.py` edit was out of MASTER ownership and restored
+byte-for-byte to the parent branch blob.
+
+Ruff I001 in shared policy tests is **not reproduced** in this session:
+the current file has a single sorted import statement. Capture the exact
+Ruff version and failing log before modifying unrelated lines. Historical
+CI failure from PR #90 is not proof that this HEAD fails. CI is not reported
+as PASS without an actual exact-HEAD run.
