@@ -15,9 +15,16 @@ def realized_volatility(candles, *, interval_ms: int, annualize: bool = False):
     closed (literal True), and source (nonempty HTTPS URL). A full contiguous
     window of >= 3 candles is required. The returned sigma is dimensionless.
     """
+
     def unavailable(reason):
-        return {"state": "UNAVAILABLE", "reason": reason, "value": None,
-                "unit": "ratio", "sample_count": 0, "annualized": annualize}
+        return {
+            "state": "UNAVAILABLE",
+            "reason": reason,
+            "value": None,
+            "unit": "ratio",
+            "sample_count": 0,
+            "annualized": annualize,
+        }
     if type(interval_ms) is not int or interval_ms <= 0:
         return unavailable("invalid_interval")
     if not isinstance(candles, (list, tuple)) or not 3 <= len(candles) <= 10000:
@@ -27,7 +34,13 @@ def realized_volatility(candles, *, interval_ms: int, annualize: bool = False):
         if not isinstance(row, dict) or row.get("closed") is not True:
             return unavailable("unverified_closed_candle")
         ts, src = row.get("timestamp_ms"), row.get("source")
-        if type(ts) is not int or ts <= 0 or not isinstance(src, str) or not src.startswith("https://") or len(src) > 2048:
+        if (
+            type(ts) is not int
+            or ts <= 0
+            or not isinstance(src, str)
+            or not src.startswith("https://")
+            or len(src) > 2048
+        ):
             return unavailable("missing_candle_provenance")
         try:
             price = Decimal(row["close"])
@@ -53,8 +66,14 @@ def realized_volatility(candles, *, interval_ms: int, annualize: bool = False):
     except (OverflowError, ValueError, ZeroDivisionError):
         return unavailable("nonfinite_return")
     return {
-        "state": "OBSERVED", "reason": None, "value": format(sigma, ".15g"),
-        "unit": "ratio", "sample_count": len(returns), "annualized": annualize,
-        "window_start_ms": timestamps[0], "window_end_ms": timestamps[-1],
-        "interval_ms": interval_ms, "source_count": len(set(sources)),
+        "state": "OBSERVED",
+        "reason": None,
+        "value": format(sigma, ".15g"),
+        "unit": "ratio",
+        "sample_count": len(returns),
+        "annualized": annualize,
+        "window_start_ms": timestamps[0],
+        "window_end_ms": timestamps[-1],
+        "interval_ms": interval_ms,
+        "source_count": len(set(sources)),
     }
