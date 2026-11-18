@@ -31,7 +31,7 @@ def test_disabled_default():
     "https://api.bybit.com/v5/order/create",
     "https://api.bybit.com/v5/market/kline?api_key=secret",
     "https://api.bybit.com/v5/market/kline#fragment",
-]):
+])
 def test_endpoint_allowlist(url):
     with pytest.raises(ValueError):
         endpoint_key(url)
