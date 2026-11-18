@@ -290,3 +290,16 @@ def test_fault_injection_duplicate_clock_time_is_not_rollback():
     second = g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=100)
     assert second.status == "MONITORING"
     assert not second.history_complete
+
+
+def test_fault_injection_halted_circuit_never_reproposes_stop():
+    g = ExchangeGuardian(enabled=True)
+    first = g.inspect(obs("tls_failure"), now=1)
+    assert first.proposal == "PROPOSE_STOP_SOURCE"
+    second = g.inspect(obs("tls_failure", evidence_ref="sha256:" + "b" * 64),
+                       now=2)
+    assert second.circuit == "HALTED"
+    assert second.proposal == "NONE"
+    third = g.inspect(obs(evidence_ref="sha256:" + "c" * 64), now=3)
+    assert third.proposal == "NONE"
+    assert not third.history_complete
