@@ -89,7 +89,9 @@ class CodeGuardian:
             return Result("ALERT", "invalid_or_stale_probe")
         if {p.source for p in probes} != SOURCES or len({p.sample_id for p in probes}) != 3:
             return Result("ALERT", "independence_unverified")
-        if len({p.evidence for p in probes}) != 3:\n            return Result("ALERT", "evidence_not_independent")\n        if any(p.healthy for p in probes):
+        if len({p.evidence for p in probes}) != 3:
+            return Result("ALERT", "evidence_not_independent")
+        if any(p.healthy for p in probes):
             return Result("ALERT", "failure_unconfirmed")
         if restarts_last_hour >= 2:
             return Result("ALERT", "restart_budget_exhausted")
@@ -126,7 +128,9 @@ class CodeGuardian:
             return Result("ALERT", "after_check_failed")
         if {p.source for p in probes} != SOURCES or len({p.sample_id for p in probes}) != 3:
             return Result("ALERT", "after_check_not_independent")
-        if len({p.evidence for p in probes}) != 3:\n            return Result("ALERT", "after_check_evidence_not_independent")\n        return Result("VERIFIED_RECOVERY", "independent_after_check_passed")
+        if len({p.evidence for p in probes}) != 3:
+            return Result("ALERT", "after_check_evidence_not_independent")
+        return Result("VERIFIED_RECOVERY", "independent_after_check_passed")
 
 
 def request_code_review(error_type, evidence_ref, head):
