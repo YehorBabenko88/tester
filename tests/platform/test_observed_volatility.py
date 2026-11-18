@@ -6,8 +6,12 @@ BASE = 1_790_000_000_000
 
 def candles(values):
     return [
-        {"timestamp_ms": BASE + i * STEP, "close": str(v),
-         "closed": True, "source": "https://api.bybit.com/v5/market/kline?category=linear"}
+        {
+            "timestamp_ms": BASE + i * STEP,
+            "close": str(v),
+            "closed": True,
+            "source": "https://api.bybit.com/v5/market/kline?category=linear",
+        }
         for i, v in enumerate(values)
     ]
 
@@ -53,4 +57,7 @@ def test_rejects_nonpositive_or_nan_close():
 
 
 def test_rejects_insufficient_window():
-    assert realized_volatility(candles([100, 101]), interval_ms=STEP)["reason"] == "insufficient_closed_candles"
+    assert (
+        realized_volatility(candles([100, 101]), interval_ms=STEP)["reason"]
+        == "insufficient_closed_candles"
+    )
