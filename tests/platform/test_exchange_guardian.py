@@ -213,3 +213,61 @@ def test_invalid_time_and_evidence_fail_closed():
     g = ExchangeGuardian(enabled=True)
     assert g.inspect(obs(), now=float("nan")).proposal == "NONE"
     assert g.inspect(obs(evidence_ref="sha256:" + "g" * 64), now=1).proposal == "NONE"
+
+
+@pytest.mark.parametrize("status", [500, 502, 503, 504])
+def test_fault_injection_server_errors_bounded(status):
+    g = ExchangeGuardian(enabled=True)
+    results = [
+        g.inspect(obs(status_code=status,
+                      evidence_ref="sha256:" + str(i) * 64), now=t)
+        for i, t in enumerate((0, 2, 5))
+    ]
+    assert [r.proposal for r in results] == [
+        "PROPOSE_BOUNDED_RETRY", "PROPOSE_BOUNDED_RETRY", "NONE"
+    ]
+    assert results[-1].circuit == "OPEN"
+    assert results[-1].history_complete is False
+
+
+def test_fault_injection_429_http_date_and_recovery():
+    from datetime import timedelta
+    from email.utils import format_datetime
+    utc = datetime(2026, 11, 18, tzinfo=timezone.utc)
+    g = ExchangeGuardian(enabled=True)
+    delayed = g.inspect(obs(status_code=429,
+                            retry_after=format_datetime(utc + timedelta(seconds=45))),
+                        now=100, now_utc=utc)
+    assert delayed.retry_at == 145
+    assert g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=144).proposal == "NONE"
+    recovered = g.inspect(obs(evidence_ref="sha256:" + "c" * 64), now=145)
+    assert recovered.status == "MONITORING"
+    assert not recovered.history_complete
+    assert not recovered.gaps_reconciled
+
+
+def test_fault_injection_tls_during_timeout_cooldown():
+    g = ExchangeGuardian(enabled=True)
+    g.inspect(obs("timeout"), now=10)
+    halted = g.inspect(obs("tls_failure", evidence_ref="sha256:" + "b" * 64),
+                       now=10.1)
+    assert halted.circuit == "HALTED"
+    assert halted.proposal == "PROPOSE_STOP_SOURCE"
+    assert g.inspect(obs(evidence_ref="sha256:" + "c" * 64),
+                     now=999999).status == "UNAVAILABLE"
+
+
+def test_repeated_429_never_shortens_backoff():
+    g = ExchangeGuardian(enabled=True)
+    first = g.inspect(obs(status_code=429, retry_after="100"), now=10)
+    blocked = g.inspect(obs(status_code=429, retry_after="1",
+                            evidence_ref="sha256:" + "b" * 64), now=11)
+    assert blocked.retry_at >= first.retry_at
+    assert blocked.proposal == "NONE"
+
+
+def test_unknown_response_type_and_invalid_freshness_fail_closed():
+    g = ExchangeGuardian(enabled=True)
+    assert g.inspect(obs(kind="redirect"), now=0).proposal == "NONE"
+    assert g.inspect(obs(freshness_limit_seconds=0), now=0).status == "UNAVAILABLE"
+    assert g.inspect(obs(source_age_seconds=-1), now=0).status == "UNAVAILABLE"
