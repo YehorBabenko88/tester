@@ -1,6 +1,5 @@
 from src.api.guardian_supervisor import GuardianSupervisor
 
-
 DIGEST = "sha256:" + "a" * 64
 
 
