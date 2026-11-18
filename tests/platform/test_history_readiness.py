@@ -19,9 +19,14 @@ def test_accepts_isolated_nonprivileged_app_db():
 @pytest.mark.parametrize(
     "replacement",
     [
-        "port=5432", "port=55432", "host=10.0.0.1",
-        "hostaddr=10.0.0.1", "dbname=tester_preview_catalog",
-        "dbname=postgres", "user=postgres", "user=tester_preview_app",
+        "port=5432",
+        "port=55432",
+        "host=10.0.0.1",
+        "hostaddr=10.0.0.1",
+        "dbname=tester_preview_catalog",
+        "dbname=postgres",
+        "user=postgres",
+        "user=tester_preview_app",
     ],
 )
 def test_rejects_shared_or_unsafe_application_database(replacement):
