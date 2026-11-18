@@ -49,3 +49,13 @@ In-memory deduplication is not durable across process restart. A healthy after-c
 does not prove that an external recovery was executed, only that fresh health
 observations were supplied. A trusted external verifier and correlation to a
 fenced execution receipt remain required. No automatic restarts or deployments.
+
+## Evidence replay hardening
+
+The three named adapters must not reuse the same SHA-256 evidence digest, even
+when their source labels and sample IDs differ. Both proposal and after-check
+paths reject duplicate digests; the negative tests inject this replay explicitly.
+Digest uniqueness is a necessary sanity check, **not** proof that three adapters
+are authentic or independent: a forged caller can generate three arbitrary
+digests. Authenticated adapter provenance remains a MASTER-owned integration
+blocker. No restart permission follows from these tests.
