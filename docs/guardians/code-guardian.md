@@ -28,3 +28,24 @@ These tests use mock evidence, not Windows services or PostgreSQL; they do not m
 ## Outstanding for MASTER #88
 
 Implement trusted SCM/HTTP/heartbeat read-only probes, durable append-only incident receipts and restart budget, Windows own-service-only executor with a fenced lease, cross-reboot circuit breaker, physical ADMINIT failure injection/restart/rollback and 24-hour soak, exact-head CI and independent review. Code Guardian is **NO_GO for actual automated restarts** until those gates pass. Do not access PostgreSQL 5432 or merge/deploy automatically.
+
+## Fault-injection and trust boundary (2026-11-18)
+
+The independent `TestCodeGuardianFaultInjection` cases inject forged process claims,
+mismatched/invalid source SHA, contradictory healthy observations, stale/future/malformed
+samples, repeated fingerprints with rotated sample IDs, and failed after-checks.
+They are pure synthetic unit tests: **no operating-system attestation is performed**.
+
+Trusted evidence **must originate from separate read-only adapters**: Windows SCM
+for service identity/SID/image/config, a pinned deployment manifest for expected
+source HEAD, independently authenticated HTTP health, and a worker heartbeat
+with lease identity. The current `Identity` and `Probe` objects are caller
+assertions, **not cryptographic attestations**. A malicious caller can set all
+boolean verification flags to true. Consequently the decision engine must not
+be connected to a privileged executor until MASTER provides authenticated,
+independent adapters and persisted incident/budget/lease receipts.
+
+In-memory deduplication is not durable across process restart. A healthy after-check
+does not prove that an external recovery was executed, only that fresh health
+observations were supplied. A trusted external verifier and correlation to a
+fenced execution receipt remain required. No automatic restarts or deployments.
