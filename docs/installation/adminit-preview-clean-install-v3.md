@@ -37,3 +37,12 @@ This contract is for an isolated local Preview, not a production installer. Phys
 ## v3.1 task principal correction
 
 Physical ADMINIT v3 failed at `Register-ScheduledTask` with HRESULT `0x80070534` (`UserId` name/SID mapping). The revised script `scripts/windows_preview/Install-TesterPreview-ADMINIT-v3.1.ps1` resolves `COMPUTERNAME\\TesterPgPreview` via `NTAccount.Translate(SecurityIdentifier)` and requires an exact match with `Get-LocalUser` SID before registering either task. It also checks task action ownership before unregistering the temporary init task and self-elevates the desktop uninstaller. This is a targeted correction, not yet a physical acceptance pass. If Windows still refuses a task logon, inspect local task logon rights and security policy; do not disable rights or weaken account isolation automatically.
+
+## ADMINIT physical acceptance 2026-11-18
+
+- v3.3 installed successfully; isolated PostgreSQL listens on 127.0.0.1:55473 and original 5432 remains unchanged.
+- Browser API startup initially failed because `Get-Content -Raw | ConvertTo-SecureString` received a DPAPI ciphertext with trailing newline. Physical ADMINIT repair with `.Trim()` made `/api/capabilities` reachable; `market_catalog.enabled=true`, reason `configured`.
+- v3.4 installer includes DPAPI write without trailing newline and read with `.Trim()`. It has NOT been physically reinstalled/tested.
+- UI market screener is still empty. `sources.enabled=false` means no historical-data provider is bound; it does NOT by itself explain missing market instruments. The market catalog is a separate Bybit HTTP source, with persistent PostgreSQL snapshots and asynchronous refresh. Do not confuse these.
+- Run `scripts/windows_preview/Test-TesterPreviewMarketCatalog.ps1 -RequestRefresh` from ADMINIT to inspect per-category snapshots and public Bybit connectivity. A successful queued refresh does not imply successful acquisition. A 403 from Bybit must be reported, not bypassed or replaced with synthetic market data.
+- Do not claim real history, full source coverage, or live trading readiness. Release remains NO_GO.
