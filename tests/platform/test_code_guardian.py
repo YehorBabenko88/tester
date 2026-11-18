@@ -193,5 +193,40 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         )
 
 
+    def test_untrusted_metrics_and_unknown_source_fail_closed(self):
+        for now, budget, circuit in (
+            (True, 0, False),
+            ("100", 0, False),
+            (100, None, False),
+            (100, 0, "false"),
+        ):
+            with self.subTest(now=now, budget=budget, circuit=circuit):
+                decision = CodeGuardian(enabled=True).evaluate(
+                    ident(), probes(), now=now, restarts_last_hour=budget,
+                    circuit_open=circuit,
+                )
+                self.assertEqual(decision.action, "ALERT")
+        samples = list(probes())
+        samples[0] = replace(samples[0], source=None)
+        decision = CodeGuardian(enabled=True).evaluate(
+            ident(), tuple(samples), now=100, restarts_last_hour=0
+        )
+        self.assertEqual(decision.reason, "invalid_or_stale_probe")
+
+    def test_freshness_boundaries_and_after_check_source_replay(self):
+        samples = list(probes())
+        samples[0] = replace(samples[0], timestamp=70)
+        accepted = CodeGuardian(enabled=True).evaluate(
+            ident(), tuple(samples), now=100, restarts_last_hour=0
+        )
+        self.assertEqual(accepted.action, "PROPOSE_OWNED_RESTART")
+        samples = list(probes(healthy=True))
+        samples[2] = replace(samples[2], source="scm")
+        rejected = CodeGuardian.verify(
+            ident(), tuple(samples), now=100, independent_verifier=True
+        )
+        self.assertEqual(rejected.reason, "after_check_not_independent")
+
+
 if __name__ == "__main__":
     unittest.main()
