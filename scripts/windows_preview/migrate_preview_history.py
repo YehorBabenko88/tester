@@ -5,7 +5,8 @@ Run only after provisioning tester_preview_history with a dedicated role.
 """
 import os
 
-from src.api.db import connect, migrate as migrate_platform
+from src.api.db import connect
+from src.api.db import migrate as migrate_platform
 from src.api.history_readiness import check_history_schema, validate_history_dsn
 from src.storage.migrations import migrate as migrate_storage
 
