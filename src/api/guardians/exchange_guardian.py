@@ -127,7 +127,14 @@ class ExchangeGuardian:
         if observation.kind != "http" and observation.status_code is not None:
             return self._invalid()
         state = self._state.setdefault(key, {"attempts": 0, "until": 0.0,
-                                             "circuit": "CLOSED", "seen": set()})
+                                             "circuit": "CLOSED", "seen": set(), "last_now": now})
+        # Clock rollback cannot shorten a protective cooldown.
+        if now < state["last_now"]:
+            state["circuit"] = "HALTED"
+            return self._verdict(state, observation, "UNAVAILABLE",
+                                 "clock_rollback", "NONE",
+                                 "monotonic_clock_rollback", None)
+        state["last_now"] = now
         # A TLS fault is a safety signal even during a rate-limit cooldown.
         if observation.kind == "tls_failure":
             state["circuit"] = "HALTED"
