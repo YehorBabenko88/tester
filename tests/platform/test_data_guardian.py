@@ -37,6 +37,7 @@ def snapshot():
 def row(ts):
     return {
         "open_time_ms": ts, "source": "bybit", "provenance_verified": True,
+        "category": "linear", "symbol": "BTCUSDT", "interval": "1",
         "source_sha256": H, "observed_sha256": H,
         "original_projection_verified": True, "open": 2, "high": 3,
         "low": 1, "close": 2, "volume": 0, "closed": True,
@@ -367,6 +368,17 @@ def test_fault_injection_duplicate_identity_has_stable_evidence():
 def test_cross_scope_row_provenance_quarantined(field, bad):
     data = snapshot()
     data["rows"][0][field] = bad
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_QUARANTINE"
+    assert result.reason == "source_mismatch"
+    assert result.proposal["execution_authorized"] is False
+    assert result.proposal["preserve_raw"] is True
+
+
+@pytest.mark.parametrize("field", ["category", "symbol", "interval"])
+def test_missing_explicit_row_identity_quarantined(field):
+    data = snapshot()
+    del data["rows"][0][field]
     result = reconcile(data, enabled=True)
     assert result.action == "PROPOSE_QUARANTINE"
     assert result.reason == "source_mismatch"
