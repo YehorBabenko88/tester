@@ -8,25 +8,31 @@ if ($BaseUrl -ne 'http://127.0.0.1:18769') { throw 'Only ADMINIT loopback Previe
 Write-Host '=== Capabilities ==='
 $c=Invoke-RestMethod "$BaseUrl/api/capabilities" -TimeoutSec 15
 $c.data.features | ConvertTo-Json -Depth 6
-foreach($category in @('linear','inverse','spot')) {
+foreach($category in @('linear','inverse')) {
   Write-Host "=== $category snapshot BEFORE ==="
   try {
-    $r=Invoke-RestMethod "$BaseUrl/api/market-catalog/$category?limit=5" -TimeoutSec 15
+    $r=Invoke-RestMethod "$BaseUrl/api/market-catalog/${category}?limit=5" -TimeoutSec 15
     $r.data | ConvertTo-Json -Depth 6
-  } catch { Write-Warning "$category query: $($_.Exception.Message)" }
+  } catch {
+    $detail=$_.ErrorDetails.Message
+    if (-not $detail -and $_.Exception.Response) {
+      try { $detail=(New-Object IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd() } catch {}
+    }
+    Write-Warning "$category query: $($_.Exception.Message); detail=$detail"
+  }
 }
 if ($RequestRefresh) {
-  foreach($category in @('linear','inverse','spot')) {
+  foreach($category in @('linear','inverse')) {
     try {
       $r=Invoke-RestMethod -Method Post "$BaseUrl/api/market-catalog/$category/refresh" -TimeoutSec 15
       Write-Host "$category refresh queued=$($r.data.queued)"
     } catch { Write-Warning "$category refresh: $($_.Exception.Message)" }
   }
   Start-Sleep -Seconds 12
-  foreach($category in @('linear','inverse','spot')) {
+  foreach($category in @('linear','inverse')) {
     Write-Host "=== $category snapshot AFTER ==="
     try {
-      $r=Invoke-RestMethod "$BaseUrl/api/market-catalog/$category?limit=5" -TimeoutSec 15
+      $r=Invoke-RestMethod "$BaseUrl/api/market-catalog/${category}?limit=5" -TimeoutSec 15
       $r.data | ConvertTo-Json -Depth 6
     } catch { Write-Warning "$category query: $($_.Exception.Message)" }
   }
