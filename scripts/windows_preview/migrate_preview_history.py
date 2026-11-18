@@ -3,6 +3,7 @@
 Never creates users/databases or contacts the default PostgreSQL port.
 Run only after provisioning tester_preview_history with a dedicated role.
 """
+
 import os
 
 from src.api.db import connect
@@ -26,5 +27,7 @@ if __name__ == "__main__":
     app = os.environ.get("TESTER_DATABASE_URL")
     catalog = os.environ.get("TESTER_MARKET_CATALOG_DATABASE_URL")
     if not app or not catalog:
-        raise SystemExit("Explicit TESTER_DATABASE_URL and TESTER_MARKET_CATALOG_DATABASE_URL required")
+        raise SystemExit(
+            "Explicit TESTER_DATABASE_URL and TESTER_MARKET_CATALOG_DATABASE_URL required"
+        )
     print(migrate_preview_history(app, catalog))
