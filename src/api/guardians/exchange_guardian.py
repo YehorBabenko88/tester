@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 HOSTS = frozenset({"api.bybit.com", "public.bybit.com"})
@@ -150,7 +150,7 @@ class ExchangeGuardian:
             state["seen"] = {observation.evidence_ref}
         if observation.kind == "http" and observation.status_code == 429:
             after = retry_after_seconds(observation.retry_after,
-                                        now_utc or datetime.now(timezone.utc))
+                                        now_utc or datetime.now(UTC))
             if after is None:
                 state["circuit"] = "OPEN"
                 state["until"] = now + MAX_BACKOFF
