@@ -239,3 +239,19 @@ def test_source_evidence_missing_denied():
     data = snapshot()
     data["source_evidence_sha256"] = None
     assert reconcile(data, enabled=True).reason == "source_unverified"
+
+
+@pytest.mark.parametrize("bad", [[], {}, 123, None])
+def test_malformed_interval_fails_closed(bad):
+    data = snapshot()
+    data["interval"] = bad
+    assert reconcile(data, enabled=True).action == "ALERT"
+
+
+@pytest.mark.parametrize("field", ["open", "volume"])
+def test_extremely_large_integer_fails_closed(field):
+    data = snapshot()
+    data["rows"][0][field] = 10**1000
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_QUARANTINE"
+    assert result.proposal["execution_authorized"] is False
