@@ -1,0 +1,160 @@
+"""Read-only, deterministic OHLCV reconciliation and bounded action proposals.
+
+No database connection, SQL execution, network request, or queue mutation exists
+in this module. All evidence is supplied by an independently controlled reader.
+"""
+import hashlib
+import json
+import re
+from collections.abc import Mapping
+from dataclasses import dataclass
+
+SHA = re.compile(r"^[0-9a-f]{64}$")
+SYMBOL = re.compile(r"^[A-Z0-9]{2,32}$")
+INTERVALS = {"1": 60_000, "3": 180_000, "5": 300_000, "15": 900_000,
+             "30": 1_800_000, "60": 3_600_000, "120": 7_200_000,
+             "240": 14_400_000, "360": 21_600_000, "720": 43_200_000,
+             "D": 86_400_000}
+MAX_WINDOW_MS = 86_400_000
+MAX_ROWS = 1440
+
+
+@dataclass(frozen=True)
+class Finding:
+    action: str
+    reason: str
+    scope: str = ""
+    evidence_ref: str = ""
+    proposal: dict | None = None
+
+
+def _alert(reason, scope=""):
+    return Finding("ALERT", reason, scope)
+
+
+def _valid_sha(value):
+    return type(value) is str and SHA.fullmatch(value) is not None
+
+
+def _valid_int(value):
+    return type(value) is int and value >= 0
+
+
+def _positive(value):
+    return type(value) in (int, float) and not isinstance(value, bool) and value > 0
+
+
+def _scope(category, symbol, interval):
+    return f"bybit/{category}/{symbol}/{interval}"
+
+
+def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
+    """Validate a bounded independently captured snapshot; propose only.
+
+    Snapshot must contain a verified immutable baseline and independently
+    checked source hashes. A gap is actionable only with separate source proof,
+    fenced queue ownership, and exact catalog identity. No side effects.
+    """
+    if not enabled:
+        return _alert("guardians_disabled")
+    if not isinstance(snapshot, Mapping):
+        return _alert("invalid_snapshot")
+    if snapshot.get("environment") != "tester_preview":
+        return _alert("environment_out_of_scope")
+    if snapshot.get("schema_verified") is not True:
+        return _alert("postgresql_schema_unverified")
+    if snapshot.get("dsn_isolated") is not True or snapshot.get("postgres_port") == 5432:
+        return _alert("database_isolation_unverified")
+    if snapshot.get("read_only_snapshot") is not True:
+        return _alert("snapshot_not_read_only")
+    if snapshot.get("baseline_verified") is not True:
+        return _alert("baseline_unavailable")
+    category, symbol, interval = (
+        snapshot.get("category"), snapshot.get("symbol"), snapshot.get("interval")
+    )
+    if category not in ("linear", "inverse", "spot") or (
+        type(symbol) is not str or not SYMBOL.fullmatch(symbol)
+    ) or interval not in INTERVALS:
+        return _alert("invalid_identity")
+    scope = _scope(category, symbol, interval)
+    start, end = snapshot.get("start_ms"), snapshot.get("end_ms")
+    step = INTERVALS[interval]
+    if (not _valid_int(start) or not _valid_int(end) or end <= start
+            or end - start > MAX_WINDOW_MS or start % step or end % step):
+        return _alert("invalid_bounded_window", scope)
+    rows = snapshot.get("rows")
+    if not isinstance(rows, (list, tuple)) or len(rows) > MAX_ROWS:
+        return _alert("invalid_row_batch", scope)
+    if snapshot.get("source") != "bybit" or snapshot.get("source_verified") is not True:
+        return _alert("source_unverified", scope)
+    if not _valid_sha(snapshot.get("baseline_sha256")):
+        return _alert("baseline_hash_unverified", scope)
+
+    keys = set()
+    for row in rows:
+        if not isinstance(row, Mapping):
+            return _alert("invalid_record", scope)
+        ts = row.get("open_time_ms")
+        if not _valid_int(ts) or ts < start or ts >= end or (ts - start) % step:
+            return _alert("record_out_of_window", scope)
+        if ts in keys:
+            return _conflict("duplicate_key", scope, snapshot)
+        keys.add(ts)
+        if row.get("source") != "bybit" or row.get("provenance_verified") is not True:
+            return _conflict("source_mismatch", scope, snapshot)
+        if not (_valid_sha(row.get("source_sha256"))
+                and _valid_sha(row.get("observed_sha256"))
+                and row["source_sha256"] == row["observed_sha256"]
+                and row.get("original_projection_verified") is True):
+            return _conflict("hash_or_projection_conflict", scope, snapshot)
+        o, h, low, close, vol = (
+            row.get("open"), row.get("high"), row.get("low"),
+            row.get("close"), row.get("volume")
+        )
+        if not all(_positive(x) for x in (o, h, low, close)):
+            return _conflict("invalid_ohlc", scope, snapshot)
+        if not (low <= o <= h and low <= close <= h):
+            return _conflict("invalid_ohlc", scope, snapshot)
+        if type(vol) not in (int, float) or vol < 0 or vol != vol or vol == float("inf"):
+            return _conflict("invalid_volume", scope, snapshot)
+        if row.get("closed") is not True:
+            return _alert("unclosed_candle", scope)
+
+    missing = [ts for ts in range(start, end, step) if ts not in keys]
+    if not missing:
+        return Finding("OBSERVED_CONSISTENT", "sample_consistent_not_full_history", scope,
+                       _digest(scope, start, end, sorted(keys)))
+    if snapshot.get("source_gap_proof_verified") is not True:
+        return _alert("gap_source_proof_missing", scope)
+    if (snapshot.get("catalog_verified") is not True
+            or snapshot.get("catalog_handler") != "CatalogHandler"
+            or snapshot.get("fenced_writer_verified") is not True
+            or not _valid_int(snapshot.get("lease_epoch"))
+            or snapshot.get("lease_epoch") == 0
+            or snapshot.get("overlapping_writer") is not False
+            or snapshot.get("queue_identity_verified") is not True):
+        return _alert("catalog_or_fencing_unverified", scope)
+    if len(missing) > MAX_ROWS:
+        return _alert("gap_budget_exceeded", scope)
+    evidence = _digest(scope, start, end, missing)
+    return Finding(
+        "PROPOSE_BOUNDED_BACKFILL", "verified_missing_closed_candles", scope, evidence,
+        {"adapter": "CatalogHandler", "category": category, "symbol": symbol,
+         "interval": interval, "start_ms": min(missing),
+         "end_ms_exclusive": max(missing) + step,
+         "missing_open_times_ms": missing, "lease_epoch": snapshot["lease_epoch"],
+         "idempotency_key": evidence, "requires_independent_after_check": True,
+         "execution_authorized": False},
+    )
+
+
+def _digest(scope, start, end, timestamps):
+    payload = json.dumps([scope, start, end, timestamps], separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _conflict(reason, scope, snapshot):
+    evidence = _digest(scope, snapshot["start_ms"], snapshot["end_ms"], [reason])
+    return Finding("PROPOSE_QUARANTINE", reason, scope, evidence,
+                   {"scope": scope, "evidence_ref": evidence,
+                    "execution_authorized": False, "preserve_raw": True})
