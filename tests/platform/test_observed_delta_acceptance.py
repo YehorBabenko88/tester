@@ -56,7 +56,5 @@ def test_different_units_and_source_are_rejected():
     old = metric("100", 1790000000000, unit="BTC")
     new = metric("110", 1790000000000 + HOUR, unit="USDT")
     assert qualify_delta(new, old, HOUR)["reason"] == "history_unit_mismatch"
-    new = metric(
-        "110", 1790000000000 + HOUR, unit="BTC", source="https://example.com/other"
-    )
+    new = metric("110", 1790000000000 + HOUR, unit="BTC", source="https://example.com/other")
     assert qualify_delta(new, old, HOUR)["reason"] == "history_source_mismatch"
