@@ -130,3 +130,86 @@ def test_no_transport_or_storage_side_effects(monkeypatch):
                         lambda *a, **k: pytest.fail("network not allowed"))
     g = ExchangeGuardian(enabled=True)
     assert g.inspect(obs(), now=0).status == "MONITORING"
+
+
+def test_tls_fault_preempts_rate_limit_cooldown():
+    g = ExchangeGuardian(enabled=True)
+    g.inspect(obs(status_code=429, retry_after="300"), now=10)
+    fault = g.inspect(obs("tls_failure", evidence_ref="sha256:" + "d" * 64), now=11)
+    assert fault.circuit == "HALTED"
+    assert fault.proposal == "PROPOSE_STOP_SOURCE"
+    assert g.inspect(obs(evidence_ref="sha256:" + "e" * 64), now=10000).circuit == "HALTED"
+
+
+def test_archive_url_matches_transport_host_policy():
+    assert endpoint_key("https://public.bybit.com/trading/BTCUSDT/BTCUSDT2026-01-01.csv.gz") == (
+        "public.bybit.com/trading/BTCUSDT/BTCUSDT2026-01-01.csv.gz"
+    )
+
+
+@pytest.mark.parametrize("url", [
+    "https://api.bybit.com/trading/BTCUSDT/file.csv.gz",
+    "https://public.bybit.com/tradingevil/file.csv.gz",
+    "https://public.bybit.com/v5/order/create",
+    "https://public.bybit.com/trading/BTCUSDT/file.csv.gz?token=abc",
+    "https://public.bybit.com:443/trading/BTCUSDT/file.csv.gz",
+])
+def test_archive_scope_denials(url):
+    with pytest.raises(ValueError):
+        endpoint_key(url)
+
+
+def test_http_429_cannot_shorten_active_backoff():
+    g = ExchangeGuardian(enabled=True)
+    first = g.inspect(obs(status_code=429, retry_after="180"), now=100)
+    second = g.inspect(obs(status_code=429, retry_after="1",
+                           evidence_ref="sha256:" + "f" * 64), now=101)
+    assert first.retry_at == 280
+    assert second.retry_at == 280
+    assert second.proposal == "NONE"
+
+
+def test_malformed_200_never_healthy():
+    result = ExchangeGuardian(enabled=True).inspect(
+        obs(status_code=200, parse_valid=False), now=10
+    )
+    assert result.status == "UNAVAILABLE"
+    assert result.circuit == "OPEN"
+    assert not result.history_complete
+
+
+def test_500_backoff_bounded():
+    g = ExchangeGuardian(enabled=True)
+    for i, now in enumerate((0, 2, 5)):
+        r = g.inspect(obs(status_code=500, evidence_ref="sha256:" + str(i) * 64),
+                      now=now)
+        assert r.attempts == i + 1
+        assert r.proposal == ("NONE" if i == 2 else "PROPOSE_BOUNDED_RETRY")
+    assert r.circuit == "OPEN"
+
+
+def test_healthy_200_cannot_verify_history_even_after_429():
+    g = ExchangeGuardian(enabled=True)
+    g.inspect(obs(status_code=429, retry_after="2"), now=0)
+    r = g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=3)
+    assert r.status == "MONITORING"
+    assert r.history_complete is False and r.gaps_reconciled is False
+
+
+def test_supervisor_policy_bridge_429_and_timeout():
+    from src.api.guardian_policy import decide
+    from src.api.guardians.exchange_guardian import supervisor_event
+    g = ExchangeGuardian(enabled=True)
+    first = g.inspect(obs(status_code=429, retry_after="20"), now=0)
+    assert decide(supervisor_event(obs(status_code=429, retry_after="20"),
+                                   first, now=0)).action == "PROPOSE_RATE_BACKOFF"
+    timeout = ExchangeGuardian(enabled=True).inspect(obs("timeout"), now=0)
+    assert decide(supervisor_event(obs("timeout"), timeout, now=0)).action == (
+        "PROPOSE_BOUNDED_RETRY"
+    )
+
+
+def test_invalid_time_and_evidence_fail_closed():
+    g = ExchangeGuardian(enabled=True)
+    assert g.inspect(obs(), now=float("nan")).proposal == "NONE"
+    assert g.inspect(obs(evidence_ref="sha256:" + "g" * 64), now=1).proposal == "NONE"
