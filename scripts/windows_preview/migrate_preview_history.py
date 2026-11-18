@@ -7,6 +7,7 @@ import os
 
 from src.api.db import connect
 from src.api.db import migrate as migrate_platform
+from src.api.history_lab_bootstrap import migrate_lab_projections
 from src.api.history_readiness import check_history_schema, validate_history_dsn
 from src.storage.migrations import migrate as migrate_storage
 
@@ -17,8 +18,7 @@ def migrate_preview_history(app_dsn: str, catalog_dsn: str) -> dict:
     migrate_platform(app_dsn)
     with connect(app_dsn) as conn:
         migrate_storage(conn)
-    # The lab projection schema has a separate migration owner and is NOT
-    # synthesized here. Readiness remains blocked until that owner migrates it.
+    migrate_lab_projections(app_dsn, catalog_dsn)
     return check_history_schema(app_dsn, catalog_dsn)
 
 
