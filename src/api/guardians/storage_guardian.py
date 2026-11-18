@@ -5,6 +5,7 @@ revalidate the root, identities, age and reparse flags before using maintenance.
 """
 import hashlib
 import json
+import math
 import os
 import shutil
 import stat
@@ -17,16 +18,23 @@ MAX_ENTRIES = 10_000
 
 
 def _safe(path: Path) -> bool:
-    """Reject symlinks, junctions and Windows reparse points, including ancestors."""
+    """Reject symlinks and reparse points in every lexical ancestor."""
     try:
-        path = Path(os.path.abspath(path))
-        for candidate in (path, *path.parents):
+        absolute = Path(os.path.abspath(path))
+        for candidate in (absolute, *absolute.parents):
             info = candidate.lstat()
-            if stat.S_ISLNK(info.st_mode) or info.st_file_attributes & REPARSE if hasattr(info, "st_file_attributes") else stat.S_ISLNK(info.st_mode):
+            if stat.S_ISLNK(info.st_mode):
+                return False
+            if getattr(info, "st_file_attributes", 0) & REPARSE:
                 return False
         return True
-    except (OSError, ValueError):
+    except (OSError, ValueError, TypeError):
         return False
+
+
+def _invalid_root(root: Path) -> bool:
+    """Reject traversal before normalization can erase '..'."""
+    return not root.is_absolute() or any(part in (".", "..") for part in root.parts)
 
 
 def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
@@ -40,23 +48,29 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
     if (type(min_free_bytes) is not int or min_free_bytes < 0 or
             type(quota_bytes) is not int or quota_bytes <= 0):
         return {**result, "status": "ALERT_INVALID_BUDGET"}
-    root = Path(runtime_root)
-    tmp = root / "tmp"
     try:
+        root = Path(runtime_root)
+        if _invalid_root(root):
+            return {**result, "status": "ALERT_UNVERIFIED_ROOT"}
+        tmp = root / "tmp"
         if not root.is_dir() or not tmp.is_dir() or not _safe(tmp):
             return {**result, "status": "ALERT_UNVERIFIED_ROOT"}
         usage = shutil.disk_usage(root)
         result["free_bytes"] = usage.free
         result["total_bytes"] = usage.total
         # Only tmp direct files are inventoried. This is NOT a claim about DB size.
-        entries = list(tmp.iterdir())
-        if len(entries) > MAX_ENTRIES:
-            return {**result, "status": "ALERT_SCAN_LIMIT"}
+        entries = []
+        with os.scandir(tmp) as scan:
+            for entry in scan:
+                entries.append(entry.name)
+                if len(entries) > MAX_ENTRIES:
+                    return {**result, "status": "ALERT_SCAN_LIMIT"}
         timestamp = time.time() if now is None else now
-        if not isinstance(timestamp, (float, int)) or not 0 < timestamp < 1e15:
+        if type(timestamp) not in (float, int) or not math.isfinite(timestamp) or not 0 < timestamp < 1e15:
             return {**result, "status": "ALERT_INVALID_CLOCK"}
         used = 0
-        for path in entries:
+        for name in entries:
+            path = tmp / name
             if not _safe(path):
                 result["proposals"].append("ALERT_REPARSE_ENTRY")
                 continue
@@ -64,15 +78,18 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
             if not stat.S_ISREG(info.st_mode):
                 continue
             used += info.st_size
-            if path.suffix != ".part" or info.st_mtime > timestamp - AGE_SECONDS:
+            if not name.endswith(".part") or info.st_mtime > timestamp - AGE_SECONDS:
                 continue
             # Store basename only; never a user-supplied absolute deletion target.
             result["candidates"].append({
-                "name": path.name, "bytes": info.st_size,
+                "name": name, "bytes": info.st_size,
                 "mtime_ns": info.st_mtime_ns, "device": info.st_dev,
                 "inode": info.st_ino,
             })
             result["bytes_reclaimable"] += info.st_size
+        if not _safe(tmp):
+            return {**result, "status": "ALERT_ROOT_CHANGED", "candidates": [],
+                    "bytes_reclaimable": 0, "proposals": []}
         result["tmp_direct_bytes"] = used
         result["quota_bytes"] = quota_bytes
         result["status"] = "OBSERVED"
@@ -82,6 +99,7 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
             result["proposals"].append("ALERT_TMP_QUOTA")
         if result["candidates"]:
             result["proposals"].append("PROPOSE_DRY_RUN_TEMP_CLEANUP")
+        result["proposals"] = sorted(set(result["proposals"]))
         result["candidates"].sort(key=lambda item: item["name"])
         evidence = {k: v for k, v in result.items() if k != "evidence_sha256"}
         result["evidence_sha256"] = hashlib.sha256(
