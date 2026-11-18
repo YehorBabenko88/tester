@@ -201,3 +201,31 @@ def test_corrupt_journal_reopen_refused(tmp_path):
     s.close()
     with pytest.raises(RuntimeError, match="guardian_receipt_chain_corrupt"):
         DurableSupervisor(path, enabled=True)
+
+
+def test_two_connections_compete_for_one_lease(tmp_path):
+    path = tmp_path / "r.sqlite"
+    first = DurableSupervisor(path, enabled=True)
+    second = DurableSupervisor(path, enabled=True)
+    proposal = first.submit(event())
+    assert proposal.status == "PROPOSED"
+    assert first.reserve(proposal, scope="api", owner="first").status == "RESERVED"
+    assert second.reserve(proposal, scope="api", owner="second").reason == "untrusted_receipt"
+    assert second.submit(event()).reason == "duplicate_event"
+    assert first.verify_chain()
+    assert second.verify_chain()
+    first.close()
+    second.close()
+
+
+def test_kill_persists_across_independent_connections(tmp_path):
+    path = tmp_path / "r.sqlite"
+    first = DurableSupervisor(path, enabled=True)
+    second = DurableSupervisor(path, enabled=True)
+    proposal = first.submit(event())
+    reservation = first.reserve(proposal, scope="api", owner="first")
+    assert second.kill().status == "STOPPED"
+    assert first.finish(reservation, scope="api", owner="first").status == "DENIED"
+    assert first.submit(event(evidence_ref="sha256:" + "c" * 64)).status == "DENIED"
+    first.close()
+    second.close()
