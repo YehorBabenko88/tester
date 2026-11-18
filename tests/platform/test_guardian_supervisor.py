@@ -72,3 +72,55 @@ def test_cross_component_policy_does_not_grant_other_actions():
     assert result.allowed
     assert result.action == "PROPOSE_PAUSE_DOWNLOADS"
     assert result.action != "PROPOSE_OWNED_RESTART"
+
+
+from src.api.guardians.supervisor import DurableSupervisor
+
+
+def test_durable_proposals_fencing_kill_and_reopen(tmp_path):
+    path = tmp_path / "guardians.sqlite"
+    supervisor = DurableSupervisor(path, enabled=True, max_active=1)
+    first = supervisor.submit(event())
+    assert first.status == "PROPOSED"
+    assert supervisor.submit(event()).reason == "duplicate_event"
+    lease = supervisor.reserve(first, scope="tester-preview/api", owner="code")
+    assert lease.status == "RESERVED"
+    assert lease.epoch == 1
+    assert supervisor.reserve(first, scope="tester-preview/api", owner="other").reason == "lease_busy"
+    assert supervisor.finish(lease, scope="tester-preview/api", owner="other").status == "DENIED"
+    assert supervisor.finish(lease, scope="tester-preview/api", owner="code").status == "CLOSED"
+    assert supervisor.finish(lease, scope="tester-preview/api", owner="code").status == "DENIED"
+    assert supervisor.kill().status == "STOPPED"
+    assert supervisor.verify_chain()
+    supervisor.close()
+    reopened = DurableSupervisor(path, enabled=True)
+    assert reopened.submit(event()).reason == "disabled_or_killed"
+    assert reopened.verify_chain()
+    reopened.close()
+
+
+def test_durable_restart_budget_and_tamper(tmp_path):
+    supervisor = DurableSupervisor(tmp_path / "r.sqlite", enabled=True, restart_limit=1)
+    first = supervisor.submit(event())
+    lease = supervisor.reserve(first, scope="api", owner="worker")
+    assert lease.status == "RESERVED"
+    assert supervisor.finish(lease, scope="api", owner="worker").status == "CLOSED"
+    second = supervisor.submit(event(evidence_ref="sha256:" + "b" * 64))
+    assert supervisor.reserve(second, scope="api", owner="worker").reason == "restart_budget"
+    assert supervisor.verify_chain()
+    supervisor.db.execute("UPDATE receipts SET reason='tampered' WHERE seq=1")
+    assert not supervisor.verify_chain()
+    supervisor.close()
+
+
+def test_durable_disabled_and_invalid(tmp_path, monkeypatch):
+    monkeypatch.delenv("GUARDIANS_ENABLED", raising=False)
+    supervisor = DurableSupervisor(tmp_path / "r.sqlite")
+    assert supervisor.submit(event()).reason == "disabled_or_killed"
+    supervisor.close()
+    supervisor = DurableSupervisor(tmp_path / "r.sqlite", enabled=True)
+    assert supervisor.submit(None).status == "DENIED"
+    assert supervisor.submit(event(scope="../unsafe")).status == "DENIED"
+    assert supervisor.submit(event(environment="production")).status == "DENIED"
+    assert supervisor.verify_chain()
+    supervisor.close()
