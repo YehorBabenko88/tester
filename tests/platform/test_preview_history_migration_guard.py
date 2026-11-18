@@ -24,5 +24,8 @@ def test_rejects_default_port_before_any_migration():
 def test_rejects_catalog_database_before_any_migration():
     with patch("scripts.windows_preview.migrate_preview_history.migrate_platform") as migrate:
         with pytest.raises(ValueError):
-            migrate_preview_history(APP.replace("dbname=tester_preview_history", "dbname=tester_preview_catalog"), CATALOG)
+            migrate_preview_history(
+                APP.replace("dbname=tester_preview_history", "dbname=tester_preview_catalog"),
+                CATALOG,
+            )
         migrate.assert_not_called()
