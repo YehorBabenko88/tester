@@ -271,4 +271,7 @@ class DurableSupervisor:
                 return False
             expected_seq += 1
             previous = digest
-        return True
+        counter = self.db.execute(
+            "SELECT seq FROM sqlite_sequence WHERE name='receipts'"
+        ).fetchone()
+        return (counter[0] if counter else 0) == expected_seq - 1
