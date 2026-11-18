@@ -229,3 +229,33 @@ def test_kill_persists_across_independent_connections(tmp_path):
     assert first.submit(event(evidence_ref="sha256:" + "c" * 64)).status == "DENIED"
     first.close()
     second.close()
+
+
+def test_corrupt_tail_reopen_refused(tmp_path):
+    import pytest
+
+    path = tmp_path / "receipts.sqlite"
+    s = DurableSupervisor(path, enabled=True)
+    s.submit(event())
+    s.submit(event(evidence_ref="sha256:" + "b" * 64))
+    s.db.execute("DELETE FROM receipts WHERE seq=2")
+    s.close()
+    with pytest.raises(RuntimeError, match="guardian_receipt_chain_corrupt"):
+        DurableSupervisor(path, enabled=True)
+
+
+def test_expired_lease_fencing_after_reopen(tmp_path):
+    path = tmp_path / "receipts.sqlite"
+    s = DurableSupervisor(path, enabled=True)
+    first = s.submit(event())
+    old = s.reserve(first, scope="api", owner="worker")
+    assert old.status == "RESERVED"
+    s.db.execute("UPDATE leases SET expires=0 WHERE scope='api'")
+    s.close()
+    s = DurableSupervisor(path, enabled=True)
+    second = s.submit(event(evidence_ref="sha256:" + "b" * 64))
+    new = s.reserve(second, scope="api", owner="worker")
+    assert new.epoch == old.epoch + 1
+    assert s.finish(old, scope="api", owner="worker").status == "DENIED"
+    assert s.finish(new, scope="api", owner="worker").status == "CLOSED"
+    s.close()
