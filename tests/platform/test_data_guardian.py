@@ -36,7 +36,8 @@ def snapshot():
 
 def row(ts):
     return {
-        "open_time_ms": ts, "source": "bybit", "provenance_verified": True,
+        "open_time_ms": ts, "close_time_ms": ts + STEP - 1,
+        "source": "bybit", "provenance_verified": True,
         "category": "linear", "symbol": "BTCUSDT", "interval": "1",
         "source_sha256": H, "observed_sha256": H,
         "original_projection_verified": True, "open": 2, "high": 3,
@@ -382,5 +383,16 @@ def test_missing_explicit_row_identity_quarantined(field):
     result = reconcile(data, enabled=True)
     assert result.action == "PROPOSE_QUARANTINE"
     assert result.reason == "source_mismatch"
+    assert result.proposal["execution_authorized"] is False
+    assert result.proposal["preserve_raw"] is True
+
+
+@pytest.mark.parametrize("bad", [None, 0, STEP, STEP - 2, True, "59999"])
+def test_closed_candle_end_timestamp_fault_injection(bad):
+    data = snapshot()
+    data["rows"][0]["close_time_ms"] = bad
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_QUARANTINE"
+    assert result.reason == "candle_close_time_mismatch"
     assert result.proposal["execution_authorized"] is False
     assert result.proposal["preserve_raw"] is True
