@@ -69,7 +69,7 @@ def test_symlink_entry_never_selected(tmp_path):
     result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
                        now=100000, enabled=True)
     assert result["candidates"] == []
-    assert "ALERT_REPARSE_ENTRY" in result["proposals"]
+    assert result["status"] == "ALERT_REPARSE_ENTRY"
     assert outside.read_bytes() == b"secret"
 
 
@@ -282,3 +282,26 @@ def test_scan_limit_exactly_10000(tmp_path):
                        enabled=True)
     assert result["status"] == "OBSERVED"
     assert result["candidates"] == []
+
+
+def test_reparse_poison_discards_other_candidates(tmp_path):
+    """One unsafe entry invalidates the entire manifest, not only itself."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    old = folder / "a.part"
+    old.write_bytes(b"old")
+    os.utime(old, (100, 100))
+    unsafe = folder / "z.part"
+    unsafe.write_bytes(b"unsafe")
+    original = _safe
+
+    def poisoned(path):
+        return False if path == unsafe else original(path)
+
+    with patch("src.api.guardians.storage_guardian._safe", side_effect=poisoned):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
+                           now=100000, enabled=True)
+    assert result["status"] == "ALERT_REPARSE_ENTRY"
+    assert result["candidates"] == []
+    assert result["bytes_reclaimable"] == 0
+    assert old.read_bytes() == b"old"
