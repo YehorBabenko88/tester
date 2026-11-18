@@ -61,3 +61,11 @@ Foundation `tests/platform/test_guardian_policy.py` I001 is MASTER-owned and
 is deliberately not changed here. New exact-head CI must independently verify
 these corrections; queued jobs are not a PASS. Never infer complete history
 from HTTP 200 or a restored transport circuit.
+
+## Monotonic-clock fault injection
+
+A backward caller monotonic timestamp now halts the endpoint instead of
+shortening a protective 429 cooldown. The halt requires explicit manual reset;
+it does not authorize a network retry or claim historical completeness.
+This is an in-memory proposal engine only, not durable restart protection.
+The new regression cases exercise rollback and repeated identical timestamps.
