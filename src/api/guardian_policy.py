@@ -38,12 +38,7 @@ def decide(event: Mapping) -> Decision:
         if signal == "service_unhealthy":
             failures = event.get("consecutive_failed_probes")
             restarts = event.get("restarts_last_hour")
-            if (
-                owned
-                and _int(failures, 3)
-                and _int(restarts)
-                and restarts < 2
-            ):
+            if owned and _int(failures, 3) and _int(restarts) and restarts < 2:
                 return Decision("PROPOSE_OWNED_RESTART", "failed_health_probes")
             return Decision("ALERT", "restart_budget_or_ownership_not_verified")
         if signal in {"unhandled_exception", "ci_regression"}:
