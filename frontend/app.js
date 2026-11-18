@@ -638,7 +638,7 @@ async function submitDownloads(keys) {
       interval = $("#interval").value;
     if (!source)
       throw Error(
-        "DATA_UNAVAILABLE: no connected source. Retry source discovery.",
+        "DATA_UNAVAILABLE · historical_provider_not_configured · Bybit catalog quotes are available, but no verified candle/trade history source or download worker is connected. Configure a dedicated read-only historical provider and queue before downloading.",
       );
     const kinds = JSON.parse(
       $("#source").selectedOptions[0].dataset.kinds || "[]",
@@ -1199,7 +1199,7 @@ async function initializeOptionalRoutes() {
     option.value = "";
     $("#source").replaceChildren(option);
     $("#download-status").textContent =
-      "DATA_UNAVAILABLE · source_downloads_not_configured · Chart inspection is read-only.";
+      "DATA_UNAVAILABLE · historical_provider_not_configured · Bybit catalog prices, 24h volume and current OI are available; historical downloads, volatility, 1h price change and OI deltas require observed time-series data and a verified provider. No download job was created.";
   } else {
     await loadSources();
   }
