@@ -25,7 +25,6 @@ def realized_volatility(candles, *, interval_ms: int, annualize: bool = False):
             "sample_count": 0,
             "annualized": annualize,
         }
-
     if type(interval_ms) is not int or interval_ms <= 0:
         return unavailable("invalid_interval")
     if not isinstance(candles, (list, tuple)) or not 3 <= len(candles) <= 10000:
