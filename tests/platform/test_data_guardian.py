@@ -319,3 +319,41 @@ def test_fault_injection_empty_snapshot_is_not_fabricated():
     assert result.proposal["missing_open_times_ms"] == [0, STEP, 2 * STEP]
     assert result.proposal["execution_authorized"] is False
     assert result.proposal["history_complete"] is False
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("source", "synthetic"),
+    ("provenance_verified", None),
+    ("source_sha256", "z" * 64),
+    ("observed_sha256", None),
+    ("original_projection_verified", "true"),
+])
+def test_fault_injection_untrusted_record_provenance(field, bad):
+    data = snapshot()
+    data["rows"][1][field] = bad
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_QUARANTINE"
+    assert result.proposal["execution_authorized"] is False
+    assert result.proposal["preserve_raw"] is True
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("schema_verified", "true"),
+    ("read_only_snapshot", "true"),
+    ("source_verified", "true"),
+    ("source_evidence_sha256", "unknown"),
+])
+def test_fault_injection_forged_reader_attestation(field, bad):
+    data = snapshot()
+    data[field] = bad
+    assert reconcile(data, enabled=True).action == "ALERT"
+
+
+def test_fault_injection_duplicate_identity_has_stable_evidence():
+    data = snapshot()
+    data["rows"].append(row(0))
+    first = reconcile(data, enabled=True)
+    second = reconcile(deepcopy(data), enabled=True)
+    assert first.action == second.action == "PROPOSE_QUARANTINE"
+    assert first.evidence_ref == second.evidence_ref
+    assert first.proposal["execution_authorized"] is False
