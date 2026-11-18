@@ -28,7 +28,9 @@ def endpoint_key(url: str) -> str:
         p = urlsplit(url)
         if (p.scheme != "https" or p.hostname not in HOSTS or
                 p.port not in (None, 443) or p.username is not None or
-                p.password is not None or p.fragment or not p.path.startswith("/v5/market/") or
+                p.password is not None or p.fragment or
+                (not p.path.startswith("/v5/market/") and
+                 not (p.hostname == "public.bybit.com" and p.path.startswith("/trading/"))) or
                 p.query or p.netloc not in HOSTS):
             raise ValueError("unapproved_endpoint")
     except (ValueError, TypeError) as exc:
@@ -38,7 +40,8 @@ def endpoint_key(url: str) -> str:
 
 def retry_after_seconds(value: object, now_utc: datetime) -> int | None:
     """Parse delta seconds or HTTP date, rejecting invalid/out-of-budget values."""
-    if type(value) is not str or not value or len(value) > 128:
+    if (type(value) is not str or not value or len(value) > 128 or
+            not isinstance(now_utc, datetime) or now_utc.tzinfo is None):
         return None
     if value.isascii() and value.isdecimal():
         seconds = int(value) if len(value) <= 6 else MAX_BACKOFF + 1
@@ -125,6 +128,13 @@ class ExchangeGuardian:
             return self._invalid()
         state = self._state.setdefault(key, {"attempts": 0, "until": 0.0,
                                              "circuit": "CLOSED", "seen": set()})
+        # A TLS fault is a safety signal even during a rate-limit cooldown.
+        if observation.kind == "tls_failure":
+            state["circuit"] = "HALTED"
+            state["seen"].add(observation.evidence_ref)
+            return self._verdict(state, observation, "UNAVAILABLE",
+                                 "tls_verification_failed", "PROPOSE_STOP_SOURCE",
+                                 "tls_fail_closed", None)
         if observation.evidence_ref in state["seen"]:
             return self._verdict(state, observation, "DEGRADED", "duplicate",
                                  "NONE", "duplicate_evidence", None)
@@ -138,11 +148,6 @@ class ExchangeGuardian:
         state["seen"].add(observation.evidence_ref)
         if len(state["seen"]) > 128:
             state["seen"] = {observation.evidence_ref}
-        if observation.kind == "tls_failure":
-            state["circuit"] = "HALTED"
-            return self._verdict(state, observation, "UNAVAILABLE",
-                                 "tls_verification_failed", "PROPOSE_STOP_SOURCE",
-                                 "tls_fail_closed", None)
         if observation.kind == "http" and observation.status_code == 429:
             after = retry_after_seconds(observation.retry_after,
                                         now_utc or datetime.now(timezone.utc))
