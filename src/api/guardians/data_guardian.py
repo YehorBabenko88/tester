@@ -145,6 +145,8 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
             return _conflict("invalid_volume", scope, snapshot)
         if row.get("closed") is not True:
             return _alert("unclosed_candle", scope)
+        if row.get("close_time_ms") != ts + step - 1:
+            return _conflict("candle_close_time_mismatch", scope, snapshot)
 
     missing = [ts for ts in range(start, end, step) if ts not in keys]
     if not missing:
