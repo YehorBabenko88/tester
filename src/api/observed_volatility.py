@@ -3,6 +3,7 @@
 Pure calculation only. The caller must supply independently verified candles with
 source evidence; this module does not assert that a historical provider exists.
 """
+
 from decimal import Decimal, InvalidOperation
 from math import isfinite, log, sqrt
 
