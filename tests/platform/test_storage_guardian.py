@@ -5,7 +5,12 @@ from unittest.mock import patch
 
 import pytest
 
-from src.api.guardians.storage_guardian import cleanup_authorization, inventory
+from src.api.guardians.storage_guardian import (
+    MAX_ENTRIES,
+    _safe,
+    cleanup_authorization,
+    inventory,
+)
 
 
 def test_default_disabled(tmp_path):
@@ -92,13 +97,10 @@ def test_no_executor(tmp_path):
 
 
 def test_missing_tmp(tmp_path):
-    from src.api.guardians.storage_guardian import inventory
     assert inventory(tmp_path, min_free_bytes=0, quota_bytes=1, enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
 
 
 def test_exact_age_boundary_and_young(tmp_path):
-    from src.api.guardians.storage_guardian import inventory
-    import os
     folder = tmp_path / "tmp"
     folder.mkdir()
     for name, stamp in (("boundary.part", 13600), ("young.part", 13601)):
@@ -111,7 +113,6 @@ def test_exact_age_boundary_and_young(tmp_path):
 
 
 def test_directory_part_not_selected(tmp_path):
-    from src.api.guardians.storage_guardian import inventory
     folder = tmp_path / "tmp"
     folder.mkdir()
     (folder / "fake.part").mkdir()
@@ -121,7 +122,6 @@ def test_directory_part_not_selected(tmp_path):
 
 
 def test_limit_10001(tmp_path):
-    from src.api.guardians.storage_guardian import MAX_ENTRIES, inventory
     folder = tmp_path / "tmp"
     folder.mkdir()
     for i in range(MAX_ENTRIES + 1):
@@ -133,14 +133,12 @@ def test_limit_10001(tmp_path):
 
 @pytest.mark.parametrize("clock", [float("nan"), float("inf"), -1, True, "bad"])
 def test_invalid_clock(tmp_path, clock):
-    from src.api.guardians.storage_guardian import inventory
     result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
                        now=clock, enabled=True)
     assert result["status"] == "ALERT_INVALID_CLOCK"
 
 
 def test_symlink_ancestor(tmp_path):
-    from src.api.guardians.storage_guardian import inventory
     real = tmp_path / "real"
     (real / "tmp").mkdir(parents=True)
     link = tmp_path / "link"
@@ -153,7 +151,6 @@ def test_symlink_ancestor(tmp_path):
 
 
 def test_reparse_flag_simulation(tmp_path):
-    from src.api.guardians.storage_guardian import _safe
     (tmp_path / "tmp").mkdir()
     original = Path.lstat
 
@@ -171,7 +168,6 @@ def test_reparse_flag_simulation(tmp_path):
 
 
 def test_toctou_root_revalidation(tmp_path):
-    from src.api.guardians.storage_guardian import inventory, _safe
     folder = tmp_path / "tmp"
     folder.mkdir()
     target = folder / "old.part"
@@ -183,20 +179,20 @@ def test_toctou_root_revalidation(tmp_path):
         nonlocal checks
         if path == folder:
             checks += 1
-            if checks == 2:
+            if checks == 3:
                 return False
         return _safe(path)
 
     with patch("src.api.guardians.storage_guardian._safe", side_effect=changed):
         result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
                            now=100000, enabled=True)
+    assert checks >= 3
     assert result["status"] == "ALERT_ROOT_CHANGED"
     assert result["candidates"] == []
     assert target.exists()
 
 
 def test_toctou_file_replaced_with_link(tmp_path):
-    from src.api.guardians.storage_guardian import inventory, _safe
     folder = tmp_path / "tmp"
     folder.mkdir()
     target = folder / "old.part"
