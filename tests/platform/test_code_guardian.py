@@ -82,5 +82,97 @@ class TestCodeGuardian(unittest.TestCase):
         self.assertEqual(request_code_review("cmd /c foo", "sha256:" + "c" * 64, HEAD).action, "ALERT")
 
 
+class TestCodeGuardianFaultInjection(unittest.TestCase):
+    """Adversarial evidence tests: no Windows services, network or database."""
+
+    def test_forged_process_ownership_attestation(self):
+        for change in (
+            {"service": "OtherWorker", "expected_service": "TesterWorker"},
+            {"sid_verified": 1},
+            {"image_verified": "true"},
+            {"config_verified": None},
+            {"lease_clear": 1},
+            {"expected_service": "OtherWorker"},
+        ):
+            with self.subTest(change=change):
+                result = CodeGuardian(enabled=True).evaluate(
+                    replace(ident(), **change), probes(), now=100, restarts_last_hour=0
+                )
+                self.assertEqual((result.action, result.reason), ("ALERT", "ownership_unverified"))
+
+    def test_stale_or_invalid_version_sha(self):
+        for change in (
+            {"head": "b" * 40},
+            {"expected_head": "b" * 40},
+            {"head": "A" * 40},
+            {"head": "not-a-commit"},
+        ):
+            with self.subTest(change=change):
+                result = CodeGuardian(enabled=True).evaluate(
+                    replace(ident(), **change), probes(), now=100, restarts_last_hour=0
+                )
+                self.assertEqual(result.reason, "ownership_unverified")
+
+    def test_contradictory_probe_blocks_restart(self):
+        samples = list(probes())
+        samples[1] = replace(samples[1], healthy=True)
+        result = CodeGuardian(enabled=True).evaluate(
+            ident(), tuple(samples), now=100, restarts_last_hour=0
+        )
+        self.assertEqual((result.action, result.reason), ("ALERT", "failure_unconfirmed"))
+
+    def test_stale_future_and_malformed_probes(self):
+        for change in (
+            {"timestamp": 69},
+            {"timestamp": 101},
+            {"timestamp": True},
+            {"healthy": 0},
+            {"evidence": "sha256:invalid"},
+            {"sample_id": "../other"},
+        ):
+            with self.subTest(change=change):
+                samples = list(probes())
+                samples[0] = replace(samples[0], **change)
+                result = CodeGuardian(enabled=True).evaluate(
+                    ident(), tuple(samples), now=100, restarts_last_hour=0
+                )
+                self.assertEqual(result.reason, "invalid_or_stale_probe")
+
+    def test_duplicate_incident_with_rotated_sample_ids(self):
+        guardian = CodeGuardian(enabled=True)
+        first = guardian.evaluate(ident(), probes(), now=100, restarts_last_hour=0)
+        rotated = tuple(
+            replace(sample, sample_id="rotated" + str(i))
+            for i, sample in enumerate(probes())
+        )
+        second = guardian.evaluate(ident(), rotated, now=100, restarts_last_hour=0)
+        self.assertEqual(first.action, "PROPOSE_OWNED_RESTART")
+        self.assertEqual((second.action, second.reason), ("ALERT", "duplicate_incident"))
+        self.assertEqual(first.fingerprint, second.fingerprint)
+
+    def test_failed_after_check_never_verifies_recovery(self):
+        samples = list(probes(healthy=True))
+        samples[2] = replace(samples[2], healthy=False)
+        failed = CodeGuardian.verify(
+            ident(), tuple(samples), now=100, independent_verifier=True
+        )
+        self.assertEqual((failed.action, failed.reason), ("ALERT", "after_check_failed"))
+
+    def test_after_check_rejects_wrong_identity_and_stale_evidence(self):
+        samples = list(probes(healthy=True))
+        samples[0] = replace(samples[0], timestamp=0)
+        stale = CodeGuardian.verify(
+            ident(), tuple(samples), now=100, independent_verifier=True
+        )
+        wrong_head = CodeGuardian.verify(
+            replace(ident(), head="b" * 40),
+            probes(healthy=True),
+            now=100,
+            independent_verifier=True,
+        )
+        self.assertEqual(stale.reason, "after_check_failed")
+        self.assertEqual(wrong_head.reason, "ownership_unverified")
+
+
 if __name__ == "__main__":
     unittest.main()
