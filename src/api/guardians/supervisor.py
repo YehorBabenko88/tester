@@ -98,6 +98,9 @@ class DurableSupervisor:
 
     def _begin(self) -> None:
         self.db.execute("BEGIN IMMEDIATE")
+        if not self.verify_chain():
+            self.db.execute("ROLLBACK")
+            raise RuntimeError("guardian_receipt_chain_corrupt")
 
     def _stopped(self) -> bool:
         return bool(self.db.execute("SELECT stopped FROM control WHERE id=1").fetchone()[0])
@@ -259,11 +262,13 @@ class DurableSupervisor:
 
     def verify_chain(self) -> bool:
         previous = "0" * 64
-        for key, role, status, reason, epoch, at, prev, digest in self.db.execute(
-            "SELECT event_key,role,status,reason,epoch,at,previous_hash,hash FROM receipts ORDER BY seq"
+        expected_seq = 1
+        for seq, key, role, status, reason, epoch, at, prev, digest in self.db.execute(
+            "SELECT seq,event_key,role,status,reason,epoch,at,previous_hash,hash FROM receipts ORDER BY seq"
         ):
             payload = json.dumps([previous, key, role, status, reason, epoch, at], separators=(",", ":"))
-            if prev != previous or hashlib.sha256(payload.encode()).hexdigest() != digest:
+            if seq != expected_seq or prev != previous or hashlib.sha256(payload.encode()).hexdigest() != digest:
                 return False
+            expected_seq += 1
             previous = digest
         return True
