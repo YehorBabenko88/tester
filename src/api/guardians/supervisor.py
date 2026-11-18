@@ -163,7 +163,7 @@ class DurableSupervisor:
                 result = self._append(None, "master", "DENIED", "invalid_reservation")
             else:
                 original = self.db.execute(
-                    "SELECT role,status FROM receipts WHERE seq=? AND event_key=?",
+                    "SELECT role,status,reason FROM receipts WHERE seq=? AND event_key=?",
                     (receipt.sequence, receipt.event_key),
                 ).fetchone()
                 identity = self.db.execute(
@@ -175,12 +175,19 @@ class DurableSupervisor:
                 existing = self.db.execute(
                     "SELECT expires FROM leases WHERE scope=?", (scope,)
                 ).fetchone()
-                is_restart = original == ("code", "PROPOSED") and receipt.reason == "PROPOSE_OWNED_RESTART"
+                is_restart = original == ("code", "PROPOSED", "PROPOSE_OWNED_RESTART")
                 recent = self.db.execute(
                     "SELECT COUNT(*) FROM restart_attempts WHERE scope=? AND at>?",
                     (scope, now - self.restart_window_seconds),
                 ).fetchone()[0]
-                if original != (receipt.role, "PROPOSED") or identity != (receipt.role,):
+                if (
+                    original != (receipt.role, "PROPOSED", receipt.reason)
+                    or identity != (receipt.role,)
+                    or self.db.execute(
+                        "SELECT 1 FROM receipts WHERE event_key=? AND status='RESERVED'",
+                        (receipt.event_key,),
+                    ).fetchone()
+                ):
                     result = self._append(None, "master", "DENIED", "untrusted_receipt")
                 elif existing and existing[0] > now:
                     result = self._append(receipt.event_key, receipt.role, "DENIED", "lease_busy")
@@ -225,6 +232,11 @@ class DurableSupervisor:
             valid = (
                 self.enabled and not self._stopped()
                 and reservation.status == "RESERVED"
+                and self.db.execute(
+                    "SELECT 1 FROM receipts WHERE seq=? AND event_key=? AND role=? "
+                    "AND status='RESERVED' AND epoch=?",
+                    (reservation.sequence, reservation.event_key, reservation.role, reservation.epoch),
+                ).fetchone() is not None
                 and row is not None and row[0] == reservation.event_key
                 and row[1] == reservation.epoch and row[2] == owner
                 and row[3] > time.time()
