@@ -10,9 +10,9 @@ services, access PostgreSQL, submit orders, update candles, or run shell/LLM cod
 with `enabled=True` in isolated tests. Proposals require a separate independent
 supervisor policy and manual deployment gate. No automatic retry is executed.
 
-Allowed URL identities are exact official HTTPS hosts and `/v5/market/` paths,
-without query strings, credentials, fragments, nonstandard ports or redirects.
-Each endpoint has a separate in-memory circuit. TLS failure is a persistent halt
+Allowed URL identities are exact official HTTPS hosts and `/v5/market/` paths,\nplus `/trading/` archives on `public.bybit.com` only,
+without query strings, credentials, fragments, explicit ports or redirects.\nThis is deliberately narrower than Transport's host-only allowlist;\nGuardian does not authorize arbitrary endpoints merely because Transport accepts them.
+Each endpoint has a separate in-memory circuit. TLS faults preempt cooldown. TLS failure is a persistent halt
 until explicit manual reset. Invalid Retry-After triggers a protective one-hour
 pause rather than an immediate retry. Timeouts and HTTP 5xx yield at most two
 bounded retry proposals before opening a circuit. All times are monotonic caller
@@ -40,7 +40,7 @@ PostgreSQL port 5432, active Preview or trading configuration.
 
 ## Evidence and remaining acceptance
 
-Tests cover disabled mode, allowlist/SSRF, 429 and Retry-After, timeout exhaustion,
+Tests cover disabled mode, allowlist/SSRF, 429 and Retry-After (including HTTP dates), timeout exhaustion,
 TLS fail-closed and manual reset, stale source, HTTP 500, malformed/redirect,
 duplicate evidence, per-endpoint isolation, and recovery without history claims.
 
