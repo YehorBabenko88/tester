@@ -72,8 +72,8 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
         for name in entries:
             path = tmp / name
             if not _safe(path):
-                result["proposals"].append("ALERT_REPARSE_ENTRY")
-                continue
+                return {**result, "status": "ALERT_REPARSE_ENTRY",
+                        "candidates": [], "bytes_reclaimable": 0, "proposals": []}
             info = path.lstat()
             if not stat.S_ISREG(info.st_mode):
                 continue
