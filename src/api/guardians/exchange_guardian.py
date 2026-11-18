@@ -5,8 +5,6 @@ The caller supplies independently measured observations and monotonic time.
 """
 from __future__ import annotations
 
-import hashlib
-import json
 import math
 from dataclasses import dataclass
 from email.utils import parsedate_to_datetime
@@ -218,7 +216,7 @@ class ExchangeGuardian:
                        observation.evidence_ref)
 
 
-def supervisor_event(observation: Observation, verdict: Verdict) -> dict:
+def supervisor_event(observation: Observation, verdict: Verdict, *, now: float) -> dict:
     """Minimal sanitized event; never contains query strings or raw HTTP bodies."""
     scope = endpoint_key(observation.endpoint)
     event = {"component": "exchange", "environment": "tester_preview",
@@ -226,7 +224,9 @@ def supervisor_event(observation: Observation, verdict: Verdict) -> dict:
              "evidence_ref": verdict.evidence_ref,
              "ownership_verified": True}
     if verdict.signal == "http_429" and verdict.proposal == "PROPOSE_RATE_BACKOFF":
-        event["retry_after_seconds"] = math.ceil(verdict.retry_at or 0)  # caller should normalize
+        event["retry_after_seconds"] = math.ceil((verdict.retry_at or 0) - now)
+    if verdict.signal == "http_429" and verdict.proposal != "PROPOSE_RATE_BACKOFF":
+        event["signal"] = "unqualified_http_429"
     if verdict.signal == "transient_timeout":
         event["attempts"] = verdict.attempts - 1
     return event
