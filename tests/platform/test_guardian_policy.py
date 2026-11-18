@@ -10,7 +10,10 @@ def event(component, signal, **fields):
 def test_unknown_and_foreign_events_fail_closed():
     assert decide(None).action == "ALERT"
     assert decide(event("something", "anything")).action == "ALERT"
-    assert decide({**event("code", "service_unhealthy"), "environment": "production"}).action == "ALERT"
+    assert (
+        decide({**event("code", "service_unhealthy"), "environment": "production"}).action
+        == "ALERT"
+    )
     assert decide({**event("code", "service_unhealthy"), "evidence_ref": ""}).action == "ALERT"
 
 
@@ -87,9 +90,7 @@ def test_cleanup_only_owned_old_direct_part_files():
 
 
 def test_tls_failures_never_propose_tls_bypass():
-    assert decide(event("exchange", "tls_verification_failed")).action == (
-        "PROPOSE_STOP_SOURCE"
-    )
+    assert decide(event("exchange", "tls_verification_failed")).action == ("PROPOSE_STOP_SOURCE")
 
 
 def test_rate_limit_and_retry_budgets():
