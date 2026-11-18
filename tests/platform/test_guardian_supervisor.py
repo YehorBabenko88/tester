@@ -189,3 +189,15 @@ def test_tail_truncation_is_detected(tmp_path):
     with pytest.raises(RuntimeError, match="guardian_receipt_chain_corrupt"):
         s.submit(event(evidence_ref="sha256:" + "c" * 64))
     s.close()
+
+
+def test_corrupt_journal_reopen_refused(tmp_path):
+    import pytest
+
+    path = tmp_path / "receipts.sqlite"
+    s = DurableSupervisor(path, enabled=True)
+    s.submit(event())
+    s.db.execute("UPDATE receipts SET reason='forged' WHERE seq=1")
+    s.close()
+    with pytest.raises(RuntimeError, match="guardian_receipt_chain_corrupt"):
+        DurableSupervisor(path, enabled=True)
