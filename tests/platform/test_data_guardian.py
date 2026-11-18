@@ -1,6 +1,8 @@
 """Independent positive and negative tests for read-only Data Guardian."""
 from copy import deepcopy
 
+import pytest
+
 from src.api.guardians.data_guardian import reconcile
 
 H = "a" * 64
@@ -11,13 +13,22 @@ def snapshot():
     return {
         "environment": "tester_preview", "schema_verified": True,
         "dsn_isolated": True, "postgres_port": 55432,
+        "database_name": "tester_preview", "database_role": "guardian_readonly",
+        "dsn_identity_verified": True,
         "read_only_snapshot": True, "baseline_verified": True,
+        "history_state": "bounded_verified",
         "baseline_sha256": H, "category": "linear", "symbol": "BTCUSDT",
         "interval": "1", "start_ms": 0, "end_ms": 3 * STEP,
         "source": "bybit", "source_verified": True,
+        "source_evidence_sha256": H,
         "source_gap_proof_verified": True, "catalog_verified": True,
+        "source_gap_proof_sha256": H,
+        "source_gap_proof_scope": "bybit/linear/BTCUSDT/1",
+        "source_gap_proof_start_ms": 0, "source_gap_proof_end_ms": 3 * STEP,
         "catalog_handler": "CatalogHandler", "fenced_writer_verified": True,
         "lease_epoch": 12, "overlapping_writer": False,
+        "lease_scope": "bybit/linear/BTCUSDT/1",
+        "lease_evidence_sha256": H,
         "queue_identity_verified": True,
         "rows": [row(0), row(2 * STEP)],
     }
@@ -133,3 +144,98 @@ def test_no_input_mutation():
     original = deepcopy(data)
     reconcile(data, enabled=True)
     assert data == original
+
+
+@pytest.mark.parametrize("field", ["open", "high", "low", "close"])
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf"), -1, 0, True])
+def test_invalid_price_quarantine(field, bad):
+    data = snapshot()
+    data["rows"][0][field] = bad
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_QUARANTINE"
+    assert result.reason == "invalid_ohlc"
+    assert result.proposal["preserve_raw"] is True
+    assert result.proposal["execution_authorized"] is False
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf"), -1, True, "0"])
+def test_invalid_volume_quarantine(bad):
+    data = snapshot()
+    data["rows"][0]["volume"] = bad
+    assert reconcile(data, enabled=True).reason == "invalid_volume"
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("database_name", "production"), ("database_role", "postgres"),
+    ("dsn_identity_verified", False), ("postgres_port", True),
+    ("postgres_port", "55432"), ("postgres_port", 5432),
+    ("dsn_isolated", "true"),
+])
+def test_forged_dsn_attestation_denied(field, bad):
+    data = snapshot()
+    data[field] = bad
+    assert reconcile(data, enabled=True).reason == "database_isolation_unverified"
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("history_state", "unknown"), ("history_state", "complete"),
+    ("baseline_verified", False), ("baseline_sha256", "bad"),
+])
+def test_unknown_history_or_baseline_denied(field, bad):
+    data = snapshot()
+    data[field] = bad
+    assert reconcile(data, enabled=True).action == "ALERT"
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("source_gap_proof_sha256", "bad"),
+    ("source_gap_proof_scope", "bybit/spot/BTCUSDT/1"),
+    ("source_gap_proof_start_ms", STEP),
+    ("source_gap_proof_end_ms", 4 * STEP),
+    ("source_gap_proof_verified", "true"),
+])
+def test_forged_or_wrong_scope_gap_proof_denied(field, bad):
+    data = snapshot()
+    data[field] = bad
+    assert reconcile(data, enabled=True).reason == "gap_source_proof_missing"
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("lease_scope", "bybit/spot/BTCUSDT/1"),
+    ("lease_evidence_sha256", "bad"), ("lease_epoch", True),
+    ("lease_epoch", -1), ("overlapping_writer", None),
+    ("fenced_writer_verified", False), ("queue_identity_verified", False),
+])
+def test_fencing_and_overlap_denied(field, bad):
+    data = snapshot()
+    data[field] = bad
+    assert reconcile(data, enabled=True).reason == "catalog_or_fencing_unverified"
+
+
+def test_noncontiguous_missing_windows_proposal_only():
+    data = snapshot()
+    data["end_ms"] = 5 * STEP
+    data["source_gap_proof_end_ms"] = 5 * STEP
+    data["rows"] = [row(0), row(2 * STEP), row(4 * STEP)]
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_BOUNDED_BACKFILL"
+    assert result.proposal["missing_open_times_ms"] == [STEP, 3 * STEP]
+    assert result.proposal["history_complete"] is False
+    assert result.proposal["execution_authorized"] is False
+
+
+def test_conflict_evidence_preserved_without_mutation():
+    data = snapshot()
+    data["rows"].append(row(0))
+    before = deepcopy(data)
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_QUARANTINE"
+    assert result.proposal["preserve_raw"] is True
+    assert result.proposal["execution_authorized"] is False
+    assert data == before
+
+
+def test_source_evidence_missing_denied():
+    data = snapshot()
+    data["source_evidence_sha256"] = None
+    assert reconcile(data, enabled=True).reason == "source_unverified"
