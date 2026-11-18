@@ -77,6 +77,16 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
             info = path.lstat()
             if not stat.S_ISREG(info.st_mode):
                 continue
+            # A second read catches some concurrent swaps; never grants deletion.
+            second = path.lstat()
+            identity = lambda item: (
+                item.st_dev, item.st_ino, item.st_mode,
+                item.st_size, item.st_mtime_ns,
+                getattr(item, "st_file_attributes", 0),
+            )
+            if identity(info) != identity(second) or not _safe(path):
+                return {**result, "status": "ALERT_FILE_CHANGED",
+                        "candidates": [], "bytes_reclaimable": 0, "proposals": []}
             used += info.st_size
             if not name.endswith(".part") or info.st_mtime > timestamp - AGE_SECONDS:
                 continue
