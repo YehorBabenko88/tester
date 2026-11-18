@@ -179,14 +179,14 @@ def test_toctou_root_revalidation(tmp_path):
         nonlocal checks
         if path == folder:
             checks += 1
-            if checks == 2:
+            if checks == 4:
                 return False
         return _safe(path)
 
     with patch("src.api.guardians.storage_guardian._safe", side_effect=changed):
         result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
                            now=100000, enabled=True)
-    assert checks >= 2
+    assert checks >= 4
     assert result["status"] == "ALERT_ROOT_CHANGED"
     assert result["candidates"] == []
     assert target.exists()
