@@ -1,0 +1,132 @@
+"""Offline negative and recovery acceptance for Exchange Guardian."""
+from datetime import datetime, timezone
+import pytest
+
+from src.api.guardians.exchange_guardian import (
+    ExchangeGuardian, Observation, endpoint_key, retry_after_seconds,
+)
+
+URL = "https://api.bybit.com/v5/market/kline"
+DIGEST = "sha256:" + "a" * 64
+
+
+def obs(kind="http", **kwargs):
+    defaults = dict(endpoint=URL, kind=kind, elapsed_ms=50,
+                    evidence_ref=DIGEST, status_code=200 if kind == "http" else None,
+                    source_age_seconds=10, source_verified=True)
+    defaults.update(kwargs)
+    return Observation(**defaults)
+
+
+def test_disabled_default():
+    assert ExchangeGuardian().inspect(obs(), now=1).status == "DISABLED"
+
+
+@pytest.mark.parametrize("url", [
+    "http://api.bybit.com/v5/market/kline",
+    "https://evil.com/v5/market/kline",
+    "https://api.bybit.com.evil.com/v5/market/kline",
+    "https://user:secret@api.bybit.com/v5/market/kline",
+    "https://api.bybit.com:444/v5/market/kline",
+    "https://api.bybit.com/v5/order/create",
+    "https://api.bybit.com/v5/market/kline?api_key=secret",
+    "https://api.bybit.com/v5/market/kline#fragment",
+]):
+def test_endpoint_allowlist(url):
+    with pytest.raises(ValueError):
+        endpoint_key(url)
+
+
+def test_429_respects_retry_after_and_blocks_cooldown():
+    g = ExchangeGuardian(enabled=True)
+    first = g.inspect(obs(status_code=429, retry_after="30"), now=100)
+    assert first.proposal == "PROPOSE_RATE_BACKOFF"
+    assert first.retry_at == 130
+    assert g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=101).reason == "backoff_active"
+
+
+def test_invalid_429_opens_circuit_without_retry():
+    g = ExchangeGuardian(enabled=True)
+    result = g.inspect(obs(status_code=429, retry_after="garbage"), now=0)
+    assert result.proposal == "NONE"
+    assert result.circuit == "OPEN"
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "3601", "nan", "1.5", "999999999", ""])
+def test_bad_retry_after(value):
+    assert retry_after_seconds(value, datetime.now(timezone.utc)) is None
+
+
+def test_http_date_retry_after():
+    from email.utils import format_datetime
+    from datetime import timedelta
+    now = datetime(2026, 11, 18, tzinfo=timezone.utc)
+    assert retry_after_seconds(format_datetime(now + timedelta(seconds=20)), now) == 20
+
+
+def test_timeout_budget_and_open_circuit():
+    g = ExchangeGuardian(enabled=True)
+    for i in range(3):
+        result = g.inspect(obs("timeout", evidence_ref="sha256:" + str(i) * 64),
+                           now=[0, 2, 5][i])
+    assert result.status == "UNAVAILABLE"
+    assert result.circuit == "OPEN"
+    assert result.proposal == "NONE"
+
+
+def test_tls_halts_until_manual_reset():
+    g = ExchangeGuardian(enabled=True)
+    assert g.inspect(obs("tls_failure"), now=0).proposal == "PROPOSE_STOP_SOURCE"
+    assert g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=9999).circuit == "HALTED"
+    assert not g.reset_tls_halt(URL, manual_authorized=False)
+    assert g.reset_tls_halt(URL, manual_authorized=True)
+    assert g.inspect(obs(evidence_ref="sha256:" + "c" * 64), now=10000).status == "MONITORING"
+
+
+@pytest.mark.parametrize("kind,code", [("malformed", None), ("http", 500),
+                                       ("http", 403), ("http", 302)])
+def test_non_success_never_verifies(kind, code):
+    g = ExchangeGuardian(enabled=True)
+    result = g.inspect(obs(kind, status_code=code), now=0)
+    assert result.status != "MONITORING"
+    assert not result.history_complete
+
+
+def test_stale_and_unverified_source():
+    for change in ({"source_age_seconds": 200}, {"source_verified": False},
+                   {"source_age_seconds": None}):
+        result = ExchangeGuardian(enabled=True).inspect(obs(**change), now=0)
+        assert result.signal == "source_stale"
+        assert result.proposal == "PROPOSE_MARK_UNAVAILABLE"
+
+
+def test_restored_transport_never_claims_history():
+    g = ExchangeGuardian(enabled=True)
+    g.inspect(obs("timeout"), now=0)
+    recovered = g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=2)
+    assert recovered.status == "MONITORING"
+    assert recovered.history_complete is False
+    assert recovered.gaps_reconciled is False
+
+
+def test_duplicate_and_invalid_evidence():
+    g = ExchangeGuardian(enabled=True)
+    g.inspect(obs(), now=0)
+    assert g.inspect(obs(), now=1).reason == "duplicate_evidence"
+    assert g.inspect(obs(evidence_ref="bad"), now=2).proposal == "NONE"
+
+
+def test_independent_endpoint_circuits():
+    g = ExchangeGuardian(enabled=True)
+    g.inspect(obs("tls_failure"), now=0)
+    other = obs(endpoint="https://public.bybit.com/v5/market/kline",
+                evidence_ref="sha256:" + "b" * 64)
+    assert g.inspect(other, now=0).status == "MONITORING"
+
+
+def test_no_transport_or_storage_side_effects(monkeypatch):
+    import socket
+    monkeypatch.setattr(socket, "create_connection",
+                        lambda *a, **k: pytest.fail("network not allowed"))
+    g = ExchangeGuardian(enabled=True)
+    assert g.inspect(obs(), now=0).status == "MONITORING"
