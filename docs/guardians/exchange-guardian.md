@@ -50,3 +50,14 @@ independent release gates: until proven, **NO-GO**. Module is not deployed.
 Source patterns reviewed: KorroAi/mue-x orchestrator roles, error fingerprints,
 memory lattice, guard and sandbox. Only typed roles and verified evidence concepts
 were adopted; no autonomous code execution, mutable learning or subprocess sandbox.
+
+## CI regression record (2026-11-18)
+
+Prior exact HEAD `7e0a5230093f3df7587af5e9cfc0f2a8867e11f9` failed
+Python compileall due to a malformed `pytest.mark.parametrize` decorator in
+`tests/platform/test_exchange_guardian.py`. Platform acceptance also reported
+Exchange-owned Ruff I001 and UP017. Both are corrected in the Draft PR.
+Foundation `tests/platform/test_guardian_policy.py` I001 is MASTER-owned and
+is deliberately not changed here. New exact-head CI must independently verify
+these corrections; queued jobs are not a PASS. Never infer complete history
+from HTTP 200 or a restored transport circuit.
