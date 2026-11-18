@@ -255,3 +255,67 @@ def test_extremely_large_integer_fails_closed(field):
     result = reconcile(data, enabled=True)
     assert result.action == "PROPOSE_QUARANTINE"
     assert result.proposal["execution_authorized"] is False
+
+
+def test_fault_injection_corrupt_each_row_without_repair():
+    """Corrupt every candle independently; never mutate or authorize repair."""
+    for index in (0, 1):
+        for field, value in (
+            ("open", float("nan")),
+            ("high", float("inf")),
+            ("low", -float("inf")),
+            ("close", -1),
+            ("volume", -1),
+            ("observed_sha256", "b" * 64),
+            ("source", "unknown"),
+            ("provenance_verified", False),
+            ("original_projection_verified", False),
+        ):
+            data = snapshot()
+            data["rows"][index][field] = value
+            original = deepcopy(data)
+            result = reconcile(data, enabled=True)
+            assert result.action == "PROPOSE_QUARANTINE", (index, field)
+            assert result.proposal["execution_authorized"] is False
+            assert result.proposal["preserve_raw"] is True
+            assert data == original
+
+
+def test_fault_injection_gap_fencing_matrix():
+    """A gap alone never grants queue execution or bypasses fencing."""
+    for key, value in (
+        ("source_gap_proof_verified", False),
+        ("source_gap_proof_sha256", None),
+        ("source_gap_proof_scope", "bybit/spot/BTCUSDT/1"),
+        ("catalog_verified", False),
+        ("catalog_handler", "OtherHandler"),
+        ("fenced_writer_verified", False),
+        ("lease_epoch", 0),
+        ("lease_scope", "bybit/spot/BTCUSDT/1"),
+        ("lease_evidence_sha256", "invalid"),
+        ("overlapping_writer", True),
+        ("queue_identity_verified", False),
+    ):
+        data = snapshot()
+        data[key] = value
+        assert reconcile(data, enabled=True).action == "ALERT", key
+
+
+def test_fault_injection_no_implicit_full_history_claim():
+    """Even a complete bounded sample cannot certify global history."""
+    data = snapshot()
+    data["rows"].insert(1, row(STEP))
+    result = reconcile(data, enabled=True)
+    assert result.action == "OBSERVED_CONSISTENT"
+    assert result.proposal is None
+    assert result.reason == "sample_consistent_not_full_history"
+
+
+def test_fault_injection_empty_snapshot_is_not_fabricated():
+    data = snapshot()
+    data["rows"] = []
+    result = reconcile(data, enabled=True)
+    assert result.action == "PROPOSE_BOUNDED_BACKFILL"
+    assert result.proposal["missing_open_times_ms"] == [0, STEP, 2 * STEP]
+    assert result.proposal["execution_authorized"] is False
+    assert result.proposal["history_complete"] is False
