@@ -63,6 +63,7 @@ class DurableSupervisor:
         self.db = sqlite3.connect(str(db_path), timeout=10, isolation_level=None)
         self.db.execute("PRAGMA busy_timeout=10000")
         self.db.execute("PRAGMA synchronous=FULL")
+        self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("CREATE TABLE IF NOT EXISTS control (id INTEGER PRIMARY KEY CHECK(id=1), stopped INTEGER NOT NULL)")
         self.db.execute("INSERT OR IGNORE INTO control VALUES (1,0)")
         self.db.execute("""CREATE TABLE IF NOT EXISTS receipts (
@@ -79,6 +80,10 @@ class DurableSupervisor:
             scope TEXT PRIMARY KEY, last_epoch INTEGER NOT NULL)""")
         self.db.execute("""CREATE TABLE IF NOT EXISTS restart_attempts (
             scope TEXT NOT NULL, at REAL NOT NULL)""")
+
+        if not self.verify_chain():
+            self.db.close()
+            raise RuntimeError("guardian_receipt_chain_corrupt")
 
     def close(self) -> None:
         self.db.close()
