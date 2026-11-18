@@ -243,3 +243,42 @@ def test_candidate_identity_swap_fail_closed(tmp_path):
     assert result["status"] == "ALERT_FILE_CHANGED"
     assert result["candidates"] == []
     assert target.read_bytes() == b"safe"
+
+
+def test_dry_run_does_not_modify_any_file(tmp_path):
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    protected = {}
+    for name in ("old.part", "young.part", "backup.part.bak", "pg_wal", "history.db"):
+        path = folder / name
+        path.write_bytes(name.encode())
+        protected[name] = path.read_bytes()
+        if name != "young.part":
+            os.utime(path, (100, 100))
+    first = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
+                      now=100000, enabled=True)
+    second = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
+                       now=100000, enabled=True)
+    assert first["status"] == second["status"] == "OBSERVED"
+    assert first["evidence_sha256"] == second["evidence_sha256"]
+    assert [item["name"] for item in first["candidates"]] == ["old.part"]
+    assert all((folder / name).read_bytes() == content
+               for name, content in protected.items())
+
+
+def test_invalid_root_relative_and_missing(tmp_path):
+    assert inventory("relative/runtime", min_free_bytes=0, quota_bytes=100,
+                     enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
+    assert inventory(tmp_path / "tmp" / "..", min_free_bytes=0,
+                     quota_bytes=100, enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
+
+
+def test_scan_limit_exactly_10000(tmp_path):
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    for i in range(MAX_ENTRIES):
+        (folder / f"entry-{i}.txt").touch()
+    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
+                       enabled=True)
+    assert result["status"] == "OBSERVED"
+    assert result["candidates"] == []
