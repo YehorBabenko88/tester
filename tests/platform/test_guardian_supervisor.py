@@ -154,3 +154,24 @@ def test_reboot_simulation_persists_epoch_and_budget(tmp_path):
     assert s.reserve(second, scope="api", owner="worker").reason == "restart_budget"
     assert s.verify_chain()
     s.close()
+
+
+def test_corrupt_journal_blocks_new_admission(tmp_path):
+    import pytest
+
+    s = DurableSupervisor(tmp_path / "r.sqlite", enabled=True)
+    assert s.submit(event()).status == "PROPOSED"
+    s.db.execute("UPDATE receipts SET reason='forged' WHERE seq=1")
+    assert not s.verify_chain()
+    with pytest.raises(RuntimeError, match="guardian_receipt_chain_corrupt"):
+        s.submit(event(evidence_ref="sha256:" + "c" * 64))
+    s.close()
+
+
+def test_receipt_sequence_gap_detected(tmp_path):
+    s = DurableSupervisor(tmp_path / "r.sqlite", enabled=True)
+    s.submit(event())
+    s.submit(event(evidence_ref="sha256:" + "b" * 64))
+    s.db.execute("DELETE FROM receipts WHERE seq=1")
+    assert not s.verify_chain()
+    s.close()
