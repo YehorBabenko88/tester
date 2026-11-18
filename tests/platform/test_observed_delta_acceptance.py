@@ -3,9 +3,21 @@ from src.api.catalog_history import qualify_delta
 HOUR = 3600000
 
 
-def metric(value, timestamp, *, unit="USDT", source="https://api.bybit.com/v5/market/tickers?category=linear"):
-    return {"value": str(value), "state": "OBSERVED", "unit": unit,
-            "source": source, "source_time_ms": timestamp, "observed_at": timestamp / 1000}
+def metric(
+    value,
+    timestamp,
+    *,
+    unit="USDT",
+    source="https://api.bybit.com/v5/market/tickers?category=linear",
+):
+    return {
+        "value": str(value),
+        "state": "OBSERVED",
+        "unit": unit,
+        "source": source,
+        "source_time_ms": timestamp,
+        "observed_at": timestamp / 1000,
+    }
 
 
 def test_one_hour_price_change_from_real_baseline():
@@ -44,5 +56,7 @@ def test_different_units_and_source_are_rejected():
     old = metric("100", 1790000000000, unit="BTC")
     new = metric("110", 1790000000000 + HOUR, unit="USDT")
     assert qualify_delta(new, old, HOUR)["reason"] == "history_unit_mismatch"
-    new = metric("110", 1790000000000 + HOUR, unit="BTC", source="https://example.com/other")
+    new = metric(
+        "110", 1790000000000 + HOUR, unit="BTC", source="https://example.com/other"
+    )
     assert qualify_delta(new, old, HOUR)["reason"] == "history_source_mismatch"
