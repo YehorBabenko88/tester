@@ -1,4 +1,4 @@
-from src.api.guardian_policy import Decision, decide
+from src.api.guardian_policy import decide, Decision
 
 EVIDENCE = {"environment": "tester_preview", "evidence_ref": "sha256:verified"}
 
