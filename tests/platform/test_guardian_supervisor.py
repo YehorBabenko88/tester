@@ -122,3 +122,35 @@ def test_durable_disabled_and_invalid(tmp_path, monkeypatch):
     assert supervisor.submit(event(environment="production")).status == "DENIED"
     assert supervisor.verify_chain()
     supervisor.close()
+
+
+def test_forged_receipt_cannot_evade_restart_budget(tmp_path):
+    from dataclasses import replace
+
+    s = DurableSupervisor(tmp_path / "r.sqlite", enabled=True, restart_limit=1)
+    first = s.submit(event())
+    forged = replace(first, reason="REQUEST_CODE_REVIEW")
+    assert s.reserve(forged, scope="api", owner="worker").reason == "untrusted_receipt"
+    lease = s.reserve(first, scope="api", owner="worker")
+    assert lease.status == "RESERVED"
+    assert s.reserve(first, scope="api2", owner="worker").reason == "untrusted_receipt"
+    forged_lease = replace(lease, sequence=lease.sequence + 999)
+    assert s.finish(forged_lease, scope="api", owner="worker").status == "DENIED"
+    assert s.finish(lease, scope="api", owner="worker").status == "CLOSED"
+    s.close()
+
+
+def test_reboot_simulation_persists_epoch_and_budget(tmp_path):
+    path = tmp_path / "r.sqlite"
+    s = DurableSupervisor(path, enabled=True, restart_limit=1)
+    first = s.submit(event())
+    lease = s.reserve(first, scope="api", owner="worker")
+    assert lease.epoch == 1
+    s.close()
+    s = DurableSupervisor(path, enabled=True, restart_limit=1)
+    assert s.reserve(first, scope="api", owner="worker").reason == "lease_busy"
+    assert s.finish(lease, scope="api", owner="worker").status == "CLOSED"
+    second = s.submit(event(evidence_ref="sha256:" + "b" * 64))
+    assert s.reserve(second, scope="api", owner="worker").reason == "restart_budget"
+    assert s.verify_chain()
+    s.close()
