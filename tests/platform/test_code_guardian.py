@@ -173,7 +173,6 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         self.assertEqual(stale.reason, "after_check_failed")
         self.assertEqual(wrong_head.reason, "ownership_unverified")
 
-
     def test_distinct_sources_must_not_reuse_evidence_digest(self):
         samples = list(probes())
         samples[1] = replace(samples[1], evidence=samples[0].evidence)
@@ -192,6 +191,7 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
             (decision.action, decision.reason),
             ("ALERT", "after_check_evidence_not_independent"),
         )
+
 
 if __name__ == "__main__":
     unittest.main()
