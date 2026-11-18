@@ -175,3 +175,17 @@ def test_receipt_sequence_gap_detected(tmp_path):
     s.db.execute("DELETE FROM receipts WHERE seq=1")
     assert not s.verify_chain()
     s.close()
+
+
+def test_tail_truncation_is_detected(tmp_path):
+    import pytest
+
+    s = DurableSupervisor(tmp_path / "r.sqlite", enabled=True)
+    s.submit(event())
+    s.submit(event(evidence_ref="sha256:" + "b" * 64))
+    assert s.verify_chain()
+    s.db.execute("DELETE FROM receipts WHERE seq=2")
+    assert not s.verify_chain()
+    with pytest.raises(RuntimeError, match="guardian_receipt_chain_corrupt"):
+        s.submit(event(evidence_ref="sha256:" + "c" * 64))
+    s.close()
