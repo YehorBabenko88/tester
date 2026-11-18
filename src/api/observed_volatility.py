@@ -4,7 +4,7 @@ Pure calculation only. The caller must supply independently verified candles wit
 source evidence; this module does not assert that a historical provider exists.
 """
 from decimal import Decimal, InvalidOperation
-from math import log, sqrt, isfinite
+from math import isfinite, log, sqrt
 
 
 def realized_volatility(candles, *, interval_ms: int, annualize: bool = False):
