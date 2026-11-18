@@ -9,7 +9,7 @@ Unverified on ADMINIT: review before running. Does not import real market histor
 param([switch]$Reinstall,[switch]$CleanupOnly)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-$commit = '9f3031aea3cc47eda909a79198367119f8305e4b'
+$commit = 'dbf7316fd0f4b891f2d997b17ea26b71d5776500'
 $root = Join-Path $env:LOCALAPPDATA 'TesterPreview-ADMINIT'
 $pgRoot = Join-Path $env:ProgramData 'TesterPreview-ADMINIT-PG'
 $backup = $null
