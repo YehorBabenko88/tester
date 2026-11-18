@@ -30,3 +30,13 @@ For enabled sensor-only verification, create a **new disposable test directory**
 4. MASTER must approve any adapter integration; no merge, enablement or deployment without physical acceptance.
 
 MUE-X ideas used: role-specific typed evidence and verified incident fingerprints. Explicitly excluded: unrestricted commands, subprocess sandbox as security boundary, self-modifying code, autonomous patches and model-controlled deletion.
+
+## P0 follow-up security review (2026-11-18)
+
+- `_safe` now uses two explicit checks, `stat.S_ISLNK` and `st_file_attributes & 0x400`; no ambiguous ternary precedence.
+- The runtime root must be absolute and contain no lexical `.` or `..` components. Every ancestor is checked with `lstat`, including the direct tmp and candidate file.
+- Enumeration is bounded using `os.scandir` (no unbounded `list(iterdir())`). More than 10,000 direct entries fails closed with no manifest.
+- Reject invalid/NaN/infinite clock values, young files, non-.part names, directories, symlinks and reparse entries. Re-check tmp after scanning; any detected root change invalidates the manifest.
+- **TOCTOU remains a release blocker**: a race after the final check, or candidate swap between `lstat` and use, cannot be made safe with pathname-based Python checks alone. There is no cleanup executor and no permission to use `maintenance.cleanup_temp` in this P0.
+- Windows junction creation and real NTFS reparse behavior require physical ADMINIT acceptance. Simulated `st_file_attributes` is a unit test, not physical evidence.
+- No automated deletion or pausing is performed. No WAL, PostgreSQL, backup or historical file can be selected for cleanup.
