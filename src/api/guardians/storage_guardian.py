@@ -79,7 +79,8 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
                 continue
             # A second read catches some concurrent swaps; never grants deletion.
             second = path.lstat()
-            identity = lambda item: (
+            def identity(item):
+                return (
                 item.st_dev, item.st_ino, item.st_mode,
                 item.st_size, item.st_mtime_ns,
                 getattr(item, "st_file_attributes", 0),
