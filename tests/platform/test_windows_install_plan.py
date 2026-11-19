@@ -19,6 +19,7 @@ def fixture():
         "pg_data": ROOT + "\\postgres-data\\data",
         "pg_port": 55432,
         "package_sha256": "a" * 64,
+        "source_sha": "b" * 40,
         "services": services,
         "delete_targets": [ROOT],
     }
@@ -26,6 +27,7 @@ def fixture():
         "root": ROOT,
         "pg_data": m["pg_data"],
         "pg_port": 55432,
+        "source_sha": "b" * 40,
         "services": services,
         "reparse_points": [],
         "system_pg_5432_unchanged": True,
@@ -58,4 +60,10 @@ def test_system_pg_port_and_guardian_enable_rejected():
     assert not plan_install(m, a, signed_bundle_verified=True).allowed
     m, a = fixture()
     m["guardians_enabled"] = True
+    assert not plan_install(m, a, signed_bundle_verified=True).allowed
+
+
+def test_mismatched_source_commit_fails_closed():
+    m, a = fixture()
+    a["source_sha"] = "c" * 40
     assert not plan_install(m, a, signed_bundle_verified=True).allowed
