@@ -5,9 +5,11 @@ from email.utils import format_datetime
 
 import pytest
 
+from src.api.guardian_supervisor import GuardianSupervisor
 from src.api.guardians import exchange_guardian
 from src.api.guardians.exchange_guardian import (
     ExchangeGuardian,
+    MAX_ENDPOINTS,
     Observation,
     endpoint_key,
     retry_after_seconds,
@@ -207,9 +209,9 @@ def test_supervisor_policy_bridge_429_and_timeout():
     g = ExchangeGuardian(enabled=True)
     first = g.inspect(obs(status_code=429, retry_after="20"), now=0)
     assert decide(supervisor_event(obs(status_code=429, retry_after="20"),
-                                   first, now=0)).action == "PROPOSE_RATE_BACKOFF"
+                                   first, now=0, ownership_verified=True)).action == "PROPOSE_RATE_BACKOFF"
     timeout = ExchangeGuardian(enabled=True).inspect(obs("timeout"), now=0)
-    assert decide(supervisor_event(obs("timeout"), timeout, now=0)).action == (
+    assert decide(supervisor_event(obs("timeout"), timeout, now=0, ownership_verified=True)).action == (
         "PROPOSE_BOUNDED_RETRY"
     )
 
@@ -358,8 +360,6 @@ def test_fault_injection_encoded_or_backslash_path_fail_closed(url):
 
 
 def test_fault_injection_endpoint_cardinality_budget():
-    from src.api.guardians.exchange_guardian import MAX_ENDPOINTS
-
     guardian = ExchangeGuardian(enabled=True)
     for index in range(MAX_ENDPOINTS):
         result = guardian.inspect(
@@ -377,12 +377,10 @@ def test_fault_injection_endpoint_cardinality_budget():
 
 
 def test_integration_supervisor_dedupes_guardian_rate_proposal():
-    from src.api.guardian_supervisor import GuardianSupervisor
-
     observation = obs(status_code=429, retry_after="60")
     guardian = ExchangeGuardian(enabled=True)
     verdict = guardian.inspect(observation, now=100)
-    event = supervisor_event(observation, verdict, now=100)
+    event = supervisor_event(observation, verdict, now=100, ownership_verified=True)
     disabled = GuardianSupervisor().propose(event)
     assert disabled.allowed is False
     assert disabled.reason == "guardians_disabled"
@@ -394,3 +392,25 @@ def test_integration_supervisor_dedupes_guardian_rate_proposal():
     second = supervisor.propose(event)
     assert second.allowed is False
     assert second.reason == "duplicate_event"
+
+
+def test_integration_unattested_supervisor_event_never_authorizes():
+    observed = obs(status_code=429, retry_after="15")
+    result = ExchangeGuardian(enabled=True).inspect(observed, now=50)
+    untrusted = supervisor_event(observed, result, now=50)
+    assert untrusted["ownership_verified"] is False
+    assert untrusted["signal"] == "untrusted_observation"
+    assert GuardianSupervisor(enabled=True).propose(untrusted).allowed is False
+
+
+def test_integration_mismatched_evidence_cannot_claim_ownership():
+    from dataclasses import replace
+
+    observed = obs(status_code=429, retry_after="20")
+    result = ExchangeGuardian(enabled=True).inspect(observed, now=5)
+    tampered = replace(result, evidence_ref="sha256:" + "f" * 64)
+    event = supervisor_event(
+        observed, tampered, now=5, ownership_verified=True
+    )
+    assert event["signal"] == "untrusted_observation"
+    assert not GuardianSupervisor(enabled=True).propose(event).allowed
