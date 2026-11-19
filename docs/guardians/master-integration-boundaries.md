@@ -87,3 +87,46 @@ first changing the base or agreeing a separate format PR.
    receipts; verify untouched system PostgreSQL 5432 before and after.
 6. Only then sign an immutable artifact, obtain physical ADMINIT acceptance,
    and request human release approval. Until then: **NO_GO**.
+
+## P0 Exchange/transport integration conflict — release blocker
+
+Independent Exchange audit (Issue #88) found that
+`src/ingest/transport.py::Transport.get` may retry HTTP 403 while the
+Exchange Guardian explicitly HALTs on HTTP 403. The transport also
+authorizes URLs by Bybit host alone, while the Guardian's endpoint policy
+restricts public market paths. This creates a real execution-boundary
+mismatch, even though Guardian itself is proposal-only.
+
+The network adapter, not the observer, must be the **sole** owner of retry
+attempts and the final allowlist. Before release, independent tests must
+prove all of the following on the actual `Transport.get` call path:
+
+- HTTP 403 yields zero further retries and no proxy/IP evasion.
+- Private/order/authenticated paths are denied before any network request.
+- TLS validation errors are never bypassed.
+- A shared attempt budget cannot multiply transport and Guardian retries.
+- The installed `tester_lab` identity is verified independently and cannot
+  be synthesized by merely setting `ownership_verified=True`.
+
+MASTER policy now rejects Exchange events without literal
+`ownership_verified=True`, but this boolean remains untrusted without
+independent source attestation. The transport owner must approve any
+transport-code change; MASTER will not silently modify foreign modules.
+Do not combine the Guardian PRs until these tests and the signed identity
+contract are green.
+
+## Parallel work allocation (no overlapping writes)
+
+- MASTER/foundation: `src/api/guardian_policy.py`,
+  `tests/platform/test_guardian_policy.py`, durable Supervisor and CI.
+- MASTER/installer: `src/api/guardians/windows_install_*.py`,
+  `windows_release_*.py`, `scripts/windows/Write-TesterShortcutsFixture.ps1`,
+  and their own tests. Only MASTER may integrate a real installer.
+- Code/Data/Storage/Exchange: their own module tests and evidence, without
+  foundation writes or direct installer mutations.
+- Independent QA: review CI and fault evidence; no code changes or claims
+  of successful Windows acceptance without a physical run.
+
+If a reviewer identifies a cross-owner conflict, stop integration and
+record it in Issue #88. A parallel agent's self-reported PASS is not an
+independent verifier receipt.
