@@ -94,17 +94,35 @@ def test_cleanup_only_owned_old_direct_part_files():
 
 
 def test_tls_failures_never_propose_tls_bypass():
-    assert policy.decide(event("exchange", "tls_verification_failed")).action == (
+    assert policy.decide(event("exchange", "tls_verification_failed", ownership_verified=True)).action == (
         "PROPOSE_STOP_SOURCE"
     )
 
 
 def test_rate_limit_and_retry_budgets():
-    assert policy.decide(event("exchange", "http_429", retry_after_seconds=30)).action == (
+    assert policy.decide(event("exchange", "http_429", retry_after_seconds=30, ownership_verified=True)).action == (
         "PROPOSE_RATE_BACKOFF"
     )
-    assert policy.decide(event("exchange", "http_429", retry_after_seconds=3601)).action == "ALERT"
-    assert policy.decide(event("exchange", "transient_timeout", attempts=2)).action == (
+    assert policy.decide(event("exchange", "http_429", retry_after_seconds=3601, ownership_verified=True)).action == "ALERT"
+    assert policy.decide(event("exchange", "transient_timeout", attempts=2, ownership_verified=True)).action == (
         "PROPOSE_BOUNDED_RETRY"
     )
-    assert policy.decide(event("exchange", "transient_timeout", attempts=3)).action == "ALERT"
+    assert policy.decide(event("exchange", "transient_timeout", attempts=3, ownership_verified=True)).action == "ALERT"
+
+
+def test_exchange_forged_ownership_never_proposes():
+    for signal, fields in (
+        ("tls_verification_failed", {}),
+        ("http_429", {"retry_after_seconds": 30}),
+        ("transient_timeout", {"attempts": 1}),
+        ("source_stale", {}),
+    ):
+        assert policy.decide(event("exchange", signal, **fields)).action == "ALERT"
+        assert (
+            policy.decide(event("exchange", signal, ownership_verified=False, **fields)).action
+            == "ALERT"
+        )
+        assert (
+            policy.decide(event("exchange", signal, ownership_verified=True, **fields)).action
+            != "ALERT"
+        )
