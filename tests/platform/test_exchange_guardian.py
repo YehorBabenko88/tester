@@ -1,9 +1,11 @@
 """Offline negative and recovery acceptance for Exchange Guardian."""
+import inspect
 from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
 
 import pytest
 
+from src.api.guardians import exchange_guardian
 from src.api.guardians.exchange_guardian import (
     ExchangeGuardian,
     Observation,
@@ -320,9 +322,6 @@ def test_adminit_offline_launcher_default_denies_all_proposals():
 
 
 def test_adminit_read_only_transport_has_no_trading_capabilities():
-    import inspect
-    from src.api.guardians import exchange_guardian
-
     source = inspect.getsource(exchange_guardian)
     for forbidden in ("requests.post(", "subprocess.run(", "os.system(",
                       "DROP DATABASE", "DELETE FROM", "verify=False",
