@@ -83,7 +83,16 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
         entries = []
         with os.scandir(tmp) as scan:
             for entry in scan:
-                entries.append(entry.name)
+                name = entry.name
+                # Refuse malformed/forged directory entries before constructing paths.
+                # Windows alternate streams, separators and dot segments are not owned.
+                if (not isinstance(name, str) or not name or name in (".", "..")
+                        or "/" in name or "\\\\" in name or ":" in name
+                        or "\\x00" in name):
+                    return {**result, "status": "ALERT_UNSAFE_ENTRY",
+                            "candidates": [], "bytes_reclaimable": 0,
+                            "proposals": []}
+                entries.append(name)
                 if len(entries) > MAX_ENTRIES:
                     return {**result, "status": "ALERT_SCAN_LIMIT"}
         used = 0
