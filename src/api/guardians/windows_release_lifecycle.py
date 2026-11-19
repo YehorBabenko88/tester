@@ -38,8 +38,8 @@ def _shortcuts_owned(manifest: dict, attested: dict) -> bool:
     ):
         return False
     expected = {
-        START_TITLE: desktop + "\\" + START_TITLE + ".lnk",
-        REMOVE_TITLE: desktop + "\\" + REMOVE_TITLE + ".lnk",
+        START_TITLE: canonical(desktop + "\\" + START_TITLE + ".lnk"),
+        REMOVE_TITLE: canonical(desktop + "\\" + REMOVE_TITLE + ".lnk"),
     }
     for observed in (manifest.get("desktop_shortcuts"), attested.get("desktop_shortcuts")):
         if not isinstance(observed, dict) or set(observed) != set(expected):
