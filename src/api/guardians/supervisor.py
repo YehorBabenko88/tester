@@ -19,8 +19,17 @@ from pathlib import Path
 from src.api.guardian_supervisor import GuardianSupervisor
 
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
-_SAFE = re.compile(r"^[a-zA-Z0-9_./:-]{1,200}$")
+_SAFE = re.compile(r"^[a-zA-Z0-9_./-]{1,200}$")
 ROLES = frozenset(("code", "data", "storage", "exchange"))
+
+
+def _valid_label(value: object) -> bool:
+    """Reject traversal, empty segments and path-like service identities."""
+    return (
+        type(value) is str
+        and _SAFE.fullmatch(value) is not None
+        and all(part not in ("", ".", "..") for part in value.split("/"))
+    )
 
 
 @dataclass(frozen=True)
@@ -143,8 +152,7 @@ class DurableSupervisor:
                 if (
                     type(role) is not str
                     or role not in ROLES
-                    or type(scope) is not str
-                    or not _SAFE.fullmatch(scope)
+                    or not _valid_label(scope)
                     or type(evidence) is not str
                     or not _DIGEST.fullmatch(evidence)
                 ):
@@ -176,10 +184,8 @@ class DurableSupervisor:
                 or self._stopped()
                 or receipt.status != "PROPOSED"
                 or not receipt.event_key
-                or type(scope) is not str
-                or not _SAFE.fullmatch(scope)
-                or type(owner) is not str
-                or not _SAFE.fullmatch(owner)
+                or not _valid_label(scope)
+                or not _valid_label(owner)
                 or type(ttl) is not int
                 or not 1 <= ttl <= 300
             ):
