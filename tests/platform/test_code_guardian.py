@@ -3,6 +3,7 @@ import hashlib
 import unittest
 from dataclasses import replace
 
+from src.api import guardian_policy
 from src.api.guardians.code_guardian import (
     CodeGuardian,
     Identity,
@@ -253,6 +254,36 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
                 )
                 self.assertEqual((result.action, result.reason),
                                  ("ALERT", "ownership_unverified"))
+
+    def test_shared_policy_proposal_only_and_nontrusted_claims(self):
+        """Code decision -> MASTER policy is never an execution permission."""
+        result = CodeGuardian(enabled=True).evaluate(
+            ident(), probes(), now=100, restarts_last_hour=0
+        )
+        self.assertEqual(result.action, "PROPOSE_OWNED_RESTART")
+        self.assertEqual(
+            guardian_policy.decide(result.event).action, "PROPOSE_OWNED_RESTART"
+        )
+        self.assertEqual(
+            guardian_policy.decide({**result.event, "ownership_verified": False}).action,
+            "ALERT",
+        )
+        self.assertEqual(
+            guardian_policy.decide({**result.event, "restarts_last_hour": 2}).action,
+            "ALERT",
+        )
+
+    def test_new_install_environment_requires_master_schema_migration(self):
+        """Characterize legacy preview pin; do not bypass shared policy."""
+        result = CodeGuardian(enabled=True).evaluate(
+            ident(), probes(), now=100, restarts_last_hour=0
+        )
+        self.assertEqual(result.event["environment"], "tester_preview")
+        policy = guardian_policy.decide(
+            {**result.event, "environment": "tester_lab"}
+        )
+        self.assertEqual((policy.action, policy.reason),
+                         ("ALERT", "environment_out_of_scope"))
 
     def test_launcher_recovery_requires_independent_healthy_after_check(self):
         self.assertEqual(
