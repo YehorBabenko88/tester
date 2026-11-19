@@ -427,3 +427,32 @@ def test_reinstall_preflight_never_authorizes_effects():
         assert finding.action in {"PROPOSE_BOUNDED_BACKFILL", "PROPOSE_QUARANTINE"}
         assert finding.proposal["execution_authorized"] is False
         assert finding.proposal["preserve_raw"] is True
+
+
+@pytest.mark.parametrize("port,role,dbname", [
+    (5432, "guardian_readonly", "tester_preview"),
+    (55432, "postgres", "tester_preview"),
+    (55432, "guardian_readonly", "postgres"),
+    (None, "guardian_readonly", "tester_preview"),
+])
+def test_destructive_contract_foreign_cluster_never_authorized(port, role, dbname):
+    """A foreign or unknown cluster cannot yield any data mutation capability."""
+    data = snapshot()
+    data["postgres_port"] = port
+    data["database_role"] = role
+    data["database_name"] = dbname
+    result = reconcile(data, enabled=True)
+    assert result.action == "ALERT"
+    assert result.proposal is None
+
+
+def test_destructive_contract_no_delete_capability():
+    """Even trusted data evidence never grants an uninstall or deletion."""
+    for rows in ([], [row(0), row(2 * STEP)], [row(0), row(0)]):
+        data = snapshot()
+        data["rows"] = rows
+        result = reconcile(data, enabled=True)
+        assert result.action not in {"DELETE", "DROP_DATABASE", "UNINSTALL"}
+        assert result.proposal is not None
+        assert result.proposal["execution_authorized"] is False
+        assert result.proposal["preserve_raw"] is True
