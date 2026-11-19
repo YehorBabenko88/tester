@@ -913,3 +913,46 @@ def test_disposable_sqlite_foreign_database_remains_unchanged(tmp_path):
             ("foreign",)
         ]
     assert foreign.exists()
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("open_time_ms", None),
+    ("open_time_ms", STEP // 2),
+    ("open_time_ms", -STEP),
+    ("close_time_ms", STEP - 2),
+    ("closed", False),
+    ("provenance_verified", False),
+    ("source_sha256", None),
+    ("observed_sha256", "b" * 64),
+])
+def test_restarted_reader_rejects_corrupt_candle_without_mutating_baseline(field, bad):
+    confirmed = snapshot()
+    confirmed["rows"].insert(1, row(STEP))
+    preserved = deepcopy(confirmed)
+    incoming = deepcopy(confirmed)
+    incoming["rows"][1][field] = bad
+    finding = reconcile(incoming, enabled=True)
+    assert finding.action in {"ALERT", "PROPOSE_QUARANTINE"}
+    assert finding.proposal is None or (
+        finding.proposal["execution_authorized"] is False
+        and finding.proposal["preserve_raw"] is True
+    )
+    assert confirmed == preserved
+    assert reconcile(confirmed, enabled=True).action == "OBSERVED_CONSISTENT"
+
+
+def test_data_removal_receipt_requires_all_data_categories_and_no_backups():
+    evidence = data_removal_fixture()
+    for field in (
+        "raw_candles_absent", "history_absent",
+        "original_projections_absent", "provenance_absent",
+        "source_hashes_absent", "test_results_absent",
+        "checkpoints_absent", "download_queue_absent",
+        "data_backups_absent", "dedicated_cluster_absent",
+    ):
+        missing = deepcopy(evidence)
+        missing.pop(field)
+        assert assess_data_removal_receipt(missing, enabled=True).action == "ALERT"
+    assert assess_data_removal_receipt(evidence, enabled=True).action == (
+        "OBSERVED_DATA_REMOVAL_FIXTURE"
+    )
