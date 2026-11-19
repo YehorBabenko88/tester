@@ -1,4 +1,5 @@
 """Pure ADMINIT TESTER layout and desktop shortcut plan (no host effects)."""
+
 from __future__ import annotations
 
 import ntpath
@@ -8,7 +9,13 @@ from src.api.guardians.windows_install_gate import Gate, canonical, validate_man
 
 ROOT = "c:\\testerlab"
 DIRECTORIES = (
-    "app", "config", "data", "postgres-data", "logs", "scripts", "install",
+    "app",
+    "config",
+    "data",
+    "postgres-data",
+    "logs",
+    "scripts",
+    "install",
 )
 START_TITLE = "TESTER — Запуск"
 REMOVE_TITLE = "TESTER — Удаление"
@@ -30,7 +37,9 @@ class InstallPlan:
     shortcuts: tuple[ShortcutSpec, ...] = ()
 
 
-def plan_install(manifest: dict, attestation: dict, *, signed_bundle_verified: bool = False) -> InstallPlan:
+def plan_install(
+    manifest: dict, attestation: dict, *, signed_bundle_verified: bool = False
+) -> InstallPlan:
     """Return a pinned, non-effectful plan; not permission to deploy."""
     gate: Gate = validate_manifest(manifest, attested=attestation)
     if not gate.allowed:
@@ -45,17 +54,21 @@ def plan_install(manifest: dict, attestation: dict, *, signed_bundle_verified: b
     uninstaller = ntpath.join(scripts, "Uninstall-Tester.ps1")
     specs = (
         ShortcutSpec(
-            START_TITLE, "powershell.exe",
+            START_TITLE,
+            "powershell.exe",
             '-NoProfile -ExecutionPolicy AllSigned -File "' + launcher + '"',
             root,
         ),
         ShortcutSpec(
-            REMOVE_TITLE, "powershell.exe",
+            REMOVE_TITLE,
+            "powershell.exe",
             '-NoProfile -ExecutionPolicy AllSigned -File "' + uninstaller + '"',
             root,
         ),
     )
     return InstallPlan(
-        True, "plan_only_no_deployment",
-        tuple(ntpath.join(root, d) for d in DIRECTORIES), specs,
+        True,
+        "plan_only_no_deployment",
+        tuple(ntpath.join(root, d) for d in DIRECTORIES),
+        specs,
     )
