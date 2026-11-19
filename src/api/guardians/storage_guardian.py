@@ -61,6 +61,10 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
     if (type(min_free_bytes) is not int or min_free_bytes < 0 or
             type(quota_bytes) is not int or quota_bytes <= 0):
         return {**result, "status": "ALERT_INVALID_BUDGET"}
+    timestamp = time.time() if now is None else now
+    if (type(timestamp) not in (float, int) or not math.isfinite(timestamp)
+            or not 0 < timestamp < 1e15):
+        return {**result, "status": "ALERT_INVALID_CLOCK"}
     try:
         root = Path(runtime_root)
         if _invalid_root(root):
@@ -82,9 +86,6 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
                 entries.append(entry.name)
                 if len(entries) > MAX_ENTRIES:
                     return {**result, "status": "ALERT_SCAN_LIMIT"}
-        timestamp = time.time() if now is None else now
-        if type(timestamp) not in (float, int) or not math.isfinite(timestamp) or not 0 < timestamp < 1e15:
-            return {**result, "status": "ALERT_INVALID_CLOCK"}
         used = 0
         for name in entries:
             path = tmp / name
