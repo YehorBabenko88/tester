@@ -11,9 +11,9 @@ import os
 import re
 import sqlite3
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping
 
 from src.api.guardian_supervisor import GuardianSupervisor
 
