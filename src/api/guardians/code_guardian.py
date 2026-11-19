@@ -24,7 +24,7 @@ class Identity:
     def owned(self):
         return (
             isinstance(self.service, str)
-            and bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}", self.service))
+            and bool(re.fullmatch(r"Tester[A-Za-z0-9_.-]{0,74}", self.service))
             and self.service == self.expected_service
             and isinstance(self.head, str)
             and bool(HEX40.fullmatch(self.head))
