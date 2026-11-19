@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from src.api.guardians.windows_install_gate import uninstall_authorized, validate_manifest
+from src.api.guardians.windows_install_gate import canonical, uninstall_authorized, validate_manifest
 from src.api.guardians.windows_install_plan import ROOT, plan_install
 
 Action = Literal["install", "start", "stop", "uninstall"]
@@ -37,7 +37,7 @@ def lifecycle_plan(
     owned = validate_manifest(manifest, attested=attested)
     if not owned.allowed:
         return LifecyclePlan(False, owned.reason)
-    if manifest.get("root") != ROOT:
+    if canonical(manifest.get("root")) != ROOT:
         return LifecyclePlan(False, "wrong_root")
     if signed_bundle_verified is not True:
         return LifecyclePlan(False, "unsigned_release")
@@ -102,7 +102,7 @@ def lifecycle_plan(
         return LifecyclePlan(False, "live_services_block_deletion")
     if attested.get("owner_paths_rechecked") is not True:
         return LifecyclePlan(False, "delete_paths_not_reattested")
-    if manifest["root"] not in manifest["delete_targets"]:
+    if ROOT not in {canonical(p) for p in manifest["delete_targets"]}:
         return LifecyclePlan(False, "incomplete_delete_scope")
     return LifecyclePlan(
         True,
