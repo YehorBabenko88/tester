@@ -36,6 +36,11 @@ def verify_signed_manifest(
     ):
         return False
     try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except ImportError:
+        return False
+    try:
         public_bytes = bytes.fromhex(public_key_hex)
         if not hmac.compare_digest(
             hashlib.sha256(public_bytes).hexdigest(), trusted_public_key_sha256
@@ -44,12 +49,9 @@ def verify_signed_manifest(
         canonical = json.dumps(
             dict(manifest), sort_keys=True, separators=(",", ":"), allow_nan=False
         ).encode("utf-8")
-        from cryptography.exceptions import InvalidSignature
-        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-
         Ed25519PublicKey.from_public_bytes(public_bytes).verify(
             bytes.fromhex(signature_hex), _CONTEXT + canonical
         )
         return True
-    except (ImportError, InvalidSignature, ValueError, TypeError, OverflowError):
+    except (InvalidSignature, ValueError, TypeError, OverflowError):
         return False
