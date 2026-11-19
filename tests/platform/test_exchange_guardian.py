@@ -521,3 +521,28 @@ def test_fault_injection_http_403_preempts_timeout_cooldown():
     assert denied.circuit == "HALTED"
     assert denied.proposal == "NONE"
     assert denied.reason == "forbidden_requires_manual_review"
+
+
+def test_fault_injection_dns_repeat_evidence_no_duplicate_retry():
+    guardian = ExchangeGuardian(enabled=True)
+    failed = obs("dns_failure")
+    first = guardian.inspect(failed, now=0)
+    repeated = guardian.inspect(failed, now=2)
+    assert first.proposal == "PROPOSE_BOUNDED_RETRY"
+    assert repeated.proposal == "NONE"
+    assert repeated.reason == "duplicate_evidence"
+    assert repeated.attempts == 1
+
+
+def test_fault_injection_429_isolated_per_endpoint_and_no_data_writes():
+    guardian = ExchangeGuardian(enabled=True)
+    blocked = guardian.inspect(obs(status_code=429, retry_after="60"), now=10)
+    independent = guardian.inspect(
+        obs(endpoint="https://api.bybit.com/v5/market/orderbook",
+            evidence_ref="sha256:" + "b" * 64),
+        now=11,
+    )
+    assert blocked.retry_at == 70
+    assert independent.status == "MONITORING"
+    assert independent.history_complete is False
+    assert independent.gaps_reconciled is False
