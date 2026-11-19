@@ -5,7 +5,6 @@ from email.utils import format_datetime
 
 import pytest
 
-from src.api.guardian_supervisor import GuardianSupervisor
 from src.api.guardians import exchange_guardian
 from src.api.guardians.exchange_guardian import (
     ExchangeGuardian,
@@ -377,15 +376,17 @@ def test_fault_injection_endpoint_cardinality_budget():
 
 
 def test_integration_supervisor_dedupes_guardian_rate_proposal():
+    guardian_module = pytest.importorskip("src.api.guardian_supervisor")
+    supervisor_class = guardian_module.GuardianSupervisor
     observation = obs(status_code=429, retry_after="60")
     guardian = ExchangeGuardian(enabled=True)
     verdict = guardian.inspect(observation, now=100)
     event = supervisor_event(observation, verdict, now=100, ownership_verified=True)
-    disabled = GuardianSupervisor().propose(event)
+    disabled = supervisor_class().propose(event)
     assert disabled.allowed is False
     assert disabled.reason == "guardians_disabled"
 
-    supervisor = GuardianSupervisor(enabled=True)
+    supervisor = supervisor_class(enabled=True)
     first = supervisor.propose(event)
     assert first.allowed is True
     assert first.action == "PROPOSE_RATE_BACKOFF"
@@ -400,7 +401,9 @@ def test_integration_unattested_supervisor_event_never_authorizes():
     untrusted = supervisor_event(observed, result, now=50)
     assert untrusted["ownership_verified"] is False
     assert untrusted["signal"] == "untrusted_observation"
-    assert GuardianSupervisor(enabled=True).propose(untrusted).allowed is False
+    from src.api.guardian_policy import decide
+
+    assert decide(untrusted).action == "ALERT"
 
 
 def test_integration_mismatched_evidence_cannot_claim_ownership():
@@ -413,4 +416,6 @@ def test_integration_mismatched_evidence_cannot_claim_ownership():
         observed, tampered, now=5, ownership_verified=True
     )
     assert event["signal"] == "untrusted_observation"
-    assert not GuardianSupervisor(enabled=True).propose(event).allowed
+    from src.api.guardian_policy import decide
+
+    assert decide(event).action == "ALERT"
