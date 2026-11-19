@@ -234,17 +234,25 @@ class ExchangeGuardian:
                        observation.evidence_ref)
 
 
-def supervisor_event(observation: Observation, verdict: Verdict, *, now: float) -> dict:
-    """Minimal sanitized event; never contains query strings or raw HTTP bodies."""
+def supervisor_event(
+    observation: Observation,
+    verdict: Verdict,
+    *,
+    now: float,
+    ownership_verified: bool = False,
+) -> dict:
+    """Build a sanitized, unauthoritative event; external scope attestation required."""
     scope = endpoint_key(observation.endpoint)
+    trusted = ownership_verified is True and verdict.evidence_ref == observation.evidence_ref
     event = {"component": "exchange", "environment": "tester_preview",
-             "scope": "bybit/rest/" + scope, "signal": verdict.signal,
+             "scope": "bybit/rest/" + scope,
+             "signal": verdict.signal if trusted else "untrusted_observation",
              "evidence_ref": verdict.evidence_ref,
-             "ownership_verified": True}
-    if verdict.signal == "http_429" and verdict.proposal == "PROPOSE_RATE_BACKOFF":
+             "ownership_verified": trusted}
+    if trusted and verdict.signal == "http_429" and verdict.proposal == "PROPOSE_RATE_BACKOFF":
         event["retry_after_seconds"] = math.ceil((verdict.retry_at or 0) - now)
-    if verdict.signal == "http_429" and verdict.proposal != "PROPOSE_RATE_BACKOFF":
+    if trusted and verdict.signal == "http_429" and verdict.proposal != "PROPOSE_RATE_BACKOFF":
         event["signal"] = "unqualified_http_429"
-    if verdict.signal == "transient_timeout":
+    if trusted and verdict.signal == "transient_timeout":
         event["attempts"] = verdict.attempts - 1
     return event
