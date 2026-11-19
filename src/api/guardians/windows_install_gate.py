@@ -20,7 +20,7 @@ SAFE_NAME = re.compile(r"^Tester[A-Za-z0-9_-]{1,80}$")
 _RESERVED = frozenset({"con", "prn", "aux", "nul"}) | {
     f"{prefix}{number}" for prefix in ("com", "lpt") for number in range(1, 10)
 }
-_WIN_INVALID = re.compile(r'[<>:"|?*\\x00-\\x1f]')
+_WIN_INVALID = frozenset('<>:"|?*')
 
 
 @dataclass(frozen=True)
@@ -46,7 +46,7 @@ def canonical(path: object) -> str | None:
     if not parts or any(
         part in ("", ".", "..")
         or part.endswith((".", " "))
-        or _WIN_INVALID.search(part)
+        or any(char in _WIN_INVALID or ord(char) < 32 for char in part)
         or part.split(".")[0].casefold() in _RESERVED
         for part in parts
     ):
