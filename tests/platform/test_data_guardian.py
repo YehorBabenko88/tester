@@ -596,15 +596,8 @@ def test_forged_gap_supervisor_event_denied(field, bad):
     finding = reconcile(data, enabled=True)
     data[field] = bad
     event = to_policy_event(data, finding)
-    if field == "catalog_verified":
-        assert event is None
-    elif field == "ownership_verified":
-        assert event is None
-    else:
-        # A stored finding is not a reusable authorization token.
-        assert event is not None
-        assert event["component"] == "data"
-        assert event["source"] == "bybit"
+    # A stored finding is never a reusable capability after evidence changes.
+    assert event is None
 
 
 def test_nonproposal_cannot_be_promoted_to_supervisor():
@@ -620,3 +613,30 @@ def test_data_event_never_directly_authorizes_execution():
     assert event is not None
     assert "execution_authorized" not in event
     assert "SQL" not in repr(event)
+
+
+def test_forged_finding_is_not_a_supervisor_capability():
+    data = snapshot()
+    actual = reconcile(data, enabled=True)
+    from src.api.guardians.data_guardian import Finding
+
+    forged = Finding(
+        action="PROPOSE_BOUNDED_BACKFILL", reason=actual.reason,
+        scope=actual.scope, evidence_ref=actual.evidence_ref,
+        proposal={"adapter": "CatalogHandler", "execution_authorized": False},
+    )
+    assert to_policy_event(data, forged) is None
+
+
+def test_revoked_lease_invalidates_existing_finding():
+    data = snapshot()
+    prior = reconcile(data, enabled=True)
+    data["overlapping_writer"] = True
+    assert to_policy_event(data, prior) is None
+
+
+def test_revoked_source_proof_invalidates_existing_finding():
+    data = snapshot()
+    prior = reconcile(data, enabled=True)
+    data["source_gap_proof_verified"] = False
+    assert to_policy_event(data, prior) is None
