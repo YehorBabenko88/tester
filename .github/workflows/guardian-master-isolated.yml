@@ -50,11 +50,13 @@ jobs:
           src/api/guardians/windows_install_gate.py
           src/api/guardians/windows_install_plan.py
           src/api/guardians/windows_release_lifecycle.py
+          src/api/guardians/windows_release_signature.py
           tests/platform/test_guardian_policy.py
           tests/platform/test_guardian_supervisor.py
           tests/platform/test_windows_install_gate.py
           tests/platform/test_windows_install_plan.py
           tests/platform/test_windows_release_lifecycle.py
+          tests/platform/test_windows_release_signature.py
       - name: Ruff format MASTER foundation
         run: >
           python -m ruff format --check
