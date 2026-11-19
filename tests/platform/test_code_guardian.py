@@ -228,5 +228,44 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         self.assertEqual(rejected.reason, "after_check_not_independent")
 
 
+    def test_launcher_foreign_service_and_version_never_propose(self):
+        for identity in (
+            replace(ident(), service="postgresql-x64-18"),
+            replace(ident(), expected_service="postgresql-x64-18"),
+            replace(ident(), head="0" * 40),
+            replace(ident(), sid_verified=False),
+            replace(ident(), image_verified=False),
+        ):
+            with self.subTest(identity=identity):
+                decision = CodeGuardian(enabled=True).evaluate(
+                    identity, probes(), now=100, restarts_last_hour=0
+                )
+                self.assertEqual((decision.action, decision.reason),
+                                 ("ALERT", "ownership_unverified"))
+
+    def test_launcher_recovery_requires_independent_healthy_after_check(self):
+        self.assertEqual(
+            CodeGuardian.verify(
+                ident(), probes(healthy=True), now=100, independent_verifier=False
+            ).reason,
+            "independent_verifier_missing",
+        )
+        self.assertEqual(
+            CodeGuardian.verify(
+                replace(ident(), lease_clear=False),
+                probes(healthy=True), now=100, independent_verifier=True
+            ).reason,
+            "ownership_unverified",
+        )
+        samples = list(probes(healthy=True))
+        samples[0] = replace(samples[0], healthy=False)
+        self.assertEqual(
+            CodeGuardian.verify(
+                ident(), tuple(samples), now=100, independent_verifier=True
+            ).reason,
+            "after_check_failed",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
