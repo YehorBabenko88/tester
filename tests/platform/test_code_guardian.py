@@ -304,6 +304,54 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         self.assertEqual(checked.action, "VERIFIED_RECOVERY")
         self.assertIsNone(checked.event)
 
+    def test_scm_unreachable_or_permission_denied_blocks_recovery(self):
+        """Missing SCM access or a failed worker heartbeat is not a restart permit."""
+        for changed in (
+            {"sid_verified": False},
+            {"image_verified": False},
+            {"config_verified": False},
+            {"lease_clear": False},
+        ):
+            with self.subTest(changed=changed):
+                result = CodeGuardian(enabled=True).evaluate(
+                    replace(ident(), **changed), probes(),
+                    now=100, restarts_last_hour=0,
+                )
+                self.assertEqual((result.action, result.reason),
+                                 ("ALERT", "ownership_unverified"))
+        for changed in (
+            {"source": "scm_unreachable"},
+            {"timestamp": 60},
+            {"healthy": True},
+        ):
+            with self.subTest(changed=changed):
+                samples = list(probes())
+                samples[0] = replace(samples[0], **changed)
+                result = CodeGuardian(enabled=True).evaluate(
+                    ident(), tuple(samples), now=100, restarts_last_hour=0,
+                )
+                self.assertEqual(result.action, "ALERT")
+
+    def test_repeated_crash_with_rotating_evidence_still_respects_budget(self):
+        """Distinct incidents cannot bypass the explicit two-per-hour limit."""
+        guardian = CodeGuardian(enabled=True)
+        for i in range(4):
+            samples = tuple(
+                replace(p, evidence="sha256:" + hashlib.sha256(
+                    (p.source + str(i)).encode()
+                ).hexdigest())
+                for p in probes()
+            )
+            result = guardian.evaluate(
+                ident(), samples, now=100,
+                restarts_last_hour=min(i, 2),
+            )
+            if i < 2:
+                self.assertEqual(result.action, "PROPOSE_OWNED_RESTART")
+            else:
+                self.assertEqual((result.action, result.reason),
+                                 ("ALERT", "restart_budget_exhausted"))
+
     def test_shared_policy_proposal_only_and_nontrusted_claims(self):
         """Code decision -> MASTER policy is never an execution permission."""
         result = CodeGuardian(enabled=True).evaluate(
