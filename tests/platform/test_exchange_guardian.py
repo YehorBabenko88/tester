@@ -234,7 +234,7 @@ def test_fault_injection_server_errors_bounded(status):
 
 
 def test_fault_injection_429_http_date_and_recovery():
-    utc = datetime(2026, 11, 18, tzinfo=timezone.utc)
+    utc = datetime(2026, 11, 18, tzinfo=UTC)
     g = ExchangeGuardian(enabled=True)
     delayed = g.inspect(obs(status_code=429,
                             retry_after=format_datetime(utc + timedelta(seconds=45))),
