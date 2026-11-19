@@ -243,6 +243,17 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
                 self.assertEqual((decision.action, decision.reason),
                                  ("ALERT", "ownership_unverified"))
 
+    def test_matching_foreign_service_identity_never_proposes(self):
+        """Forging both names is insufficient to restart non-TESTER services."""
+        for service in ("postgresql-x64-18", "Spooler", "ssh-agent", "TESTERWorker"):
+            with self.subTest(service=service):
+                foreign = replace(ident(), service=service, expected_service=service)
+                result = CodeGuardian(enabled=True).evaluate(
+                    foreign, probes(), now=100, restarts_last_hour=0
+                )
+                self.assertEqual((result.action, result.reason),
+                                 ("ALERT", "ownership_unverified"))
+
     def test_launcher_recovery_requires_independent_healthy_after_check(self):
         self.assertEqual(
             CodeGuardian.verify(
