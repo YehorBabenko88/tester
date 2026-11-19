@@ -94,14 +94,17 @@ def test_uninstall_requires_both_confirmation_and_proven_stopped_services():
     m, a = fixture()
     assert not lifecycle_plan("uninstall", m, a, signed_bundle_verified=True).allowed
     a["all_owned_processes_exited"] = False
-    assert lifecycle_plan(
-        "uninstall",
-        m,
-        a,
-        signed_bundle_verified=True,
-        typed_confirmation="DELETE TESTER",
-        second_confirmation=True,
-    ).reason == "live_processes_block_deletion"
+    assert (
+        lifecycle_plan(
+            "uninstall",
+            m,
+            a,
+            signed_bundle_verified=True,
+            typed_confirmation="DELETE TESTER",
+            second_confirmation=True,
+        ).reason
+        == "live_processes_block_deletion"
+    )
     a["all_owned_processes_exited"] = True
     result = lifecycle_plan(
         "uninstall",
@@ -160,9 +163,7 @@ def test_signed_lifecycle_rejects_tampering_and_untrusted_signer():
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw,
     )
-    payload = json.dumps(
-        m, sort_keys=True, separators=(",", ":"), allow_nan=False
-    ).encode("utf-8")
+    payload = json.dumps(m, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
     signature = private.sign(b"TESTER-INSTALL-MANIFEST-v1\x00" + payload).hex()
     proof = {
         "signature_hex": signature,
@@ -170,9 +171,12 @@ def test_signed_lifecycle_rejects_tampering_and_untrusted_signer():
         "trusted_public_key_sha256": hashlib.sha256(key).hexdigest(),
     }
     assert verified_lifecycle_plan("install", m, a, **proof).allowed
-    assert verified_lifecycle_plan(
-        "install", m, a, **{**proof, "trusted_public_key_sha256": "0" * 64}
-    ).reason == "invalid_signed_release"
+    assert (
+        verified_lifecycle_plan(
+            "install", m, a, **{**proof, "trusted_public_key_sha256": "0" * 64}
+        ).reason
+        == "invalid_signed_release"
+    )
     m["pg_port"] = 5432
     assert verified_lifecycle_plan("install", m, a, **proof).reason == "invalid_signed_release"
 
