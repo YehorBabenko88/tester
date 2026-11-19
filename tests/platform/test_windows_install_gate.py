@@ -16,6 +16,7 @@ def fixture():
         "pg_data": root + "\\pg\\data",
         "pg_port": 55432,
         "package_sha256": "a" * 64,
+        "source_sha": "b" * 40,
         "services": services,
         "delete_targets": [root + "\\history", root + "\\results", root],
     }
@@ -23,6 +24,7 @@ def fixture():
         "root": root,
         "pg_data": root + "\\pg\\data",
         "pg_port": 55432,
+        "source_sha": "b" * 40,
         "services": services,
         "reparse_points": [],
         "system_pg_5432_unchanged": True,
@@ -69,3 +71,12 @@ def test_missing_manifest_or_identity_fails():
     assert not validate_manifest({}, attested=a).allowed
     m["guardians_enabled"] = True
     assert not validate_manifest(m, attested=a).allowed
+
+
+def test_commit_sha_pin_and_attestation_required():
+    m, a = fixture()
+    m.pop("source_sha")
+    assert validate_manifest(m, attested=a).reason == "unpinned_commit"
+    m, a = fixture()
+    m["source_sha"] = "c" * 40
+    assert validate_manifest(m, attested=a).reason == "commit_attestation_mismatch"
