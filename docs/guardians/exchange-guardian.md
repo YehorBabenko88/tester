@@ -191,3 +191,17 @@ PostgreSQL or historical storage.
 Fault-injection tests are deterministic and offline. The new cases are
 not physical network fault-injection evidence until executed on an exact
 pinned HEAD. `GUARDIANS_ENABLED=false` remains the default.
+
+## HTTP 403 precedence and foundation refresh gate
+
+HTTP 403 now preempts an active 429 or timeout cooldown, transitions the
+endpoint to HALTED, and emits no retry proposal. Repeated 403 observations
+remain halted. No credential rotation, proxy/IP evasion or live trading is
+allowed. Offline negative tests cover 403 during both cooldown types.
+
+MASTER foundation candidate `5813d6471b50a9d79bc6eb6b2adf6fdbc79588a7`
+includes shared policy test formatting; branch synchronization must wait
+for its exact-head Python, Platform and isolated fault CI to pass and
+MASTER to approve a non-force refresh. Do not copy or independently edit
+`tests/platform/test_guardian_policy.py`. The new unified installer is
+MASTER-owned and `GUARDIANS_ENABLED=false` remains mandatory.
