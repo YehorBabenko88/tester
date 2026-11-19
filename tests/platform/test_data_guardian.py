@@ -695,3 +695,89 @@ def test_nested_record_identity_fails_closed():
     assert result.action == "ALERT"
     assert result.reason == "invalid_conflict_record_identity"
     assert result.proposal is None
+
+
+def test_fault_injection_partial_batch_never_confirms_full_history():
+    """A truncated reader result can only propose missing identities."""
+    baseline = snapshot()
+    baseline["rows"].insert(1, row(STEP))
+    full = reconcile(baseline, enabled=True)
+    assert full.action == "OBSERVED_CONSISTENT"
+    truncated = deepcopy(baseline)
+    del truncated["rows"][1:]
+    partial = reconcile(truncated, enabled=True)
+    assert partial.action == "PROPOSE_BOUNDED_BACKFILL"
+    assert partial.proposal["missing_open_times_ms"] == [STEP, 2 * STEP]
+    assert partial.proposal["history_complete"] is False
+    assert partial.proposal["execution_authorized"] is False
+    assert baseline["rows"] == [row(0), row(STEP), row(2 * STEP)]
+
+
+def test_fault_injection_interrupted_read_preserves_confirmed_input():
+    """A failed read attestation must not mutate a previously verified batch."""
+    confirmed = snapshot()
+    confirmed["rows"].insert(1, row(STEP))
+    preserved = deepcopy(confirmed)
+    aborted = deepcopy(confirmed)
+    aborted["read_only_snapshot"] = False
+    aborted["rows"] = [row(0)]
+    denied = reconcile(aborted, enabled=True)
+    assert denied.action == "ALERT"
+    assert denied.reason == "snapshot_not_read_only"
+    assert denied.proposal is None
+    assert confirmed == preserved
+    assert reconcile(confirmed, enabled=True).action == "OBSERVED_CONSISTENT"
+
+
+def test_fault_injection_restart_replay_does_not_execute_or_repair():
+    """Pure restart/replay has stable findings and no persistent side effects."""
+    source = snapshot()
+    before = deepcopy(source)
+    initial = reconcile(source, enabled=True)
+    after_restart = reconcile(deepcopy(source), enabled=True)
+    assert initial == after_restart
+    assert initial.action == "PROPOSE_BOUNDED_BACKFILL"
+    assert initial.proposal["execution_authorized"] is False
+    assert source == before
+
+
+def test_fault_injection_stale_lease_after_restart_denies_backfill():
+    source = snapshot()
+    prior = reconcile(source, enabled=True)
+    restarted = deepcopy(source)
+    restarted["lease_epoch"] = 0
+    assert reconcile(restarted, enabled=True).action == "ALERT"
+    assert to_policy_event(restarted, prior) is None
+
+
+def test_fault_injection_corrupt_baseline_after_restart_denies_all_actions():
+    source = snapshot()
+    prior = reconcile(source, enabled=True)
+    restarted = deepcopy(source)
+    restarted["baseline_sha256"] = "corrupted"
+    result = reconcile(restarted, enabled=True)
+    assert result.action == "ALERT"
+    assert result.proposal is None
+    assert to_policy_event(restarted, prior) is None
+
+
+def test_fault_injection_foreign_database_and_pg5432_denied_after_restart():
+    source = snapshot()
+    prior = reconcile(source, enabled=True)
+    for database, port in (("postgres", 55432), ("tester_preview", 5432)):
+        restarted = deepcopy(source)
+        restarted["database_name"] = database
+        restarted["postgres_port"] = port
+        assert reconcile(restarted, enabled=True).action == "ALERT"
+        assert to_policy_event(restarted, prior) is None
+
+
+def test_fault_injection_partial_uninstall_never_reports_data_removed():
+    source = data_removal_fixture()
+    for field in ("raw_candles_absent", "provenance_absent", "test_results_absent"):
+        damaged = deepcopy(source)
+        damaged[field] = False
+        finding = assess_data_removal_receipt(damaged, enabled=True)
+        assert finding.action == "ALERT"
+        assert finding.proposal is None
+    assert source == data_removal_fixture()
