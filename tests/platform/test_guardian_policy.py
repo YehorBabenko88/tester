@@ -14,7 +14,9 @@ def test_unknown_and_foreign_events_fail_closed():
         policy.decide({**event("code", "service_unhealthy"), "environment": "production"}).action
         == "ALERT"
     )
-    assert policy.decide({**event("code", "service_unhealthy"), "evidence_ref": ""}).action == "ALERT"
+    assert (
+        policy.decide({**event("code", "service_unhealthy"), "evidence_ref": ""}).action == "ALERT"
+    )
 
 
 def test_code_restart_requires_ownership_and_budget():
@@ -25,7 +27,9 @@ def test_code_restart_requires_ownership_and_budget():
         consecutive_failed_probes=3,
         restarts_last_hour=0,
     )
-    assert policy.decide(qualified) == policy.Decision("PROPOSE_OWNED_RESTART", "failed_health_probes")
+    assert policy.decide(qualified) == policy.Decision(
+        "PROPOSE_OWNED_RESTART", "failed_health_probes"
+    )
     for overrides in (
         {"ownership_verified": False},
         {"consecutive_failed_probes": 2},
@@ -90,7 +94,9 @@ def test_cleanup_only_owned_old_direct_part_files():
 
 
 def test_tls_failures_never_propose_tls_bypass():
-    assert policy.decide(event("exchange", "tls_verification_failed")).action == ("PROPOSE_STOP_SOURCE")
+    assert policy.decide(event("exchange", "tls_verification_failed")).action == (
+        "PROPOSE_STOP_SOURCE"
+    )
 
 
 def test_rate_limit_and_retry_budgets():
