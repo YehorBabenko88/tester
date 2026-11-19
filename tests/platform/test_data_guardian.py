@@ -849,3 +849,67 @@ def test_disposable_sqlite_connection_drop_rolls_back_pending_candle(tmp_path):
         assert reopened.execute(
             "SELECT open_ms, source_sha FROM candles"
         ).fetchall() == [(0, H)]
+
+
+def test_disposable_sqlite_failed_duplicate_batch_is_atomic(tmp_path):
+    """A batch with a duplicate key cannot partially replace confirmed rows."""
+    import sqlite3
+
+    db = tmp_path / "data-guardian-atomic.sqlite3"
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            "CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)"
+        )
+        conn.execute("INSERT INTO candles VALUES (?, ?)", (0, H))
+    with sqlite3.connect(db) as conn:
+        try:
+            conn.execute("INSERT INTO candles VALUES (?, ?)", (STEP, "b" * 64))
+            conn.execute("INSERT INTO candles VALUES (?, ?)", (0, "c" * 64))
+        except sqlite3.IntegrityError:
+            conn.rollback()
+        else:
+            pytest.fail("conflicting batch unexpectedly committed")
+    with sqlite3.connect(db) as conn:
+        assert conn.execute(
+            "SELECT open_ms, source_sha FROM candles ORDER BY open_ms"
+        ).fetchall() == [(0, H)]
+
+
+def test_disposable_sqlite_bad_candle_rejected_before_write(tmp_path):
+    """A corrupt OHLCV row must never enter even a disposable database."""
+    import sqlite3
+
+    db = tmp_path / "data-guardian-reject.sqlite3"
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            "CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)"
+        )
+        conn.execute("INSERT INTO candles VALUES (?, ?)", (0, H))
+    incoming = snapshot()
+    incoming["rows"][0]["high"] = float("nan")
+    finding = reconcile(incoming, enabled=True)
+    assert finding.action == "PROPOSE_QUARANTINE"
+    assert finding.proposal["execution_authorized"] is False
+    with sqlite3.connect(db) as conn:
+        assert conn.execute(
+            "SELECT open_ms, source_sha FROM candles ORDER BY open_ms"
+        ).fetchall() == [(0, H)]
+
+
+def test_disposable_sqlite_foreign_database_remains_unchanged(tmp_path):
+    """Fixture-only proof that unrelated SQLite DB is outside TESTER scope."""
+    import sqlite3
+
+    owned = tmp_path / "owned.sqlite3"
+    foreign = tmp_path / "foreign.sqlite3"
+    for path, stamp in ((owned, "owned"), (foreign, "foreign")):
+        with sqlite3.connect(path) as conn:
+            conn.execute("CREATE TABLE marker (value TEXT NOT NULL)")
+            conn.execute("INSERT INTO marker VALUES (?)", (stamp,))
+    with sqlite3.connect(owned) as conn:
+        conn.execute("DELETE FROM marker")
+    with sqlite3.connect(foreign) as conn:
+        assert conn.execute("SELECT value FROM marker").fetchall() == [
+            ("foreign",)
+        ]
+    assert foreign.exists()
