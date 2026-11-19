@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 HOSTS = frozenset({"api.bybit.com", "public.bybit.com"})
 MAX_RETRIES = 3
 MAX_BACKOFF = 3600
+MAX_ENDPOINTS = 128
 
 
 def _number(value: object) -> bool:
@@ -27,6 +28,7 @@ def endpoint_key(url: str) -> str:
     try:
         p = urlsplit(url)
         if (p.scheme != "https" or p.hostname not in HOSTS or
+                "%" in p.path or "\\" in p.path or
                 any(segment in {".", ".."} for segment in p.path.split("/")) or
                 p.port not in (None, 443) or p.username is not None or
                 p.password is not None or p.fragment or
@@ -126,6 +128,9 @@ class ExchangeGuardian:
         if observation.kind == "http" and observation.status_code is None:
             return self._invalid()
         if observation.kind != "http" and observation.status_code is not None:
+            return self._invalid()
+        # Untrusted endpoint paths must not grow the in-memory circuit map without bound.
+        if key not in self._state and len(self._state) >= MAX_ENDPOINTS:
             return self._invalid()
         state = self._state.setdefault(key, {"attempts": 0, "until": 0.0,
                                              "circuit": "CLOSED", "seen": set(), "last_now": now})
