@@ -393,3 +393,65 @@ def test_no_delete_or_maintenance_effectors_even_when_enabled(tmp_path):
     assert result["status"] == "OBSERVED"
     assert [entry["name"] for entry in result["candidates"]] == ["old.part"]
     assert candidate.read_bytes() == b"intact"
+
+
+@pytest.mark.parametrize("failure", [PermissionError("access denied"), OSError("locked directory")])
+def test_scan_permission_and_locked_directory_fail_closed(tmp_path, failure):
+    """No cleanup or partial manifest if enumeration is inaccessible."""
+    (tmp_path / "tmp").mkdir()
+    with patch("src.api.guardians.storage_guardian.os.scandir", side_effect=failure):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
+                           now=100000, enabled=True)
+    assert result["status"] == "ALERT_IO_FAILURE"
+    assert result["candidates"] == []
+    assert result["bytes_reclaimable"] == 0
+
+
+def test_lstat_permission_failure_does_not_escape(tmp_path):
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    candidate = folder / "old.part"
+    candidate.write_bytes(b"protected")
+    os.utime(candidate, (100, 100))
+    original = Path.lstat
+
+    def inaccessible(path):
+        if path == candidate:
+            raise PermissionError("denied")
+        return original(path)
+
+    with patch.object(Path, "lstat", inaccessible):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
+                           now=100000, enabled=True)
+    assert result["status"] == "ALERT_REPARSE_ENTRY"
+    assert result["candidates"] == []
+    assert candidate.read_bytes() == b"protected"
+
+
+def test_disk_telemetry_failure_rejects_manifest(tmp_path):
+    (tmp_path / "tmp").mkdir()
+    with patch("src.api.guardians.storage_guardian.shutil.disk_usage",
+               side_effect=OSError("disk offline")):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
+                           enabled=True)
+    assert result["status"] == "ALERT_IO_FAILURE"
+    assert result["candidates"] == []
+
+
+def test_full_uninstall_requires_master_owned_adapter(tmp_path):
+    """No Storage API may delete even an isolated full TESTER fixture."""
+    owned = tmp_path / "TesterLab"
+    for directory in ("app", "config", "data", "postgres-data",
+                      "logs", "scripts", "install", "tmp"):
+        (owned / directory).mkdir(parents=True)
+    for relative in ("data/candles.db", "data/results.json",
+                     "postgres-data/PG_VERSION", "logs/log.txt",
+                     "config/config.json", "install/backup.zip"):
+        target = owned / relative
+        target.write_bytes(b"retain until MASTER verified uninstall")
+    with pytest.raises(PermissionError):
+        cleanup_authorization(owned, confirmation="DELETE TESTER", enabled=True)
+    for relative in ("data/candles.db", "data/results.json",
+                     "postgres-data/PG_VERSION", "logs/log.txt",
+                     "config/config.json", "install/backup.zip"):
+        assert (owned / relative).exists()
