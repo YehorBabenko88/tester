@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from src.api.guardians.data_guardian import reconcile
+from src.api.guardians.data_guardian import assess_owned_cluster_removal, reconcile
 
 H = "a" * 64
 STEP = 60_000
@@ -456,3 +456,79 @@ def test_destructive_contract_no_delete_capability():
         assert result.proposal is not None
         assert result.proposal["execution_authorized"] is False
         assert result.proposal["preserve_raw"] is True
+
+
+def removal_fixture():
+    evidence = {
+        "environment": "disposable_windows_fixture",
+        "confirmation": "DELETE TESTER",
+        "second_confirmation": True,
+        "manifest_verified": True,
+        "independent_attestation": True,
+        "install_root": r"C:\TesterLab",
+        "dedicated_pg_root": r"C:\TesterLab\postgres-data",
+        "dedicated_pg_port": 55432,
+        "system_pg_port": 5432,
+        "system_pg_service": "postgresql-x64-18",
+        "manifest_sha256": H,
+        "independent_receipt_sha256": H,
+    }
+    for key in (
+        "owned_services_absent", "dedicated_cluster_absent",
+        "raw_candles_absent", "history_absent", "provenance_absent",
+        "source_hashes_absent", "test_results_absent", "checkpoints_absent",
+        "owned_config_absent", "owned_logs_absent", "owned_shortcuts_absent",
+        "owned_directories_absent", "no_owned_backups_or_archives",
+        "system_pg_identity_unchanged", "system_pg_data_hash_unchanged",
+        "no_reparse_traversal", "exclusive_lock_verified",
+    ):
+        evidence[key] = True
+    return evidence
+
+
+def test_removal_gate_disabled_default():
+    assert assess_owned_cluster_removal(removal_fixture()).reason == "guardians_disabled"
+
+
+def test_removal_gate_fixture_only():
+    assert assess_owned_cluster_removal(removal_fixture(), enabled=True).action == (
+        "OBSERVED_FIXTURE_REMOVAL"
+    )
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("environment", "tester_preview"),
+    ("confirmation", "delete tester"),
+    ("second_confirmation", False),
+    ("manifest_verified", False),
+    ("independent_attestation", False),
+    ("install_root", r"C:\Windows"),
+    ("dedicated_pg_root", r"C:\Program Files\PostgreSQL\18\data"),
+    ("dedicated_pg_port", 5432),
+    ("dedicated_pg_port", True),
+    ("system_pg_port", 55432),
+    ("system_pg_service", "TesterLabPG"),
+    ("manifest_sha256", "unknown"),
+    ("independent_receipt_sha256", None),
+])
+def test_removal_gate_rejects_forged_scope(field, bad):
+    evidence = removal_fixture()
+    evidence[field] = bad
+    assert assess_owned_cluster_removal(evidence, enabled=True).action == "ALERT"
+
+
+@pytest.mark.parametrize("missing", [
+    "owned_services_absent", "dedicated_cluster_absent",
+    "raw_candles_absent", "history_absent", "provenance_absent",
+    "source_hashes_absent", "test_results_absent", "checkpoints_absent",
+    "owned_config_absent", "owned_logs_absent", "owned_shortcuts_absent",
+    "owned_directories_absent", "no_owned_backups_or_archives",
+    "system_pg_identity_unchanged", "system_pg_data_hash_unchanged",
+    "no_reparse_traversal", "exclusive_lock_verified",
+])
+def test_removal_gate_rejects_partial_deletion(missing):
+    evidence = removal_fixture()
+    evidence[missing] = False
+    assert assess_owned_cluster_removal(evidence, enabled=True).reason == (
+        "removal_incomplete_or_unverified"
+    )
