@@ -17,6 +17,10 @@ SCHEMA = "tester-install/v1"
 FORBIDDEN = ("c:\\program files", "c:\\windows", "c:\\users", "c:\\programdata")
 SYSTEM_SERVICE = "postgresql-x64-18"
 SAFE_NAME = re.compile(r"^Tester[A-Za-z0-9_-]{1,80}$")
+_RESERVED = frozenset({"con", "prn", "aux", "nul"}) | {
+    f"{prefix}{number}" for prefix in ("com", "lpt") for number in range(1, 10)
+}
+_WIN_INVALID = re.compile(r'[<>:"|?*\\x00-\\x1f]')
 
 
 @dataclass(frozen=True)
@@ -33,7 +37,19 @@ def canonical(path: object) -> str | None:
     drive, tail = ntpath.splitdrive(value)
     if drive != "c:" or not tail.startswith("\\") or value in ("c:\\", "c:"):
         return None
-    if ".." in path.split("\\") or value.startswith("\\\\"):
+    if value.startswith("\\\\"):
+        return None
+    raw_drive, raw_tail = ntpath.splitdrive(path)
+    if raw_drive.casefold() != "c:" or not raw_tail.startswith("\\"):
+        return None
+    parts = raw_tail.split("\\")[1:]
+    if not parts or any(
+        part in ("", ".", "..")
+        or part.endswith((".", " "))
+        or _WIN_INVALID.search(part)
+        or part.split(".")[0].casefold() in _RESERVED
+        for part in parts
+    ):
         return None
     return value
 
