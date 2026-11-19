@@ -781,3 +781,71 @@ def test_fault_injection_partial_uninstall_never_reports_data_removed():
         assert finding.action == "ALERT"
         assert finding.proposal is None
     assert source == data_removal_fixture()
+
+
+def test_disposable_sqlite_partial_write_rollback_preserves_confirmed_rows(tmp_path):
+    """SQLite-only transaction fault; NOT PostgreSQL crash acceptance."""
+    import sqlite3
+
+    db = tmp_path / "data-guardian-disposable.sqlite3"
+    with sqlite3.connect(db) as connection:
+        connection.execute(
+            "CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)"
+        )
+        connection.execute("INSERT INTO candles VALUES (?, ?)", (0, H))
+    connection = sqlite3.connect(db)
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        connection.execute("INSERT INTO candles VALUES (?, ?)", (STEP, "b" * 64))
+        connection.rollback()  # injected failure before commit
+    finally:
+        connection.close()
+    with sqlite3.connect(db) as connection:
+        assert connection.execute(
+            "SELECT open_ms, source_sha FROM candles ORDER BY open_ms"
+        ).fetchall() == [(0, H)]
+
+
+def test_disposable_sqlite_commit_survives_reader_restart(tmp_path):
+    """SQLite-only restart/ack loss, with duplicate-key protection."""
+    import sqlite3
+
+    db = tmp_path / "data-guardian-disposable.sqlite3"
+    with sqlite3.connect(db) as connection:
+        connection.execute(
+            "CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)"
+        )
+        connection.execute("INSERT INTO candles VALUES (?, ?)", (0, H))
+        connection.execute("INSERT INTO candles VALUES (?, ?)", (STEP, "b" * 64))
+    with sqlite3.connect(db) as connection:
+        assert connection.execute(
+            "SELECT open_ms, source_sha FROM candles ORDER BY open_ms"
+        ).fetchall() == [(0, H), (STEP, "b" * 64)]
+        try:
+            connection.execute("INSERT INTO candles VALUES (?, ?)", (STEP, "c" * 64))
+        except sqlite3.IntegrityError:
+            connection.rollback()
+        else:
+            pytest.fail("duplicate candle key was accepted")
+        assert connection.execute(
+            "SELECT source_sha FROM candles WHERE open_ms=?", (STEP,)
+        ).fetchone() == ("b" * 64,)
+
+
+def test_disposable_sqlite_connection_drop_rolls_back_pending_candle(tmp_path):
+    """Uncommitted insert must not overwrite previously confirmed history."""
+    import sqlite3
+
+    db = tmp_path / "data-guardian-disposable.sqlite3"
+    with sqlite3.connect(db) as connection:
+        connection.execute(
+            "CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)"
+        )
+        connection.execute("INSERT INTO candles VALUES (?, ?)", (0, H))
+    connection = sqlite3.connect(db)
+    connection.execute("INSERT INTO candles VALUES (?, ?)", (STEP, "b" * 64))
+    connection.close()  # simulate lost connection before COMMIT
+    with sqlite3.connect(db) as reopened:
+        assert reopened.execute(
+            "SELECT open_ms, source_sha FROM candles"
+        ).fetchall() == [(0, H)]
