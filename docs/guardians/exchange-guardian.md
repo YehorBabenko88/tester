@@ -164,3 +164,30 @@ These criteria do not implement deletion or override the MASTER contract.
 
 All of the above are integration findings, not authorization to
 merge, install, uninstall, use real trading APIs or alter main.
+
+## Connection fault-injection scope (2026-11-19)
+
+The decision engine now recognizes `dns_failure`, `websocket_disconnect`,
+`partial_response` and HTTP 403 as externally supplied observations.
+DNS and WebSocket disconnect share the existing bounded transient retry
+proposal budget (maximum two proposals before circuit opens). HTTP 403
+halts and requires manual review: it must never trigger proxy rotation,
+credential swapping, IP evasion, or automatic retry. Partial responses
+open a protective circuit and never authorize candle writes. TLS
+verification failure always halts, including during another cooldown.
+
+**WebSocket boundary:** `endpoint_key` accepts only attested official HTTPS
+source identities, not arbitrary `wss://` URLs. A separately authorized
+WebSocket transport must supply observations tied to an approved source
+identity; this Guardian does not open or reconnect sockets. No websocket
+handshake, ping/pong, subscription, order or trading code is implemented.
+MASTER must review transport ownership and a unified rate-limit budget.
+
+**Data boundary:** connection recovery means only transport monitoring;
+historical completeness, candle deduplication, gap reconciliation and
+writes belong to Data Guardian. The Exchange module does not access
+PostgreSQL or historical storage.
+
+Fault-injection tests are deterministic and offline. The new cases are
+not physical network fault-injection evidence until executed on an exact
+pinned HEAD. `GUARDIANS_ENABLED=false` remains the default.
