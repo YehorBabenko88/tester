@@ -120,33 +120,33 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
         if not _valid_int(ts) or ts < start or ts >= end or (ts - start) % step:
             return _alert("record_out_of_window", scope)
         if ts in keys:
-            return _conflict("duplicate_key", scope, snapshot)
+            return _conflict("duplicate_key", scope, snapshot, ts)
         keys.add(ts)
         if (row.get("source") != "bybit"
                 or row.get("provenance_verified") is not True
                 or row.get("category") != category
                 or row.get("symbol") != symbol
                 or row.get("interval") != interval):
-            return _conflict("source_mismatch", scope, snapshot)
+            return _conflict("source_mismatch", scope, snapshot, ts)
         if not (_valid_sha(row.get("source_sha256"))
                 and _valid_sha(row.get("observed_sha256"))
                 and row["source_sha256"] == row["observed_sha256"]
                 and row.get("original_projection_verified") is True):
-            return _conflict("hash_or_projection_conflict", scope, snapshot)
+            return _conflict("hash_or_projection_conflict", scope, snapshot, ts)
         o, h, low, close, vol = (
             row.get("open"), row.get("high"), row.get("low"),
             row.get("close"), row.get("volume")
         )
         if not all(_positive(x) for x in (o, h, low, close)):
-            return _conflict("invalid_ohlc", scope, snapshot)
+            return _conflict("invalid_ohlc", scope, snapshot, ts)
         if not (low <= o <= h and low <= close <= h):
-            return _conflict("invalid_ohlc", scope, snapshot)
+            return _conflict("invalid_ohlc", scope, snapshot, ts)
         if not _nonnegative_finite(vol):
-            return _conflict("invalid_volume", scope, snapshot)
+            return _conflict("invalid_volume", scope, snapshot, ts)
         if row.get("closed") is not True:
             return _alert("unclosed_candle", scope)
         if row.get("close_time_ms") != ts + step - 1:
-            return _conflict("candle_close_time_mismatch", scope, snapshot)
+            return _conflict("candle_close_time_mismatch", scope, snapshot, ts)
 
     missing = [ts for ts in range(start, end, step) if ts not in keys]
     if not missing:
@@ -188,18 +188,28 @@ def _digest(scope, start, end, timestamps):
     return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _conflict(reason, scope, snapshot):
-    evidence = _digest(scope, snapshot["start_ms"], snapshot["end_ms"], [reason])
-    return Finding("PROPOSE_QUARANTINE", reason, scope, evidence,
-                   {"scope": scope, "evidence_ref": evidence, "history_complete": False,
-                    "execution_authorized": False, "preserve_raw": True})
+def _conflict(reason, scope, snapshot, timestamp):
+    """Propose only after an independent conflict probe, keyed per candle."""
+    if snapshot.get("independent_integrity_check") is not True:
+        return _alert("integrity_evidence_not_verified", scope)
+    evidence = _digest(
+        scope, snapshot["start_ms"], snapshot["end_ms"],
+        ["conflict/v2", reason, timestamp, snapshot["baseline_sha256"]],
+    )
+    return Finding(
+        "PROPOSE_QUARANTINE", reason, scope, evidence,
+        {"scope": scope, "affected_open_time_ms": timestamp,
+         "evidence_ref": evidence, "history_complete": False,
+         "execution_authorized": False, "preserve_raw": True},
+    )
 
 
-def assess_owned_cluster_removal(evidence: Mapping, *, enabled: bool = False) -> Finding:
-    """Pure uninstall *verification* gate, never a deletion capability.
+def assess_data_removal_receipt(evidence: Mapping, *, enabled: bool = False) -> Finding:
+    """Evaluate Data-only deletion evidence after MASTER's independent gate.
 
-    Requires independent before/after identity and absence attestations from a
-    disposable fixture. A successful result is limited to the supplied fixture.
+    Checks only source-data, database, and checkpoint absence. MASTER owns the
+    installer, DELETE TESTER confirmation, service lifecycle, shortcuts and paths;
+    Storage owns reparse safety. This function cannot delete anything.
     """
     if not enabled:
         return _alert("guardians_disabled")
@@ -207,34 +217,91 @@ def assess_owned_cluster_removal(evidence: Mapping, *, enabled: bool = False) ->
         return _alert("invalid_removal_evidence")
     if evidence.get("environment") != "disposable_windows_fixture":
         return _alert("removal_fixture_required")
-    if evidence.get("confirmation") != "DELETE TESTER":
-        return _alert("explicit_confirmation_missing")
-    if evidence.get("second_confirmation") is not True:
-        return _alert("second_confirmation_missing")
-    if evidence.get("manifest_verified") is not True:
-        return _alert("removal_manifest_unverified")
-    if evidence.get("independent_attestation") is not True:
-        return _alert("independent_removal_attestation_missing")
-    if (evidence.get("install_root") != r"C:\TesterLab"
-            or evidence.get("dedicated_pg_root") != r"C:\TesterLab\postgres-data"
-            or evidence.get("dedicated_pg_port") != 55432
-            or type(evidence.get("dedicated_pg_port")) is not int
-            or evidence.get("system_pg_port") != 5432
-            or evidence.get("system_pg_service") != "postgresql-x64-18"):
-        return _alert("postgresql_ownership_unverified")
+    if (evidence.get("master_gate_verified") is not True
+            or not _valid_sha(evidence.get("master_gate_receipt_sha256"))):
+        return _alert("master_uninstall_gate_unverified")
+    if evidence.get("independent_data_readback_verified") is not True:
+        return _alert("independent_data_readback_missing")
+    if (evidence.get("dedicated_cluster_identity_verified") is not True
+            or evidence.get("system_pg_identity_unchanged") is not True
+            or evidence.get("system_pg_data_hash_unchanged") is not True):
+        return _alert("database_identity_unverified")
     required = (
-        "owned_services_absent", "dedicated_cluster_absent",
-        "raw_candles_absent", "history_absent", "provenance_absent",
-        "source_hashes_absent", "test_results_absent", "checkpoints_absent",
-        "owned_config_absent", "owned_logs_absent", "owned_shortcuts_absent",
-        "owned_directories_absent", "no_owned_backups_or_archives",
-        "system_pg_identity_unchanged", "system_pg_data_hash_unchanged",
-        "no_reparse_traversal", "exclusive_lock_verified",
+        "dedicated_cluster_absent",
+        "raw_candles_absent",
+        "history_absent",
+        "original_projections_absent",
+        "provenance_absent",
+        "source_hashes_absent",
+        "test_results_absent",
+        "checkpoints_absent",
+        "download_queue_absent",
+        "data_backups_absent",
     )
-    if any(evidence.get(key) is not True for key in required):
-        return _alert("removal_incomplete_or_unverified")
-    if not _valid_sha(evidence.get("manifest_sha256")):
-        return _alert("manifest_digest_missing")
-    if not _valid_sha(evidence.get("independent_receipt_sha256")):
-        return _alert("removal_receipt_missing")
-    return Finding("OBSERVED_FIXTURE_REMOVAL", "fixture_only_not_production_certification")
+    if any(evidence.get(field) is not True for field in required):
+        return _alert("data_removal_incomplete_or_unverified")
+    if not _valid_sha(evidence.get("data_receipt_sha256")):
+        return _alert("data_receipt_missing")
+    return Finding(
+        "OBSERVED_DATA_REMOVAL_FIXTURE",
+        "data_fixture_only_not_production_certification",
+    )
+
+
+def to_policy_event(snapshot: Mapping, finding: Finding) -> dict | None:
+    """Adapt a trusted *proposal* to the foundation policy's event schema.
+
+    Produces data-only metadata; cannot authorize, enqueue, execute or write.
+    Returns None on ambiguous scope, untrusted evidence or non-proposal results.
+    """
+    if not isinstance(snapshot, Mapping) or not isinstance(finding, Finding):
+        return None
+    if (finding.action not in {"PROPOSE_BOUNDED_BACKFILL", "PROPOSE_QUARANTINE"}
+            or not isinstance(finding.proposal, Mapping)
+            or finding.proposal.get("execution_authorized") is not False
+            or not _valid_sha(finding.evidence_ref.removeprefix("sha256:"))
+            or snapshot.get("environment") != "tester_preview"
+            or snapshot.get("ownership_verified") is not True):
+        return None
+    category, symbol, interval = (
+        snapshot.get("category"), snapshot.get("symbol"), snapshot.get("interval")
+    )
+    if (category not in ("linear", "inverse", "spot")
+            or type(symbol) is not str or not SYMBOL.fullmatch(symbol)
+            or type(interval) is not str or interval not in INTERVALS
+            or finding.scope != _scope(category, symbol, interval)):
+        return None
+    event = {
+        "component": "data",
+        "environment": "tester_preview",
+        "scope": finding.scope,
+        "source": "bybit",
+        "evidence_ref": finding.evidence_ref,
+        "ownership_verified": True,
+    }
+    if finding.action == "PROPOSE_BOUNDED_BACKFILL":
+        if (snapshot.get("catalog_verified") is not True
+                or snapshot.get("fenced_writer_verified") is not True
+                or finding.proposal.get("adapter") != "CatalogHandler"):
+            return None
+        start, end = snapshot.get("start_ms"), snapshot.get("end_ms")
+        if (not _valid_int(start) or not _valid_int(end)
+                or not 0 < end - start <= MAX_WINDOW_MS):
+            return None
+        event.update(
+            signal="verified_gap",
+            window_ms=end - start,
+            catalog_verified=True,
+            fenced_writer_verified=True,
+        )
+    else:
+        if snapshot.get("independent_integrity_check") is not True:
+            return None
+        event.update(
+            signal=(
+                "source_mismatch" if finding.reason == "source_mismatch"
+                else "hash_conflict"
+            ),
+            independent_integrity_check=True,
+        )
+    return event
