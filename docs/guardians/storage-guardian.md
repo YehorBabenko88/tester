@@ -81,3 +81,15 @@ Independent disposable-fixture negative acceptance for MASTER's installer:
 7. **Evidence:** capture pre/post manifests, exact file/service identities, explicit user confirmation, each attempted target and failure status; independently verify PostgreSQL 5432 unchanged. Use disposable isolated Windows fixture only.
 
 **NO-GO** until MASTER supplies independently executed Windows fault-injection evidence and exact-head CI. Storage Guardian's existing `inventory()` is read-only and is not an uninstaller authorization API.
+
+## Consolidation / legacy dependency audit — 2026-11-19
+
+**Storage-owned implementation comparison** (MASTER Issue #88 / consolidation PR #94):
+
+- Existing `src/api/maintenance.py:storage_status` estimates usage by recursively traversing a configured data directory and **creates the root with `mkdir`**. This is an effectful legacy monitor and cannot be reused by a strictly read-only Guardian. It reports whole-tree bytes; Storage Guardian intentionally reports only immediate `tmp` bytes, so the metrics are not interchangeable.
+- Existing `src/api/maintenance.py:cleanup_temp` directly unlinks old `*.part` children. It does not establish an atomic handle-bound directory/file identity or verify all ancestor reparse points. The Storage Guardian **does not call it**. Duplication of the `*.part` selection predicate is intentional for an independent dry-run, not a second deletion implementation. MASTER must resolve the long-term maintenance adapter and deprecation of unsafe legacy paths after testing.
+- Current `inventory(runtime_root)` requires `runtime_root / "tmp"`. The new unified installer contract creates `C:\\TesterLab` with `data`, `postgres-data`, `app`, `config`, `logs`, `scripts`, `install`, but **does not yet assign a canonical owned `runtime/tmp` path**. MASTER must specify and attest the runtime temp root; do not silently assume `C:\\TesterLab\\tmp` or reuse Preview v3.5's `%LOCALAPPDATA%` directories. Unconfigured root must fail closed.
+- `docs/guardians/workstream-storage-p0.md` remains an ownership/acceptance scaffold, not runtime code. Do not delete it or legacy Preview scripts until MASTER #88 validates dependency references, CI pins and release tags.
+- Latest inventory identity checks detect some non-reparse substitutions but remain pathname-based and **do not authorize cleanup**. Scanner identity fingerprints are not service ownership, release signatures, filesystem ACL attestation, or installer uninstall manifests.
+
+**Merge gate:** require a pinned, reviewed foundation; exact-head Ruff + unit/integration/fault-injection on Linux and Windows; physical NTFS junction and directory-swap tests; MASTER-defined `runtime_root`; proof that `GUARDIANS_ENABLED=false` and no maintenance effectors run. No PR merge or deploy before independent acceptance.
