@@ -1,8 +1,8 @@
 from src.api.guardians.windows_install_plan import (
     DIRECTORIES,
+    REMOVE_TITLE,
     ROOT,
     START_TITLE,
-    REMOVE_TITLE,
     plan_install,
 )
 
