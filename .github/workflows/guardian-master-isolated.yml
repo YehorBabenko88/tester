@@ -74,3 +74,16 @@ jobs:
           tests/platform/test_guardian_supervisor.py
           tests/platform/test_windows_install_gate.py
           tests/platform/test_windows_install_plan.py
+      - name: Disposable Windows desktop shortcuts
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $fixture = Join-Path $env:RUNNER_TEMP 'tester-desktop-fixture'
+          New-Item -ItemType Directory -Force -Path $fixture | Out-Null
+          ./scripts/windows/Write-TesterShortcutsFixture.ps1 -FixtureDesktop $fixture -CreateFixture
+          ./scripts/windows/Write-TesterShortcutsFixture.ps1 -FixtureDesktop $fixture -CreateFixture
+          $names = @(Get-ChildItem -LiteralPath $fixture -Filter '*.lnk' | Select-Object -ExpandProperty BaseName)
+          if ($names.Count -ne 2 -or $names -notcontains 'TESTER — Запуск' -or $names -notcontains 'TESTER — Удаление') {
+            throw 'Expected exact two pinned TESTER shortcut names'
+          }
+          Remove-Item -LiteralPath $fixture -Recurse -Force
