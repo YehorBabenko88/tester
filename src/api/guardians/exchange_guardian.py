@@ -148,6 +148,14 @@ class ExchangeGuardian:
             return self._verdict(state, observation, "UNAVAILABLE",
                                  "tls_verification_failed", "PROPOSE_STOP_SOURCE",
                                  "tls_fail_closed", None)
+        # HTTP 403 must preempt any active 429/timeout cooldown, as TLS does.
+        # It never authorizes automatic retry, proxy rotation or IP evasion.
+        if (observation.kind == "http" and observation.status_code == 403
+                and state["circuit"] != "HALTED"):
+            state["circuit"] = "HALTED"
+            state["seen"].add(observation.evidence_ref)
+            return self._verdict(state, observation, "UNAVAILABLE", "http_403",
+                                 "NONE", "forbidden_requires_manual_review", None)
         if observation.evidence_ref in state["seen"]:
             return self._verdict(state, observation, "DEGRADED", "duplicate",
                                  "NONE", "duplicate_evidence", None)
@@ -161,12 +169,6 @@ class ExchangeGuardian:
         state["seen"].add(observation.evidence_ref)
         if len(state["seen"]) > 128:
             state["seen"] = {observation.evidence_ref}
-        # 403 is not a retryable rate-limit signal: protect the source without
-        # proxy rotation, IP evasion, or automated credential changes.
-        if observation.kind == "http" and observation.status_code == 403:
-            state["circuit"] = "HALTED"
-            return self._verdict(state, observation, "UNAVAILABLE", "http_403",
-                                 "NONE", "forbidden_requires_manual_review", None)
         if observation.kind == "http" and observation.status_code == 429:
             after = retry_after_seconds(observation.retry_after,
                                         now_utc or datetime.now(UTC))
