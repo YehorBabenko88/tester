@@ -1,6 +1,7 @@
 """Independent Storage Guardian P0 negative tests; disposable directories only."""
 import os
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -255,10 +256,13 @@ def test_dry_run_does_not_modify_any_file(tmp_path):
         protected[name] = path.read_bytes()
         if name != "young.part":
             os.utime(path, (100, 100))
-    first = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                      now=100000, enabled=True)
-    second = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                       now=100000, enabled=True)
+    # Freeze the external disk telemetry: the evidence hash includes free space.
+    usage = SimpleNamespace(free=100000, total=200000)
+    with patch("src.api.guardians.storage_guardian.shutil.disk_usage", return_value=usage):
+        first = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
+                          now=100000, enabled=True)
+        second = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
+                           now=100000, enabled=True)
     assert first["status"] == second["status"] == "OBSERVED"
     assert first["evidence_sha256"] == second["evidence_sha256"]
     assert [item["name"] for item in first["candidates"]] == ["old.part"]
@@ -332,3 +336,60 @@ def test_no_uninstall_or_cleanup_capability(tmp_path):
     """Even explicit destructive confirmation cannot enable Storage P0."""
     with pytest.raises(PermissionError):
         cleanup_authorization(tmp_path, confirmation="DELETE TESTER", enabled=True)
+
+
+def test_directory_identity_swap_discard_manifest(tmp_path):
+    """Replace tmp's identity during the final check, not via a symlink."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    target = folder / "old.part"
+    target.write_bytes(b"intact")
+    os.utime(target, (100, 100))
+    original = Path.lstat
+    seen_tmp = 0
+
+    class SwappedStat:
+        def __init__(self, value):
+            self.st_dev = value.st_dev
+            self.st_ino = value.st_ino + 1
+            self.st_mode = value.st_mode
+            self.st_size = value.st_size
+            self.st_mtime_ns = value.st_mtime_ns
+            self.st_file_attributes = getattr(value, "st_file_attributes", 0)
+
+    def switched(path):
+        nonlocal seen_tmp
+        current = original(path)
+        if path == folder:
+            seen_tmp += 1
+            if seen_tmp == 6:
+                return SwappedStat(current)
+        return current
+
+    with patch.object(Path, "lstat", switched):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1000,
+                           now=100000, enabled=True)
+    assert seen_tmp == 6
+    assert result["status"] == "ALERT_ROOT_CHANGED"
+    assert result["candidates"] == []
+    assert result["bytes_reclaimable"] == 0
+    assert target.read_bytes() == b"intact"
+
+
+def test_no_delete_or_maintenance_effectors_even_when_enabled(tmp_path):
+    """Inventory is safe against accidental reuse of maintenance.cleanup_temp."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    candidate = folder / "old.part"
+    candidate.write_bytes(b"intact")
+    os.utime(candidate, (100, 100))
+    with (
+        patch.object(Path, "unlink", side_effect=AssertionError("unlink forbidden")),
+        patch("os.remove", side_effect=AssertionError("remove forbidden")),
+        patch("os.rmdir", side_effect=AssertionError("rmdir forbidden")),
+    ):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
+                           now=100000, enabled=True)
+    assert result["status"] == "OBSERVED"
+    assert [entry["name"] for entry in result["candidates"]] == ["old.part"]
+    assert candidate.read_bytes() == b"intact"
