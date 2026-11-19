@@ -205,3 +205,32 @@ for its exact-head Python, Platform and isolated fault CI to pass and
 MASTER to approve a non-force refresh. Do not copy or independently edit
 `tests/platform/test_guardian_policy.py`. The new unified installer is
 MASTER-owned and `GUARDIANS_ENABLED=false` remains mandatory.
+
+## P0 independent transport/policy audit — 2026-11-19
+
+The existing `src/ingest/transport.py` is the only intended HTTP
+executor. Review identified mismatches that **must be corrected by
+MASTER/transport owner, not by Exchange Guardian**:
+
+1. `Transport.get()` currently retries HTTP 403 (default six attempts,
+   600-second minimum delay), while Exchange Guardian treats 403 as a
+   non-retryable manual-review HALT.
+2. The transport validates official HTTPS hosts, but does not enforce
+   the public `/v5/market/` or `/trading/` path allowlist applied by
+   Exchange Guardian. The actual network boundary needs the same scope
+   authorization; observation-only validation is insufficient.
+3. `src/api/guardian_policy.py` can propose exchange actions from
+   directly supplied events without checking `ownership_verified`.
+   Exchange's `supervisor_event` requires independent attestation,
+   but the policy entry point must independently enforce ownership.
+4. Transport's default six retries and Guardian's three observed
+   failures are separate counters; no new network executor should
+   multiply these budgets or circumvent `Retry-After`.
+5. `tester_preview` is still the policy event environment; MASTER
+   must approve a signed, versioned identity for canonical
+   `C:\\TesterLab` before integration.
+
+No live Bybit connection, credential, order, PostgreSQL write, Windows
+service, installer or other module was changed by this audit. The
+combined release remains NO_GO until these contracts are reconciled
+and independently tested on an exact pinned candidate.
