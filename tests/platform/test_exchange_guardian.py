@@ -7,8 +7,8 @@ import pytest
 
 from src.api.guardians import exchange_guardian
 from src.api.guardians.exchange_guardian import (
-    ExchangeGuardian,
     MAX_ENDPOINTS,
+    ExchangeGuardian,
     Observation,
     endpoint_key,
     retry_after_seconds,
