@@ -54,3 +54,15 @@ For a disposable **isolated** Preview database only, require a consistent backup
 Rollback contract (future, MASTER-owned): preserve the old installer, binaries, service definitions, configuration and verified database backup; record hashes and restore-test receipts; stop/replace only after an explicit operator gate and a proven safe shutdown; on failure, return to the prior pinned build and restore the **isolated** database only after an independent consistency check. Never overwrite raw source records or restore into PostgreSQL 5432. This document performs no backup, restore, stop, uninstall or deployment.
 
 Installation readiness: **NO_GO**. Required: exact-head Data pytest/Ruff and fault-injection PASS, shared Foundation I001 resolution, independent source/DSN evidence reader, signed receipts, Windows isolated restore drill, MASTER compatibility approval and physical ADMINIT gate.
+
+## ADMINIT full-uninstall acceptance — contract 13d26b74
+
+This section supersedes the **retention/backup rollback** discussion above **for a user-confirmed full uninstall only**. The earlier backup/restore plan applies to a non-destructive reinstall, not to the destructive `DELETE TESTER` operation. Do not create or retain an archive/backup during full uninstall.
+
+Data Guardian owns only independent acceptance criteria, **not** installer or uninstaller code. A disposable Windows fixture must establish an independently attested manifest binding of TESTER-owned dedicated PostgreSQL cluster root, instance identity, non-5432 port, dedicated service image path, raw OHLCV/provenance/source SHA storage, downloaded candle history, job checkpoints, and test-run results. Reject missing/unknown/foreign ownership; no inference from port number alone.
+
+Before the destructive gate, independently verify that both explicit confirmations (including exact `DELETE TESTER`) were recorded, the exclusive installer lock is held, and all owned services have exited. Verify the dedicated cluster is not `postgresql-x64-18`, not the system PostgreSQL 18 data root, and not port 5432. No broad SQL DROP against arbitrary DSNs, and no recursive traversal of symlinks, junctions, or reparse points.
+
+After a **fixture-only** uninstall, verify absence of every manifest-owned raw candle/history, original projection, provenance/hash evidence, job checkpoint, test-result directory and dedicated PG cluster; verify both shortcuts and owned services removed. Confirm protected system PostgreSQL identity and data hash remain unchanged. Missing ownership proof or partial deletion must yield FAIL, never a false `fully deleted` receipt. No backups/archives retained from the destructive fixture. Ordinary deletion does not guarantee forensic sanitization.
+
+Data Guardian does not perform deletion, SQL, backups or installation. Production execution remains NO_GO pending MASTER #88 independent Windows acceptance.
