@@ -116,3 +116,18 @@ def test_lock_signature_identity_and_roles_are_mandatory():
     assert lifecycle_plan("install", m, a, signed_bundle_verified=True).reason == (
         "missing_service_roles"
     )
+
+
+def test_canonical_windows_case_and_separators_are_consistent():
+    m, a = fixture()
+    m["root"] = "C:\\TesterLab"
+    m["delete_targets"] = ["C:\\TesterLab"]
+    assert lifecycle_plan("install", m, a, signed_bundle_verified=True).allowed
+    assert lifecycle_plan(
+        "uninstall",
+        m,
+        a,
+        signed_bundle_verified=True,
+        typed_confirmation="DELETE TESTER",
+        second_confirmation=True,
+    ).allowed
