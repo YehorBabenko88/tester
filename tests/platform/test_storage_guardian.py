@@ -305,3 +305,30 @@ def test_reparse_poison_discards_other_candidates(tmp_path):
     assert result["candidates"] == []
     assert result["bytes_reclaimable"] == 0
     assert old.read_bytes() == b"old"
+
+
+def test_disposable_tree_cannot_be_reinterpreted_as_owned_root(tmp_path):
+    """A foreign sibling and traversal spelling cannot authorize a manifest."""
+    owned = tmp_path / "TesterLab"
+    (owned / "tmp").mkdir(parents=True)
+    foreign = tmp_path / "postgresql-system"
+    foreign.mkdir()
+    sentinel = foreign / "postgresql.conf"
+    sentinel.write_text("port=5432")
+    old = owned / "tmp" / "old.part"
+    old.write_bytes(b"temporary")
+    os.utime(old, (100, 100))
+    valid = inventory(owned, min_free_bytes=0, quota_bytes=1000,
+                      now=100000, enabled=True)
+    assert [entry["name"] for entry in valid["candidates"]] == ["old.part"]
+    invalid = inventory(owned / "tmp" / "..", min_free_bytes=0,
+                        quota_bytes=1000, now=100000, enabled=True)
+    assert invalid["status"] == "ALERT_UNVERIFIED_ROOT"
+    assert sentinel.read_text() == "port=5432"
+    assert old.read_bytes() == b"temporary"
+
+
+def test_no_uninstall_or_cleanup_capability(tmp_path):
+    """Even explicit destructive confirmation cannot enable Storage P0."""
+    with pytest.raises(PermissionError):
+        cleanup_authorization(tmp_path, confirmation="DELETE TESTER", enabled=True)
