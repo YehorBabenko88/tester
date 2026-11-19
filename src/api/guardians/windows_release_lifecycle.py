@@ -15,6 +15,7 @@ from src.api.guardians.windows_install_gate import (
     validate_manifest,
 )
 from src.api.guardians.windows_install_plan import ROOT, plan_install
+from src.api.guardians.windows_release_signature import verify_signed_manifest
 
 Action = Literal["install", "start", "stop", "uninstall"]
 OWNED_ROLES = frozenset({"postgres", "api", "worker"})
@@ -128,4 +129,33 @@ def lifecycle_plan(
             "delete_attested_tester_shortcuts",
             "record_nonsecret_partial_failure_status",
         ),
+    )
+
+
+def verified_lifecycle_plan(
+    action: Action,
+    manifest: dict,
+    attested: dict,
+    *,
+    signature_hex: str,
+    public_key_hex: str,
+    trusted_public_key_sha256: str,
+    typed_confirmation: str = "",
+    second_confirmation: bool = False,
+) -> LifecyclePlan:
+    """Verify a separately pinned Ed25519 signer before generating a plan."""
+    if not verify_signed_manifest(
+        manifest,
+        signature_hex=signature_hex,
+        public_key_hex=public_key_hex,
+        trusted_public_key_sha256=trusted_public_key_sha256,
+    ):
+        return LifecyclePlan(False, "invalid_signed_release")
+    return lifecycle_plan(
+        action,
+        manifest,
+        attested,
+        signed_bundle_verified=True,
+        typed_confirmation=typed_confirmation,
+        second_confirmation=second_confirmation,
     )
