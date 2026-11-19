@@ -531,3 +531,34 @@ def test_quota_budget_rejects_bool_and_noninteger_before_io():
                          quota_bytes=1, enabled=True)["status"] == "ALERT_INVALID_BUDGET"
         assert inventory("nonexistent", min_free_bytes=0,
                          quota_bytes=1.5, enabled=True)["status"] == "ALERT_INVALID_BUDGET"
+
+
+@pytest.mark.parametrize("bad_name", ["../outside.part", "/absolute.part",
+                                      "sub/child.part", "C:stream.part",
+                                      "..", "", "a\\\\b.part"])
+def test_forged_directory_entry_name_rejected(tmp_path, bad_name):
+    """Even a forged scandir entry cannot escape the direct-child boundary."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    outside = tmp_path / "outside.part"
+    outside.write_bytes(b"foreign")
+    original = os.scandir
+
+    class Forged:
+        name = bad_name
+
+    class FakeScan:
+        def __enter__(self):
+            return iter([Forged()])
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    def injected(path):
+        return FakeScan() if path == folder else original(path)
+
+    with patch("src.api.guardians.storage_guardian.os.scandir", side_effect=injected):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
+                           now=100000, enabled=True)
+    assert result["status"] == "ALERT_UNSAFE_ENTRY"
+    assert result["candidates"] == []
+    assert outside.read_bytes() == b"foreign"
