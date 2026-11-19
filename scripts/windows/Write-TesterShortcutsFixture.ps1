@@ -19,9 +19,12 @@ if (-not $Target.StartsWith($TempRoot.TrimEnd('\\') + '\\', [StringComparison]::
 if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
     throw 'Fixture desktop must already exist'
 }
-$Item = Get-Item -LiteralPath $Target -Force
-if (($Item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-    throw 'Reparse fixture desktop refused'
+$Cursor = Get-Item -LiteralPath $Target -Force
+while ($null -ne $Cursor) {
+    if (($Cursor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw 'Reparse fixture desktop or ancestor refused'
+    }
+    $Cursor = $Cursor.Parent
 }
 $Names = @('TESTER — Запуск','TESTER — Удаление')
 $Scripts = @('Start-Tester.ps1','Uninstall-Tester.ps1')
@@ -34,7 +37,11 @@ for ($Index = 0; $Index -lt 2; $Index++) {
             throw 'Reparse shortcut refused'
         }
         $Current = $Shell.CreateShortcut($Path)
-        if ($Current.Arguments -notlike ('*' + $Scripts[$Index] + '*')) {
+        if (
+            $Current.Arguments -notlike ('*' + $Scripts[$Index] + '*') -or
+            $Current.TargetPath -ne (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') -or
+            $Current.WorkingDirectory -ne 'C:\TesterLab'
+        ) {
             throw 'Foreign shortcut collision'
         }
     }
