@@ -304,3 +304,40 @@ def test_fault_injection_halted_circuit_never_reproposes_stop():
     third = g.inspect(obs(evidence_ref="sha256:" + "c" * 64), now=3)
     assert third.proposal == "NONE"
     assert not third.history_complete
+
+
+def test_adminit_offline_launcher_default_denies_all_proposals():
+    guardian = ExchangeGuardian()
+    for observation in (
+        obs(), obs("timeout"), obs("tls_failure"),
+        obs(status_code=429, retry_after="30"),
+        obs(status_code=500), obs(status_code=200, parse_valid=False),
+    ):
+        verdict = guardian.inspect(observation, now=100)
+        assert verdict.status == "DISABLED"
+        assert verdict.proposal == "NONE"
+        assert verdict.history_complete is False
+
+
+def test_adminit_read_only_transport_has_no_trading_capabilities():
+    import inspect
+    from src.api.guardians import exchange_guardian
+
+    source = inspect.getsource(exchange_guardian)
+    for forbidden in ("requests.post(", "subprocess.run(", "os.system(",
+                      "DROP DATABASE", "DELETE FROM", "verify=False",
+                      "allow_redirects=True"):
+        assert forbidden not in source
+
+
+def test_adminit_offline_rejects_private_and_trading_endpoints():
+    for address in (
+        "https://api.bybit.com/v5/order/create",
+        "https://api.bybit.com/v5/position/list",
+        "https://api.bybit.com/v5/account/wallet-balance",
+        "https://public.bybit.com/trading/../v5/order/create",
+        "https://localhost/v5/market/kline",
+        "https://127.0.0.1/v5/market/kline",
+    ):
+        with pytest.raises(ValueError):
+            endpoint_key(address)
