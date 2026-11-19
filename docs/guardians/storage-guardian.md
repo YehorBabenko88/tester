@@ -65,3 +65,19 @@ Get-Process | Where-Object { $_.ProcessName -match 'postgres|tester' } | Select-
 ```
 
 Do **not** run `cleanup_temp`, `Remove-Item`, `Stop-Service`, `Uninstall`, `VACUUM FULL`, `pg_resetwal` or overwrite data directories. Restore is a separately authorized and verified operation, not part of this preflight. Missing evidence means **NO-GO**.
+
+## ADMINIT full-uninstall contract: Storage-owned review criteria
+
+Reference: `docs/guardians/adminit-desktop-install-uninstall-contract.md` at foundation commit `13d26b74`. MASTER #88 owns installer, destructive uninstaller, UI, service control and integration. **Storage Guardian never invokes uninstall or deletion.** This review contract does not alter the user's explicit full-deletion intent; it limits destruction to independently attested TESTER-owned targets after the exact typed `DELETE TESTER` confirmation and second destructive warning.
+
+Independent disposable-fixture negative acceptance for MASTER's installer:
+
+1. **Manifest validation:** absent, malformed, duplicated, stale, tampered, relative, traversal (`..`), drive-root, Program Files, mixed-case/8.3 Windows aliases, UNC/device/extended-length paths and alternate data streams must fail closed before any mutation. An apparently valid absolute string is not proof of ownership.
+2. **Junction/reparse/symlink:** refuse linked install root, data root, any ancestor and each deletion target. Swap a verified directory for a junction immediately before deletion (TOCTOU) and assert foreign sentinel survives. Pathname `lstat` alone is insufficient; MASTER must provide handle-based identity checks.
+3. **Foreign resources:** inject an unrelated service with a similar prefix, different ImagePath, unrelated scheduled task, desktop shortcut, database cluster and PostgreSQL 18 on 5432. None may be stopped, unregistered or modified.
+4. **Destructive scope:** after *two* confirmations including exact `DELETE TESTER`, a disposable owned-only fixture should be fully removed, including owned candle history, results, dedicated DB, configs and any TESTER-owned backups/archives. No backup or archive retention; no broad disk sweep or deletion outside verified ownership. This is a test expectation, **not** an executable action here.
+5. **Partial failure:** inject access denied, locked file, stopped/absent service, mismatched cluster identity, power interruption and stale lock. Never report full success while targets remain; preserve a minimal failure receipt outside deletion root with no candle history, credentials or secrets.
+6. **Concurrency and idempotency:** refuse simultaneous start/uninstall; repeat uninstall only for independently attested already-absent targets, without escalating scope or touching foreign paths.
+7. **Evidence:** capture pre/post manifests, exact file/service identities, explicit user confirmation, each attempted target and failure status; independently verify PostgreSQL 5432 unchanged. Use disposable isolated Windows fixture only.
+
+**NO-GO** until MASTER supplies independently executed Windows fault-injection evidence and exact-head CI. Storage Guardian's existing `inventory()` is read-only and is not an uninstaller authorization API.
