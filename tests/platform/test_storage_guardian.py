@@ -513,3 +513,21 @@ def test_mid_scan_file_disappearance_rejects_entire_manifest(tmp_path):
     assert result["status"] in ("ALERT_REPARSE_ENTRY", "ALERT_IO_FAILURE")
     assert result["candidates"] == []
     assert old.read_bytes() == b"retain"
+
+
+@pytest.mark.parametrize("invalid", [float("nan"), float("inf"), -1, True, "bad"])
+def test_invalid_clock_preempts_missing_root(invalid, tmp_path):
+    """Invalid clock is deterministic even when no runtime root is installed."""
+    result = inventory(tmp_path / "not-installed", min_free_bytes=0,
+                       quota_bytes=1, now=invalid, enabled=True)
+    assert result["status"] == "ALERT_INVALID_CLOCK"
+    assert result["candidates"] == []
+
+
+def test_quota_budget_rejects_bool_and_noninteger_before_io():
+    with patch("src.api.guardians.storage_guardian.shutil.disk_usage",
+               side_effect=AssertionError("disk must not be inspected")):
+        assert inventory("nonexistent", min_free_bytes=True,
+                         quota_bytes=1, enabled=True)["status"] == "ALERT_INVALID_BUDGET"
+        assert inventory("nonexistent", min_free_bytes=0,
+                         quota_bytes=1.5, enabled=True)["status"] == "ALERT_INVALID_BUDGET"
