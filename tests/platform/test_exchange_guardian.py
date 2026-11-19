@@ -419,3 +419,75 @@ def test_integration_mismatched_evidence_cannot_claim_ownership():
     from src.api.guardian_policy import decide
 
     assert decide(event).action == "ALERT"
+
+
+@pytest.mark.parametrize("failure_kind", ["dns_failure", "websocket_disconnect"])
+def test_fault_injection_connection_loss_budget_and_recovery(failure_kind):
+    guardian = ExchangeGuardian(enabled=True)
+    for i, clock in enumerate((0, 2, 5)):
+        failed = guardian.inspect(
+            obs(failure_kind, evidence_ref="sha256:" + str(i) * 64),
+            now=clock,
+        )
+        assert failed.attempts == i + 1
+        assert failed.proposal == (
+            "NONE" if i == 2 else "PROPOSE_BOUNDED_RETRY"
+        )
+    assert failed.circuit == "OPEN"
+    still_blocked = guardian.inspect(
+        obs(evidence_ref="sha256:" + "a" * 64), now=6
+    )
+    assert still_blocked.proposal == "NONE"
+    assert still_blocked.history_complete is False
+    restored = guardian.inspect(
+        obs(evidence_ref="sha256:" + "b" * 64), now=3606
+    )
+    assert restored.status == "MONITORING"
+    assert not restored.history_complete and not restored.gaps_reconciled
+
+
+def test_fault_injection_http_403_never_retries_or_evasion():
+    guardian = ExchangeGuardian(enabled=True)
+    first = guardian.inspect(obs(status_code=403), now=10)
+    assert first.status == "UNAVAILABLE"
+    assert first.signal == "http_403"
+    assert first.proposal == "NONE"
+    assert first.circuit == "HALTED"
+    blocked = guardian.inspect(
+        obs(evidence_ref="sha256:" + "b" * 64), now=100000
+    )
+    assert blocked.proposal == "NONE"
+    assert blocked.status == "UNAVAILABLE"
+    assert not blocked.history_complete
+
+
+def test_fault_injection_partial_response_never_commits_history():
+    guardian = ExchangeGuardian(enabled=True)
+    partial = guardian.inspect(obs("partial_response"), now=1)
+    assert partial.status == "UNAVAILABLE"
+    assert partial.signal == "malformed_response"
+    assert partial.circuit == "OPEN"
+    assert partial.proposal == "NONE"
+    assert partial.history_complete is False
+    assert partial.gaps_reconciled is False
+
+
+def test_fault_injection_tls_preempts_dns_cooldown():
+    guardian = ExchangeGuardian(enabled=True)
+    guardian.inspect(obs("dns_failure"), now=0)
+    tls = guardian.inspect(
+        obs("tls_failure", evidence_ref="sha256:" + "b" * 64), now=0.1
+    )
+    assert tls.circuit == "HALTED"
+    assert tls.proposal == "PROPOSE_STOP_SOURCE"
+
+
+def test_fault_injection_rate_limit_not_bypassed_by_ws_disconnect():
+    guardian = ExchangeGuardian(enabled=True)
+    rate = guardian.inspect(obs(status_code=429, retry_after="120"), now=10)
+    disconnect = guardian.inspect(
+        obs("websocket_disconnect", evidence_ref="sha256:" + "b" * 64),
+        now=11,
+    )
+    assert disconnect.proposal == "NONE"
+    assert disconnect.retry_at == rate.retry_at
