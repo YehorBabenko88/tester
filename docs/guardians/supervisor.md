@@ -167,3 +167,25 @@ of pretending a binary rollback restores data.
 Any unknown identity, failed CI, incomplete backup, broken signature, false
 verification, unrelated service change, or missing rollback evidence means
 **NO_GO**. This preparation does not authorize installation.
+
+## Desktop full-uninstall contract precedence (2026-11-19)
+
+The newer `adminit-desktop-install-uninstall-contract.md` supersedes the
+earlier backup-retention language **for a user-confirmed full uninstall**:
+all manifest-owned TESTER candle history, test results, database, backups and
+archives must be removed, with no retained user data. This differs from a
+failed upgrade rollback: before activation, retain the existing installation
+unchanged; never silently invoke full uninstall as rollback.
+
+`src/api/guardians/windows_install_gate.py` is a pure, non-destructive
+manifest/attestation/confirmation predicate. It does **not** install services,
+create shortcuts, stop processes or delete files. No shortcut or destructive
+executor is released. An independent Windows adapter must validate actual
+service ImagePath, process identities, filesystem file IDs and reparse
+ancestry, separate PostgreSQL cluster ownership and port, and use an exclusive
+lock before any future effect. Explicit `DELETE TESTER` and a second
+confirmation are mandatory. Ordinary deletion is not forensic SSD erasure.
+
+Two shortcuts must be named exactly `TESTER — Запуск` and
+`TESTER — Удаление`, generated only after a signed/pinned installer passes
+physical acceptance. All partial failures must be reported as incomplete.
