@@ -127,3 +127,40 @@ Exchange Guardian supplies offline tests and acceptance requirements only.
   completeness; separate Data Guardian reconciliation is mandatory.
 
 These criteria do not implement deletion or override the MASTER contract.
+
+## Canonical-main consolidation / integration risk review
+
+- **No duplicate transport:** `src/ingest/transport.py` already owns
+  actual official Bybit GET, session, throttling and its retry loop
+  (default attempts=6). Exchange Guardian is strictly **diagnostic and
+  proposal-only**, not a second HTTP client. MASTER must prevent additive
+  retries (6 transport attempts multiplied by 3 Guardian attempts);
+  only one bounded network retry budget may be executed per operation.
+- **Policy separation:** `src/api/guardian_policy.py` performs pure
+  authorization; this module provides per-endpoint observed state. No
+  market-data backfill, history completeness promotion, trading order
+  or data mutation is within Exchange ownership.
+- **Supervisor compatibility:** The child's historical branch may not
+  contain `src/api/guardian_supervisor.py` even when the newer
+  foundation PR does. Standalone Exchange policy tests run without it.
+  Optional integration test explicitly SKIPs when that module is absent
+  (and must PASS on the validated combined candidate). Never vendor
+  the MASTER-owned supervisor into this workstream to make a test pass.
+- **Ownership evidence:** `supervisor_event(..., ownership_verified=True)`
+  must only be supplied after an independent caller verifies the
+  endpoint/scope and evidence digest. The default is fail-closed and
+  cannot authorize action. Endpoint memory is capped at 128 scopes
+  to prevent unbounded growth; encoded/ambiguous paths fail closed.
+- **Redundant or historical files to review, not delete here:**
+  `docs/guardians/workstream-exchange-p0.md` is the original scaffold
+  alongside this canonical acceptance document. Historical
+  `scripts/windows_preview/` and `scripts/windows/` installers are
+  unrelated to the new `C:\\TesterLab` target. MASTER #88 and PR #94
+  must inventory references and deployment pins before any deprecation.
+- **Release gate:** The final merge candidate must verify real
+  exact-HEAD Python/Ruff/fault-injection and combined transport +
+  supervisor coverage, plus Windows safe-shutdown and independent
+  archive-gap reconciliation. An HTTP 200 is never a coverage receipt.
+
+All of the above are integration findings, not authorization to
+merge, install, uninstall, use real trading APIs or alter main.
