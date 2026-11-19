@@ -3,6 +3,7 @@
 This module is deliberately pure. A future Windows adapter must independently
 attest service identities and enforce this plan before touching a live host.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -53,8 +54,10 @@ def validate_manifest(manifest: Mapping, *, attested: Mapping | None = None) -> 
         return Gate(False, "schema_or_guardian_gate")
     root = canonical(manifest.get("root"))
     cluster = canonical(manifest.get("pg_data"))
-    if root is None or cluster is None or any(
-        root == p or root.startswith(p + "\\") for p in FORBIDDEN
+    if (
+        root is None
+        or cluster is None
+        or any(root == p or root.startswith(p + "\\") for p in FORBIDDEN)
     ):
         return Gate(False, "unsafe_root")
     if not _child(cluster, root):
