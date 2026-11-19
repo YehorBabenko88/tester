@@ -3,6 +3,7 @@
 The trusted public-key SHA256 must come from an independently approved release
 channel. This function performs no I/O or installation side effects.
 """
+
 from __future__ import annotations
 
 import hashlib
