@@ -79,6 +79,8 @@ def decide(event: Mapping) -> Decision:
             return Decision("ALERT", "disk_telemetry_not_verified")
 
     if component == "exchange":
+        if not owned:
+            return Decision("ALERT", "exchange_ownership_not_verified")
         if signal == "tls_verification_failed":
             return Decision("PROPOSE_STOP_SOURCE", "tls_fail_closed")
         if signal == "http_429":
