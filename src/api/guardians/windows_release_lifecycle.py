@@ -14,11 +14,39 @@ from src.api.guardians.windows_install_gate import (
     uninstall_authorized,
     validate_manifest,
 )
-from src.api.guardians.windows_install_plan import ROOT, plan_install
+from src.api.guardians.windows_install_plan import REMOVE_TITLE, ROOT, START_TITLE, plan_install
 from src.api.guardians.windows_release_signature import verify_signed_manifest
 
 Action = Literal["install", "start", "stop", "uninstall"]
 OWNED_ROLES = frozenset({"postgres", "api", "worker"})
+
+
+def _shortcuts_owned(manifest: dict, attested: dict) -> bool:
+    """Check only exact, pinned .lnk paths; never claim an entire Desktop."""
+    desktop = canonical(attested.get("desktop_root"))
+    if (
+        desktop is None
+        or desktop == ROOT
+        or desktop.startswith(ROOT + "\\")
+        or any(
+            desktop == blocked or desktop.startswith(blocked + "\\")
+            for blocked in ("c:\\windows", "c:\\program files", "c:\\programdata")
+        )
+        or attested.get("desktop_user_verified") is not True
+        or attested.get("desktop_reparse_points") != []
+        or attested.get("shortcut_targets_verified") is not True
+    ):
+        return False
+    expected = {
+        START_TITLE: desktop + "\\" + START_TITLE + ".lnk",
+        REMOVE_TITLE: desktop + "\\" + REMOVE_TITLE + ".lnk",
+    }
+    for observed in (manifest.get("desktop_shortcuts"), attested.get("desktop_shortcuts")):
+        if not isinstance(observed, dict) or set(observed) != set(expected):
+            return False
+        if any(canonical(observed[name]) != expected[name] for name in expected):
+            return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -58,6 +86,8 @@ def lifecycle_plan(
         return LifecyclePlan(False, "missing_service_roles")
     if set(roles.values()) != set(manifest["services"]):
         return LifecyclePlan(False, "foreign_service_role")
+    if action in ("install", "uninstall") and not _shortcuts_owned(manifest, attested):
+        return LifecyclePlan(False, "desktop_shortcuts_not_attested")
     if action == "install":
         candidate = plan_install(manifest, attested, signed_bundle_verified=True)
         if not candidate.allowed:
