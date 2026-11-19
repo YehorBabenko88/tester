@@ -1,4 +1,13 @@
-from src.api.guardians.windows_release_lifecycle import lifecycle_plan
+import hashlib
+import json
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+from src.api.guardians.windows_release_lifecycle import (
+    lifecycle_plan,
+    verified_lifecycle_plan,
+)
 
 ROOT = "c:\\testerlab"
 
@@ -131,3 +140,27 @@ def test_canonical_windows_case_and_separators_are_consistent():
         typed_confirmation="DELETE TESTER",
         second_confirmation=True,
     ).allowed
+
+
+def test_signed_lifecycle_rejects_tampering_and_untrusted_signer():
+    m, a = fixture()
+    private = Ed25519PrivateKey.generate()
+    key = private.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    payload = json.dumps(
+        m, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    signature = private.sign(b"TESTER-INSTALL-MANIFEST-v1\x00" + payload).hex()
+    proof = {
+        "signature_hex": signature,
+        "public_key_hex": key.hex(),
+        "trusted_public_key_sha256": hashlib.sha256(key).hexdigest(),
+    }
+    assert verified_lifecycle_plan("install", m, a, **proof).allowed
+    assert verified_lifecycle_plan(
+        "install", m, a, **{**proof, "trusted_public_key_sha256": "0" * 64}
+    ).reason == "invalid_signed_release"
+    m["pg_port"] = 5432
+    assert verified_lifecycle_plan("install", m, a, **proof).reason == "invalid_signed_release"
