@@ -255,6 +255,55 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
                 self.assertEqual((result.action, result.reason),
                                  ("ALERT", "ownership_unverified"))
 
+    def test_process_crash_and_repeated_failure_do_not_execute(self):
+        """SCM crash is only a proposal; repetition cannot create a restart loop."""
+        guardian = CodeGuardian(enabled=True)
+        first = guardian.evaluate(ident(), probes(), now=100, restarts_last_hour=0)
+        self.assertEqual(first.action, "PROPOSE_OWNED_RESTART")
+        self.assertEqual(
+            guardian.evaluate(
+                ident(), probes(), now=101, restarts_last_hour=0
+            ).reason,
+            "duplicate_incident",
+        )
+        self.assertEqual(
+            guardian.evaluate(
+                ident(), probes(), now=102, restarts_last_hour=2
+            ).reason,
+            "restart_budget_exhausted",
+        )
+        self.assertFalse(hasattr(guardian, "restart"))
+        self.assertFalse(hasattr(guardian, "execute"))
+
+    def test_start_refusal_never_becomes_verified_recovery(self):
+        """A failed start yields an unhealthy after-check and no success claim."""
+        guardian = CodeGuardian(enabled=True)
+        proposed = guardian.evaluate(
+            ident(), probes(), now=100, restarts_last_hour=0
+        )
+        self.assertEqual(proposed.action, "PROPOSE_OWNED_RESTART")
+        refused = CodeGuardian.verify(
+            ident(), probes(), now=100, independent_verifier=True
+        )
+        self.assertEqual((refused.action, refused.reason),
+                         ("ALERT", "after_check_failed"))
+        self.assertIsNone(refused.event)
+
+    def test_corrupt_journal_is_not_code_guardian_authority(self):
+        """Code has no journal-repair API; MASTER must reject corrupt receipts."""
+        guardian = CodeGuardian(enabled=True)
+        self.assertFalse(hasattr(guardian, "repair_journal"))
+        self.assertFalse(hasattr(guardian, "reserve"))
+        self.assertFalse(hasattr(guardian, "finish"))
+        # Even an apparently healthy after-check is only a pure observation,
+        # not a durable execution receipt or an authorized restart.
+        checked = CodeGuardian.verify(
+            ident(), probes(healthy=True), now=100,
+            independent_verifier=True,
+        )
+        self.assertEqual(checked.action, "VERIFIED_RECOVERY")
+        self.assertIsNone(checked.event)
+
     def test_shared_policy_proposal_only_and_nontrusted_claims(self):
         """Code decision -> MASTER policy is never an execution permission."""
         result = CodeGuardian(enabled=True).evaluate(
