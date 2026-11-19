@@ -182,3 +182,29 @@ test; it must not silently create retained uninstall backups.
 **No actual deletion, installation, stop, restart or destructive test has
 been performed by Code Guardian.** All checks above require independent
 Windows acceptance by MASTER and QA before deployment. Status NO_GO.
+
+## Consolidation gate: Windows service allowlist and legacy environment
+
+Code Guardian's own pure owner decision now restricts candidate Windows service
+names to the provisional `Tester*` namespace. Even when a caller forges
+matching `service` and `expected_service`, foreign `Spooler`,
+`ssh-agent`, `postgresql-x64-18` and alternate-case names must fail
+closed. This is **not** cryptographic Windows SCM service attestation; MASTER
+must bind the name to a signed manifest and independently observed SID,
+ImagePath, account and binary digest before any effectful API is enabled.
+
+**Known integration dependency:** the proposal event currently sets
+`environment="tester_preview"` because MASTER's shared
+`src/api/guardian_policy.py` accepts only that identifier. The new canonical
+product is the isolated `C:\TesterLab` installation, not Preview v3.5.
+Do not silently rename the field in this Code-only branch: that would make
+the shared policy reject all events. MASTER #88 must choose and test a
+versioned canonical environment contract for the new installer and all four
+Guardians, then coordinate a safe non-force refresh. No legacy Preview
+installer or database runtime is imported by this pure module.
+
+A policy producing `PROPOSE_OWNED_RESTART` remains an **untrusted proposal**.
+In-memory fingerprinting and caller-provided verification flags do not
+substitute for the durable MASTER supervisor, OS authentication, cross-process
+lease or independent after-check. Release is NO_GO until exact-head CI and
+physical acceptance pass.
