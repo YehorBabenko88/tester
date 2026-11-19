@@ -40,3 +40,28 @@ MUE-X ideas used: role-specific typed evidence and verified incident fingerprint
 - **TOCTOU remains a release blocker**: a race after the final check, or candidate swap between `lstat` and use, cannot be made safe with pathname-based Python checks alone. There is no cleanup executor and no permission to use `maintenance.cleanup_temp` in this P0.
 - Windows junction creation and real NTFS reparse behavior require physical ADMINIT acceptance. Simulated `st_file_attributes` is a unit test, not physical evidence.
 - No automated deletion or pausing is performed. No WAL, PostgreSQL, backup or historical file can be selected for cleanup.
+
+## Reinstallation preparation gate — 2026-11-19 (NO-GO)
+
+This section is a **read-only preflight checklist**, not an installer and not authorization to stop services, copy live databases, delete temp files or overwrite existing data. MASTER #88 owns installer compatibility, migration, backup and rollback approvals. The Storage Guardian remains disabled and must never run during installation.
+
+### Inventory evidence required before any installation approval
+
+- Record existing Windows service names, executable paths, startup types, service accounts, current states and dependencies, **without stopping them**.
+- Record candidate release SHA, manifest SHA256, artifact signatures, runtime version, installer target and data-root paths; compare with existing installation and check for overlaps.
+- Identify dedicated PostgreSQL Preview instance and its port using read-only configuration/service inventory; verify the production PostgreSQL 5432 instance is excluded. No SQL writes or PostgreSQL maintenance.
+- Record free disk bytes, expected package/staging/backup sizes, and reserved rollback headroom. Do not infer database size from `tmp_direct_bytes`; independent volume-level inventory is required.
+- Verify backup provenance and successful independent restore into a disposable **isolated** environment before any installation GO. A backup file merely existing is insufficient.
+- Pin old executable/configuration version, database/schema compatibility and a rollback decision point. Require a human-approved rollback plan that preserves historical candles, WAL, backups and all original files.
+- Validate that no reparse/junction/symlink crosses candidate staging, runtime, data, backup or rollback roots. Use OS handle-based verification in any later effectful installer; pathname-only `lstat` is insufficient against TOCTOU.
+- Require Windows ADMINIT physical smoke, exact-head Python/Ruff/fault-injection CI, a signed artifact and MASTER-approved cross-Guardian integration. No change to active Preview, PG5432 or running services.
+
+### Suggested read-only Windows inventory (manual, no mutation)
+
+```powershell
+Get-CimInstance Win32_Service | Select-Object Name, State, StartMode, PathName, StartName
+Get-Volume | Select-Object DriveLetter, FileSystem, Size, SizeRemaining
+Get-Process | Where-Object { $_.ProcessName -match 'postgres|tester' } | Select-Object ProcessName, Id, Path
+```
+
+Do **not** run `cleanup_temp`, `Remove-Item`, `Stop-Service`, `Uninstall`, `VACUUM FULL`, `pg_resetwal` or overwrite data directories. Restore is a separately authorized and verified operation, not part of this preflight. Missing evidence means **NO-GO**.
