@@ -491,3 +491,33 @@ def test_fault_injection_rate_limit_not_bypassed_by_ws_disconnect():
     )
     assert disconnect.proposal == "NONE"
     assert disconnect.retry_at == rate.retry_at
+
+
+def test_fault_injection_http_403_preempts_rate_limit_cooldown():
+    guardian = ExchangeGuardian(enabled=True)
+    first = guardian.inspect(obs(status_code=429, retry_after="3600"), now=10)
+    assert first.circuit == "OPEN"
+    denied = guardian.inspect(
+        obs(status_code=403, evidence_ref="sha256:" + "b" * 64), now=11
+    )
+    assert denied.circuit == "HALTED"
+    assert denied.signal == "http_403"
+    assert denied.proposal == "NONE"
+    assert denied.history_complete is False
+    repeated = guardian.inspect(
+        obs(status_code=403, evidence_ref="sha256:" + "c" * 64), now=12
+    )
+    assert repeated.circuit == "HALTED"
+    assert repeated.proposal == "NONE"
+    assert guardian.reset_tls_halt(URL, manual_authorized=False) is False
+
+
+def test_fault_injection_http_403_preempts_timeout_cooldown():
+    guardian = ExchangeGuardian(enabled=True)
+    guardian.inspect(obs("timeout"), now=1)
+    denied = guardian.inspect(
+        obs(status_code=403, evidence_ref="sha256:" + "b" * 64), now=1.5
+    )
+    assert denied.circuit == "HALTED"
+    assert denied.proposal == "NONE"
+    assert denied.reason == "forbidden_requires_manual_review"
