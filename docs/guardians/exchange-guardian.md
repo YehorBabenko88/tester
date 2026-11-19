@@ -96,3 +96,34 @@ is authorized by this document.
 
 Acceptance remains NO_GO until exact-head Python, Ruff, fault-injection,
 independent backups, Windows ADMINIT and MASTER integration checks pass.
+
+## ADMINIT desktop launcher / full-uninstall Exchange acceptance (contract 13d26b74)
+
+MASTER alone implements both desktop shortcuts and the installer/uninstaller.
+Exchange Guardian supplies offline tests and acceptance requirements only.
+
+- **Launch:** `GUARDIANS_ENABLED=false` verified before any startup.
+  No exchange API keys, cookies, tokens, credentials or private account
+  endpoints in launcher arguments, console output, logs, manifests or receipts.
+  Offline localhost health is not evidence of Bybit reachability or candle
+  coverage. No live trading, background HTTP retry, TLS bypass or rate-limit
+  evasion. Failure to verify the dedicated installation/ownership must block
+  startup, never silently fall back to system PostgreSQL on 5432.
+- **Uninstall:** the launcher must not leave a Guardian background process,
+  scheduled task, retry timer or outbound HTTP request after confirmed stop.
+  All owned Exchange configuration, diagnostics, history and test results are
+  in the explicitly attested TESTER deletion scope. The uninstaller owned by
+  MASTER requires exact typed `DELETE TESTER` plus second destructive
+  confirmation, including loss of downloaded candle history and no backup.
+  Never delete unrelated files, PostgreSQL 18/5432 or foreign service data.
+- **Fault injection:** test offline launch, missing/invalid manifest, stale
+  TLS evidence, 429 Retry-After, interrupted shutdown, tampered service path,
+  malformed URL, repeated uninstall and reparse-point denial using disposable
+  fixtures only. Proposals remain disabled by default. Do not run uninstall
+  or tests against active ADMINIT services.
+- **Evidence:** pin exact package SHA and ownership manifest, record
+  redacted result per test and verify zero leaked credentials and zero
+  exchange/trading requests. A restored HTTP 200 never proves history
+  completeness; separate Data Guardian reconciliation is mandatory.
+
+These criteria do not implement deletion or override the MASTER contract.
