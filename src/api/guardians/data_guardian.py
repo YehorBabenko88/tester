@@ -259,9 +259,15 @@ def to_policy_event(snapshot: Mapping, finding: Finding) -> dict | None:
     if (finding.action not in {"PROPOSE_BOUNDED_BACKFILL", "PROPOSE_QUARANTINE"}
             or not isinstance(finding.proposal, Mapping)
             or finding.proposal.get("execution_authorized") is not False
-            or not _valid_sha(finding.evidence_ref.removeprefix("sha256:"))
+            or type(finding.evidence_ref) is not str
+            or not finding.evidence_ref.startswith("sha256:")
+            or not _valid_sha(finding.evidence_ref[7:])
             or snapshot.get("environment") != "tester_preview"
             or snapshot.get("ownership_verified") is not True):
+        return None
+    # A Finding is not an authorization token: invalidate stale/forged results
+    # whenever underlying evidence, lease or source proof changes.
+    if reconcile(snapshot, enabled=True) != finding:
         return None
     category, symbol, interval = (
         snapshot.get("category"), snapshot.get("symbol"), snapshot.get("interval")
@@ -295,7 +301,12 @@ def to_policy_event(snapshot: Mapping, finding: Finding) -> dict | None:
             fenced_writer_verified=True,
         )
     else:
-        if snapshot.get("independent_integrity_check") is not True:
+        if (snapshot.get("independent_integrity_check") is not True
+                or finding.reason not in {
+                    "duplicate_key", "source_mismatch",
+                    "hash_or_projection_conflict", "invalid_ohlc",
+                    "invalid_volume", "candle_close_time_mismatch",
+                }):
             return None
         event.update(
             signal=(
