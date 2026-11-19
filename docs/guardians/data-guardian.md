@@ -95,3 +95,15 @@ The Data Guardian module is not a database transaction manager or installer. The
 Three additional Data-owned pytest cases use a temporary **SQLite** database under pytest `tmp_path` to exercise partial insert rollback, confirmed-row preservation across connection restart and duplicate-key rejection, and loss of an uncommitted connection. These tests do not connect to TESTER, do not inspect ADMINIT and cannot establish PostgreSQL transaction/WAL behavior. Their role is to test the invariants and fixture methodology independently before MASTER authorizes PostgreSQL-specific integration tests.
 
 **PostgreSQL release gate remains open:** use a separately provisioned disposable dedicated cluster with an independently attested non-5432 port and database, never the system PostgreSQL instance. Capture source/projection SHA before and after killed transactions, committed-but-unacknowledged replay, writer fencing, service restart, and a separate TESTER-only full deletion fixture. Explicitly verify system PG18/5432 and unrelated DB identities unchanged. MASTER controls installation and destructive operations. No release or automatic remediation before these physical results and exact-head CI are green.
+
+## P0 parallel work allocation and ownership (2026-11-19)
+
+Parallel review is limited to **non-overlapping areas** and must not create new DB clients, supervisors or installer logic:
+- **Data CI review:** inspect GitHub Python/Platform logs and Ruff failures; may propose changes to `tests/platform/test_data_guardian.py` only after coordination with the Data owner. No Foundation edits.
+- **Data integrity and fault reviewer:** independently test pure `src/api/guardians/data_guardian.py` and disposable transaction fixtures, but do not edit the same file while another reviewer writes it.
+- **Integration/API reviewer:** read-only inspect `JobQueue`, `CatalogStore`, policy and the canonical Windows installer contract; send mismatches to MASTER #88, never create another client or queue.
+- **MASTER #88:** sole owner of shared foundation, signed runtime identity, actual PostgreSQL cluster lifecycle, Windows shortcuts and full uninstall.
+
+Current additional disposable SQLite cases include batch atomic rollback on duplicate key, malformed OHLCV rejection before writes and foreign database preservation. These are **not PostgreSQL tests**; the foreign SQLite fixture is not proof of system PostgreSQL 5432 isolation. Test execution must be reported independently from authored test cases.
+
+Do not sync from MASTER until its exact-head Python, Platform and isolated fault workflows are green and MASTER approves a non-force refresh. No direct merge into main. `GUARDIANS_ENABLED=false`.
