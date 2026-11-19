@@ -340,3 +340,57 @@ def test_adminit_offline_rejects_private_and_trading_endpoints():
     ):
         with pytest.raises(ValueError):
             endpoint_key(address)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://public.bybit.com/trading/%2e%2e/v5/order/create",
+        "https://public.bybit.com/trading/%252e%252e/file.csv",
+        "https://public.bybit.com/trading/BTCUSDT/%2fhidden.csv",
+        "https://public.bybit.com/trading/BTCUSDT\\..\\bad.csv",
+        "https://api.bybit.com/v5/market/%2E%2E/order/create",
+    ],
+)
+def test_fault_injection_encoded_or_backslash_path_fail_closed(url):
+    with pytest.raises(ValueError):
+        endpoint_key(url)
+
+
+def test_fault_injection_endpoint_cardinality_budget():
+    from src.api.guardians.exchange_guardian import MAX_ENDPOINTS
+
+    guardian = ExchangeGuardian(enabled=True)
+    for index in range(MAX_ENDPOINTS):
+        result = guardian.inspect(
+            obs(endpoint=f"https://api.bybit.com/v5/market/fixture{index}"),
+            now=1,
+        )
+        assert result.status == "MONITORING"
+    overflow = guardian.inspect(
+        obs(endpoint="https://api.bybit.com/v5/market/one-extra"), now=2
+    )
+    assert overflow.status == "UNAVAILABLE"
+    assert overflow.signal == "invalid_observation"
+    assert overflow.proposal == "NONE"
+    assert len(guardian._state) == MAX_ENDPOINTS
+
+
+def test_integration_supervisor_dedupes_guardian_rate_proposal():
+    from src.api.guardian_supervisor import GuardianSupervisor
+
+    observation = obs(status_code=429, retry_after="60")
+    guardian = ExchangeGuardian(enabled=True)
+    verdict = guardian.inspect(observation, now=100)
+    event = supervisor_event(observation, verdict, now=100)
+    disabled = GuardianSupervisor().propose(event)
+    assert disabled.allowed is False
+    assert disabled.reason == "guardians_disabled"
+
+    supervisor = GuardianSupervisor(enabled=True)
+    first = supervisor.propose(event)
+    assert first.allowed is True
+    assert first.action == "PROPOSE_RATE_BACKOFF"
+    second = supervisor.propose(event)
+    assert second.allowed is False
+    assert second.reason == "duplicate_event"
