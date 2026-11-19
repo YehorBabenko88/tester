@@ -193,3 +193,48 @@ def _conflict(reason, scope, snapshot):
     return Finding("PROPOSE_QUARANTINE", reason, scope, evidence,
                    {"scope": scope, "evidence_ref": evidence, "history_complete": False,
                     "execution_authorized": False, "preserve_raw": True})
+
+
+def assess_owned_cluster_removal(evidence: Mapping, *, enabled: bool = False) -> Finding:
+    """Pure uninstall *verification* gate, never a deletion capability.
+
+    Requires independent before/after identity and absence attestations from a
+    disposable fixture. A successful result is limited to the supplied fixture.
+    """
+    if not enabled:
+        return _alert("guardians_disabled")
+    if not isinstance(evidence, Mapping):
+        return _alert("invalid_removal_evidence")
+    if evidence.get("environment") != "disposable_windows_fixture":
+        return _alert("removal_fixture_required")
+    if evidence.get("confirmation") != "DELETE TESTER":
+        return _alert("explicit_confirmation_missing")
+    if evidence.get("second_confirmation") is not True:
+        return _alert("second_confirmation_missing")
+    if evidence.get("manifest_verified") is not True:
+        return _alert("removal_manifest_unverified")
+    if evidence.get("independent_attestation") is not True:
+        return _alert("independent_removal_attestation_missing")
+    if (evidence.get("install_root") != r"C:\TesterLab"
+            or evidence.get("dedicated_pg_root") != r"C:\TesterLab\postgres-data"
+            or evidence.get("dedicated_pg_port") != 55432
+            or type(evidence.get("dedicated_pg_port")) is not int
+            or evidence.get("system_pg_port") != 5432
+            or evidence.get("system_pg_service") != "postgresql-x64-18"):
+        return _alert("postgresql_ownership_unverified")
+    required = (
+        "owned_services_absent", "dedicated_cluster_absent",
+        "raw_candles_absent", "history_absent", "provenance_absent",
+        "source_hashes_absent", "test_results_absent", "checkpoints_absent",
+        "owned_config_absent", "owned_logs_absent", "owned_shortcuts_absent",
+        "owned_directories_absent", "no_owned_backups_or_archives",
+        "system_pg_identity_unchanged", "system_pg_data_hash_unchanged",
+        "no_reparse_traversal", "exclusive_lock_verified",
+    )
+    if any(evidence.get(key) is not True for key in required):
+        return _alert("removal_incomplete_or_unverified")
+    if not _valid_sha(evidence.get("manifest_sha256")):
+        return _alert("manifest_digest_missing")
+    if not _valid_sha(evidence.get("independent_receipt_sha256")):
+        return _alert("removal_receipt_missing")
+    return Finding("OBSERVED_FIXTURE_REMOVAL", "fixture_only_not_production_certification")
