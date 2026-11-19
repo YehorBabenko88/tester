@@ -1,5 +1,6 @@
 from src.api.guardians.windows_install_gate import (
     Gate,
+    canonical,
     manifest_fingerprint,
     uninstall_authorized,
     validate_manifest,
@@ -80,3 +81,22 @@ def test_commit_sha_pin_and_attestation_required():
     m, a = fixture()
     m["source_sha"] = "c" * 40
     assert validate_manifest(m, attested=a).reason == "commit_attestation_mismatch"
+
+
+def test_windows_ambiguous_names_ads_and_device_paths_fail_closed():
+    bad = (
+        "c:\\testerlab\\history:alternate",
+        "c:\\testerlab\\AUX.txt",
+        "c:\\testerlab\\COM1",
+        "c:\\testerlab\\history.",
+        "c:\\testerlab\\history ",
+        "c:\\testerlab\\\\history",
+        "c:\\testerlab\\.\\history",
+        "c:\\testerlab\\..\\windows",
+        "c:\\testerlab\\history?",
+        "c:\\testerlab\\history\\NUL.txt",
+        "c:\\testerlab\\history" + chr(0),
+    )
+    for path in bad:
+        assert canonical(path) is None, path
+    assert canonical("C:\\TesterLab\\history") == "c:\\testerlab\\history"
