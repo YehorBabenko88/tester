@@ -84,7 +84,10 @@ def test_durable_proposals_fencing_kill_and_reopen(tmp_path):
     lease = supervisor.reserve(first, scope="tester-preview/api", owner="code")
     assert lease.status == "RESERVED"
     assert lease.epoch == 1
-    assert supervisor.reserve(first, scope="tester-preview/api", owner="other").reason == "lease_busy"
+    assert (
+        supervisor.reserve(first, scope="tester-preview/api", owner="other").reason
+        == "untrusted_receipt"
+    )
     assert supervisor.finish(lease, scope="tester-preview/api", owner="other").status == "DENIED"
     assert supervisor.finish(lease, scope="tester-preview/api", owner="code").status == "CLOSED"
     assert supervisor.finish(lease, scope="tester-preview/api", owner="code").status == "DENIED"
