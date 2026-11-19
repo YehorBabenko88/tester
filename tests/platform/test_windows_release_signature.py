@@ -43,7 +43,9 @@ def test_signed_manifest_requires_independently_pinned_key():
 
 
 def test_bad_proof_or_noncanonical_manifest_fail_closed():
-    assert not verify_signed_manifest({}, signature_hex="", public_key_hex="", trusted_public_key_sha256="")
+    assert not verify_signed_manifest(
+        {}, signature_hex="", public_key_hex="", trusted_public_key_sha256=""
+    )
     manifest = {"ratio": float("nan")}
     signed = proof({"ratio": 1})
     assert not verify_signed_manifest(manifest, **signed)
