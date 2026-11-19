@@ -640,3 +640,58 @@ def test_revoked_source_proof_invalidates_existing_finding():
     prior = reconcile(data, enabled=True)
     data["source_gap_proof_verified"] = False
     assert to_policy_event(data, prior) is None
+
+
+@pytest.mark.parametrize("field", [
+    "source_gap_proof_sha256", "source_evidence_sha256",
+    "lease_evidence_sha256",
+])
+def test_changed_verified_gap_proof_rotates_receipt(field):
+    original = snapshot()
+    old = reconcile(original, enabled=True)
+    updated = deepcopy(original)
+    updated[field] = "b" * 64
+    new = reconcile(updated, enabled=True)
+    assert old.action == new.action == "PROPOSE_BOUNDED_BACKFILL"
+    assert old.evidence_ref != new.evidence_ref
+    assert to_policy_event(updated, old) is None
+
+
+def test_lease_epoch_rotation_rotates_gap_receipt():
+    original = snapshot()
+    old = reconcile(original, enabled=True)
+    updated = deepcopy(original)
+    updated["lease_epoch"] += 1
+    new = reconcile(updated, enabled=True)
+    assert old.evidence_ref != new.evidence_ref
+    assert to_policy_event(updated, old) is None
+
+
+def test_same_candle_different_corruption_changes_quarantine_digest():
+    a, b = snapshot(), snapshot()
+    a["rows"][0]["high"] = 0
+    b["rows"][0]["high"] = -3
+    old = reconcile(a, enabled=True)
+    new = reconcile(b, enabled=True)
+    assert old.action == new.action == "PROPOSE_QUARANTINE"
+    assert old.reason == new.reason == "invalid_ohlc"
+    assert old.evidence_ref != new.evidence_ref
+    assert to_policy_event(b, old) is None
+
+
+def test_unbounded_record_identity_fails_closed():
+    item = snapshot()
+    item["rows"][0]["high"] = 10**5000
+    result = reconcile(item, enabled=True)
+    assert result.action == "ALERT"
+    assert result.reason == "invalid_conflict_record_identity"
+    assert result.proposal is None
+
+
+def test_nested_record_identity_fails_closed():
+    item = snapshot()
+    item["rows"][0]["high"] = {"not": "a scalar"}
+    result = reconcile(item, enabled=True)
+    assert result.action == "ALERT"
+    assert result.reason == "invalid_conflict_record_identity"
+    assert result.proposal is None
