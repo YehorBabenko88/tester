@@ -42,3 +42,15 @@ MUE-X influence: typed role boundaries and incident fingerprints only. No dynami
 Pytest covers nonfinite OHLC and volume, impossible candle bounds, duplicate identities, conflicting source/projection SHA, provenance mismatch, unknown history, missing source/gap proof, incorrect scope/window, mismatched DSN role/database/port, stale lease epoch, overlapping writers, and discontiguous missing keys. These are proposal-level checks only; no database integration is claimed.
 
 Shared foundation Ruff I001 belongs to MASTER #88; this workstream must not edit foundation files. Exact-head GitHub Actions and physical ADMINIT acceptance remain required.
+
+## Reinstallation preflight (read-only; NO-GO until MASTER approval)
+
+This component has **no installer, schema migration, database writer or rollback executor**. Do not run a Data Guardian on the existing installation. `GUARDIANS_ENABLED=false` must remain in the proposed environment.
+
+Before any future installation, an independently authorized operator must inventory the existing Windows services (names, binary paths, identities, startup modes), listening ports, dedicated PostgreSQL instance/database/role, configuration and retained raw-data volumes, without stopping services or modifying the installation. The inventory must explicitly identify PostgreSQL 5432 as excluded. Compare a signed/pinned candidate HEAD and package digest against the planned release manifest. Do not copy credentials into reports.
+
+For a disposable **isolated** Preview database only, require a consistent backup/snapshot and separate immutable checksums for raw OHLCV, provenance/source SHA, original projection, job checkpoints and relevant schema definitions. Independently verify backup readability and a restore into a distinct disposable database before any write-capable acceptance. No assertion of history completeness follows from a successful checksum or a bounded sample. Unknown baseline, stale source, invalid source proof, missing row identity, duplicate or corrupt candle means ALERT/quarantine proposal only.
+
+Rollback contract (future, MASTER-owned): preserve the old installer, binaries, service definitions, configuration and verified database backup; record hashes and restore-test receipts; stop/replace only after an explicit operator gate and a proven safe shutdown; on failure, return to the prior pinned build and restore the **isolated** database only after an independent consistency check. Never overwrite raw source records or restore into PostgreSQL 5432. This document performs no backup, restore, stop, uninstall or deployment.
+
+Installation readiness: **NO_GO**. Required: exact-head Data pytest/Ruff and fault-injection PASS, shared Foundation I001 resolution, independent source/DSN evidence reader, signed receipts, Windows isolated restore drill, MASTER compatibility approval and physical ADMINIT gate.
