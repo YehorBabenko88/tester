@@ -3,12 +3,17 @@
 Every adapter action must reattest actual Windows SCM/process/filesystem state.
 This module generates a plan only: never installs, starts, stops or deletes.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Literal
 
-from src.api.guardians.windows_install_gate import canonical, uninstall_authorized, validate_manifest
+from src.api.guardians.windows_install_gate import (
+    canonical,
+    uninstall_authorized,
+    validate_manifest,
+)
 from src.api.guardians.windows_install_plan import ROOT, plan_install
 
 Action = Literal["install", "start", "stop", "uninstall"]
@@ -92,7 +97,12 @@ def lifecycle_plan(
         return LifecyclePlan(
             True,
             "plan_only",
-            ("request_worker_drain", "stop_owned_worker", "stop_owned_api", "stop_owned_postgresql"),
+            (
+                "request_worker_drain",
+                "stop_owned_worker",
+                "stop_owned_api",
+                "stop_owned_postgresql",
+            ),
         )
     if not uninstall_authorized(typed_confirmation, second_confirmation, owned):
         return LifecyclePlan(False, "delete_confirmation_missing")
