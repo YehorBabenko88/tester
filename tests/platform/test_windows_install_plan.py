@@ -28,7 +28,7 @@ def fixture():
         "pg_data": m["pg_data"],
         "pg_port": 55432,
         "source_sha": "b" * 40,
-        "services": services,
+        "services": dict(services),
         "reparse_points": [],
         "system_pg_5432_unchanged": True,
     }
