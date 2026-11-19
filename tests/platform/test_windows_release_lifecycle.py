@@ -18,7 +18,13 @@ def fixture():
         "TesterAPI": ROOT + "\\app\\api.exe",
         "TesterWorker": ROOT + "\\app\\worker.exe",
     }
+    desktop = "c:\\users\\tester-operator\\desktop"
+    shortcuts = {
+        "TESTER — Запуск": desktop + "\\TESTER — Запуск.lnk",
+        "TESTER — Удаление": desktop + "\\TESTER — Удаление.lnk",
+    }
     manifest = {
+        "desktop_shortcuts": shortcuts,
         "schema": "tester-install/v1",
         "root": ROOT,
         "guardians_enabled": False,
@@ -35,6 +41,11 @@ def fixture():
         "delete_targets": [ROOT],
     }
     attested = {
+        "desktop_root": desktop,
+        "desktop_shortcuts": dict(shortcuts),
+        "desktop_user_verified": True,
+        "desktop_reparse_points": [],
+        "shortcut_targets_verified": True,
         "root": ROOT,
         "source_sha": "a" * 40,
         "pg_data": ROOT + "\\postgres-data\\data",
@@ -164,3 +175,22 @@ def test_signed_lifecycle_rejects_tampering_and_untrusted_signer():
     ).reason == "invalid_signed_release"
     m["pg_port"] = 5432
     assert verified_lifecycle_plan("install", m, a, **proof).reason == "invalid_signed_release"
+
+
+def test_only_two_independently_attested_desktop_shortcuts_are_owned():
+    m, a = fixture()
+    assert lifecycle_plan("install", m, a, signed_bundle_verified=True).allowed
+    a["desktop_shortcuts"]["TESTER — Удаление"] = "c:\\users\\other\\desktop\\uninstall.lnk"
+    assert lifecycle_plan("install", m, a, signed_bundle_verified=True).reason == (
+        "desktop_shortcuts_not_attested"
+    )
+    m, a = fixture()
+    a["desktop_reparse_points"] = ["c:\\users\\tester-operator\\desktop"]
+    assert lifecycle_plan("install", m, a, signed_bundle_verified=True).reason == (
+        "desktop_shortcuts_not_attested"
+    )
+    m, a = fixture()
+    a["shortcut_targets_verified"] = False
+    assert lifecycle_plan("uninstall", m, a, signed_bundle_verified=True).reason == (
+        "desktop_shortcuts_not_attested"
+    )
