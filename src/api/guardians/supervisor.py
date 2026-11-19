@@ -3,6 +3,7 @@
 SQLite is a dedicated local receipt store, never the application's PostgreSQL.
 No execution adapter, shell, network, database repair or deployment exists here.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -64,7 +65,9 @@ class DurableSupervisor:
         self.db.execute("PRAGMA busy_timeout=10000")
         self.db.execute("PRAGMA synchronous=FULL")
         self.db.execute("PRAGMA journal_mode=WAL")
-        self.db.execute("CREATE TABLE IF NOT EXISTS control (id INTEGER PRIMARY KEY CHECK(id=1), stopped INTEGER NOT NULL)")
+        self.db.execute(
+            "CREATE TABLE IF NOT EXISTS control (id INTEGER PRIMARY KEY CHECK(id=1), stopped INTEGER NOT NULL)"
+        )
         self.db.execute("INSERT OR IGNORE INTO control VALUES (1,0)")
         self.db.execute("""CREATE TABLE IF NOT EXISTS receipts (
             seq INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +91,9 @@ class DurableSupervisor:
     def close(self) -> None:
         self.db.close()
 
-    def _append(self, key: str | None, role: str, status: str, reason: str, epoch: int | None = None) -> Receipt:
+    def _append(
+        self, key: str | None, role: str, status: str, reason: str, epoch: int | None = None
+    ) -> Receipt:
         # Store only fixed reason codes, never raw event payloads or credentials.
         prev = self.db.execute("SELECT hash FROM receipts ORDER BY seq DESC LIMIT 1").fetchone()
         prior = prev[0] if prev else "0" * 64
@@ -136,16 +141,21 @@ class DurableSupervisor:
                 scope = event.get("scope")
                 evidence = event.get("evidence_ref")
                 if (
-                    type(role) is not str or role not in ROLES
-                    or type(scope) is not str or not _SAFE.fullmatch(scope)
-                    or type(evidence) is not str or not _DIGEST.fullmatch(evidence)
+                    type(role) is not str
+                    or role not in ROLES
+                    or type(scope) is not str
+                    or not _SAFE.fullmatch(scope)
+                    or type(evidence) is not str
+                    or not _DIGEST.fullmatch(evidence)
                 ):
                     result = self._append(None, "master", "DENIED", "invalid_identity")
                 else:
                     proposal = GuardianSupervisor(enabled=True).propose(event)
                     if not proposal.allowed or not proposal.key:
                         result = self._append(None, role, "DENIED", proposal.reason)
-                    elif self.db.execute("SELECT 1 FROM identities WHERE event_key=?", (proposal.key,)).fetchone():
+                    elif self.db.execute(
+                        "SELECT 1 FROM identities WHERE event_key=?", (proposal.key,)
+                    ).fetchone():
                         result = self._append(proposal.key, role, "DENIED", "duplicate_event")
                     else:
                         self.db.execute("INSERT INTO identities VALUES (?,?)", (proposal.key, role))
@@ -162,11 +172,16 @@ class DurableSupervisor:
         try:
             now = time.time()
             if (
-                not self.enabled or self._stopped()
-                or receipt.status != "PROPOSED" or not receipt.event_key
-                or type(scope) is not str or not _SAFE.fullmatch(scope)
-                or type(owner) is not str or not _SAFE.fullmatch(owner)
-                or type(ttl) is not int or not 1 <= ttl <= 300
+                not self.enabled
+                or self._stopped()
+                or receipt.status != "PROPOSED"
+                or not receipt.event_key
+                or type(scope) is not str
+                or not _SAFE.fullmatch(scope)
+                or type(owner) is not str
+                or not _SAFE.fullmatch(owner)
+                or type(ttl) is not int
+                or not 1 <= ttl <= 300
             ):
                 result = self._append(None, "master", "DENIED", "invalid_reservation")
             else:
@@ -202,7 +217,9 @@ class DurableSupervisor:
                 elif active >= self.max_active:
                     result = self._append(receipt.event_key, receipt.role, "DENIED", "backpressure")
                 elif is_restart and recent >= self.restart_limit:
-                    result = self._append(receipt.event_key, receipt.role, "DENIED", "restart_budget")
+                    result = self._append(
+                        receipt.event_key, receipt.role, "DENIED", "restart_budget"
+                    )
                 else:
                     old = self.db.execute(
                         "SELECT last_epoch FROM epochs WHERE scope=?", (scope,)
@@ -219,14 +236,22 @@ class DurableSupervisor:
                     )
                     if is_restart:
                         self.db.execute("INSERT INTO restart_attempts VALUES (?,?)", (scope, now))
-                    result = self._append(receipt.event_key, receipt.role, "RESERVED", "proposal_only_no_execution", epoch)
+                    result = self._append(
+                        receipt.event_key,
+                        receipt.role,
+                        "RESERVED",
+                        "proposal_only_no_execution",
+                        epoch,
+                    )
             self.db.execute("COMMIT")
             return result
         except BaseException:
             self.db.execute("ROLLBACK")
             raise
 
-    def finish(self, reservation: Receipt, *, scope: str, owner: str, verified: bool = False) -> Receipt:
+    def finish(
+        self, reservation: Receipt, *, scope: str, owner: str, verified: bool = False
+    ) -> Receipt:
         """Close reservation; success requires independent verifier input.
 
         The supervisor does not assert that verification was independent.
@@ -238,15 +263,24 @@ class DurableSupervisor:
                 "SELECT event_key,epoch,owner,expires FROM leases WHERE scope=?", (scope,)
             ).fetchone()
             valid = (
-                self.enabled and not self._stopped()
+                self.enabled
+                and not self._stopped()
                 and reservation.status == "RESERVED"
                 and self.db.execute(
                     "SELECT 1 FROM receipts WHERE seq=? AND event_key=? AND role=? "
                     "AND status='RESERVED' AND epoch=?",
-                    (reservation.sequence, reservation.event_key, reservation.role, reservation.epoch),
-                ).fetchone() is not None
-                and row is not None and row[0] == reservation.event_key
-                and row[1] == reservation.epoch and row[2] == owner
+                    (
+                        reservation.sequence,
+                        reservation.event_key,
+                        reservation.role,
+                        reservation.epoch,
+                    ),
+                ).fetchone()
+                is not None
+                and row is not None
+                and row[0] == reservation.event_key
+                and row[1] == reservation.epoch
+                and row[2] == owner
                 and row[3] > time.time()
             )
             if valid:
@@ -255,8 +289,11 @@ class DurableSupervisor:
                 reservation.event_key if valid else None,
                 reservation.role if valid else "master",
                 "CLOSED" if valid else "DENIED",
-                "external_verification_reported" if valid and verified is True
-                else "unverified_or_failed" if valid else "stale_or_invalid_fence",
+                "external_verification_reported"
+                if valid and verified is True
+                else "unverified_or_failed"
+                if valid
+                else "stale_or_invalid_fence",
                 reservation.epoch if valid else None,
             )
             self.db.execute("COMMIT")
@@ -271,8 +308,14 @@ class DurableSupervisor:
         for seq, key, role, status, reason, epoch, at, prev, digest in self.db.execute(
             "SELECT seq,event_key,role,status,reason,epoch,at,previous_hash,hash FROM receipts ORDER BY seq"
         ):
-            payload = json.dumps([previous, key, role, status, reason, epoch, at], separators=(",", ":"))
-            if seq != expected_seq or prev != previous or hashlib.sha256(payload.encode()).hexdigest() != digest:
+            payload = json.dumps(
+                [previous, key, role, status, reason, epoch, at], separators=(",", ":")
+            )
+            if (
+                seq != expected_seq
+                or prev != previous
+                or hashlib.sha256(payload.encode()).hexdigest() != digest
+            ):
                 return False
             expected_seq += 1
             previous = digest
