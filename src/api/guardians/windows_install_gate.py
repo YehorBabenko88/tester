@@ -65,6 +65,11 @@ def validate_manifest(manifest: Mapping, *, attested: Mapping | None = None) -> 
     port = manifest.get("pg_port")
     if type(port) is not int or not 1024 <= port <= 65535 or port == 5432:
         return Gate(False, "system_postgres_port")
+    source_sha = manifest.get("source_sha")
+    if not isinstance(source_sha, str) or not re.fullmatch(r"[0-9a-f]{40}", source_sha):
+        return Gate(False, "unpinned_commit")
+    if attested.get("source_sha") != source_sha:
+        return Gate(False, "commit_attestation_mismatch")
     digest = manifest.get("package_sha256")
     if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
         return Gate(False, "unpinned_package")
