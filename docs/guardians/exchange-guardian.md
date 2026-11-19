@@ -69,3 +69,30 @@ shortening a protective 429 cooldown. The halt requires explicit manual reset;
 it does not authorize a network retry or claim historical completeness.
 This is an in-memory proposal engine only, not durable restart protection.
 The new regression cases exercise rollback and repeated identical timestamps.
+
+## Offline reinstall preflight (NO EXECUTION)
+
+1. Capture existing Tester service names, service identities, executable paths,
+   startup types and status without stopping services.
+2. Record existing Preview release SHA, config file hashes, enabled flags,
+   dedicated database name/port and storage paths; explicitly exclude 5432.
+3. Inventory existing Bybit public source URLs using sanitized host/path only.
+   Never export credentials, API keys, cookies, authorization headers or tokens.
+4. Confirm Guardian disabled in both environment and configuration. Do not
+   start an HTTP probe, download history, connect a trading account or infer
+   complete history from 200.
+5. Require independently verified backup manifests, a recoverable dedicated
+   database snapshot, file hashes and a restore drill in a disposable location.
+   Existing data and active services remain untouched.
+6. Pin candidate exact commit and signed release artifacts. MASTER must approve
+   compatibility, installer contract and rollback before any installation.
+
+Rollback contract (planning only): preserve prior binaries/config, immutable
+data backups and a versioned release manifest. A later approved installer must
+be able to restore previous binaries/config without downgrading or overwriting
+data, and must independently verify dedicated database identity and record
+integrity. No uninstall, stop, service mutation, PG5432 access or deployment
+is authorized by this document.
+
+Acceptance remains NO_GO until exact-head Python, Ruff, fault-injection,
+independent backups, Windows ADMINIT and MASTER integration checks pass.
