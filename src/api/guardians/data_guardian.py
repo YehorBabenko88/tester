@@ -120,33 +120,33 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
         if not _valid_int(ts) or ts < start or ts >= end or (ts - start) % step:
             return _alert("record_out_of_window", scope)
         if ts in keys:
-            return _conflict("duplicate_key", scope, snapshot, ts)
+            return _conflict("duplicate_key", scope, snapshot, ts, row)
         keys.add(ts)
         if (row.get("source") != "bybit"
                 or row.get("provenance_verified") is not True
                 or row.get("category") != category
                 or row.get("symbol") != symbol
                 or row.get("interval") != interval):
-            return _conflict("source_mismatch", scope, snapshot, ts)
+            return _conflict("source_mismatch", scope, snapshot, ts, row)
         if not (_valid_sha(row.get("source_sha256"))
                 and _valid_sha(row.get("observed_sha256"))
                 and row["source_sha256"] == row["observed_sha256"]
                 and row.get("original_projection_verified") is True):
-            return _conflict("hash_or_projection_conflict", scope, snapshot, ts)
+            return _conflict("hash_or_projection_conflict", scope, snapshot, ts, row)
         o, h, low, close, vol = (
             row.get("open"), row.get("high"), row.get("low"),
             row.get("close"), row.get("volume")
         )
         if not all(_positive(x) for x in (o, h, low, close)):
-            return _conflict("invalid_ohlc", scope, snapshot, ts)
+            return _conflict("invalid_ohlc", scope, snapshot, ts, row)
         if not (low <= o <= h and low <= close <= h):
-            return _conflict("invalid_ohlc", scope, snapshot, ts)
+            return _conflict("invalid_ohlc", scope, snapshot, ts, row)
         if not _nonnegative_finite(vol):
-            return _conflict("invalid_volume", scope, snapshot, ts)
+            return _conflict("invalid_volume", scope, snapshot, ts, row)
         if row.get("closed") is not True:
             return _alert("unclosed_candle", scope)
         if row.get("close_time_ms") != ts + step - 1:
-            return _conflict("candle_close_time_mismatch", scope, snapshot, ts)
+            return _conflict("candle_close_time_mismatch", scope, snapshot, ts, row)
 
     missing = [ts for ts in range(start, end, step) if ts not in keys]
     if not missing:
@@ -170,7 +170,14 @@ def reconcile(snapshot: Mapping, *, enabled: bool = False) -> Finding:
         return _alert("catalog_or_fencing_unverified", scope)
     if len(missing) > MAX_ROWS:
         return _alert("gap_budget_exceeded", scope)
-    evidence = _digest(scope, start, end, missing)
+    # Tie an idempotency receipt to the exact independently attested source
+    # and writer lease; a new proof must never reuse a stale finding.
+    evidence = _digest(
+        scope, start, end,
+        ["gap/v2", missing, snapshot["baseline_sha256"],
+         snapshot["source_evidence_sha256"], snapshot["source_gap_proof_sha256"],
+         snapshot["lease_epoch"], snapshot["lease_evidence_sha256"]],
+    )
     return Finding(
         "PROPOSE_BOUNDED_BACKFILL", "verified_missing_closed_candles", scope, evidence,
         {"adapter": "CatalogHandler", "category": category, "symbol": symbol,
@@ -188,13 +195,41 @@ def _digest(scope, start, end, timestamps):
     return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _conflict(reason, scope, snapshot, timestamp):
-    """Propose only after an independent conflict probe, keyed per candle."""
+_RECORD_IDENTITY_FIELDS = (
+    "open_time_ms", "close_time_ms", "category", "symbol", "interval",
+    "source", "source_sha256", "observed_sha256", "provenance_verified",
+    "original_projection_verified", "open", "high", "low", "close",
+    "volume", "closed",
+)
+
+
+def _row_fingerprint(row):
+    """Bounded scalar-only evidence identity; never retain raw record text."""
+    pieces = []
+    for name in _RECORD_IDENTITY_FIELDS:
+        value = row.get(name)
+        if type(value) not in (str, int, float, bool, type(None)):
+            return None
+        if type(value) is str and len(value) > 256:
+            return None
+        if type(value) is int and value.bit_length() > 4096:
+            return None
+        pieces.append([name, type(value).__name__, repr(value)])
+    content = json.dumps(pieces, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(content.encode("ascii")).hexdigest()
+
+
+def _conflict(reason, scope, snapshot, timestamp, row):
+    """Propose only after independent checking, keyed to the exact bad row."""
     if snapshot.get("independent_integrity_check") is not True:
         return _alert("integrity_evidence_not_verified", scope)
+    row_sha = _row_fingerprint(row)
+    if row_sha is None:
+        return _alert("invalid_conflict_record_identity", scope)
     evidence = _digest(
         scope, snapshot["start_ms"], snapshot["end_ms"],
-        ["conflict/v2", reason, timestamp, snapshot["baseline_sha256"]],
+        ["conflict/v3", reason, timestamp, snapshot["baseline_sha256"],
+         snapshot["source_evidence_sha256"], row_sha],
     )
     return Finding(
         "PROPOSE_QUARANTINE", reason, scope, evidence,
