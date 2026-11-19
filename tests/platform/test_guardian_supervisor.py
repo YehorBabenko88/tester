@@ -90,7 +90,9 @@ def test_durable_proposals_fencing_kill_and_reopen(tmp_path):
     )
     another = supervisor.submit(event(evidence_ref="sha256:" + "b" * 64))
     assert another.status == "PROPOSED"
-    assert supervisor.reserve(another, scope="tester-preview/api", owner="other").reason == "lease_busy"
+    assert (
+        supervisor.reserve(another, scope="tester-preview/api", owner="other").reason == "lease_busy"
+    )
     assert supervisor.finish(lease, scope="tester-preview/api", owner="other").status == "DENIED"
     assert supervisor.finish(lease, scope="tester-preview/api", owner="code").status == "CLOSED"
     assert supervisor.finish(lease, scope="tester-preview/api", owner="code").status == "DENIED"
