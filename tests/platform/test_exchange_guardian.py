@@ -1,9 +1,15 @@
 """Offline negative and recovery acceptance for Exchange Guardian."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
+from email.utils import format_datetime
+
 import pytest
 
 from src.api.guardians.exchange_guardian import (
-    ExchangeGuardian, Observation, endpoint_key, retry_after_seconds,
+    ExchangeGuardian,
+    Observation,
+    endpoint_key,
+    retry_after_seconds,
+    supervisor_event,
 )
 
 URL = "https://api.bybit.com/v5/market/kline"
@@ -54,13 +60,11 @@ def test_invalid_429_opens_circuit_without_retry():
 
 @pytest.mark.parametrize("value", ["0", "-1", "3601", "nan", "1.5", "999999999", ""])
 def test_bad_retry_after(value):
-    assert retry_after_seconds(value, datetime.now(timezone.utc)) is None
+    assert retry_after_seconds(value, datetime.now(UTC)) is None
 
 
 def test_http_date_retry_after():
-    from email.utils import format_datetime
-    from datetime import timedelta
-    now = datetime(2026, 11, 18, tzinfo=timezone.utc)
+    now = datetime(2026, 11, 18, tzinfo=UTC)
     assert retry_after_seconds(format_datetime(now + timedelta(seconds=20)), now) == 20
 
 
@@ -198,7 +202,6 @@ def test_healthy_200_cannot_verify_history_even_after_429():
 
 def test_supervisor_policy_bridge_429_and_timeout():
     from src.api.guardian_policy import decide
-    from src.api.guardians.exchange_guardian import supervisor_event
     g = ExchangeGuardian(enabled=True)
     first = g.inspect(obs(status_code=429, retry_after="20"), now=0)
     assert decide(supervisor_event(obs(status_code=429, retry_after="20"),
@@ -231,8 +234,6 @@ def test_fault_injection_server_errors_bounded(status):
 
 
 def test_fault_injection_429_http_date_and_recovery():
-    from datetime import timedelta
-    from email.utils import format_datetime
     utc = datetime(2026, 11, 18, tzinfo=timezone.utc)
     g = ExchangeGuardian(enabled=True)
     delayed = g.inspect(obs(status_code=429,
