@@ -127,6 +127,8 @@ def test_durable_disabled_and_invalid(tmp_path, monkeypatch):
     supervisor = DurableSupervisor(tmp_path / "r.sqlite", enabled=True)
     assert supervisor.submit(None).status == "DENIED"
     assert supervisor.submit(event(scope="../unsafe")).status == "DENIED"
+    assert supervisor.submit(event(scope="C:/Windows")).status == "DENIED"
+    assert supervisor.submit(event(scope="tester-preview//api")).status == "DENIED"
     assert supervisor.submit(event(environment="production")).status == "DENIED"
     assert supervisor.verify_chain()
     supervisor.close()
@@ -137,6 +139,7 @@ def test_forged_receipt_cannot_evade_restart_budget(tmp_path):
 
     s = DurableSupervisor(tmp_path / "r.sqlite", enabled=True, restart_limit=1)
     first = s.submit(event())
+    assert s.reserve(first, scope="../api", owner="worker").status == "DENIED"
     forged = replace(first, reason="REQUEST_CODE_REVIEW")
     assert s.reserve(forged, scope="api", owner="worker").reason == "untrusted_receipt"
     lease = s.reserve(first, scope="api", owner="worker")
