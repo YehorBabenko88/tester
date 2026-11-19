@@ -27,6 +27,7 @@ def endpoint_key(url: str) -> str:
     try:
         p = urlsplit(url)
         if (p.scheme != "https" or p.hostname not in HOSTS or
+                any(segment in {".", ".."} for segment in p.path.split("/")) or
                 p.port not in (None, 443) or p.username is not None or
                 p.password is not None or p.fragment or
                 (not p.path.startswith("/v5/market/") and
