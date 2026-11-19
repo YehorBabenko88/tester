@@ -37,6 +37,19 @@ def _invalid_root(root: Path) -> bool:
     return not root.is_absolute() or any(part in (".", "..") for part in root.parts)
 
 
+
+def _identity(info) -> tuple:
+    """Observation identity; cannot authorize deletion or close a TOCTOU race."""
+    return (
+        info.st_dev,
+        info.st_ino,
+        info.st_mode,
+        info.st_size,
+        info.st_mtime_ns,
+        getattr(info, "st_file_attributes", 0),
+    )
+
+
 def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
               now: float | None = None, enabled: bool = False) -> dict:
     """Bounded, direct-child-only, no writes. Disabled by default."""
@@ -55,6 +68,10 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
         tmp = root / "tmp"
         if not root.is_dir() or not tmp.is_dir() or not _safe(tmp):
             return {**result, "status": "ALERT_UNVERIFIED_ROOT"}
+        # Detect some ordinary directory substitutions as well as reparse swaps.
+        # These snapshots are evidence only, NEVER a deletion authorization.
+        root_identity = _identity(root.lstat())
+        tmp_identity = _identity(tmp.lstat())
         usage = shutil.disk_usage(root)
         result["free_bytes"] = usage.free
         result["total_bytes"] = usage.total
@@ -77,15 +94,9 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
             info = path.lstat()
             if not stat.S_ISREG(info.st_mode):
                 continue
-            # A second read catches some concurrent swaps; never grants deletion.
+            # Second observation catches some swaps, but is not atomic.
             second = path.lstat()
-            def identity(item):
-                return (
-                item.st_dev, item.st_ino, item.st_mode,
-                item.st_size, item.st_mtime_ns,
-                getattr(item, "st_file_attributes", 0),
-            )
-            if identity(info) != identity(second) or not _safe(path):
+            if _identity(info) != _identity(second) or not _safe(path):
                 return {**result, "status": "ALERT_FILE_CHANGED",
                         "candidates": [], "bytes_reclaimable": 0, "proposals": []}
             used += info.st_size
@@ -98,7 +109,8 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
                 "inode": info.st_ino,
             })
             result["bytes_reclaimable"] += info.st_size
-        if not _safe(tmp):
+        if (not _safe(tmp) or _identity(root.lstat()) != root_identity
+                or _identity(tmp.lstat()) != tmp_identity):
             return {**result, "status": "ALERT_ROOT_CHANGED", "candidates": [],
                     "bytes_reclaimable": 0, "proposals": []}
         result["tmp_direct_bytes"] = used
