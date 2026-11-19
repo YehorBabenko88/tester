@@ -127,3 +127,58 @@ Record exact commit, Python/Ruff versions, command exit codes, test
 PASS/FAIL/SKIP and workflow URLs. Do not label these commands PASS until
 they execute against the exact candidate commit. CI that fails in shared
 foundation remains a blocker, even if isolated Code tests succeed.
+
+## ADMINIT desktop Start / full Uninstall acceptance — contract 13d26b74
+
+MASTER alone owns `docs/guardians/adminit-desktop-install-uninstall-contract.md`,
+installer, shortcuts and deletion logic. Code Guardian owns **read-only
+acceptance criteria** only. This section supersedes any suggestion above that
+a user-requested *full uninstall* should preserve TESTER backups: the new
+contract explicitly requires deleting TESTER-owned history, results, databases,
+archives and backups after typed `DELETE TESTER` confirmation. A *reinstall
+rollback rehearsal* before activation remains a separate, non-destructive
+test; it must not silently create retained uninstall backups.
+
+### Start shortcut — independent Code Guardian checks
+
+- `TESTER — Запуск` must reference the approved signed/pinned launcher and
+  immutable manifest. Validate launcher hash and exact source HEAD, canonical
+  install root, service ImagePath, service SID, run-as account, dedicated PG
+  cluster identity and port (never 5432) **before** any start request.
+- Startup order must be owned dedicated PG, then owned API/worker, followed
+  by fresh independent SCM/HTTP/worker health evidence and exact version
+  identity. No health claim from the launcher alone can mark recovery VERIFIED.
+- Reject unknown services, mismatched SHA, stale or contradictory probes,
+  duplicate evidence, missing lease, malformed metrics, exceeded restart
+  budget or circuit-open state. Never execute shell strings from model output.
+- The Code Guardian cannot start services itself. Its `PROPOSE_OWNED_RESTART`
+  is a proposal, not a capability or authorization. A separate MASTER-owned
+  executor must re-attest ownership and acquire an exclusive fenced lock.
+- Verify `GUARDIANS_ENABLED=false` before/after installation. The launcher
+  must not enable autonomous repair or trading.
+
+### Uninstall shortcut — negative safety cases (disposable fixture only)
+
+- `TESTER — Удаление` requires elevation, a displayed explicit destruction
+  inventory, a second warning, and exact typed `DELETE TESTER`; missing,
+  altered or canceled confirmation must cause zero destructive actions.
+- A TESTER manifest alone cannot authorize stopping/deleting a service.
+  Independently re-attest service SID, ImagePath, binary hash and owner before
+  touching it; foreign service or process -> REFUSE.
+- Explicitly reject `postgresql-x64-18`, port 5432 and system PG data root,
+  as well as junction/reparse/symlink, drive root, Program Files and
+  out-of-scope targets. Never follow a link into foreign files.
+- Start and Uninstall must be mutually exclusive. In a disposable Windows
+  fixture, inject partial stop, locked file, missing service, tampered
+  manifest, path swap and interrupted deletion. Report PARTIAL/FAILED rather
+  than claiming complete deletion; repeat must be idempotent.
+- After a fully successful *fixture* uninstall, verify that only manifest-
+  owned services, dedicated cluster, candle history, test results, logs,
+  configuration and both shortcuts are absent. Verify foreign services,
+  user files and system PostgreSQL 5432 are unchanged. Do not preserve
+  TESTER-owned archives/backups contrary to the approved full-uninstall
+  contract; this does not promise forensic SSD sanitization.
+
+**No actual deletion, installation, stop, restart or destructive test has
+been performed by Code Guardian.** All checks above require independent
+Windows acceptance by MASTER and QA before deployment. Status NO_GO.
