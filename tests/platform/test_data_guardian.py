@@ -3,7 +3,13 @@ from copy import deepcopy
 
 import pytest
 
-from src.api.guardians.data_guardian import assess_owned_cluster_removal, reconcile
+from src.api.guardian_policy import decide
+from src.api.guardian_supervisor import GuardianSupervisor
+from src.api.guardians.data_guardian import (
+    assess_data_removal_receipt,
+    reconcile,
+    to_policy_event,
+)
 
 H = "a" * 64
 STEP = 60_000
@@ -16,6 +22,7 @@ def snapshot():
         "database_name": "tester_preview", "database_role": "guardian_readonly",
         "dsn_identity_verified": True,
         "read_only_snapshot": True, "baseline_verified": True,
+        "independent_integrity_check": True, "ownership_verified": True,
         "history_state": "bounded_verified",
         "baseline_sha256": H, "category": "linear", "symbol": "BTCUSDT",
         "interval": "1", "start_ms": 0, "end_ms": 3 * STEP,
@@ -458,77 +465,158 @@ def test_destructive_contract_no_delete_capability():
         assert result.proposal["preserve_raw"] is True
 
 
-def removal_fixture():
+
+def data_removal_fixture():
     evidence = {
         "environment": "disposable_windows_fixture",
-        "confirmation": "DELETE TESTER",
-        "second_confirmation": True,
-        "manifest_verified": True,
-        "independent_attestation": True,
-        "install_root": r"C:\TesterLab",
-        "dedicated_pg_root": r"C:\TesterLab\postgres-data",
-        "dedicated_pg_port": 55432,
-        "system_pg_port": 5432,
-        "system_pg_service": "postgresql-x64-18",
-        "manifest_sha256": H,
-        "independent_receipt_sha256": H,
+        "master_gate_verified": True,
+        "master_gate_receipt_sha256": H,
+        "independent_data_readback_verified": True,
+        "dedicated_cluster_identity_verified": True,
+        "system_pg_identity_unchanged": True,
+        "system_pg_data_hash_unchanged": True,
+        "data_receipt_sha256": H,
     }
     for key in (
-        "owned_services_absent", "dedicated_cluster_absent",
-        "raw_candles_absent", "history_absent", "provenance_absent",
-        "source_hashes_absent", "test_results_absent", "checkpoints_absent",
-        "owned_config_absent", "owned_logs_absent", "owned_shortcuts_absent",
-        "owned_directories_absent", "no_owned_backups_or_archives",
-        "system_pg_identity_unchanged", "system_pg_data_hash_unchanged",
-        "no_reparse_traversal", "exclusive_lock_verified",
+        "dedicated_cluster_absent", "raw_candles_absent",
+        "history_absent", "original_projections_absent",
+        "provenance_absent", "source_hashes_absent",
+        "test_results_absent", "checkpoints_absent",
+        "download_queue_absent", "data_backups_absent",
     ):
         evidence[key] = True
     return evidence
 
 
-def test_removal_gate_disabled_default():
-    assert assess_owned_cluster_removal(removal_fixture()).reason == "guardians_disabled"
-
-
-def test_removal_gate_fixture_only():
-    assert assess_owned_cluster_removal(removal_fixture(), enabled=True).action == (
-        "OBSERVED_FIXTURE_REMOVAL"
+def test_data_removal_disabled_default():
+    assert assess_data_removal_receipt(data_removal_fixture()).reason == (
+        "guardians_disabled"
     )
+
+
+def test_data_removal_is_fixture_only_not_an_uninstall():
+    result = assess_data_removal_receipt(data_removal_fixture(), enabled=True)
+    assert result.action == "OBSERVED_DATA_REMOVAL_FIXTURE"
+    assert result.proposal is None
 
 
 @pytest.mark.parametrize("field,bad", [
     ("environment", "tester_preview"),
-    ("confirmation", "delete tester"),
-    ("second_confirmation", False),
-    ("manifest_verified", False),
-    ("independent_attestation", False),
-    ("install_root", r"C:\Windows"),
-    ("dedicated_pg_root", r"C:\Program Files\PostgreSQL\18\data"),
-    ("dedicated_pg_port", 5432),
-    ("dedicated_pg_port", True),
-    ("system_pg_port", 55432),
-    ("system_pg_service", "TesterLabPG"),
-    ("manifest_sha256", "unknown"),
-    ("independent_receipt_sha256", None),
+    ("master_gate_verified", False),
+    ("master_gate_receipt_sha256", "fake"),
+    ("independent_data_readback_verified", False),
+    ("dedicated_cluster_identity_verified", False),
+    ("system_pg_identity_unchanged", False),
+    ("system_pg_data_hash_unchanged", False),
+    ("data_receipt_sha256", None),
 ])
-def test_removal_gate_rejects_forged_scope(field, bad):
-    evidence = removal_fixture()
+def test_data_removal_rejects_foreign_or_unsigned_receipt(field, bad):
+    evidence = data_removal_fixture()
     evidence[field] = bad
-    assert assess_owned_cluster_removal(evidence, enabled=True).action == "ALERT"
+    assert assess_data_removal_receipt(evidence, enabled=True).action == "ALERT"
 
 
 @pytest.mark.parametrize("missing", [
-    "owned_services_absent", "dedicated_cluster_absent",
-    "raw_candles_absent", "history_absent", "provenance_absent",
-    "source_hashes_absent", "test_results_absent", "checkpoints_absent",
-    "owned_config_absent", "owned_logs_absent", "owned_shortcuts_absent",
-    "owned_directories_absent", "no_owned_backups_or_archives",
-    "system_pg_identity_unchanged", "system_pg_data_hash_unchanged",
-    "no_reparse_traversal", "exclusive_lock_verified",
+    "dedicated_cluster_absent", "raw_candles_absent",
+    "history_absent", "original_projections_absent",
+    "provenance_absent", "source_hashes_absent",
+    "test_results_absent", "checkpoints_absent",
+    "download_queue_absent", "data_backups_absent",
 ])
-def test_removal_gate_rejects_partial_deletion(missing):
-    evidence = removal_fixture()
+def test_data_removal_rejects_partial_deletion(missing):
+    evidence = data_removal_fixture()
     evidence[missing] = False
-    assert assess_owned_cluster_removal(evidence, enabled=True).reason == (
-        "removal_incomplete_or_unverified"
+    assert assess_data_removal_receipt(evidence, enabled=True).reason == (
+        "data_removal_incomplete_or_unverified"
     )
+
+
+def test_data_removal_does_not_touch_evidence():
+    evidence = data_removal_fixture()
+    original = deepcopy(evidence)
+    assess_data_removal_receipt(evidence, enabled=True)
+    assert evidence == original
+
+
+def test_independent_integrity_gate_rejects_unverified_corruption():
+    data = snapshot()
+    data["independent_integrity_check"] = False
+    data["rows"][0]["high"] = float("nan")
+    result = reconcile(data, enabled=True)
+    assert result.action == "ALERT"
+    assert result.reason == "integrity_evidence_not_verified"
+    assert result.proposal is None
+
+
+def test_distinct_candle_conflicts_receive_distinct_digests():
+    a = snapshot()
+    b = snapshot()
+    a["rows"][0]["volume"] = -1
+    b["rows"][1]["volume"] = -1
+    x = reconcile(a, enabled=True)
+    y = reconcile(b, enabled=True)
+    assert x.action == y.action == "PROPOSE_QUARANTINE"
+    assert x.evidence_ref != y.evidence_ref
+    assert x.proposal["affected_open_time_ms"] == 0
+    assert y.proposal["affected_open_time_ms"] == 2 * STEP
+
+
+def test_foundation_policy_event_gap_integration():
+    data = snapshot()
+    finding = reconcile(data, enabled=True)
+    event = to_policy_event(data, finding)
+    assert event is not None
+    assert event["signal"] == "verified_gap"
+    assert decide(event).action == "PROPOSE_BOUNDED_BACKFILL"
+    proposal = GuardianSupervisor(enabled=True).propose(event)
+    assert proposal.allowed is True
+    assert proposal.action == "PROPOSE_BOUNDED_BACKFILL"
+
+
+def test_foundation_policy_event_quarantine_integration():
+    data = snapshot()
+    data["rows"][0]["source"] = "unknown"
+    finding = reconcile(data, enabled=True)
+    event = to_policy_event(data, finding)
+    assert event is not None
+    assert event["signal"] == "source_mismatch"
+    assert decide(event).action == "PROPOSE_QUARANTINE"
+    proposal = GuardianSupervisor(enabled=True).propose(event)
+    assert proposal.allowed is True
+    assert proposal.action == "PROPOSE_QUARANTINE"
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("ownership_verified", False),
+    ("source_evidence_sha256", None),
+    ("catalog_verified", False),
+])
+def test_forged_gap_supervisor_event_denied(field, bad):
+    data = snapshot()
+    finding = reconcile(data, enabled=True)
+    data[field] = bad
+    event = to_policy_event(data, finding)
+    if field == "catalog_verified":
+        assert event is None
+    elif field == "ownership_verified":
+        assert event is None
+    else:
+        # A stored finding is not a reusable authorization token.
+        assert event is not None
+        assert event["component"] == "data"
+        assert event["source"] == "bybit"
+
+
+def test_nonproposal_cannot_be_promoted_to_supervisor():
+    data = snapshot()
+    data["baseline_verified"] = False
+    finding = reconcile(data, enabled=True)
+    assert to_policy_event(data, finding) is None
+
+
+def test_data_event_never_directly_authorizes_execution():
+    data = snapshot()
+    event = to_policy_event(data, reconcile(data, enabled=True))
+    assert event is not None
+    assert "execution_authorized" not in event
+    assert "SQL" not in repr(event)
