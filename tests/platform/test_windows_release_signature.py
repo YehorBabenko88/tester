@@ -13,9 +13,9 @@ def proof(manifest):
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw,
     )
-    payload = json.dumps(
-        manifest, sort_keys=True, separators=(",", ":"), allow_nan=False
-    ).encode("utf-8")
+    payload = json.dumps(manifest, sort_keys=True, separators=(",", ":"), allow_nan=False).encode(
+        "utf-8"
+    )
     return {
         "signature_hex": private.sign(b"TESTER-INSTALL-MANIFEST-v1\x00" + payload).hex(),
         "public_key_hex": public.hex(),
@@ -34,12 +34,8 @@ def test_signed_manifest_requires_independently_pinned_key():
     assert verify_signed_manifest(manifest, **signed)
     assert not verify_signed_manifest({**manifest, "source_sha": "b" * 40}, **signed)
     assert not verify_signed_manifest({**manifest, "guardians_enabled": True}, **signed)
-    assert not verify_signed_manifest(
-        manifest, **{**signed, "trusted_public_key_sha256": "0" * 64}
-    )
-    assert not verify_signed_manifest(
-        manifest, **{**signed, "signature_hex": "0" * 128}
-    )
+    assert not verify_signed_manifest(manifest, **{**signed, "trusted_public_key_sha256": "0" * 64})
+    assert not verify_signed_manifest(manifest, **{**signed, "signature_hex": "0" * 128})
 
 
 def test_bad_proof_or_noncanonical_manifest_fail_closed():
