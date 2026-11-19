@@ -396,3 +396,34 @@ def test_closed_candle_end_timestamp_fault_injection(bad):
     assert result.reason == "candle_close_time_mismatch"
     assert result.proposal["execution_authorized"] is False
     assert result.proposal["preserve_raw"] is True
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("schema_verified", False),
+    ("baseline_verified", False),
+    ("dsn_isolated", False),
+    ("database_name", "postgres"),
+    ("database_role", "postgres"),
+    ("postgres_port", 5432),
+    ("read_only_snapshot", False),
+])
+def test_reinstall_readonly_preflight_fails_closed(field, bad):
+    """No data repair or installation authorization follows from bad inventory."""
+    data = snapshot()
+    data[field] = bad
+    original = deepcopy(data)
+    result = reconcile(data, enabled=True)
+    assert result.action == "ALERT"
+    assert result.proposal is None
+    assert data == original
+
+
+def test_reinstall_preflight_never_authorizes_effects():
+    data = snapshot()
+    for rows in ([], [row(0), row(2 * STEP)], [row(0), row(0)]):
+        candidate = deepcopy(data)
+        candidate["rows"] = rows
+        finding = reconcile(candidate, enabled=True)
+        assert finding.action in {"PROPOSE_BOUNDED_BACKFILL", "PROPOSE_QUARANTINE"}
+        assert finding.proposal["execution_authorized"] is False
+        assert finding.proposal["preserve_raw"] is True
