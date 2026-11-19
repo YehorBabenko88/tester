@@ -352,6 +352,39 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
                 self.assertEqual((result.action, result.reason),
                                  ("ALERT", "restart_budget_exhausted"))
 
+    def test_api_worker_fault_proposals_require_enabled_and_owner(self):
+        """Both service roles are proposals only; disabled means no restart."""
+        for service in ("TesterAPI", "TesterWorker"):
+            with self.subTest(service=service):
+                identity = replace(
+                    ident(), service=service, expected_service=service
+                )
+                disabled = CodeGuardian().evaluate(
+                    identity, probes(), now=100, restarts_last_hour=0
+                )
+                self.assertEqual((disabled.action, disabled.reason),
+                                 ("ALERT", "disabled"))
+                enabled = CodeGuardian(enabled=True).evaluate(
+                    identity, probes(), now=100, restarts_last_hour=0
+                )
+                self.assertEqual(enabled.action, "PROPOSE_OWNED_RESTART")
+                self.assertEqual(enabled.event["scope"], service)
+
+    def test_untrusted_exception_never_becomes_runtime_patch(self):
+        """Review request accepts only sanitized labels and hash evidence."""
+        for kind in ("RuntimeError; Stop-Service", "../patch", "", "A" * 65):
+            with self.subTest(kind=kind):
+                result = request_code_review(
+                    kind, "sha256:" + "c" * 64, HEAD
+                )
+                self.assertEqual((result.action, result.reason),
+                                 ("ALERT", "untrusted_error"))
+        review = request_code_review(
+            "TimeoutError", "sha256:" + "c" * 64, HEAD
+        )
+        self.assertEqual(review.action, "REQUEST_CODE_REVIEW")
+        self.assertEqual(review.event["allowed"], "isolated_tests_only")
+
     def test_shared_policy_proposal_only_and_nontrusted_claims(self):
         """Code decision -> MASTER policy is never an execution permission."""
         result = CodeGuardian(enabled=True).evaluate(
