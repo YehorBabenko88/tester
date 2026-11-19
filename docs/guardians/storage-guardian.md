@@ -93,3 +93,24 @@ Independent disposable-fixture negative acceptance for MASTER's installer:
 - Latest inventory identity checks detect some non-reparse substitutions but remain pathname-based and **do not authorize cleanup**. Scanner identity fingerprints are not service ownership, release signatures, filesystem ACL attestation, or installer uninstall manifests.
 
 **Merge gate:** require a pinned, reviewed foundation; exact-head Ruff + unit/integration/fault-injection on Linux and Windows; physical NTFS junction and directory-swap tests; MASTER-defined `runtime_root`; proof that `GUARDIANS_ENABLED=false` and no maintenance effectors run. No PR merge or deploy before independent acceptance.
+
+## Independent Storage acceptance for MASTER's destructive uninstaller (2026-11-19)
+
+**Ownership split:** Storage supplies negative test cases and independently checks receipts. MASTER implements the only effectful installer/uninstaller and the authoritative signed ownership manifest. No second deletion implementation is permitted.
+
+Use a disposable, non-ADMINIT Windows sandbox with synthetic owned `C:\\TesterLab` and separately declared installer-created paths. Before each test, seed a **foreign** PostgreSQL 18/5432 sentinel, unrelated desktop shortcuts, unrelated service, foreign files, and a second unrelated user directory. Capture hashes/identities of every foreign sentinel. The destructive test may run only against the sandbox's mock owned resources after explicit `DELETE TESTER`; never point at a real host's `C:\\TesterLab`.
+
+| Injection | Required independent result |
+|---|---|
+| Manifest absent/tampered/relative/traversal/outside owned root | REFUSE; zero deletes |
+| Root or ancestor symlink, NTFS junction, arbitrary reparse point | REFUSE; foreign sentinels unchanged |
+| Swap verified path for junction before deletion | REFUSE via OS handle-bound identity; no foreign delete |
+| Access denied or locked file | PARTIAL FAILURE; identify remaining exact targets, never claim complete |
+| Kill during deletion or restart halfway | Journal reports incomplete; resumed operation requires fresh identity/confirmation and must not widen scope |
+| Foreign service, PG18 on 5432, user-owned file | Never stop, unlink, change or mark owned |
+| Disk full while writing receipt | Fail closed and report incomplete; no fabricated success |
+| Two simultaneous start/uninstall requests | Exclusive lock; at most one operation proceeds |
+| Fully successful owned-only uninstall | Independently verify no owned service, task, shortcut, executable, dedicated PG cluster, candle history, test result, config, log, archive or backup remains in *any* declared installer-created path |
+| Second uninstall after full success | Idempotent absent result, no foreign mutation |
+
+The final successful-deletion receipt must enumerate each previously owned target and its independently verified absence. A zero-item manifest or inaccessible path must **not** be mistaken for full success. Ordinary deletion does not prove forensic erasure. If MASTER cannot enumerate every installer-created path, full removal is **NO-GO**. No destructive tests have been executed on ADMINIT.
