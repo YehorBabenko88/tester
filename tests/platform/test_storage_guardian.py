@@ -455,3 +455,61 @@ def test_full_uninstall_requires_master_owned_adapter(tmp_path):
                      "postgres-data/PG_VERSION", "logs/log.txt",
                      "config/config.json", "install/backup.zip"):
         assert (owned / relative).exists()
+
+
+@pytest.mark.parametrize(
+    "foreign_name",
+    ["backup.zip", "candles.db", "results.json", "pg_wal", ".hidden.part.bak"],
+)
+def test_non_part_foreign_data_never_becomes_cleanup_candidate(tmp_path, foreign_name):
+    """Storage only proposes direct old *.part, never historical data or backups."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    foreign = folder / foreign_name
+    foreign.write_bytes(b"foreign")
+    os.utime(foreign, (100, 100))
+    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
+                       now=100000, enabled=True)
+    assert result["status"] == "OBSERVED"
+    assert result["candidates"] == []
+    assert foreign.read_bytes() == b"foreign"
+
+
+def test_disk_full_proposes_pause_without_mutation(tmp_path):
+    """Simulate no available disk space; do not run a download or cleanup."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    old = folder / "old.part"
+    old.write_bytes(b"retain")
+    os.utime(old, (100, 100))
+    with patch("src.api.guardians.storage_guardian.shutil.disk_usage") as disk:
+        disk.return_value.free = 0
+        disk.return_value.total = 100
+        result = inventory(tmp_path, min_free_bytes=1, quota_bytes=1,
+                           now=100000, enabled=True)
+    assert result["status"] == "OBSERVED"
+    assert "PROPOSE_PAUSE_NEW_DOWNLOADS" in result["proposals"]
+    assert "ALERT_TMP_QUOTA" in result["proposals"]
+    assert old.read_bytes() == b"retain"
+
+
+def test_mid_scan_file_disappearance_rejects_entire_manifest(tmp_path):
+    """A file vanishing after enumeration cannot produce partial cleanup approval."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    old = folder / "old.part"
+    old.write_bytes(b"retain")
+    os.utime(old, (100, 100))
+    original = Path.lstat
+
+    def disappeared(path):
+        if path == old:
+            raise FileNotFoundError("injected disappearance")
+        return original(path)
+
+    with patch.object(Path, "lstat", disappeared):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
+                           now=100000, enabled=True)
+    assert result["status"] in ("ALERT_REPARSE_ENTRY", "ALERT_IO_FAILURE")
+    assert result["candidates"] == []
+    assert old.read_bytes() == b"retain"
