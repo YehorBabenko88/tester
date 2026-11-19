@@ -109,7 +109,7 @@ class ExchangeGuardian:
             key = endpoint_key(observation.endpoint)
         except ValueError:
             return self._invalid()
-        if (observation.kind not in {"http", "timeout", "tls_failure", "malformed"} or
+        if (observation.kind not in {"http", "timeout", "dns_failure", "websocket_disconnect", "tls_failure", "malformed", "partial_response"} or
                 not _number(observation.elapsed_ms) or
                 type(observation.evidence_ref) is not str or
                 len(observation.evidence_ref) != 71 or
@@ -161,6 +161,12 @@ class ExchangeGuardian:
         state["seen"].add(observation.evidence_ref)
         if len(state["seen"]) > 128:
             state["seen"] = {observation.evidence_ref}
+        # 403 is not a retryable rate-limit signal: protect the source without
+        # proxy rotation, IP evasion, or automated credential changes.
+        if observation.kind == "http" and observation.status_code == 403:
+            state["circuit"] = "HALTED"
+            return self._verdict(state, observation, "UNAVAILABLE", "http_403",
+                                 "NONE", "forbidden_requires_manual_review", None)
         if observation.kind == "http" and observation.status_code == 429:
             after = retry_after_seconds(observation.retry_after,
                                         now_utc or datetime.now(UTC))
@@ -174,7 +180,7 @@ class ExchangeGuardian:
             return self._verdict(state, observation, "DEGRADED", "http_429",
                                  "PROPOSE_RATE_BACKOFF", "verified_retry_after",
                                  state["until"])
-        if observation.kind == "timeout" or (
+        if observation.kind in {"timeout", "dns_failure", "websocket_disconnect"} or (
                 observation.kind == "http" and observation.status_code in {500, 502, 503, 504}):
             state["attempts"] += 1
             if state["attempts"] >= MAX_RETRIES:
@@ -188,7 +194,7 @@ class ExchangeGuardian:
             return self._verdict(state, observation, "DEGRADED",
                                  "transient_timeout", "PROPOSE_BOUNDED_RETRY",
                                  "bounded_retry_proposal", state["until"])
-        if observation.kind == "malformed" or (
+        if observation.kind in {"malformed", "partial_response"} or (
                 observation.kind == "http" and (
                     observation.status_code != 200 or not observation.parse_valid)):
             state["circuit"] = "OPEN"
