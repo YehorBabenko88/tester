@@ -1,4 +1,5 @@
 """Independent positive and negative tests for read-only Data Guardian."""
+import unittest
 from copy import deepcopy
 
 import pytest
@@ -958,7 +959,7 @@ def test_data_removal_receipt_requires_all_data_categories_and_no_backups():
     )
 
 
-class DataGuardianUnittestAcceptance(__import__("unittest").TestCase):
+class DataGuardianUnittestAcceptance(unittest.TestCase):
     """CI unittest-discover bridge for P0 Data fail-closed invariants."""
 
     def test_default_disabled_and_pg5432_denied(self):
