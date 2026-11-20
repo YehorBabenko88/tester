@@ -28,29 +28,45 @@ while ($null -ne $Cursor) {
 }
 $Names = @('TESTER — Запуск','TESTER — Удаление')
 $Scripts = @('Start-Tester.ps1','Uninstall-Tester.ps1')
+# WScript.Shell COM may use an ANSI code page for CreateShortcut(path).
+# Create/read only ASCII temporary names, then let .NET move the .lnk to its
+# exact Unicode name. The temporary path stays in the disposable fixture.
 $Shell = New-Object -ComObject WScript.Shell
 for ($Index = 0; $Index -lt 2; $Index++) {
     $Path = Join-Path $Target ($Names[$Index] + '.lnk')
+    $TempPath = Join-Path $Target ('tester-shortcut-' + $Index + '.lnk')
+    if (Test-Path -LiteralPath $TempPath) { throw 'Foreign temporary shortcut collision' }
     if (Test-Path -LiteralPath $Path) {
         $Old = Get-Item -LiteralPath $Path -Force
         if (($Old.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw 'Reparse shortcut refused'
         }
-        $Current = $Shell.CreateShortcut($Path)
-        if (
-            $Current.Arguments -notlike ('*' + $Scripts[$Index] + '*') -or
-            $Current.TargetPath -ne (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') -or
-            $Current.WorkingDirectory -ne 'C:\TesterLab'
-        ) {
-            throw 'Foreign shortcut collision'
+        Copy-Item -LiteralPath $Path -Destination $TempPath -ErrorAction Stop
+        try {
+            $Current = $Shell.CreateShortcut($TempPath)
+            if (
+                $Current.Arguments -notlike ('*' + $Scripts[$Index] + '*') -or
+                $Current.TargetPath -ne (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe') -or
+                $Current.WorkingDirectory -ne 'C:\TesterLab'
+            ) { throw 'Foreign shortcut collision' }
+        } finally {
+            Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
         }
+        continue
     }
-    $Shortcut = $Shell.CreateShortcut($Path)
+    $Shortcut = $Shell.CreateShortcut($TempPath)
     $Shortcut.TargetPath = (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')
     $Shortcut.Arguments = '-NoProfile -ExecutionPolicy AllSigned -File "C:\TesterLab\scripts\' + $Scripts[$Index] + '"'
     $Shortcut.WorkingDirectory = 'C:\TesterLab'
     $Shortcut.Description = 'TESTER signed pinned release — fixture only'
-    $Shortcut.Save()
+    try {
+        $Shortcut.Save()
+        Move-Item -LiteralPath $TempPath -Destination $Path -ErrorAction Stop
+    } finally {
+        if (Test-Path -LiteralPath $TempPath) {
+            Remove-Item -LiteralPath $TempPath -Force
+        }
+    }
 }
 if (@(Get-ChildItem -LiteralPath $Target -Filter 'TESTER — *.lnk').Count -ne 2) {
     throw 'Expected exactly two TESTER shortcuts'
