@@ -126,7 +126,7 @@ def test_duplicate_and_invalid_evidence():
 def test_independent_endpoint_circuits():
     g = ExchangeGuardian(enabled=True)
     g.inspect(obs("tls_failure"), now=0)
-    other = obs(endpoint="https://public.bybit.com/v5/market/kline",
+    other = obs(endpoint="https://api.bybit.com/v5/market/orderbook",
                 evidence_ref="sha256:" + "b" * 64)
     assert g.inspect(other, now=0).status == "MONITORING"
 
