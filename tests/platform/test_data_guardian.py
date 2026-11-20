@@ -962,6 +962,31 @@ def test_data_removal_receipt_requires_all_data_categories_and_no_backups():
 class DataGuardianUnittestAcceptance(unittest.TestCase):
     """CI unittest-discover bridge for P0 Data fail-closed invariants."""
 
+    def test_no_actual_io_imports_in_pure_data_guardian(self):
+        """Protect against accidental DB/installer/HTTP effectors in Data module."""
+        import ast
+        import inspect
+
+        from src.api.guardians import data_guardian
+
+        tree = ast.parse(inspect.getsource(data_guardian))
+        imported = {
+            name.name.split(".")[0]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Import)
+            for name in node.names
+        }
+        imported.update(
+            node.module.split(".")[0]
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ImportFrom) and node.module
+        )
+        self.assertFalse(
+            imported.intersection(
+                {"psycopg", "sqlite3", "subprocess", "requests", "httpx", "winreg"}
+            )
+        )
+
     def test_default_disabled_and_pg5432_denied(self):
         self.assertEqual(reconcile(snapshot()).reason, "guardians_disabled")
         sample = snapshot()
