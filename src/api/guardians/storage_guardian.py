@@ -87,8 +87,8 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
                 # Refuse malformed/forged directory entries before constructing paths.
                 # Windows alternate streams, separators and dot segments are not owned.
                 if (not isinstance(name, str) or not name or name in (".", "..")
-                        or "/" in name or "\\\\" in name or ":" in name
-                        or "\\x00" in name):
+                        or "/" in name or "\\" in name or ":" in name
+                        or "\x00" in name):
                     return {**result, "status": "ALERT_UNSAFE_ENTRY",
                             "candidates": [], "bytes_reclaimable": 0,
                             "proposals": []}
