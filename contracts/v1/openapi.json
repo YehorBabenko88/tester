@@ -630,7 +630,9 @@
               "trades",
               "footprint",
               "open_interest",
-              "funding"
+              "funding",
+              "mark",
+              "index"
             ],
             "title": "Kind",
             "type": "string"
