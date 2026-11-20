@@ -385,6 +385,36 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         self.assertEqual(review.action, "REQUEST_CODE_REVIEW")
         self.assertEqual(review.event["allowed"], "isolated_tests_only")
 
+    def test_clock_rollback_and_non_tuple_probes_fail_closed(self):
+        """Do not accept future observations or mutable probe containers."""
+        for now in (99, 97, -1, 100.0, None):
+            with self.subTest(now=now):
+                decision = CodeGuardian(enabled=True).evaluate(
+                    ident(), probes(), now=now, restarts_last_hour=0
+                )
+                if now == 99 or now == 97:
+                    # A future SCM observation is invalid even if other probes
+                    # are still within the freshness window.
+                    self.assertEqual(decision.reason, "invalid_or_stale_probe")
+                else:
+                    self.assertEqual(decision.action, "ALERT")
+        for samples in (list(probes()), iter(probes()), (), None):
+            with self.subTest(kind=type(samples).__name__):
+                decision = CodeGuardian(enabled=True).evaluate(
+                    ident(), samples, now=100, restarts_last_hour=0
+                )
+                self.assertEqual(decision.action, "ALERT")
+
+    def test_disabled_guardian_never_emits_proposal_even_with_valid_quorum(self):
+        for enabled in (False, None, 0, "true"):
+            with self.subTest(enabled=enabled):
+                guardian = CodeGuardian(enabled=enabled)
+                decision = guardian.evaluate(
+                    ident(), probes(), now=100, restarts_last_hour=0
+                )
+                self.assertEqual((decision.action, decision.reason),
+                                 ("ALERT", "disabled"))
+
     def test_shared_policy_proposal_only_and_nontrusted_claims(self):
         """Code decision -> MASTER policy is never an execution permission."""
         result = CodeGuardian(enabled=True).evaluate(
