@@ -88,4 +88,11 @@ jobs:
           if ($names.Count -ne 2 -or $names -notcontains 'TESTER — Запуск' -or $names -notcontains 'TESTER — Удаление') {
             throw 'Expected exact two pinned TESTER shortcut names'
           }
-          Remove-Item -LiteralPath $fixture -Recurse -Force
+          # Only disposable fixture resources; verify complete removal.
+          Remove-Item -LiteralPath (Join-Path $fixture 'TESTER — Запуск.lnk') -Force
+          Remove-Item -LiteralPath (Join-Path $fixture 'TESTER — Удаление.lnk') -Force
+          if (@(Get-ChildItem -LiteralPath $fixture -Force).Count -ne 0) {
+            throw 'Fixture uninstall left unexpected files'
+          }
+          Remove-Item -LiteralPath $fixture -Force
+          if (Test-Path -LiteralPath $fixture) { throw 'Fixture desktop was not removed' }
