@@ -535,7 +535,7 @@ def test_quota_budget_rejects_bool_and_noninteger_before_io():
 
 @pytest.mark.parametrize("bad_name", ["../outside.part", "/absolute.part",
                                       "sub/child.part", "C:stream.part",
-                                      "..", "", "a\\\\b.part"])
+                                      "..", "", "a\\\\b.part", "a\\b.part", "a\\x00b.part"])
 def test_forged_directory_entry_name_rejected(tmp_path, bad_name):
     """Even a forged scandir entry cannot escape the direct-child boundary."""
     folder = tmp_path / "tmp"
