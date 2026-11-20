@@ -32,8 +32,8 @@ def endpoint_key(url: str) -> str:
                 any(segment in {".", ".."} for segment in p.path.split("/")) or
                 p.port not in (None, 443) or p.username is not None or
                 p.password is not None or p.fragment or
-                (not p.path.startswith("/v5/market/") and
-                 not (p.hostname == "public.bybit.com" and p.path.startswith("/trading/"))) or
+                not ((p.hostname == "api.bybit.com" and p.path.startswith("/v5/market/")) or
+                     (p.hostname == "public.bybit.com" and p.path.startswith("/trading/"))) or
                 p.query or p.netloc not in HOSTS):
             raise ValueError("unapproved_endpoint")
     except (ValueError, TypeError) as exc:
