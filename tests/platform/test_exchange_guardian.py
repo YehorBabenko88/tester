@@ -546,3 +546,27 @@ def test_fault_injection_429_isolated_per_endpoint_and_no_data_writes():
     assert independent.status == "MONITORING"
     assert independent.history_complete is False
     assert independent.gaps_reconciled is False
+
+
+@pytest.mark.parametrize("url", [
+    "https://public.bybit.com/v5/market/kline",
+    "https://api.bybit.com/trading/BTCUSDT/file.csv.gz",
+    "https://public.bybit.com/v5/market/orderbook",
+    "https://api.bybit.com/v5/order/create",
+])
+def test_fault_injection_cross_host_scope_confusion_rejected(url):
+    with pytest.raises(ValueError):
+        endpoint_key(url)
+
+
+def test_fault_injection_cross_host_scope_never_allocates_circuit():
+    guardian = ExchangeGuardian(enabled=True)
+    invalid = guardian.inspect(
+        obs(endpoint="https://public.bybit.com/v5/market/kline"),
+        now=10,
+    )
+    assert invalid.status == "UNAVAILABLE"
+    assert invalid.signal == "invalid_observation"
+    assert invalid.proposal == "NONE"
+    assert not invalid.history_complete
+    assert len(guardian._state) == 0
