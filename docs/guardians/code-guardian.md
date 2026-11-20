@@ -208,3 +208,41 @@ In-memory fingerprinting and caller-provided verification flags do not
 substitute for the durable MASTER supervisor, OS authentication, cross-process
 lease or independent after-check. Release is NO_GO until exact-head CI and
 physical acceptance pass.
+
+## 20 November P0 compatibility and CI evidence gate
+
+- Current Code decision DTOs are `Identity`, `Probe`, `Result` and
+  `request_code_review`. They are pure Python, import only stdlib and expose
+  no installer, SCM executor, PostgreSQL client or durable supervisor.
+- Code `Result.event` follows shared `guardian-event/v1` policy with
+  `component=code`, `signal=service_unhealthy`, `environment=tester_preview`,
+  `scope`, `evidence_ref`, `ownership_verified`,
+  `consecutive_failed_probes` and `restarts_last_hour`. The MASTER policy
+  currently accepts that legacy environment; canonical `C:\TesterLab`
+  requires a coordinated versioned identity migration, not an independent
+  Code-only rename.
+- Code's `Tester*` service-name check is a defense-in-depth string check,
+  not an OS ownership proof. MASTER must pin actual API/worker service names,
+  ImagePath, SID, binary SHA and service account in the signed install manifest
+  and test mismatches. A name prefix alone cannot authorize restart.
+- Local `_seen` is in-memory deduplication only; MASTER durable supervisor
+  owns SQLite receipt chain, fenced leases, cross-process restart budgets,
+  circuit breaker, kill switch and journal-corruption refusal. Code must not
+  implement another persistent journal or second restart executor.
+- Synthetic Code tests do not simulate actual Windows SCM failure, Windows
+  access-denied, corrupted on-disk SQLite or physical process termination.
+  Such acceptance belongs to the independent disposable Windows fixture and
+  MASTER's durable supervisor. No automatic service recovery is authorized.
+- Exact Code HEAD `c7392bb1913ac7c570bb1a285658a0b55f5b968a`:
+  Python Actions run `44784074433` FAIL (Windows unittest 317, skipped 72,
+  then shared Ruff I001 `tests/platform/test_guardian_policy.py:1`);
+  Platform run `44784074215` FAIL with the same foundation-owned I001.
+  These logs do not identify a Code-owned failure. Local targeted Ruff
+  remains NOT RUN; new Code negative tests require fresh exact-source
+  execution after approved foundation sync. Do not label a queued workflow
+  or prior-head PASS as a release PASS.
+
+**Integration gate:** obtain MASTER's exact green foundation SHA, confirm
+service/environment DTO compatibility, non-force sync preserving Code commits,
+then run exact-head Python, Ruff, Platform, isolated fault and independent
+Windows acceptance. No merge, installer execution or trading before signoff.
