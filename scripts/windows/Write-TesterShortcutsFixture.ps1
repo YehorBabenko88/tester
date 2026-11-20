@@ -13,7 +13,7 @@ Set-StrictMode -Version Latest
 if (-not $CreateFixture) { throw 'Fixture-only script requires -CreateFixture' }
 $TempRoot = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
 $Target = [IO.Path]::GetFullPath($FixtureDesktop)
-if (-not $Target.StartsWith($TempRoot.TrimEnd([char]92) + '\\', [StringComparison]::OrdinalIgnoreCase)) {
+if (-not $Target.StartsWith($TempRoot.TrimEnd([char]92) + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
     throw 'Refusing non-fixture desktop path'
 }
 if (-not (Test-Path -LiteralPath $Target -PathType Container)) {
