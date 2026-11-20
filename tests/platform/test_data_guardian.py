@@ -956,3 +956,63 @@ def test_data_removal_receipt_requires_all_data_categories_and_no_backups():
     assert assess_data_removal_receipt(evidence, enabled=True).action == (
         "OBSERVED_DATA_REMOVAL_FIXTURE"
     )
+
+
+class DataGuardianUnittestAcceptance(__import__("unittest").TestCase):
+    """CI unittest-discover bridge for P0 Data fail-closed invariants."""
+
+    def test_default_disabled_and_pg5432_denied(self):
+        self.assertEqual(reconcile(snapshot()).reason, "guardians_disabled")
+        sample = snapshot()
+        sample["postgres_port"] = 5432
+        self.assertEqual(reconcile(sample, enabled=True).action, "ALERT")
+
+    def test_ohlcv_provenance_duplicate_and_gap(self):
+        sample = snapshot()
+        self.assertEqual(
+            reconcile(sample, enabled=True).action, "PROPOSE_BOUNDED_BACKFILL"
+        )
+        sample["rows"][0]["high"] = float("nan")
+        self.assertEqual(reconcile(sample, enabled=True).action, "PROPOSE_QUARANTINE")
+        sample = snapshot()
+        sample["rows"][0]["provenance_verified"] = False
+        self.assertEqual(reconcile(sample, enabled=True).action, "PROPOSE_QUARANTINE")
+        sample = snapshot()
+        sample["rows"].append(row(0))
+        self.assertEqual(reconcile(sample, enabled=True).reason, "duplicate_key")
+
+    def test_restart_replay_and_stale_lease(self):
+        sample = snapshot()
+        first = reconcile(sample, enabled=True)
+        self.assertEqual(first, reconcile(deepcopy(sample), enabled=True))
+        restarted = deepcopy(sample)
+        restarted["lease_epoch"] = 0
+        self.assertIsNone(to_policy_event(restarted, first))
+
+    def test_disposable_sqlite_rollback_and_preserved_baseline(self):
+        import sqlite3
+
+        connection = sqlite3.connect(":memory:")
+        try:
+            connection.execute("CREATE TABLE candles (stamp INTEGER PRIMARY KEY)")
+            connection.execute("INSERT INTO candles VALUES (0)")
+            connection.commit()
+            connection.execute("INSERT INTO candles VALUES (?)", (STEP,))
+            connection.rollback()
+            self.assertEqual(
+                connection.execute("SELECT stamp FROM candles").fetchall(), [(0,)]
+            )
+        finally:
+            connection.close()
+
+    def test_data_only_removal_requires_protected_pg_and_no_backups(self):
+        evidence = data_removal_fixture()
+        self.assertEqual(
+            assess_data_removal_receipt(evidence, enabled=True).action,
+            "OBSERVED_DATA_REMOVAL_FIXTURE",
+        )
+        evidence["system_pg_data_hash_unchanged"] = False
+        self.assertEqual(assess_data_removal_receipt(evidence, enabled=True).action, "ALERT")
+        evidence["system_pg_data_hash_unchanged"] = True
+        evidence["data_backups_absent"] = False
+        self.assertEqual(assess_data_removal_receipt(evidence, enabled=True).action, "ALERT")
