@@ -562,3 +562,39 @@ def test_forged_directory_entry_name_rejected(tmp_path, bad_name):
     assert result["status"] == "ALERT_UNSAFE_ENTRY"
     assert result["candidates"] == []
     assert outside.read_bytes() == b"foreign"
+
+
+def test_runtime_root_identity_swap_fail_closed(tmp_path):
+    """A non-reparse root substitution must invalidate all proposed candidates."""
+    folder = tmp_path / "tmp"
+    folder.mkdir()
+    old = folder / "old.part"
+    old.write_bytes(b"intact")
+    os.utime(old, (100, 100))
+    original = Path.lstat
+    seen = 0
+
+    class ReplacedRootStat:
+        def __init__(self, actual):
+            self.st_dev = actual.st_dev
+            self.st_ino = actual.st_ino + 1
+            self.st_mode = actual.st_mode
+            self.st_size = actual.st_size
+            self.st_mtime_ns = actual.st_mtime_ns
+            self.st_file_attributes = getattr(actual, "st_file_attributes", 0)
+
+    def changed(path):
+        nonlocal seen
+        actual = original(path)
+        if path == tmp_path:
+            seen += 1
+            if seen >= 5:
+                return ReplacedRootStat(actual)
+        return actual
+
+    with patch.object(Path, "lstat", changed):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1000,
+                           now=100000, enabled=True)
+    assert result["status"] == "ALERT_ROOT_CHANGED"
+    assert result["candidates"] == []
+    assert old.read_bytes() == b"intact"
