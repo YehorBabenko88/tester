@@ -9,11 +9,11 @@ No production signing key is supplied by this repository.
 The installer verifies the full artifact inventory before executing bundled
 Python; the Python verifier then verifies the signed envelope with the independent
 key pin. The offline package contains `payload/`, `runtimes/python/`,
-`runtimes/postgres/` and `wheelhouse/`. Dependency installation uses only hash-locked
+`runtimes/postgres/` and `wheelhouse/`. `requirements-release-windows312.lock` pins CPython 3.12 Windows wheels. Dependency installation uses only hash-locked
 binary wheels without network access. PostgreSQL is private and binds loopback on
 a dynamically selected port other than 5432. Windows registers exactly two
-UUID-named LocalService services: PostgreSQL and the existing API/worker supervisor.
-No additional supervisor or PostgreSQL client is introduced.
+UUID-named virtual-account services: PostgreSQL and the existing API/worker supervisor.
+No additional supervisor or PostgreSQL client is introduced. Each service logs on as its unique `NT SERVICE\<UUID name>` virtual account; only its SID may write its respective mutable directory. Runtime uses a dedicated nonsuperuser database login; owner credentials stay in the administrator-only private directory.
 
 Services use automatic startup, dependency ordering and two SCM restart attempts
 (1 second and 5 seconds), followed by no action. The supervisor retains its own
@@ -50,7 +50,7 @@ python -m pytest tests/platform/test_release_scm.py::test_real_native_scm_uuid_l
 The opt-in gate fails when Windows/admin prerequisites are missing; normal portable
 runs skip the native test with a concrete reason. Native acceptance checks real SCM
 registration, autostart/recovery configuration, idempotent start, process failure
-recovery, graceful stop, restart and deletion. It does not claim reboot acceptance.
+recovery, exhausted restart budget, graceful stop, restart and deletion. The separate COM test performs real Unicode shortcut roundtrips without elevation. It does not claim reboot acceptance.
 Host reboot and existing ADMINIT installation remain owner-authorized VM gates.
 
 ## Remaining release gates

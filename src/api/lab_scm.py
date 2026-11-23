@@ -118,7 +118,7 @@ def owned(current, plan, image):
         current.get("image") != image
         or current.get("installation_id") != plan["installation_id"]
         or current.get("root") != plan["root"]
-        or current.get("account", "").casefold() != ACCOUNT.casefold()
+        or current.get("account", "").casefold() != plan.get("account", ACCOUNT).casefold()
         or ("source_sha" in plan and current.get("source_sha") != plan["source_sha"])
         or (
             plan.get("executable")
@@ -349,10 +349,14 @@ class NativeSCM:
             None,
             0,
             [dependency] if dependency else None,
-            ACCOUNT,
+            plan.get("account", ACCOUNT),
             None,
         )
         try:
+            if plan.get("service_sid", False):
+                ws.ChangeServiceConfig2(
+                    h, ws.SERVICE_CONFIG_SERVICE_SID_INFO, ws.SERVICE_SID_TYPE_UNRESTRICTED
+                )
             if plan.get("recovery_delays_ms"):
                 delays = plan["recovery_delays_ms"]
                 if len(delays) != 3 or delays[-1] != 0:

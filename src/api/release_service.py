@@ -3,7 +3,7 @@
 import subprocess
 from pathlib import Path
 
-from .lab_scm import ACCOUNT, NativeSCM, owned
+from .lab_scm import NativeSCM, owned
 from .lab_service import LabService
 from .release_install import lifecycle_lock, load_marker
 
@@ -14,13 +14,14 @@ def plans(marker):
         root=str(root),
         installation_id=marker["installation_id"],
         source_sha=marker["source_sha"],
-        account=ACCOUNT,
         auto_start=True,
+        service_sid=True,
         recovery_delays_ms=[1000, 5000, 0],
     )
     app = dict(
         common,
         name=marker["services"]["app"],
+        account="NT SERVICE\\" + marker["services"]["app"],
         dependency=marker["services"]["postgres"],
         host=str(root / "dependencies/service/pythonservice.exe"),
         executable=str(root / "dependencies/service/pythonservice.exe"),
@@ -32,6 +33,7 @@ def plans(marker):
     pg = dict(
         common,
         name=marker["services"]["postgres"],
+        account="NT SERVICE\\" + marker["services"]["postgres"],
         executable=str(root / "dependencies/postgres/bin/pg_ctl.exe"),
     )
     pg["image"] = subprocess.list2cmdline(
@@ -115,6 +117,28 @@ class NativeController:
         return validate_resources(self.marker, self.scm)
 
 
+def validate_config(marker, config):
+    from psycopg.conninfo import conninfo_to_dict
+
+    from .lab_install import plain
+
+    root = Path(marker["root"])
+    pg = conninfo_to_dict(config["database_url"])
+    if (
+        config.get("host") != "127.0.0.1"
+        or config.get("port") != marker["ports"]["api"]
+        or plain(config["data_dir"]) != root / "runtime"
+        or plain(config["frontend_dir"]) != root / "releases" / marker["source_sha"] / "frontend"
+        or pg.get("host") != "127.0.0.1"
+        or pg.get("port") != str(marker["ports"]["postgres"])
+        or pg.get("port") == "5432"
+        or pg.get("dbname") != "tester"
+        or pg.get("user") != "tester_app"
+        or any(key in pg for key in ("hostaddr", "service", "options"))
+    ):
+        raise ValueError("Dedicated release API/database/storage scope required")
+
+
 def preflight(root):
     marker = load_marker(root)
     import json
@@ -122,12 +146,40 @@ def preflight(root):
     from .lab_install import verify_tree
 
     config = json.loads((root / "config.json").read_text())
-    if config["host"] != "127.0.0.1" or config["port"] != marker["ports"]["api"]:
-        raise ValueError("Release API binding mismatch")
+    validate_config(marker, config)
     for name in ("service", "postgres"):
         receipt = json.loads((root / "state" / f"{name}-runtime.json").read_text())
         verify_tree(root / "dependencies" / name, receipt["files"])
+    receipt = json.loads((root / "state/source-runtime.json").read_text())
+    verify_tree(root / "releases" / marker["source_sha"], receipt["files"])
+    validate_cluster_identity(marker)
     return marker
+
+
+def validate_cluster_identity(marker):
+    import json
+    import os
+    import re
+
+    root = Path(marker["root"])
+    result = subprocess.run(
+        [
+            str(root / "dependencies/postgres/bin/pg_controldata.exe"),
+            "-D",
+            str(root / "postgres-data"),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=15,
+        env=dict(os.environ, LANG="C", LC_MESSAGES="C"),
+    )
+    actual = re.findall(r"^Database system identifier:\s*(\d+)\s*$", result.stdout, re.MULTILINE)
+    recorded = json.loads((root / "state/postgres-identity.json").read_text())
+    if len(actual) != 1 or recorded != dict(
+        installation_id=marker["installation_id"], system_identifier=actual[0]
+    ):
+        raise ValueError("Dedicated PostgreSQL cluster identity mismatch")
 
 
 def main():
@@ -142,10 +194,6 @@ def main():
     marker = load_marker(args.root)
     with lifecycle_lock(args.root), NativeController(marker) as controller:
         print(controller.apply(args.action))
-
-
-if __name__ == "__main__":
-    main()
 
 
 class ReleaseService(LabService):

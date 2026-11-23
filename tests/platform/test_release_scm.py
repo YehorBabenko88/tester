@@ -102,7 +102,8 @@ class Fixture(win32serviceutil.ServiceFramework):
         root=str(root),
         installation_id=str(ident),
         source_sha="a" * 40,
-        account=rs.ACCOUNT,
+        account="NT SERVICE\\TesterReleaseApp_" + ident.hex,
+        service_sid=True,
         auto_start=True,
         recovery_delays_ms=[1000, 5000, 0],
         python_class=str(host / "native_fixture") + ".Fixture",
@@ -154,6 +155,28 @@ class Fixture(win32serviceutil.ServiceFramework):
         else:
             pytest.fail("Real SCM automatic recovery failed")
         proof.append(dict(phase="recovered", pid=current["pid"]))
+        # Exhaust the second and final SCM restart, then prove the terminal no-action.
+        for attempt in (2, 3):
+            previous = scm.inspect(plan["name"])["pid"]
+            process = win32api.OpenProcess(win32con.PROCESS_TERMINATE, False, previous)
+            try:
+                win32api.TerminateProcess(process, 9)
+            finally:
+                process.Close()
+            if attempt == 2:
+                deadline = time.monotonic() + 20
+                while time.monotonic() < deadline:
+                    current = scm.inspect(plan["name"])
+                    if current["state"] == "running" and current["pid"] != previous:
+                        break
+                    time.sleep(0.2)
+                else:
+                    pytest.fail("Second bounded SCM recovery failed")
+            else:
+                scm.wait(plan["name"], "stopped")
+                time.sleep(2)
+                assert scm.inspect(plan["name"])["state"] == "stopped"
+                proof.append(dict(phase="restart-budget-exhausted"))
         scm.stop(plan["name"])
         scm.wait(plan["name"], "stopped")
         scm.start(plan["name"])
@@ -177,3 +200,50 @@ class Fixture(win32serviceutil.ServiceFramework):
     (tmp_path / "native-scm-evidence.json").write_text(
         json.dumps(dict(service=plan["name"], root=str(root), checks=proof), indent=2)
     )
+
+
+def test_release_database_scope_refuses_system_and_external_cluster(tmp_path):
+    import pytest
+
+    marker = dict(root=str(tmp_path), ports={"api": 18767, "postgres": 55471}, source_sha="a" * 40)
+    config = dict(
+        host="127.0.0.1",
+        port=18767,
+        data_dir=str(tmp_path / "runtime"),
+        frontend_dir=str(tmp_path / "releases" / ("a" * 40) / "frontend"),
+        database_url="host=127.0.0.1 port=5432 dbname=tester user=tester_app",
+    )
+    with pytest.raises(ValueError):
+        rs.validate_config(marker, config)
+    config["database_url"] = "host=127.0.0.1 port=55471 dbname=tester user=tester_app"
+    rs.validate_config(marker, config)
+    config["data_dir"] = str(tmp_path.parent / "foreign")
+    with pytest.raises(ValueError):
+        rs.validate_config(marker, config)
+
+
+def test_real_unicode_com_shortcut_roundtrip(tmp_path):
+    import os
+
+    import pytest
+
+    from src.api.release_install import create_shortcuts
+
+    if os.name != "nt":
+        pytest.skip("WScript.Shell COM requires Windows")
+    ident = uuid.uuid4()
+    root = tmp_path / ("TesterReleaseTest_" + ident.hex)
+    root.mkdir()
+    desktop = tmp_path / ("Desktop_" + ident.hex)
+    desktop.mkdir()
+    marker = dict(mode="test", test_desktop=str(desktop), source_sha="a" * 40)
+    scripts = root / "releases" / marker["source_sha"] / "scripts/windows"
+    scripts.mkdir(parents=True)
+    for name in ("Start-ReleaseTester.ps1", "Uninstall-ReleaseTester.ps1"):
+        (scripts / name).write_text("# signed release fixture")
+    paths = create_shortcuts(root, marker)
+    assert {__import__("pathlib").Path(path).name for path in paths} == {
+        "TESTER — Запуск.lnk",
+        "TESTER — Удаление.lnk",
+    }
+    assert create_shortcuts(root, marker) == paths

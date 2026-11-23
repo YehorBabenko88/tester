@@ -75,18 +75,24 @@ def load_marker(root):
     try:
         marker = json.loads(plain(root / MARKER).read_text(encoding="utf-8"))
         ident = uuid.UUID(marker["installation_id"])
-        assert marker["schema"] == SCHEMA and marker["root"] == str(root)
-        assert re.fullmatch("[0-9a-f]{40}", marker["source_sha"])
-        assert re.fullmatch("[0-9a-f]{64}", marker["release_manifest_sha256"])
-        assert marker["services"] == {
-            "app": "TesterReleaseApp_" + ident.hex,
-            "postgres": "TesterReleasePG_" + ident.hex,
-        }
-        assert marker["ports"]["postgres"] != 5432
-        assert len(set(marker["ports"].values())) == 2
-        assert all(isinstance(p, int) and 1024 <= p <= 65535 for p in marker["ports"].values())
+        valid = (
+            marker["schema"] == SCHEMA
+            and marker["root"] == str(root)
+            and re.fullmatch("[0-9a-f]{40}", marker["source_sha"])
+            and re.fullmatch("[0-9a-f]{64}", marker["release_manifest_sha256"])
+            and marker["services"]
+            == {"app": "TesterReleaseApp_" + ident.hex, "postgres": "TesterReleasePG_" + ident.hex}
+            and set(marker["ports"]) == {"api", "postgres"}
+            and marker["ports"]["postgres"] != 5432
+            and len(set(marker["ports"].values())) == 2
+            and all(
+                type(port) is int and 1024 <= port <= 65535 for port in marker["ports"].values()
+            )
+        )
+        if not valid:
+            raise LabViolation("Invalid release marker authority")
         validate_destination(root, mode=marker["mode"], desktop=marker.get("test_desktop"))
-    except (OSError, ValueError, KeyError, AssertionError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError) as exc:
         raise LabViolation("Missing or invalid release ownership marker") from exc
     return marker
 
@@ -140,6 +146,9 @@ def create_shortcuts(root, marker):
             + str(root)
             + '"'
         )
+        script_path = root / "releases" / marker["source_sha"] / "scripts/windows" / script
+        if not plain(script_path).is_file():
+            raise LabViolation("Shortcut target script is missing")
         if link.exists():
             current = shell.CreateShortcut(str(link))
             if (
@@ -208,7 +217,7 @@ def install(
     required = (
         "payload/src/api/supervisor.py",
         "payload/frontend/index.html",
-        "payload/requirements-windows-lab.lock",
+        "payload/requirements-release-windows312.lock",
         "runtimes/python/python.exe",
         "runtimes/postgres/bin/initdb.exe",
         "runtimes/postgres/bin/pg_ctl.exe",
@@ -216,8 +225,22 @@ def install(
     for relative in required:
         if not plain(Path(bundle) / relative).is_file():
             raise LabViolation("Incomplete offline release: " + relative)
-    root.mkdir()
+    root.mkdir(exist_ok=True)
     with lifecycle_lock(root):
+        if any(root.iterdir()):
+            raise LabViolation("Fresh root changed before lifecycle lock")
+        subprocess.run(
+            [
+                "icacls.exe",
+                str(root),
+                "/inheritance:r",
+                "/grant:r",
+                "*S-1-5-18:(OI)(CI)F",
+                "*S-1-5-32-544:(OI)(CI)F",
+            ],
+            check=True,
+            capture_output=True,
+        )
         for name in (
             "state",
             "runtime",
@@ -258,6 +281,7 @@ def install(
             stage("copying-verified-payload")
             release_root = root / "releases" / release.source_sha
             shutil.copytree(Path(bundle) / "payload", release_root)
+            write_json(root / "state/source-runtime.json", {"files": inventory(release_root)})
             shutil.copytree(Path(bundle) / "runtimes/python", root / "dependencies/python")
             shutil.copytree(Path(bundle) / "runtimes/postgres", root / "dependencies/postgres")
             stage("installing-hash-locked-dependencies")
@@ -281,7 +305,7 @@ def install(
                     "--find-links",
                     str(Path(bundle) / "wheelhouse"),
                     "-r",
-                    str(release_root / "requirements-windows-lab.lock"),
+                    str(release_root / "requirements-release-windows312.lock"),
                 ],
                 check=True,
                 timeout=300,
@@ -336,31 +360,17 @@ def install(
                 timeout=65,
             )
             try:
-                import psycopg
-                from psycopg.conninfo import make_conninfo
-
-                admin = make_conninfo(
-                    host="127.0.0.1",
-                    port=pg_port,
-                    user="tester_owner",
-                    password=password,
-                    dbname="postgres",
-                )
-                with psycopg.connect(admin, autocommit=True) as conn:
-                    conn.execute("CREATE DATABASE tester")
-                dsn = make_conninfo(
-                    host="127.0.0.1",
-                    port=pg_port,
-                    user="tester_owner",
-                    password=password,
-                    dbname="tester",
-                )
-                # Use existing storage and platform migration engines, not a second schema implementation.
                 stage("migrating")
-                code = "import sys; from src.api.db import migrate; from src.storage.migrations import migrate as sm; import psycopg; dsn=sys.stdin.read(); migrate(dsn);\nwith psycopg.connect(dsn) as c: sm(c)"
                 subprocess.run(
-                    [str(venv), "-B", "-c", code],
-                    input=dsn,
+                    [
+                        str(venv),
+                        "-B",
+                        "-m",
+                        "src.api.release_install",
+                        "--provision-database",
+                        str(root),
+                    ],
+                    input=password,
                     text=True,
                     cwd=release_root,
                     check=True,
@@ -380,14 +390,6 @@ def install(
                     root / "state/postgres-identity.json",
                     dict(installation_id=str(ident), system_identifier=match[1]),
                 )
-                config = dict(
-                    database_url=dsn,
-                    data_dir=str(root / "runtime"),
-                    host="127.0.0.1",
-                    port=api_port,
-                    frontend_dir=str(release_root / "frontend"),
-                )
-                write_json(root / "config.json", config)
             finally:
                 subprocess.run(
                     [
@@ -402,13 +404,13 @@ def install(
                     check=True,
                     timeout=65,
                 )
-            stage("applying-service-acls")
-            apply_acls(root)
             from .release_service import NativeController
 
             stage("registering-native-services")
             with NativeController(marker) as controller:
                 controller.apply("install")
+                stage("applying-service-acls")
+                apply_acls(root, marker)
                 stage("waiting-for-api-worker-storage")
                 controller.apply("start")
             write_json(root / "state/shortcuts.json", {"paths": create_shortcuts(root, marker)})
@@ -427,9 +429,17 @@ def install(
     return marker
 
 
-def apply_acls(root):
-    """Administrators own immutable code; LocalService gets only runtime/cluster write."""
+def apply_acls(root, marker):
+    """Only the unique service SIDs may write their respective mutable trees."""
     import subprocess
+
+    import win32security
+
+    sids = {}
+    for role, name in marker["services"].items():
+        sid, _, _ = win32security.LookupAccountName(None, "NT SERVICE\\" + name)
+        sids[role] = "*" + win32security.ConvertSidToStringSid(sid)
+    administrators = ["*S-1-5-18:(OI)(CI)F", "*S-1-5-32-544:(OI)(CI)F"]
 
     def acl(path, grants):
         subprocess.run(
@@ -438,19 +448,95 @@ def apply_acls(root):
             capture_output=True,
         )
 
-    read = ["*S-1-5-18:(OI)(CI)F", "*S-1-5-32-544:(OI)(CI)F", "*S-1-5-19:(OI)(CI)RX"]
+    read = administrators + [sid + ":(OI)(CI)RX" for sid in sids.values()]
     acl(root, read)
     for name in ("dependencies", "releases", "state"):
         acl(root / name, read)
-    for name in ("runtime", "postgres-data"):
-        acl(root / name, ["*S-1-5-18:(OI)(CI)F", "*S-1-5-32-544:(OI)(CI)F", "*S-1-5-19:(OI)(CI)M"])
-    acl(root / "private", ["*S-1-5-18:(OI)(CI)F", "*S-1-5-32-544:(OI)(CI)F"])
-    acl(root / "config.json", ["*S-1-5-18:F", "*S-1-5-32-544:F", "*S-1-5-19:R"])
+    acl(root / "runtime", administrators + [sids["app"] + ":(OI)(CI)M"])
+    acl(root / "postgres-data", administrators + [sids["postgres"] + ":(OI)(CI)M"])
+    acl(root / "private", administrators)
+    acl(root / "backups", administrators)
+    acl(root / "config.json", ["*S-1-5-18:F", "*S-1-5-32-544:F", sids["app"] + ":R"])
+
+
+def provision_database(root, marker, password):
+    """Run only under the verified private venv; secrets arrive on stdin, never argv."""
+    import secrets
+
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import make_conninfo
+
+    from src.storage.migrations import migrate as storage_migrate
+
+    from .db import migrate
+
+    connection = dict(
+        host="127.0.0.1", port=marker["ports"]["postgres"], user="tester_owner", password=password
+    )
+    admin = make_conninfo(**connection, dbname="postgres")
+    with psycopg.connect(admin, autocommit=True) as conn:
+        conn.execute("CREATE DATABASE tester")
+    owner_dsn = make_conninfo(**connection, dbname="tester")
+    migrate(owner_dsn)
+    runtime_password = secrets.token_urlsafe(36)
+    with psycopg.connect(owner_dsn) as conn:
+        storage_migrate(conn)
+        conn.execute(
+            sql.SQL(
+                "CREATE ROLE tester_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD {}"
+            ).format(sql.Literal(runtime_password))
+        )
+        conn.execute("REVOKE ALL ON DATABASE tester FROM PUBLIC")
+        conn.execute("GRANT CONNECT ON DATABASE tester TO tester_app")
+        conn.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
+        for schema in ("tester_platform", "tester_storage"):
+            conn.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA {} TO tester_app").format(sql.Identifier(schema))
+            )
+            conn.execute(
+                sql.SQL(
+                    "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {} TO tester_app"
+                ).format(sql.Identifier(schema))
+            )
+            conn.execute(
+                sql.SQL("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {} TO tester_app").format(
+                    sql.Identifier(schema)
+                )
+            )
+        conn.execute("REVOKE INSERT, UPDATE, DELETE ON tester_platform.migrations FROM tester_app")
+        conn.execute(
+            "REVOKE INSERT, UPDATE, DELETE ON tester_storage.schema_migrations FROM tester_app"
+        )
+    dsn = make_conninfo(
+        host="127.0.0.1",
+        port=marker["ports"]["postgres"],
+        user="tester_app",
+        password=runtime_password,
+        dbname="tester",
+    )
+    write_json(
+        root / "config.json",
+        dict(
+            database_url=dsn,
+            data_dir=str(root / "runtime"),
+            host="127.0.0.1",
+            port=marker["ports"]["api"],
+            frontend_dir=str(root / "releases" / marker["source_sha"] / "frontend"),
+        ),
+    )
+    # Preserve administrative recovery credential only in the protected private tree.
+    write_json(root / "private/database-owner.json", {"database_url": owner_dsn})
 
 
 def main():
     import argparse
+    import sys
 
+    if len(sys.argv) == 3 and sys.argv[1] == "--provision-database":
+        root = plain(sys.argv[2])
+        provision_database(root, load_marker(root), sys.stdin.read())
+        return
     parser = argparse.ArgumentParser()
     parser.add_argument("--bundle", required=True)
     parser.add_argument("--root", default=str(CANONICAL_ROOT))

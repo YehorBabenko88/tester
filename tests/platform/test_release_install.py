@@ -23,3 +23,38 @@ def test_lifecycle_lock_excludes_second_owner(tmp_path):
                 pass
     with ri.lifecycle_lock(root):
         pass
+
+
+def test_marker_authority_remains_fail_closed_under_optimized_python(tmp_path):
+    import json
+    import subprocess
+    import sys
+
+    ident = uuid.uuid4()
+    root = tmp_path / ("TesterReleaseTest_" + ident.hex)
+    root.mkdir()
+    marker = dict(
+        schema=ri.SCHEMA,
+        root=str(root),
+        installation_id=str(ident),
+        source_sha="a" * 40,
+        release_manifest_sha256="b" * 64,
+        mode="test",
+        test_desktop=str(tmp_path / ("Desktop_" + ident.hex)),
+        services={"app": "ForeignService", "postgres": "PostgreSQL"},
+        ports={"api": 5432, "postgres": 5432},
+    )
+    (root / ri.MARKER).write_text(json.dumps(marker))
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-O",
+            "-c",
+            "from src.api.release_install import load_marker; import sys; load_marker(sys.argv[1])",
+            str(root),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "invalid release ownership marker" in result.stderr
