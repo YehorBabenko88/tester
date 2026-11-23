@@ -1,6 +1,6 @@
 # TESTER Guardian release-candidate integration gate — 2026-11-23
 
-**Status: FOUNDATION CI GO / INTEGRATED RELEASE NO_GO.**
+**Status: FIVE INDEPENDENT PR CI PASS (42/42) / COMBINED INTEGRATION AND RELEASE NO_GO.**
 This is a planning manifest on a separate Draft integration branch, not
 a merged Guardian build, installer, signed artifact, or authorization to
 touch ADMINIT. `GUARDIANS_ENABLED=false`.
@@ -10,10 +10,10 @@ touch ADMINIT. `GUARDIANS_ENABLED=false`.
 | Component | PR | SHA at audit | State |
 | --- | --- | --- | --- |
 | MASTER foundation | #89 | `bd619eb88e9444c3b414739a27f3053fb240251e` | 8/8 exact-head required CI PASS |
-| Code | #90 | `31513f7d821ba8d7b274efd1e91fd1488a128c38` | Draft; foundation synced, own Python/Platform CI blocked |
-| Data | #91 | `392571ce52191023f2318b1fb3cf5d3cec4e41bd` | Draft; foundation synced, own Python/Platform CI blocked |
-| Storage | #92 | `bb5e22148f7a06cff91d4dececf6126218ad210a` | Draft; foundation synced, own Python/Platform CI blocked |
-| Exchange | #93 | `952667cbee4c677ad90c46bed033fd4061a16053` | Draft; foundation synced, own Python/Platform CI blocked |
+| Code | #90 | `96731dfe493e5967c1336d2315fd7187381bee70` | Draft; 8/8 exact-head CI PASS, separate combined CI required |
+| Data | #91 | `e7cc55a24a12ffcc9da82dda1f532fd13ae78af9` | Draft; 8/8 exact-head CI PASS, separate combined CI required |
+| Storage | #92 | `a58d0d428ac003dc8d9d3b829a97aeaa115e895f` | Draft; 8/8 exact-head CI PASS, separate combined CI required |
+| Exchange | #93 | `eea38f54340a943886a9ad95803626ddf5f49331` | Draft; 8/8 exact-head CI PASS, separate combined CI required |
 | Repository consolidation | #94 | `16d794df1305c825b01852aff636d028a44c375e` | Audit only; no deletion |
 
 The four Guardian PR diffs are **non-overlapping, four owned files each**
@@ -58,9 +58,29 @@ acceptance and does not establish signed installed identity.
   physical rows NOT RUN, including no-backup owned-data deletion and PG5432
   before/after invariance.
 
-The current four pinned child HEADs are a **preliminary** synchronized
-snapshot, not the final fully-green child SHA list. The release candidate
-must re-pin and re-check after child owners fix their own formatter CI.
+The four pinned child HEADs are now independently **8/8 exact-head PASS**;
+this does not prove simultaneous module operation or an accepted combined
+source artifact. Codex owns the separate combined branch/PR; the GPT
+integration QA gate here remains read-only.
+
+
+## Guardian exact-head CI receipts — 2026-11-23
+
+Every Guardian below has eight completed GitHub Actions with conclusion
+SUCCESS at exactly the pinned SHA; foundation has ten PASS. Total: **42/42**.
+These observations approve the **assembly attempt only**, not its output.
+
+| Guardian | Python | Platform | Isolated | PG | PC4 | Research | Browser | Contract |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Code #90 | 45262615691 | 45262615952 | 45262616048 | 45262615688 | 45262616201 | 45262615689 | 45262616058 | 45262615846 |
+| Data #91 | 45262622121 | 45262622055 | 45262621958 | 45262622069 | 45262622068 | 45262622117 | 45262621978 | 45262622130 |
+| Storage #92 | 45262681559 | 45262681377 | 45262681433 | 45262681458 | 45262681329 | 45262681345 | 45262681163 | 45262681317 |
+| Exchange #93 | 45262629428 | 45262629333 | 45262629487 | 45262629975 | 45262629771 | 45262629598 | 45262629258 | 45262629294 |
+
+SHA and file owner checks: each child compare relative to MASTER foundation
+shows exactly the own Python module, test, and two documentation files;
+there is no cross-owner file-path overlap. Actual Codex assembled HEAD
+remains NOT VERIFIED until independently checked with new CI.
 
 ## Integration sequence and hard gates
 
@@ -94,8 +114,7 @@ must re-pin and re-check after child owners fix their own formatter CI.
 
 ## Blocking issues (all remain NO_GO)
 
-- Child PR exact-head CI and combined Guardian execution/after-check NOT
-  VERIFIED; the branches now descend from verified foundation, but own Ruff format/CI FAIL remains.
+- Four child PR exact-head CI now all **8/8 PASS**, but combined Guardian runtime/after-check and independent installer acceptance are NOT VERIFIED.
 - The real effectful installer and full-uninstall adapter are NOT IMPLEMENTED;
   existing `windows_install_gate`/`windows_release_lifecycle` are pure
   plans, and `Write-TesterShortcutsFixture.ps1` only targets a disposable
