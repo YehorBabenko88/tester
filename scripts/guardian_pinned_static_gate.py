@@ -3,6 +3,7 @@
 Never imports unreviewed Guardian modules, checks out another branch, fetches
 network content, writes application state or authorizes runtime effects.
 """
+
 from __future__ import annotations
 
 import ast
@@ -58,9 +59,7 @@ def check_manifest(path: Path = DEFAULT_PINS) -> dict:
     foundation = pins["foundation"]
     verify_commit(foundation)
     guardians = pins.get("guardians")
-    if not isinstance(guardians, dict) or set(guardians) != {
-        "code", "data", "storage", "exchange"
-    }:
+    if not isinstance(guardians, dict) or set(guardians) != {"code", "data", "storage", "exchange"}:
         raise ValueError("incomplete_guardian_pins")
 
     observed: set[str] = set()
@@ -78,13 +77,10 @@ def check_manifest(path: Path = DEFAULT_PINS) -> dict:
         allowed = {spec["module"], spec["test"], *spec["docs"]}
         if len(allowed) != 4 or allowed & observed:
             raise ValueError("cross_guardian_path_collision:" + role)
-        paths = set(
-            git("diff", "--name-only", foundation, sha).decode().splitlines()
-        )
+        paths = set(git("diff", "--name-only", foundation, sha).decode().splitlines())
         if paths != allowed:
             raise ValueError(
-                f"unexpected_files:{role}:"
-                + ",".join(sorted(paths.symmetric_difference(allowed)))
+                f"unexpected_files:{role}:" + ",".join(sorted(paths.symmetric_difference(allowed)))
             )
         blobs = {}
         for file in sorted(paths):
