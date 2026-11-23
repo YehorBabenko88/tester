@@ -30,10 +30,6 @@ def obs(kind="http", **kwargs):
         source_age_seconds=10,
         source_verified=True,
     )
-    timeout = ExchangeGuardian(enabled=True).inspect(obs("timeout"), now=0)
-    assert decide(
-        supervisor_event(obs("timeout"), timeout, now=0, ownership_verified=True)
-    ).action == ("PROPOSE_BOUNDED_RETRY")
     defaults.update(kwargs)
     return Observation(**defaults)
 
@@ -226,6 +222,7 @@ def test_healthy_200_cannot_verify_history_even_after_429():
 
 def test_supervisor_policy_bridge_429_and_timeout():
     from src.api.guardian_policy import decide
+
     g = ExchangeGuardian(enabled=True)
     first = g.inspect(obs(status_code=429, retry_after="20"), now=0)
     assert (
@@ -236,6 +233,11 @@ def test_supervisor_policy_bridge_429_and_timeout():
         ).action
         == "PROPOSE_RATE_BACKOFF"
     )
+
+    timeout = ExchangeGuardian(enabled=True).inspect(obs("timeout"), now=0)
+    assert decide(
+        supervisor_event(obs("timeout"), timeout, now=0, ownership_verified=True)
+    ).action == ("PROPOSE_BOUNDED_RETRY")
 
 
 def test_invalid_time_and_evidence_fail_closed():
