@@ -12,7 +12,7 @@ ASCII escapes, no NaN), containing exactly `manifest`, `public_key_hex` and
 `https://github.com/YehorBabenko88/tester`, and `files` mapping every payload file's
 relative POSIX name to SHA256. The envelope excludes itself from that inventory.
 A component manifest, SBOM, dependency archives and install scripts are payload
-files and must be included. Unknown files, missing files, case collisions,
+files and must be included. Unknown bundle files, missing bundle files, case collisions,
 traversal, alternate data streams, reparse points and hardlinked files fail closed.
 
 Ed25519 uses the existing `windows_release_signature.verify_signed_manifest`
@@ -78,15 +78,40 @@ evidence with nonsecret status/count/error type. Repeated attempts may remove
 only remaining identities from the original pinned ledger; use a new evidence
 filename after a partial attempt. Already completed removal is idempotent.
 
-Run the wrapper from independently verified external media/runtime:
+Run the installed protected wrapper using its administrator-protected external trust config:
 
 ```powershell
-.\Uninstall-ReleaseTester.ps1 -Root C:\TesterLab -Ledger <EXTERNAL_PROTECTED_LEDGER> -TrustedLedgerSha256 <64_HEX> -TrustedPublicKeySha256 <OWNER_64_HEX> -SourceSha <40_HEX> -EvidencePath <NEW_EXTERNAL_JSONL> -ModuleSource <VERIFIED_EXTERNAL_SOURCE> -Python <EXTERNAL_PYTHON_EXE>
+.\Uninstall-ReleaseTester.ps1 -TrustConfig <INSTALLATION_EXTERNAL_TRUST_JSON>
 ```
 
-An interpreter or working directory inside the deleted root cannot remove itself
-safely and is refused. The wrapper preserves `GUARDIANS_ENABLED=false`. Do not
-place deleted user-data backups in maintenance media.
+The original downloaded installer is **not required**. The pinned ownership ledger
+contains the signed envelope, explicit signed-bundle-to-installed-file mapping,
+and SHA256 of derived immutable dependencies created by the trusted installer
+from verified wheel archives. All signed source/Python/PostgreSQL runtime files
+must map to installed bytes; wheelhouse archives may remain outside installation.
+
+Before executing any private Python or module code, the protected PowerShell
+launcher reads the independently protected trust config and ledger digest. It
+pins source ancestors/directories/files with native no-share-write/delete
+handles and verifies every maintenance source SHA256. It copies only immutable
+source, private Python and derived site-packages into a fresh UUID temporary
+child of the protected external metadata directory. Mutable user data, history,
+results, cluster files, config secrets and backups are never staged. The trusted
+launcher runs the staged private interpreter with bytecode disabled; no original
+media or persistent duplicate runtime is needed.
+
+After releasing source locks, the staged Python verifies the existing Ed25519
+proof and performs removal. Its durable status is
+`root_removed_pending_maintenance_cleanup`, not full completion. After Python
+exits, the PowerShell controller deletes only the native identities from its
+fsynced creation journal, using the same handle-disposition primitive as the
+Python deletion engine. Unknown files or changed identities preserve the object
+and fail closed. Only after transient cleanup and TrustConfig removal does the
+controller append final `removed` evidence. The metadata-only ownership ledger
+and external nonsecret JSONL removal evidence remain for audit and recovery.
+A durable protected maintenance creation journal permits retry of partially
+removed transient files, including when the installation root is already gone;
+root absence alone never substitutes for native-removal completion evidence.
 
 ## Acceptance limits and open release gates
 
@@ -101,12 +126,23 @@ tests report SKIP with that reason; this is **NOT RUN**, not PASS. Real Windows
 junction, hardlink, directory/root swap, immutable tamper, locked file, late foreign
 creation, durable partial failure and retry tests execute independently.
 
-**Runtime ownership remains a release gate:** new PostgreSQL WAL/log/cluster,
-worker/history/cache/result files must be registered by authenticated creators in
-a durable protected ownership journal. A post-hoc directory snapshot, shared
-LocalService account or location under an owned directory does not prove file
-ownership. Until creator provenance is integrated, unknown runtime files cause
-safe refusal; a complete populated production uninstall is not claimed. The
-external maintenance trust anchor and shortcut/task/autostart lifecycle also
-require integrated acceptance. Production key approval and independent Guardian
-GO remain required before publication.
+Dynamic data ownership uses authenticated OS writer boundaries, rather than a
+post-hoc filesystem snapshot. The pinned ledger binds explicit installer-created
+mutable directory identities to unique `NT SERVICE\<UUID-owned-service>` virtual
+accounts. Boundary ACLs must be protected and grant exactly SYSTEM/Administrators
+full control plus that unique service SID modify access. All descendants must
+have the exact inherited ACL; newly created or recreated mutable files must have
+the unique virtual service account as their kernel owner SID. Shared LocalService
+ownership, foreign creator SIDs, unknown ACLs, explicit descendant grants,
+hardlinks and reparse points are rejected. Existing explicit bootstrap receipts
+remain identity-bound; immutable source and boundary roots cannot be replaced.
+All account writers must stop before final security/identity checks through
+locked native handles. Administrator/SYSTEM tampering is outside this boundary,
+as it is for the independently protected external trust pin itself.
+
+**Remaining acceptance gates:** actual elevated native SCM/virtual-account file
+creation and full populated lifecycle must pass in the integrated Windows run.
+Policy evaluator tests and real foreign-owner rejection are not proof of a
+successful virtual-account PostgreSQL lifecycle. The local host lacks symlink
+creation privilege; both symlink cases remain NOT RUN here. Production key
+approval and independent Guardian GO remain required before publication.

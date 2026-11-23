@@ -300,3 +300,261 @@ def test_evidence_preserves_previous_durable_events(tmp_path):
     assert len(records) >= 3
     assert json.loads(records[0])["status"] == "refused_or_partial"
     assert json.loads(records[-1])["status"] == "removed"
+
+
+def test_writer_boundary_policy_requires_unique_service_owner_and_exact_inherited_acl():
+    sid = "S-1-5-80-1-2-3-4-5"
+    valid = {
+        "owner": sid,
+        "protected": False,
+        "aces": [
+            (0, 0x10, 0x1F01FF, "S-1-5-18"),
+            (0, 0x10, 0x1F01FF, "S-1-5-32-544"),
+            (0, 0x10, 0x1301BF, sid),
+        ],
+    }
+    removal._validate_writer_security(valid, sid)
+    for mutation in (
+        "foreign_owner",
+        "shared_service",
+        "foreign_ace",
+        "widened_service",
+        "explicit_ace",
+    ):
+        value = {**valid, "aces": list(valid["aces"])}
+        if mutation == "foreign_owner":
+            value["owner"] = "S-1-5-21-123"
+        elif mutation == "shared_service":
+            value["owner"] = "S-1-5-19"
+        elif mutation == "foreign_ace":
+            value["aces"].append((0, 0x10, 0x1F01FF, "S-1-1-0"))
+        elif mutation == "widened_service":
+            value["aces"][-1] = (0, 0x10, 0x1F01FF, sid)
+        else:
+            value["aces"][-1] = (0, 0, 0x1301BF, sid)
+        with pytest.raises(ReleaseSecurityError):
+            removal._validate_writer_security(value, sid)
+
+
+def test_os_owned_dynamic_file_with_foreign_creator_sid_is_refused(tmp_path):
+    values = installation(tmp_path)
+    root = values[0]
+    (root / "state" / "foreign-created").write_text("KEEP")
+    handle = removal._WindowsObject(root / "state" / "foreign-created")
+    try:
+        record = removal._security_record(handle)
+        assert record["owner"] != "S-1-5-80-1-2-3-4-5"
+        with pytest.raises(ReleaseSecurityError):
+            removal._validate_writer_security(record, "S-1-5-80-1-2-3-4-5")
+    finally:
+        handle.close()
+    assert (root / "state" / "foreign-created").read_text() == "KEEP"
+
+
+def test_explicit_external_shortcuts_removed_by_identity_without_foreign_desktop_deletion(tmp_path):
+    bundle, key_pin = signed_bundle(tmp_path)
+    release = verify(bundle, key_pin)
+    root = tmp_path / ("fresh-owned-" + uuid.uuid4().hex)
+    root.mkdir()
+    (root / "app.txt").write_bytes(b"TESTER")
+    marker = dict(
+        schema="tester-release-install/v1",
+        installation_id=str(uuid.uuid4()),
+        root=str(root),
+        source_sha="a" * 40,
+        release_manifest_sha256=release.manifest_sha256,
+    )
+    (root / ".tester-release.json").write_text(json.dumps(marker))
+    desktop = tmp_path / "desktop"
+    desktop.mkdir()
+    links = [
+        desktop / "TESTER \u2014 \u0417\u0430\u043f\u0443\u0441\u043a.lnk",
+        desktop / "TESTER \u2014 \u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435.lnk",
+    ]
+    for link in links:
+        link.write_bytes(b"authorized dummy shortcut bytes")
+    (desktop / "foreign.lnk").write_text("KEEP")
+    ledger = tmp_path / "ownership.json"
+    pin = removal.write_ownership(
+        root,
+        marker,
+        release=release,
+        ledger_path=ledger,
+        owned_paths=("app.txt", ".tester-release.json"),
+        external_paths=links,
+    )
+    values = root, ledger, pin, key_pin
+    assert run(tmp_path, values)["status"] == "removed"
+    assert all(not link.exists() for link in links)
+    assert (desktop / "foreign.lnk").read_text() == "KEEP"
+    assert desktop.exists()
+
+
+def test_powershell_bootstrap_lease_blocks_native_file_and_directory_swaps(tmp_path):
+    import os
+    import subprocess
+    from pathlib import Path
+
+    wrapper = Path(__file__).resolve().parents[2] / "scripts/windows/Uninstall-ReleaseTester.ps1"
+    prelude = wrapper.read_text(encoding="utf-8").split("function Assert-PlainPath", 1)[0]
+    fixture = tmp_path / "fresh-maintenance"
+    fixture.mkdir()
+    (fixture / "payload").write_text("authorized dummy signed code")
+    script = tmp_path / "lease-proof.ps1"
+    script.write_text(
+        prelude
+        + """
+Lock-MaintenancePath $env:TESTER_LEASE_FIXTURE
+Lock-MaintenancePath (Join-Path $env:TESTER_LEASE_FIXTURE 'payload')
+[Console]::WriteLine('READY')
+[Console]::ReadLine() | Out-Null
+foreach ($lease in $maintenanceLeases) { $lease.Dispose() }
+""",
+        encoding="utf-8",
+    )
+    child = subprocess.Popen(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-File", str(script)],
+        env={**os.environ, "TESTER_LEASE_FIXTURE": str(fixture)},
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    try:
+        assert child.stdout.readline().strip() == "READY"
+        assert (fixture / "payload").read_text() == "authorized dummy signed code"
+        with pytest.raises(OSError):
+            (fixture / "payload").write_text("tamper")
+        with pytest.raises(OSError):
+            fixture.rename(tmp_path / "swapped")
+    finally:
+        output, error = child.communicate("\n", timeout=30)
+    assert child.returncode == 0, error + output
+    fixture.rename(tmp_path / "released")
+
+
+def test_deferred_completion_does_not_report_full_product_removal(tmp_path):
+    values = installation(tmp_path)
+    result = run(tmp_path, values, defer_completion=True)
+    assert result["status"] == "root_removed_pending_maintenance_cleanup"
+    assert not values[0].exists()
+    assert (
+        removal.read_evidence(tmp_path / "removal.json")["status"]
+        == "root_removed_pending_maintenance_cleanup"
+    )
+
+
+def test_native_powershell_transient_cleanup_deletes_only_recorded_identities(tmp_path):
+    import subprocess
+    from pathlib import Path
+
+    wrapper = Path(__file__).resolve().parents[2] / "scripts/windows/Uninstall-ReleaseTester.ps1"
+    prelude = wrapper.read_text(encoding="utf-8").split("if (-not $TrustConfig)", 1)[0]
+    fixture = tmp_path / "fresh-maintenance-cleanup"
+    fixture.mkdir()
+    (fixture / "known").write_text("authorized dummy code")
+    script = tmp_path / "cleanup-proof.ps1"
+    script.write_text(
+        prelude
+        + """
+$stageRecords = New-Object 'System.Collections.Generic.List[object]'
+Add-StageRecord $env:TESTER_LEASE_FIXTURE $true
+Add-StageRecord (Join-Path $env:TESTER_LEASE_FIXTURE 'known') $false
+Remove-TransientMaintenance
+""",
+        encoding="utf-8",
+    )
+    child = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-File", str(script)],
+        env={**__import__("os").environ, "TESTER_LEASE_FIXTURE": str(fixture)},
+        capture_output=True,
+        text=True,
+        timeout=30,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    assert child.returncode == 0, child.stderr
+    assert not fixture.exists()
+
+
+def test_mapped_signed_payload_and_derived_maintenance_inventory_exclude_user_data(tmp_path):
+    import hashlib
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    from src.api import release_security
+
+    key = Ed25519PrivateKey.generate()
+    key_path = tmp_path / "key.pem"
+    key_path.write_bytes(
+        key.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+    )
+    bundle = tmp_path / "bundle"
+    for name in (
+        "payload/src/app.py",
+        "runtimes/python/python.exe",
+        "runtimes/postgres/bin/pg_ctl.exe",
+        "wheelhouse/library.whl",
+    ):
+        path = bundle / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"authorized dummy artifact")
+    release_security.sign_release(
+        bundle, private_key_path=key_path, source_sha="a" * 40, password=None
+    )
+    public = key.public_key().public_bytes(
+        serialization.Encoding.Raw, serialization.PublicFormat.Raw
+    )
+    release = verify(bundle, hashlib.sha256(public).hexdigest())
+    root = tmp_path / "fresh-owned-mapped"
+    root.mkdir()
+    mapping = {
+        "payload/src/app.py": "releases/" + "a" * 40 + "/src/app.py",
+        "runtimes/python/python.exe": "dependencies/python/python.exe",
+        "runtimes/postgres/bin/pg_ctl.exe": "dependencies/postgres/bin/pg_ctl.exe",
+    }
+    for source, target in mapping.items():
+        path = root / target
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((bundle / source).read_bytes())
+    path = root / "dependencies/venv/Lib/site-packages/derived.py"
+    path.parent.mkdir(parents=True)
+    path.write_text("authorized derived dependency")
+    (root / "USER-DATA").write_text("must never stage this")
+    marker = dict(
+        schema="tester-release-install/v1",
+        installation_id=str(uuid.uuid4()),
+        root=str(root),
+        source_sha="a" * 40,
+        release_manifest_sha256=release.manifest_sha256,
+    )
+    (root / ".tester-release.json").write_text(json.dumps(marker))
+    ledger = tmp_path / "ownership.json"
+    created = tuple(p.relative_to(root).as_posix() for p in root.rglob("*"))
+    with pytest.raises(ReleaseSecurityError):
+        removal.write_ownership(
+            root,
+            marker,
+            release=release,
+            ledger_path=ledger,
+            owned_paths=created,
+            installed_files={"payload/src/app.py": mapping["payload/src/app.py"]},
+        )
+    removal.write_ownership(
+        root,
+        marker,
+        release=release,
+        ledger_path=ledger,
+        owned_paths=created,
+        installed_files=mapping,
+    )
+    record = json.loads(ledger.read_bytes())
+    assert "USER-DATA" not in record["maintenance_files"]
+    assert "dependencies/venv/Lib/site-packages/derived.py" in record["maintenance_files"]
+    assert "dependencies/python/python.exe" in record["maintenance_files"]
+    assert not any(n.startswith("dependencies/postgres/") for n in record["maintenance_files"])

@@ -12,6 +12,7 @@ import ctypes
 import hashlib
 import json
 import os
+import re
 import stat
 import uuid
 from pathlib import Path
@@ -73,7 +74,7 @@ class _WindowsObject:
         ]
         self.path = Path(path)
         is_dir = stat.S_ISDIR(self.path.lstat().st_mode)
-        access = 0x80 | (0x10000 if delete else 0) | (0x80000000 if not is_dir else 0)
+        access = 0x20000 | 0x80 | (0x10000 if delete else 0) | (0x80000000 if not is_dir else 0)
         self.handle = self.api.CreateFileW(
             str(self.path), access, 1 if lock else 7, None, 3, 0x02000000 | 0x00200000, None
         )
@@ -103,6 +104,23 @@ class _WindowsObject:
         if info.attributes & 0x400 or (not self.is_dir and info.links != 1):
             self.close()
             raise ReleaseSecurityError("Reparse point or hardlink refused")
+
+    def read_bytes(self):
+        from ctypes import wintypes
+
+        if not self.api.SetFilePointerEx(self.handle, 0, None, 0):
+            raise ctypes.WinError(ctypes.get_last_error())
+        result = bytearray()
+        buf = ctypes.create_string_buffer(65536)
+        count = wintypes.DWORD()
+        while True:
+            if not self.api.ReadFile(self.handle, buf, len(buf), ctypes.byref(count), None):
+                raise ctypes.WinError(ctypes.get_last_error())
+            if not count.value:
+                return bytes(result)
+            result.extend(buf.raw[: count.value])
+            if len(result) > 16 * 1024 * 1024:
+                raise ReleaseSecurityError("Maintenance config too large")
 
     def digest(self):
         from ctypes import wintypes
@@ -152,7 +170,178 @@ def _tree(root):
     return found
 
 
-def write_ownership(root, marker, *, release, ledger_path, owned_paths, release_prefix=""):
+def _security_record(obj):
+    """Query the security descriptor of the pinned native object, never a pathname."""
+    import win32security
+
+    descriptor = win32security.GetSecurityInfo(
+        obj.handle,
+        win32security.SE_FILE_OBJECT,
+        win32security.OWNER_SECURITY_INFORMATION | win32security.DACL_SECURITY_INFORMATION,
+    )
+    dacl = descriptor.GetSecurityDescriptorDacl()
+    if dacl is None:
+        raise ReleaseSecurityError("Null DACL cannot establish creator provenance")
+    aces = []
+    for index in range(dacl.GetAceCount()):
+        ace = dacl.GetAce(index)
+        if len(ace) != 3:
+            raise ReleaseSecurityError("Unsupported object-specific ACE")
+        (kind, flags), mask, sid = ace
+        aces.append((kind, flags, mask, win32security.ConvertSidToStringSid(sid)))
+    return dict(
+        owner=win32security.ConvertSidToStringSid(descriptor.GetSecurityDescriptorOwner()),
+        protected=bool(descriptor.GetSecurityDescriptorControl()[0] & 0x1000),
+        aces=aces,
+    )
+
+
+def _validate_writer_security(record, service_sid, *, boundary=False, known=False):
+    """Unique virtual account owner + exact inherited ACL is kernel origin proof.
+
+    Administrator/SYSTEM tampering is outside this trust model, like tampering with
+    the external administrator-protected trust pin itself. Shared LocalService
+    ownership is never accepted as dynamic creator provenance.
+    """
+    if not re.fullmatch(r"S-1-5-80-(?:[0-9]+-){4}[0-9]+", service_sid):
+        raise ReleaseSecurityError("A unique virtual service-account SID is required")
+    if not known and record["owner"] != service_sid:
+        raise ReleaseSecurityError("Foreign creator SID in mutable writer boundary")
+    if boundary and not record["protected"]:
+        raise ReleaseSecurityError("Writer boundary must disable inherited access")
+    expected = {"S-1-5-18": 0x1F01FF, "S-1-5-32-544": 0x1F01FF, service_sid: 0x1301BF}
+    actual = {}
+    for kind, flags, mask, sid in record["aces"]:
+        if (
+            kind != 0
+            or sid in actual
+            or flags & ~0x13
+            or (boundary and flags != 3)
+            or (not boundary and not flags & 0x10)
+        ):
+            raise ReleaseSecurityError("Unsupported, explicit or broadened writer ACL")
+        actual[sid] = mask
+    if actual != expected:
+        raise ReleaseSecurityError("Writer ACL permits unknown identity or rights")
+
+
+def _boundaries(ledger):
+    result = ledger.get("writer_boundaries", [])
+    if not isinstance(result, list):
+        raise ReleaseSecurityError("Invalid writer boundaries")
+    paths = set()
+    for item in result:
+        name = relative_name(item["path"])
+        if name in paths or any(
+            name.startswith(p + "/") or p.startswith(name + "/") for p in paths
+        ):
+            raise ReleaseSecurityError("Overlapping writer boundaries")
+        paths.add(name)
+        if ledger["entries"].get(name, {}).get("kind") != "dir":
+            raise ReleaseSecurityError("Writer boundary is not an installer-created directory")
+        if item["service_name"] not in ledger["marker"].get("services", {}).values():
+            raise ReleaseSecurityError("Writer account is not an installed UUID-owned service")
+        import win32security
+
+        sid, _, _ = win32security.LookupAccountName(None, "NT SERVICE\\" + item["service_name"])
+        if win32security.ConvertSidToStringSid(sid) != item["service_sid"]:
+            raise ReleaseSecurityError("Writer SID does not match service account")
+    return result
+
+
+def _boundary_for(name, boundaries):
+    return next(
+        (b for b in boundaries if name == b["path"] or name.startswith(b["path"] + "/")), None
+    )
+
+
+def _writer_proof(obj, name, boundary, *, known):
+    _validate_writer_security(
+        _security_record(obj),
+        boundary["service_sid"],
+        boundary=name == boundary["path"],
+        known=known,
+    )
+
+
+def _validate_installed_mapping(mapping, signed_files):
+    if not isinstance(mapping, dict) or not mapping or len(set(mapping.values())) != len(mapping):
+        raise ReleaseSecurityError("Invalid installed signed-file mapping")
+    required = {
+        n
+        for n in signed_files
+        if n.startswith(("payload/", "runtimes/python/", "runtimes/postgres/"))
+    }
+    if not required.issubset(mapping):
+        raise ReleaseSecurityError("All signed application and runtime files must be mapped")
+    for source, installed in mapping.items():
+        relative_name(source)
+        relative_name(installed)
+        if source not in signed_files:
+            raise ReleaseSecurityError("Installed bytes lack signed provenance")
+
+
+def _external_receipts(root, paths):
+    paths = [plain(path) for path in paths]
+    expected = {
+        "TESTER \u2014 \u0417\u0430\u043f\u0443\u0441\u043a.lnk",
+        "TESTER \u2014 \u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435.lnk",
+    }
+    if paths and (
+        len(paths) != 2 or {p.name for p in paths} != expected or paths[0].parent != paths[1].parent
+    ):
+        raise ReleaseSecurityError(
+            "Exactly the two finalized TESTER shortcuts may be externally enrolled"
+        )
+    result = {}
+    for path in paths:
+        if root == path or root in path.parents or not path.is_file():
+            raise ReleaseSecurityError("Invalid external shortcut path")
+        result[str(path)] = dict(identity=_identity(path), sha256=sha256(path))
+    return result
+
+
+def _trust_config_plan(root, ledger_path, config_path):
+    if config_path is None:
+        return None
+    path = plain(config_path)
+    if (
+        path.parent != ledger_path.parent
+        or path == ledger_path
+        or path.exists()
+        or root in path.parents
+    ):
+        raise ReleaseSecurityError(
+            "Trust config requires a new external sibling of the ownership ledger"
+        )
+    return dict(path=str(path), parent_identity=_identity(path.parent))
+
+
+def _validate_admin_security(record):
+    if record["owner"] not in ("S-1-5-18", "S-1-5-32-544") or not record["protected"]:
+        raise ReleaseSecurityError("Maintenance trust requires protected SYSTEM/Admin ownership")
+    actual = {}
+    for kind, flags, mask, sid in record["aces"]:
+        if kind != 0 or sid in actual or flags & ~3:
+            raise ReleaseSecurityError("Unsupported maintenance ACL")
+        actual[sid] = mask
+    if actual != {"S-1-5-18": 0x1F01FF, "S-1-5-32-544": 0x1F01FF}:
+        raise ReleaseSecurityError("Maintenance trust permits foreign access")
+
+
+def write_ownership(
+    root,
+    marker,
+    *,
+    release,
+    ledger_path,
+    owned_paths,
+    release_prefix="",
+    writer_boundaries=(),
+    installed_files=None,
+    external_paths=(),
+    trust_config_path=None,
+):
     """Seal explicit installation creation receipts, without adopting extra entries.
 
     Store the returned SHA256 outside the installation under administrator control.
@@ -179,16 +368,22 @@ def write_ownership(root, marker, *, release, ledger_path, owned_paths, release_
         raise ReleaseSecurityError("Marker mismatch")
     if release_prefix:
         relative_name(release_prefix)
-    immutable = {
-        str(Path(release_prefix, name)).replace("\\", "/"): digest for name, digest in release.files
-    }
+    signed_files = dict(release.files)
+    if installed_files is None:
+        installed_files = {
+            name: str(Path(release_prefix, name)).replace("\\", "/") for name in signed_files
+        }
+    _validate_installed_mapping(installed_files, signed_files)
+    immutable = {installed: signed_files[source] for source, installed in installed_files.items()}
     for name, digest in immutable.items():
         if name not in actual or sha256(actual[name]) != digest:
             raise ReleaseSecurityError("Installed immutable release bytes mismatch")
     entries = {}
     for name, path in actual.items():
         entry = dict(identity=_identity(path), kind="dir" if path.is_dir() else "file")
-        if name in immutable or name == MARKER:
+        if path.is_file() and (
+            name in immutable or name == MARKER or name.startswith(("releases/", "dependencies/"))
+        ):
             entry["sha256"] = sha256(path)
         entries[name] = entry
     ledger = dict(
@@ -201,7 +396,32 @@ def write_ownership(root, marker, *, release, ledger_path, owned_paths, release_
         release_envelope=json.loads(release.manifest),
         release_prefix=release_prefix,
         release_manifest_sha256=release.manifest_sha256,
+        writer_boundaries=list(writer_boundaries),
+        installed_files=installed_files,
+        external_entries=_external_receipts(root, external_paths),
+        trust_config=_trust_config_plan(root, ledger_path, trust_config_path),
+        ledger_path=str(ledger_path),
+        maintenance_files={
+            name: entry["sha256"]
+            for name, entry in entries.items()
+            if entry["kind"] == "file"
+            and "sha256" in entry
+            and (
+                name.startswith("releases/" + release.source_sha + "/")
+                or name.startswith("dependencies/python/")
+                or name.startswith("dependencies/venv/Lib/site-packages/")
+            )
+        },
     )
+    boundaries = _boundaries(ledger)
+    for name, path in actual.items():
+        boundary = _boundary_for(name, boundaries)
+        if boundary is not None:
+            obj = _WindowsObject(path)
+            try:
+                _writer_proof(obj, name, boundary, known=True)
+            finally:
+                obj.close()
     encoded = canonical_json(ledger)
     with ledger_path.open("xb") as stream:
         stream.write(encoded)
@@ -249,9 +469,10 @@ def _load_ledger(root, ledger_path, pin, key_pin, source_sha):
     prefix = ledger["release_prefix"]
     if prefix:
         relative_name(prefix)
-    for name, digest in manifest["files"].items():
-        installed = str(Path(prefix, relative_name(name))).replace("\\", "/")
-        if entries.get(installed, {}).get("sha256") != digest:
+    mapping = ledger["installed_files"]
+    _validate_installed_mapping(mapping, manifest["files"])
+    for source, installed in mapping.items():
+        if entries.get(installed, {}).get("sha256") != manifest["files"][source]:
             raise ReleaseSecurityError("Incomplete immutable release ownership")
     for name, entry in entries.items():
         relative_name(name)
@@ -264,10 +485,31 @@ def _preflight(root, ledger):
     if _identity(root) != ledger["root_identity"]:
         raise ReleaseSecurityError("Installation directory identity changed")
     actual = _tree(root)
-    if not set(actual).issubset(ledger["entries"]):
-        raise ReleaseSecurityError("Unknown entries; no deletion authorized")
+    boundaries = _boundaries(ledger)
+    entries = dict(ledger["entries"])
     for name, path in actual.items():
-        entry = ledger["entries"][name]
+        known = name in entries
+        boundary = _boundary_for(name, boundaries)
+        if not known and boundary is None:
+            raise ReleaseSecurityError("Unknown entries; no deletion authorized")
+        if boundary is not None:
+            obj = _WindowsObject(path, lock=False)
+            try:
+                same_identity = known and obj.identity == entries[name]["identity"]
+                replaceable = not known or (
+                    "sha256" not in entries[name] and name != boundary["path"]
+                )
+                authenticated_creation = replaceable and not same_identity
+                _writer_proof(obj, name, boundary, known=not authenticated_creation)
+                if authenticated_creation:
+                    entries[name] = dict(
+                        identity=obj.identity,
+                        kind="dir" if obj.is_dir else "file",
+                        writer_boundary=boundary["path"],
+                    )
+            finally:
+                obj.close()
+        entry = entries[name]
         if (
             _identity(path) != entry["identity"]
             or path.is_dir() != (entry["kind"] == "dir")
@@ -276,6 +518,7 @@ def _preflight(root, ledger):
             raise ReleaseSecurityError("Owned object identity or immutable bytes changed")
     if (root / MARKER).exists() and read_json(root / MARKER) != ledger["marker"]:
         raise ReleaseSecurityError("Installation marker altered")
+    return entries
 
 
 def _write_evidence(stream, value):
@@ -285,7 +528,7 @@ def _write_evidence(stream, value):
 
 
 @contextlib.contextmanager
-def _locked_tree(root, ledger):
+def _locked_tree(root, ledger, entries, *, defer_completion=False):
     if os.name != "nt":
         raise ReleaseSecurityError("Native handle-safe deletion currently supports Windows only")
     held, ancestors = {}, []
@@ -295,9 +538,7 @@ def _locked_tree(root, ledger):
         held[""] = _WindowsObject(root, delete=True)
         if held[""].identity != ledger["root_identity"]:
             raise ReleaseSecurityError("Root swapped before lock")
-        for name, entry in sorted(
-            ledger["entries"].items(), key=lambda pair: len(Path(pair[0]).parts)
-        ):
+        for name, entry in sorted(entries.items(), key=lambda pair: len(Path(pair[0]).parts)):
             if not (root / name).exists():
                 continue  # A previous partial attempt may already have removed this identity.
             handle = _WindowsObject(root / name, delete=True)
@@ -306,7 +547,53 @@ def _locked_tree(root, ledger):
                 raise ReleaseSecurityError("Object swapped before lock")
             if "sha256" in entry and handle.digest() != entry["sha256"]:
                 raise ReleaseSecurityError("Immutable content changed before lock")
-        if not set(_tree(root)).issubset(ledger["entries"]):
+            boundary = _boundary_for(name, _boundaries(ledger))
+            if boundary is not None:
+                _writer_proof(handle, name, boundary, known="writer_boundary" not in entries[name])
+        for path, entry in ledger.get("external_entries", {}).items():
+            path = plain(path)
+            if not path.exists():
+                continue
+            for parent in reversed(path.parents):
+                ancestors.append(_WindowsObject(parent))
+            handle = _WindowsObject(path, delete=True)
+            held["@external:" + str(path)] = handle
+            if (
+                handle.identity != entry["identity"]
+                or handle.is_dir
+                or handle.digest() != entry["sha256"]
+            ):
+                raise ReleaseSecurityError("External shortcut swapped before locking")
+        config_plan = ledger.get("trust_config")
+        if config_plan is not None:
+            path = plain(config_plan["path"])
+            if _identity(path.parent) != config_plan["parent_identity"]:
+                raise ReleaseSecurityError("Maintenance trust directory swapped")
+            for parent in reversed(path.parents):
+                ancestors.append(_WindowsObject(parent))
+            parent_handle = _WindowsObject(path.parent)
+            ancestors.append(parent_handle)
+            _validate_admin_security(_security_record(parent_handle))
+            if path.exists():
+                handle = _WindowsObject(path, delete=True)
+                held[("@config:" if defer_completion else "@external:") + str(path)] = handle
+                _validate_admin_security(_security_record(handle))
+                config = json.loads(handle.read_bytes(), object_pairs_hook=_unique_object)
+                expected = dict(
+                    schema="tester-maintenance-trust/v1",
+                    root=str(root),
+                    installation_id=ledger["installation_id"],
+                    ledger=ledger["ledger_path"],
+                    trusted_ledger_sha256=hashlib.sha256(canonical_json(ledger)).hexdigest(),
+                    source_sha=ledger["marker"]["source_sha"],
+                    manifest_sha256=ledger["release_manifest_sha256"],
+                    trusted_public_key_sha256=hashlib.sha256(
+                        bytes.fromhex(ledger["release_envelope"]["public_key_hex"])
+                    ).hexdigest(),
+                )
+                if any(config.get(k) != v for k, v in expected.items()):
+                    raise ReleaseSecurityError("Foreign maintenance trust config")
+        if set(_tree(root)) != {n for n in held if n and not n.startswith("@")}:
             raise ReleaseSecurityError("Unknown object appeared while acquiring locks")
         yield held
     finally:
@@ -327,6 +614,7 @@ def uninstall(
     evidence_path,
     resources=None,
     lifecycle_lock=None,
+    defer_completion=False,
 ):
     """Delete only pinned known objects after explicit double confirmation.
 
@@ -381,15 +669,25 @@ def uninstall(
                     expected_source_sha,
                 )
                 _preflight(root, ledger)
+                for path, entry in ledger.get("external_entries", {}).items():
+                    path = plain(path)
+                    if path.exists() and (
+                        _identity(path) != entry["identity"] or sha256(path) != entry["sha256"]
+                    ):
+                        raise ReleaseSecurityError("External shortcut identity changed")
                 marker = ledger["marker"]
                 resources.validate_resources(marker)
                 resources.stop_and_prove_exit(marker)
-                _preflight(root, ledger)
-                with _locked_tree(root, ledger) as held:
+                entries = _preflight(root, ledger)
+                with _locked_tree(root, ledger, entries, defer_completion=defer_completion) as held:
                     resources.validate_resources(marker)
                     resources.remove_resources(marker)
+                    for name in (n for n in held if n.startswith("@external:")):
+                        held[name].delete()
+                        evidence["deleted_count"] += 1
+                        _write_evidence(stream, evidence)
                     for name in sorted(
-                        (n for n in held if n),
+                        (n for n in held if n and not n.startswith("@")),
                         key=lambda p: (p != MARKER, len(Path(p).parts), p),
                         reverse=True,
                     ):
@@ -399,7 +697,9 @@ def uninstall(
                     held[""].delete()
                 if root.exists():
                     raise ReleaseSecurityError("Root removal not proven")
-                evidence["status"] = "removed"
+                evidence["status"] = (
+                    "root_removed_pending_maintenance_cleanup" if defer_completion else "removed"
+                )
                 _write_evidence(stream, evidence)
                 return evidence
         except Exception as exc:
@@ -457,6 +757,7 @@ def main(argv=None):
     ):
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--scope-only", action="store_true")
+    parser.add_argument("--defer-completion", action="store_true")
     args = parser.parse_args(argv)
     root = plain(args.root)
     if (
@@ -492,6 +793,7 @@ def main(argv=None):
         expected_source_sha=args.source_sha,
         confirmations=(first, second),
         evidence_path=args.evidence_path,
+        defer_completion=args.defer_completion,
     )
     print(json.dumps(result, indent=2))
     return 0
