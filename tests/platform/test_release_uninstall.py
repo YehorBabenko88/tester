@@ -586,3 +586,28 @@ def test_nonwindows_destructive_backend_refuses_without_mutating_owned_data(tmp_
         run(tmp_path, values)
     assert (values[0] / "app.txt").read_bytes() == b"TESTER"
     assert (values[0] / "state" / "candles").exists()
+
+
+def test_pinned_boundary_identity_survives_service_account_deregistration(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    ident = uuid.uuid4()
+    service = "TesterReleaseApp_" + ident.hex
+    boundary = dict(path="runtime", service_name=service, service_sid="S-1-5-80-1-2-3-4-5")
+    ledger = dict(
+        writer_boundaries=[boundary],
+        entries={"runtime": {"kind": "dir"}},
+        marker={
+            "installation_id": str(ident),
+            "services": {"app": service, "postgres": "TesterReleasePG_" + ident.hex},
+        },
+    )
+
+    def missing_account(*args):
+        raise OSError("SCM service was already deregistered by a partial removal")
+
+    monkeypatch.setitem(
+        sys.modules, "win32security", SimpleNamespace(LookupAccountName=missing_account)
+    )
+    assert removal._boundaries(ledger) == [boundary]

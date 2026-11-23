@@ -241,12 +241,33 @@ def _boundaries(ledger):
             raise ReleaseSecurityError("Writer boundary is not an installer-created directory")
         if item["service_name"] not in ledger["marker"].get("services", {}).values():
             raise ReleaseSecurityError("Writer account is not an installed UUID-owned service")
-        import win32security
+        ident = uuid.UUID(ledger["marker"]["installation_id"]).hex
+        expected = {"app": "TesterReleaseApp_" + ident, "postgres": "TesterReleasePG_" + ident}
+        if ledger["marker"]["services"] != expected or not re.fullmatch(
+            r"S-1-5-80-(?:[0-9]+-){4}[0-9]+", item["service_sid"]
+        ):
+            raise ReleaseSecurityError(
+                "Boundary service identity is not bound to the installation UUID"
+            )
+    return result
 
+
+def _enroll_boundary_accounts(boundaries):
+    """Resolve accounts once during trusted installation, before sealing receipts.
+
+    Removal reuses this externally pinned OS enrollment evidence even after SCM
+    deregistration; every current descendant owner/DACL is still queried live.
+    """
+    if not boundaries:
+        return
+    import win32security
+
+    for item in boundaries:
         sid, _, _ = win32security.LookupAccountName(None, "NT SERVICE\\" + item["service_name"])
         if win32security.ConvertSidToStringSid(sid) != item["service_sid"]:
-            raise ReleaseSecurityError("Writer SID does not match service account")
-    return result
+            raise ReleaseSecurityError(
+                "Writer SID does not match native service-account enrollment"
+            )
 
 
 def _boundary_for(name, boundaries):
@@ -414,6 +435,7 @@ def write_ownership(
         },
     )
     boundaries = _boundaries(ledger)
+    _enroll_boundary_accounts(boundaries)
     for name, path in actual.items():
         boundary = _boundary_for(name, boundaries)
         if boundary is not None:
