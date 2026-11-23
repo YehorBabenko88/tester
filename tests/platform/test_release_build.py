@@ -14,7 +14,7 @@ def fixture(tmp_path, version="3.12.10"):
     files = {
         lock: "x==1 --hash=sha256:" + hashlib.sha256(b"wheel").hexdigest(),
         "scripts/windows/Setup-Tester.ps1": "verified bootstrap",
-        "src/api/release_install.py": "installer",
+        "src/api/release_install.py": "installer uses " + lock,
         "src/api/release_security.py": "security",
         "frontend/index.html": "<html>terminal</html>",
         "scripts/windows/Start-ReleaseTester.ps1": "start",

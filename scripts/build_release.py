@@ -152,6 +152,8 @@ def build(repo, source_sha, components, pins_path, output):
     ):
         if name not in sources:
             raise ValueError(f"Canonical source missing: {name}")
+    if lock_name.encode() not in sources["src/api/release_install.py"]:
+        raise ValueError("Installer dependency lock differs from selected runtime ABI")
     lock = sources[lock_name].decode()
     allowed = set(re.findall(r"--hash=sha256:([0-9a-f]{64})", lock))
     wheels = {name: value for name, value in expected.items() if name.startswith("wheelhouse/")}
