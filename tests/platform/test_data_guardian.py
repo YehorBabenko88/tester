@@ -332,7 +332,8 @@ def test_fault_injection_corrupt_each_row_without_repair():
             result = reconcile(data, enabled=True)
             assert result.action == "PROPOSE_QUARANTINE", (index, field)
             assert result.proposal["execution_authorized"] is False
-            assert result.proposal["preserve_raw"] is True            assert data == original
+            assert result.proposal["preserve_raw"] is True
+            assert data == original
 
 
 def test_fault_injection_gap_fencing_matrix():
@@ -523,7 +524,6 @@ def test_destructive_contract_no_delete_capability():
         assert result.proposal is not None
         assert result.proposal["execution_authorized"] is False
         assert result.proposal["preserve_raw"] is True
-
 
 
 def data_removal_fixture():
