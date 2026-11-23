@@ -91,6 +91,24 @@ async function mount(page, interval = "60") {
       });
     }
     let payload = { schema_version: "1.0", data: [], next_cursor: null };
+    if (url.pathname === "/api/capabilities") {
+      payload.data = {
+        panels: Object.fromEntries(Object.entries({
+          candles: "/api/candles",
+          volume: "/api/candles",
+          open_interest: "/api/open-interest",
+          funding: "/api/funding",
+        }).map(([panel, resource]) => [panel, {
+            panel,
+            state: "AVAILABLE",
+            reason: "source_qualified",
+            resource,
+            revision: "gesture-fixture:1",
+            source_ref: "fixture://gesture-range",
+            schema_version: "1.0",
+          }])),
+      };
+    }
     if (url.pathname.startsWith("/api/market-catalog/"))
       payload.data = {
         rows: [{ category: "linear", symbol: "BTCUSDT", metrics: {} }],

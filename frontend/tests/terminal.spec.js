@@ -170,7 +170,7 @@ async function setup(page, options = {}) {
          "poc", "vwap", "open_interest", "funding", "mark", "index"]
           .map((panel) => [panel, options.capabilities?.[panel] ||
             (routes[panel] ? {
-              panel, status: "AVAILABLE", reason: "source_qualified",
+              panel, state: "AVAILABLE", reason: "source_qualified",
               resource: routes[panel], revision: "fixture:1",
               source_ref: "fixture:market:1",
               schema_version: ["mark", "index"].includes(panel) ? "1.1" : "1.0",
@@ -178,7 +178,7 @@ async function setup(page, options = {}) {
                 ? { candle_kind: panel === "mark" ? "official_mark" : "official_index" }
                 : {}),
             } : {
-              panel, status: "UNAVAILABLE", reason: "endpoint_contract_not_supported",
+              panel, state: "UNAVAILABLE", reason: "endpoint_contract_not_supported",
             })]),
       );
       await route.fulfill({
