@@ -74,4 +74,5 @@ jobs:
       - run: python -m ruff format --check scripts/build_release.py scripts/repository_inventory.py tests/platform/test_release_build.py tests/platform/test_repository_inventory.py
       - name: Verify actual production wheel hashes
         if: runner.os == 'Windows'
-        run: python -m pip download --only-binary=:all: --require-hashes --dest .scratch/verified-wheelhouse -r requirements-release-windows314.lock
+        run: |
+          python -m pip download --only-binary=:all: --require-hashes --dest .scratch/verified-wheelhouse -r requirements-release-windows314.lock
