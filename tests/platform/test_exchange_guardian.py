@@ -1,4 +1,5 @@
 """Offline negative and recovery acceptance for Exchange Guardian."""
+
 import inspect
 from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
