@@ -489,3 +489,106 @@ def test_stop_proof_ignores_unrelated_protected_processes(monkeypatch):
     )
     assert rs.stop_and_prove_exit(marker) == [{"state": "stopped"}]
     assert calls == ["stop", "prove-exit"]
+
+
+def test_remove_revalidates_after_stop_wait_swap(monkeypatch, tmp_path):
+    ident = uuid.uuid4()
+    marker = dict(
+        root=str(tmp_path),
+        installation_id=str(ident),
+        source_sha="a" * 40,
+        services={
+            "app": "TesterReleaseApp_" + ident.hex,
+            "postgres": "TesterReleasePG_" + ident.hex,
+        },
+        ports={"api": 18767, "postgres": 55471},
+    )
+    app, pg = rs.plans(marker)
+    import subprocess
+
+    states = {
+        p["name"]: dict(
+            image=p.get("image", subprocess.list2cmdline([p.get("host", "")])),
+            account=p["account"],
+            root=str(tmp_path),
+            source_sha="a" * 40,
+            installation_id=str(ident),
+            state="running",
+            executable=p["executable"],
+        )
+        for p in (app, pg)
+    }
+    removed = []
+
+    class Swapped:
+        def inspect(self, name):
+            return states[name]
+
+        def stop(self, name):
+            states[name]["state"] = "stopped"
+
+        def wait(self, name, state):
+            if name == app["name"]:
+                states[name]["image"] = "FOREIGN.exe"
+
+        def remove(self, name):
+            removed.append(name)
+
+    controller = object.__new__(rs.NativeController)
+    controller.marker = marker
+    controller.scm = Swapped()
+    import pytest
+
+    with pytest.raises(ValueError):
+        controller.apply("remove")
+    assert not removed
+
+
+def test_native_lifecycle_retains_original_service_object(monkeypatch):
+    from src.api.lab_scm import ACCOUNT, NativeSCM
+
+    calls = []
+    plan = dict(
+        name="TesterReleaseApp_" + uuid.uuid4().hex,
+        installation_id=str(uuid.uuid4()),
+        root="owned",
+        account=ACCOUNT,
+    )
+    states = {
+        "original": dict(
+            image="owned.exe",
+            installation_id=plan["installation_id"],
+            root="owned",
+            account=ACCOUNT,
+        )
+    }
+
+    class API:
+        SERVICE_QUERY_CONFIG = 1
+        SERVICE_QUERY_STATUS = 4
+        SERVICE_START = 16
+        SERVICE_STOP = 32
+
+        def OpenService(self, manager, name, access):
+            calls.append(("open", name))
+            return "original"
+
+        def CloseServiceHandle(self, h):
+            calls.append(("close", h))
+
+        def DeleteService(self, h):
+            calls.append(("delete", h))
+
+    scm = object.__new__(NativeSCM)
+    scm.ws = API()
+    scm.manager = "manager"
+    scm._bound = None
+    scm._bound_plans = {}
+    monkeypatch.setattr(scm, "_inspect_handle", lambda name, h: states[h])
+    with scm.lease([(plan, "owned.exe")]):
+        # Even a simulated name replacement cannot redirect the retained handle.
+        scm.ws.OpenService = lambda *args: (_ for _ in ()).throw(
+            AssertionError("reopened mutable name")
+        )
+        scm.remove(plan["name"])
+    assert calls == [("open", plan["name"]), ("delete", "original"), ("close", "original")]

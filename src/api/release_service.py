@@ -347,6 +347,17 @@ class NativeController:
         self.scm.close()
 
     def apply(self, action):
+        from contextlib import nullcontext
+
+        registrations = [
+            (plan, plan.get("image", subprocess.list2cmdline([plan.get("host", "")])))
+            for plan in plans(self.marker)
+        ]
+        lease = self.scm.lease(registrations) if hasattr(self.scm, "lease") else nullcontext()
+        with lease:
+            return self._apply(action)
+
+    def _apply(self, action):
         app, pg = plans(self.marker)
         current = validate_resources(self.marker, self.scm)
         if action == "install":
@@ -360,11 +371,13 @@ class NativeController:
         elif action in {"stop", "restart", "remove"}:
             for plan, state in zip((app, pg), current, strict=True):
                 if state is not None:
+                    validate_resources(self.marker, self.scm)
                     self.scm.stop(plan["name"])
                     self.scm.wait(plan["name"], "stopped")
             if action == "remove":
                 for plan, state in zip((app, pg), current, strict=True):
                     if state is not None:
+                        validate_resources(self.marker, self.scm)
                         self.scm.remove(plan["name"])
         elif action not in {"start", "status"}:
             raise ValueError("Unknown lifecycle action")

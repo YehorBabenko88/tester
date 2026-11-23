@@ -259,6 +259,8 @@ class NativeSCM:
         import win32service as ws
 
         self.ws = ws
+        self._bound = None
+        self._bound_plans = {}
         self.manager = ws.OpenSCManager(
             None, None, ws.SC_MANAGER_CONNECT | (ws.SC_MANAGER_CREATE_SERVICE if mutating else 0)
         )
@@ -267,8 +269,8 @@ class NativeSCM:
         self.ws.CloseServiceHandle(self.manager)
 
     def inspect(self, name):
-        import winreg
-
+        if getattr(self, "_bound", None) is not None and self._bound.get(name) is not None:
+            return self._inspect_handle(name, self._bound[name])
         ws = self.ws
         try:
             h = ws.OpenService(
@@ -279,9 +281,15 @@ class NativeSCM:
                 return None
             raise
         try:
-            c, status = ws.QueryServiceConfig(h), ws.QueryServiceStatusEx(h)
+            return self._inspect_handle(name, h)
         finally:
             ws.CloseServiceHandle(h)
+
+    def _inspect_handle(self, name, h):
+        import winreg
+
+        ws = self.ws
+        c, status = ws.QueryServiceConfig(h), ws.QueryServiceStatusEx(h)
         try:
             with winreg.OpenKey(
                 winreg.HKEY_LOCAL_MACHINE,
@@ -333,6 +341,45 @@ class NativeSCM:
         finally:
             kernel.CloseHandle(handle)
 
+    def lease(self, registrations):
+        """Retain exact SCM objects: a deleted name cannot be reused while held."""
+        from contextlib import contextmanager
+
+        @contextmanager
+        def held():
+            if self._bound is not None:
+                raise LabViolation("Nested SCM lifecycle lease refused")
+            self._bound = {}
+            self._bound_plans = {p["name"]: (p, image) for p, image in registrations}
+            try:
+                for plan, image in registrations:
+                    try:
+                        handle = self.ws.OpenService(
+                            self.manager,
+                            plan["name"],
+                            self.ws.SERVICE_QUERY_CONFIG
+                            | self.ws.SERVICE_QUERY_STATUS
+                            | self.ws.SERVICE_START
+                            | self.ws.SERVICE_STOP
+                            | 0x10000,
+                        )
+                    except Exception as exc:
+                        if getattr(exc, "winerror", None) != 1060:
+                            raise
+                        handle = None
+                    self._bound[plan["name"]] = handle
+                    if handle is not None:
+                        owned(self._inspect_handle(plan["name"], handle), plan, image)
+                yield
+            finally:
+                for handle in self._bound.values():
+                    if handle is not None:
+                        self.ws.CloseServiceHandle(handle)
+                self._bound = None
+                self._bound_plans = {}
+
+        return held()
+
     def install(self, plan, image, dependency):
         import winreg
 
@@ -342,6 +389,11 @@ class NativeSCM:
             plan["name"],
             plan["name"],
             ws.SERVICE_CHANGE_CONFIG
+            | (
+                (ws.SERVICE_QUERY_CONFIG | ws.SERVICE_QUERY_STATUS | ws.SERVICE_STOP)
+                if getattr(self, "_bound", None) is not None
+                else 0
+            )
             | 0x00010000
             | (ws.SERVICE_START if plan.get("recovery_delays_ms") else 0),
             ws.SERVICE_WIN32_OWN_PROCESS,
@@ -405,15 +457,23 @@ class NativeSCM:
                             ]
                         ),
                     )
+            if getattr(self, "_bound", None) is not None:
+                self._bound[plan["name"]] = h
         except BaseException:
             # Only this exact CreateService handle is eligible for rollback.
             # Existing/foreign services can never reach this branch.
             ws.DeleteService(h)
             raise
         finally:
-            ws.CloseServiceHandle(h)
+            if getattr(self, "_bound", None) is None or self._bound.get(plan["name"]) is not h:
+                ws.CloseServiceHandle(h)
 
     def _call(self, name, access, fn):
+        if getattr(self, "_bound", None) is not None and self._bound.get(name) is not None:
+            h = self._bound[name]
+            plan, image = self._bound_plans[name]
+            owned(self._inspect_handle(name, h), plan, image)
+            return fn(h)
         h = self.ws.OpenService(self.manager, name, access)
         try:
             return fn(h)
