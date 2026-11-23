@@ -11,7 +11,7 @@ import time
 from .config import load_settings
 from .jobs import JobQueue
 from .logging_setup import configure
-from .restart_budget import BudgetDenied, RestartBudget
+from .restart_budget import BudgetDenied, DatabaseRestartBudget
 
 
 def launch_component(component, budget=None):
@@ -30,7 +30,7 @@ def run():
     logger = configure(settings.data_dir, "supervisor")
     if not settings.dsn:
         raise SystemExit("TESTER_DATABASE_URL is required")
-    budget = RestartBudget.from_environment(os.environ)
+    budget = DatabaseRestartBudget.from_environment(os.environ)
     if budget is not None:
         if budget.directory != settings.data_dir:
             raise BudgetDenied("Restart budget runtime scope mismatch")
@@ -66,11 +66,15 @@ def run():
         restarts = {name: [] for name in children}
         (settings.data_dir / "supervisor.json").write_text(json.dumps({"pid": os.getpid()}))
         logger.info("supervisor_started")
+        next_budget_check = 0.0
         while not stopped.wait(0.25) and not stop_file.exists():
             if budget is not None and (budget.directory / "restart.disabled").exists():
                 logger.error("restart_kill_switch")
                 code = 1
                 break
+            if budget is not None and time.monotonic() >= next_budget_check:
+                budget.counts()  # Lost authority or SQL kill switch drains existing children.
+                next_budget_check = time.monotonic() + 1
             for name, child in list(children.items()):
                 if child.poll() is not None:
                     now = time.monotonic()

@@ -1,19 +1,10 @@
-"""Crash-durable lifetime launch reservations; never an executor or supervisor.
-
-The installer initializes this journal inside the protected runtime directory.
-Every reservation is fsynced before launching a process. A partial append denies
-future starts instead of guessing or resetting. No clock or reboot resets limits.
-"""
+"""Owner-protected PostgreSQL launch reservations; no process executor."""
 
 import json
-import os
 import re
-import stat
-import time
 import uuid
-from contextlib import contextmanager
 
-from .lab_install import LabViolation, plain
+from .lab_install import plain
 
 LIMITS = {"host": 3, "api": 6, "worker": 6}
 ENV_KEYS = ("TESTER_RESTART_BUDGET_DIR", "TESTER_INSTALLATION_ID", "TESTER_SOURCE_SHA")
@@ -23,146 +14,112 @@ class BudgetDenied(ValueError):
     pass
 
 
-class RestartBudget:
-    def __init__(self, directory, installation_id, source_sha):
+class DatabaseRestartBudget:
+    """Production authority: owner table, runtime EXECUTE-only definer functions.
+
+    The application SID cannot modify the separate PostgreSQL writer tree, and
+    its SQL login cannot reset counters or disable the budget. The existing DB
+    connection adapter performs the transaction; no second executor is involved.
+    """
+
+    def __init__(self, dsn, directory, installation_id, source_sha):
+        import psycopg
+        from psycopg.conninfo import conninfo_to_dict
+
         try:
             if str(uuid.UUID(installation_id)) != installation_id or not re.fullmatch(
                 "[0-9a-f]{40}", source_sha
             ):
                 raise ValueError
             self.directory = plain(directory)
-        except (ValueError, TypeError, AttributeError) as exc:
-            raise BudgetDenied("Invalid restart budget identity/path") from exc
-        self.path = self.directory / "restart-budget.jsonl"
-        self.lock = self.directory / "restart-budget.lock"
-        self.header = {
-            "schema": "tester-restart-budget/v1",
-            "installation_id": installation_id,
-            "source_sha": source_sha,
-            "limits": LIMITS,
-        }
+            endpoint = conninfo_to_dict(dsn)
+            if (
+                endpoint.get("host") != "127.0.0.1"
+                or endpoint.get("hostaddr", "127.0.0.1") != "127.0.0.1"
+                or not endpoint.get("port", "").isdecimal()
+                or not 1024 <= int(endpoint["port"]) <= 65535
+                or int(endpoint["port"]) == 5432
+                or endpoint.get("dbname") != "tester"
+                or endpoint.get("user") != "tester_app"
+                or set(endpoint) - {"host", "hostaddr", "port", "dbname", "user", "password"}
+            ):
+                raise ValueError
+        except (ValueError, TypeError, AttributeError, psycopg.Error) as exc:
+            raise BudgetDenied("Invalid isolated restart database identity") from exc
+        from psycopg.conninfo import make_conninfo
+
+        self.dsn = make_conninfo(**{**endpoint, "hostaddr": "127.0.0.1"})
+        self.installation_id = installation_id
+        self.source_sha = source_sha
 
     @classmethod
     def from_environment(cls, environment):
         values = [environment.get(key) for key in ENV_KEYS]
         if not any(values):
-            return None  # Legacy foreground development keeps its existing policy.
-        if not all(values):
-            raise BudgetDenied("Incomplete restart budget identity")
-        return cls(*values)
+            return None
+        config = environment.get("TESTER_CONFIG_FILE")
+        if not all(values) or not config:
+            raise BudgetDenied("Incomplete restart budget identity/configuration")
+        return cls.from_config(config, *values)
 
-    @staticmethod
-    def _regular(stream):
-        info = os.fstat(stream.fileno())
-        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
-            raise BudgetDenied("Restart budget requires a single regular file")
-
-    @contextmanager
-    def _locked(self, *, initialize=False):
+    @classmethod
+    def from_config(cls, path, directory, installation_id, source_sha):
         try:
-            plain(self.directory)
-            plain(self.lock)
-            flags = os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
-            if initialize:
-                flags |= os.O_CREAT | os.O_EXCL
-            with os.fdopen(os.open(self.lock, flags, 0o600), "r+b", buffering=0) as lock:
-                self._regular(lock)
-                if os.fstat(lock.fileno()).st_size == 0 and initialize:
-                    lock.write(b"0")
-                    os.fsync(lock.fileno())
-                deadline = time.monotonic() + 5
-                while True:
-                    try:
-                        lock.seek(0)
-                        if os.name == "nt":
-                            import msvcrt
-
-                            msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
-                        else:
-                            import fcntl
-
-                            fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                        break
-                    except OSError:
-                        if time.monotonic() >= deadline:
-                            raise BudgetDenied("Restart budget lock unavailable") from None
-                        time.sleep(0.01)
-                try:
-                    if (self.directory / "restart.disabled").exists():
-                        raise BudgetDenied("Restarts explicitly disabled")
-                    plain(self.path)
-                    yield
-                finally:
-                    lock.seek(0)
-                    if os.name == "nt":
-                        import msvcrt
-
-                        msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
-                    else:
-                        import fcntl
-
-                        fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
-        except FileExistsError as exc:
-            raise BudgetDenied("Restart budget already exists; reset forbidden") from exc
-        except (OSError, LabViolation) as exc:
-            raise BudgetDenied("Restart budget storage unavailable") from exc
-
-    @staticmethod
-    def _append(stream, value):
-        data = json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
-        if stream.write(data) != len(data):
-            raise BudgetDenied("Incomplete restart reservation")
-        stream.flush()
-        os.fsync(stream.fileno())
-
-    def initialize(self):
-        with self._locked(initialize=True):
-            if self.path.exists():
-                raise BudgetDenied("Restart budget already exists; reset forbidden")
-            with self.path.open("xb", buffering=0) as stream:
-                self._append(stream, self.header)
-
-    def _read(self, stream):
-        self._regular(stream)
-        stream.seek(0)
-        data = stream.read(16385)
-        try:
-            if not data.endswith(b"\n") or len(data) > 16384:
+            path, directory = plain(path), plain(directory)
+            if (
+                path.name != "config.json"
+                or path.parent != directory.parent
+                or path.stat().st_nlink != 1
+                or path.stat().st_size > 32768
+            ):
                 raise ValueError
-            rows = [json.loads(line) for line in data.splitlines()]
-            if not rows or rows[0] != self.header:
-                raise BudgetDenied("Restart budget identity mismatch")
-            counts = dict.fromkeys(LIMITS, 0)
-            for sequence, row in enumerate(rows[1:], 1):
-                if (
-                    not isinstance(row, dict)
-                    or set(row) != {"sequence", "role"}
-                    or type(row["sequence"]) is not int
-                    or row["sequence"] != sequence
-                    or row["role"] not in LIMITS
-                ):
-                    raise ValueError
-                counts[row["role"]] += 1
-                if counts[row["role"]] > LIMITS[row["role"]]:
-                    raise ValueError
-            return counts
-        except (ValueError, TypeError, KeyError) as exc:
-            if isinstance(exc, BudgetDenied):
-                raise
-            raise BudgetDenied("Corrupt restart budget; automatic reset forbidden") from exc
+            config = json.loads(path.read_text(encoding="utf-8"))
+            if plain(config["data_dir"]) != plain(directory):
+                raise ValueError
+            return cls(config["database_url"], directory, installation_id, source_sha)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise BudgetDenied("Restart configuration unavailable or out of scope") from exc
+
+    def _request(self, role=None):
+        import psycopg
+
+        from .db import connect
+
+        if (self.directory / "restart.disabled").exists():
+            raise BudgetDenied("Restarts explicitly disabled")
+        try:
+            with connect(self.dsn) as conn:
+                conn.execute("SET LOCAL synchronous_commit=on")
+                if role is None:
+                    result = conn.execute(
+                        "SELECT tester_platform.restart_counts(%s::uuid,%s)",
+                        (self.installation_id, self.source_sha),
+                    ).fetchone()[0]
+                else:
+                    conn.execute(
+                        "SELECT tester_platform.reserve_restart(%s::uuid,%s,%s)",
+                        (self.installation_id, self.source_sha, role),
+                    )
+                    result = None
+            # Exiting the context commits before the caller may spawn a child.
+            return result
+        except psycopg.Error as exc:
+            raise BudgetDenied("Durable restart reservation denied") from exc
 
     def counts(self):
-        with self._locked():
-            with self.path.open("rb") as stream:
-                return self._read(stream)
+        result = self._request()
+        if (
+            not isinstance(result, dict)
+            or set(result) != set(LIMITS)
+            or any(
+                type(result[role]) is not int or not 0 <= result[role] <= LIMITS[role]
+                for role in LIMITS
+            )
+        ):
+            raise BudgetDenied("Invalid restart count result")
+        return result
 
     def admit(self, role):
         if type(role) is not str or role not in LIMITS:
             raise BudgetDenied("Unknown restart role")
-        with self._locked():
-            with self.path.open("r+b", buffering=0) as stream:
-                counts = self._read(stream)
-                if counts[role] >= LIMITS[role]:
-                    raise BudgetDenied("Lifetime restart budget exhausted")
-                stream.seek(0, os.SEEK_END)
-                self._append(stream, {"sequence": sum(counts.values()) + 1, "role": role})
+        self._request(role)

@@ -78,6 +78,10 @@ def provision_release_databases(marker, owner_password):
     with psycopg.connect(owner_dsns["tester"]) as conn:
         migrate_storage(conn)
         migrate_release_projections(conn)
+        conn.execute(
+            "INSERT INTO tester_platform.restart_budgets(installation_id,source_sha) VALUES(%s,%s)",
+            (marker["installation_id"], marker["source_sha"]),
+        )
     migrate_catalog(owner_dsns["tester_catalog"])
     # The existing research validator deliberately pins its own hostaddr internally.
     research_owner = {k: v for k, v in owner.items() if k != "hostaddr"}
@@ -112,6 +116,12 @@ def provision_release_databases(marker, owner_password):
                     sql.SQL("REVOKE INSERT,UPDATE,DELETE ON {}.{} FROM {}").format(
                         sql.Identifier(schema), sql.Identifier(migration), sql.Identifier(role)
                     )
+                )
+            if name == "tester":
+                conn.execute("REVOKE ALL ON tester_platform.restart_budgets FROM tester_app")
+                conn.execute(
+                    "GRANT EXECUTE ON FUNCTION tester_platform.reserve_restart(uuid,text,text), "
+                    "tester_platform.restart_counts(uuid,text) TO tester_app"
                 )
         role_endpoint = (
             endpoint

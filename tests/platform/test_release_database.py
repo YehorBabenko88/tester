@@ -9,7 +9,11 @@ from src.api.release_database import database_identity, runtime_configuration
 
 
 def marker():
-    return {"ports": {"postgres": 55822, "api": 55823}, "source_sha": "a" * 40}
+    return {
+        "ports": {"postgres": 55822, "api": 55823},
+        "source_sha": "a" * 40,
+        "installation_id": "00000000-0000-0000-0000-000000000042",
+    }
 
 
 @pytest.mark.parametrize("port", [5432, 0, 65536, True, "55822"])
@@ -73,6 +77,7 @@ def test_real_fresh_release_migration_roles_catalog_and_queue(tmp_path):
     from src.api.jobs import JobQueue
     from src.api.models import DownloadRequest
     from src.api.release_database import provision_release_databases
+    from src.api.restart_budget import BudgetDenied, DatabaseRestartBudget
     from src.integration.catalog_market import CatalogHandler, catalog_lookup
 
     expected = os.environ.get("TESTER_RELEASE_DATABASE_TEST_ROOT")
@@ -102,6 +107,12 @@ def test_real_fresh_release_migration_roles_catalog_and_queue(tmp_path):
     with psycopg.connect(owners["tester"]) as conn:
         migrate_release_projections(conn)
         migrate_release_projections(conn)
+        conn.execute(
+            "ALTER TABLE tester_lab.projections DROP CONSTRAINT projections_record_key_fkey"
+        )
+        with pytest.raises(RuntimeError, match="schema integrity"):
+            migrate_release_projections(conn)
+        conn.rollback()
     migrate_catalog(owners["tester_catalog"])
     config = Settings(
         **runtime_configuration(tmp_path, marker(), runtime["tester"], runtime["tester_catalog"])
@@ -146,5 +157,39 @@ def test_real_fresh_release_migration_roles_catalog_and_queue(tmp_path):
         with psycopg.connect(runtime["tester"]) as conn:
             with pytest.raises(psycopg.errors.InsufficientPrivilege):
                 conn.execute("UPDATE tester_platform.migrations SET checksum='forbidden'")
+        reservation = DatabaseRestartBudget(
+            runtime["tester"], tmp_path, marker()["installation_id"], marker()["source_sha"]
+        )
+        for _ in range(6):
+            reservation.admit("worker")
+        # A valid older local journal cannot roll back the SQL-owned authority.
+        (tmp_path / "restart-budget.jsonl").write_text('{"old":"valid-prefix"}\n')
+        with pytest.raises(BudgetDenied):
+            reservation.admit("worker")
+        assert reservation.counts()["worker"] == 6
+        from concurrent.futures import ThreadPoolExecutor
+
+        def reserve_host(_):
+            try:
+                reservation.admit("host")
+                return True
+            except BudgetDenied:
+                return False
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            assert sum(pool.map(reserve_host, range(8))) == 3
+        assert (
+            DatabaseRestartBudget(
+                runtime["tester"], tmp_path, marker()["installation_id"], marker()["source_sha"]
+            ).counts()["host"]
+            == 3
+        )
+        with psycopg.connect(runtime["tester"]) as conn:
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                conn.execute("UPDATE tester_platform.restart_budgets SET worker_starts=0")
+        with psycopg.connect(owners["tester"]) as conn:
+            conn.execute("UPDATE tester_platform.restart_budgets SET disabled=true")
+        with pytest.raises(BudgetDenied):
+            reservation.admit("api")
     finally:
         store.close()

@@ -16,6 +16,25 @@ PROJECTION_SQL = (
 )
 
 
+def _validate_release_projection_schema(conn):
+    columns = conn.execute(
+        "SELECT attname,format_type(atttypid,atttypmod),attnotnull FROM pg_attribute "
+        "WHERE attrelid='tester_lab.projections'::regclass AND attnum>0 AND NOT attisdropped "
+        "ORDER BY attnum"
+    ).fetchall()
+    constraints = conn.execute(
+        "SELECT contype,pg_get_constraintdef(oid) FROM pg_constraint "
+        # PG18 also exposes NOT NULL constraints here; attnotnull checks these
+        # across every supported PostgreSQL version without double-counting.
+        "WHERE conrelid='tester_lab.projections'::regclass AND contype<>'n' ORDER BY contype"
+    ).fetchall()
+    if columns != [("record_key", "text", True), ("record", "jsonb", True)] or constraints != [
+        ("f", "FOREIGN KEY (record_key) REFERENCES tester_storage.raw_records(record_key)"),
+        ("p", "PRIMARY KEY (record_key)"),
+    ]:
+        raise RuntimeError("Release projection schema integrity mismatch")
+
+
 def migrate_release_projections(conn):
     """Canonical release migration on an already isolated owner connection.
 
@@ -33,7 +52,7 @@ def migrate_release_projections(conn):
         ).fetchone()
         if previous != (digest,):
             raise RuntimeError("Release projection migration checksum mismatch")
-        conn.execute("SELECT record_key,record FROM tester_lab.projections LIMIT 0")
+        _validate_release_projection_schema(conn)
         return
     if conn.execute("SELECT to_regclass('tester_lab.projections')").fetchone()[0] is not None:
         raise RuntimeError("Refusing unregistered existing projection table")
