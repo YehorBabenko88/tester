@@ -653,3 +653,57 @@ def test_unicode_shell_link_reader_roundtrip(tmp_path):
 
     with pytest.raises(Exception):
         read_shortcut(tmp_path / "missing.lnk")
+
+
+def test_bootstrap_directory_lease_blocks_empty_directory_rename(tmp_path):
+    import os
+    import subprocess
+    from pathlib import Path
+
+    import pytest
+
+    if os.name != "nt":
+        pytest.skip("Native Windows directory share access requires Windows")
+    source = (Path(__file__).resolve().parents[2] / "scripts/windows/Setup-Tester.ps1").read_text(
+        encoding="utf-8-sig"
+    )
+    start = source.index('Add-Type -TypeDefinition @"')
+    end = source.index('\n"@', start) + len('\n"@')
+    script = tmp_path / "directory-lease-probe.ps1"
+    script.write_text(
+        'param([string]$Probe,[string]$Moved)\n$ErrorActionPreference="Stop"\n'
+        + source[start:end]
+        + """
+[IO.Directory]::Move($Probe,$Moved)
+[IO.Directory]::Move($Moved,$Probe)
+$lease=[TesterInstallerLease]::new($Probe,$true)
+$blocked=$false
+try {
+    try {[IO.Directory]::Move($Probe,$Moved)} catch [IO.IOException] {$blocked=$true}
+} finally {$lease.Dispose()}
+if (-not $blocked) {
+    [IO.Directory]::Move($Moved,$Probe)
+    throw 'Attribute-only lease allowed empty directory replacement'
+}
+""",
+        encoding="utf-8-sig",
+    )
+    probe = tmp_path / "empty-owned-directory"
+    probe.mkdir()
+    moved = tmp_path / "replacement-target"
+    result = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-File",
+            str(script),
+            "-Probe",
+            str(probe),
+            "-Moved",
+            str(moved),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr

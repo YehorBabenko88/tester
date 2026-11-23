@@ -37,7 +37,7 @@ public sealed class TesterInstallerLease : IDisposable {
     }
     private SafeFileHandle handle;
     public TesterInstallerLease(string path, bool directory) {
-        handle = CreateFileW(path, directory ? 0x20080u : 0x80020080u, directory ? 3u : 1u, IntPtr.Zero, 3u, 0x02200000u, IntPtr.Zero);
+        handle = CreateFileW(path, directory ? 0x20081u : 0x80020080u, directory ? 3u : 1u, IntPtr.Zero, 3u, 0x02200000u, IntPtr.Zero);
         if (handle.IsInvalid) { throw new Win32Exception(Marshal.GetLastWin32Error()); }
         Info info;
         if (!GetFileInformationByHandle(handle, out info)) { Dispose(); throw new Win32Exception(Marshal.GetLastWin32Error()); }
