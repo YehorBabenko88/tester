@@ -39,16 +39,18 @@ def verify_commit(sha: str) -> None:
         raise ValueError("commit_not_exact")
 
 
-def check_entry(sha: str, path: str) -> tuple[str, ast.Module]:
+def check_entry(sha: str, path: str) -> tuple[str, ast.Module | None]:
     if path.startswith("/") or "\\" in path or ".." in Path(path).parts:
         raise ValueError("unsafe_file_path")
     tree = git("ls-tree", sha, "--", path).decode().strip().split()
     if len(tree) != 4 or tree[0] not in {"100644", "100755"} or tree[1] != "blob":
         raise ValueError("file_mode_or_blob_invalid:" + path)
     data = git("show", sha + ":" + path)
-    code = data.decode("utf-8")
-    syntax = ast.parse(code, filename=path)
-    compile(syntax, path, "exec")
+    syntax = None
+    if path.endswith(".py"):
+        code = data.decode("utf-8")
+        syntax = ast.parse(code, filename=path)
+        compile(syntax, path, "exec")
     return hashlib.sha256(data).hexdigest(), syntax
 
 
@@ -87,6 +89,8 @@ def check_manifest(path: Path = DEFAULT_PINS) -> dict:
             digest, syntax = check_entry(sha, file)
             blobs[file] = digest
             if file == spec["module"]:
+                if syntax is None:
+                    raise ValueError("module_is_not_python")
                 exports = {
                     node.name
                     for node in syntax.body
