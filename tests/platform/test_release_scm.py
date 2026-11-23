@@ -629,6 +629,7 @@ def test_native_process_image_exit_is_a_transition(tmp_path):
     import os
     import subprocess
     import sys
+
     import pytest
 
     if os.name != "nt":
