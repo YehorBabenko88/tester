@@ -1,0 +1,36 @@
+name: MASTER contract drift diagnosis
+on:
+  pull_request:
+    paths:
+      - 'src/api/guardian_policy.py'
+      - 'src/api/guardians/**'
+      - 'scripts/windows/Write-TesterShortcutsFixture.ps1'
+      - '.github/workflows/master-contract-diagnosis.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e ".[dev]" -c requirements-platform.lock
+      - name: Reproduce versioned contract drift without publishing generated changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "EXACT_HEAD=$(git rev-parse HEAD)"
+          python scripts/export_contract.py
+          git diff --stat -- contracts/v1/openapi.json requests/v1/financial-query.schema.json
+          git diff --numstat -- contracts/v1/openapi.json requests/v1/financial-query.schema.json
+          git diff -- contracts/v1/openapi.json requests/v1/financial-query.schema.json | head -200
+          if ! git diff --quiet -- contracts/v1/openapi.json requests/v1/financial-query.schema.json; then
+            echo "CONTRACT_DRIFT_DIAGNOSED_NOT_AUTO_ACCEPTED"
+            exit 1
+          fi
+          python scripts/export_contract.py --check

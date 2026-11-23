@@ -10,6 +10,7 @@ APP = "host=127.0.0.1 hostaddr=127.0.0.1 port=55473 dbname=tester_preview_histor
 
 def test_refuses_existing_lab_table_without_ddl():
     conn = MagicMock()
+    conn.__enter__.return_value = conn
     conn.execute.return_value.fetchone.return_value = ("tester_lab.projections",)
     with patch("src.api.history_lab_bootstrap.connect", return_value=conn):
         with pytest.raises(RuntimeError, match="already exists"):
@@ -19,6 +20,7 @@ def test_refuses_existing_lab_table_without_ddl():
 
 def test_refuses_missing_storage_before_ddl():
     conn = MagicMock()
+    conn.__enter__.return_value = conn
     conn.execute.return_value.fetchone.side_effect = [(None,), (None,)]
     with patch("src.api.history_lab_bootstrap.connect", return_value=conn):
         with pytest.raises(RuntimeError, match="Storage migration missing"):
@@ -28,6 +30,7 @@ def test_refuses_missing_storage_before_ddl():
 
 def test_creates_only_projection_table_in_fresh_history_db():
     conn = MagicMock()
+    conn.__enter__.return_value = conn
     conn.execute.return_value.fetchone.side_effect = [(None,), ("tester_storage.raw_records",)]
     with patch("src.api.history_lab_bootstrap.connect", return_value=conn):
         migrate_lab_projections(APP, CATALOG)
