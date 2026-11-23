@@ -175,6 +175,51 @@ def verify_release(
     )
 
 
+def _unsigned_release_manifest(root, source_sha, release_version="1"):
+    if (
+        type(source_sha) is not str
+        or not re.fullmatch("[0-9a-f]{40}", source_sha)
+        or release_version != "1"
+    ):
+        raise ReleaseSecurityError("Exact source SHA and supported release version required")
+    if (root / MANIFEST).exists():
+        raise ReleaseSecurityError("Never overwrite an existing signed manifest")
+    inventory = {}
+    folded = set()
+    for directory, dirs, files in os.walk(root, followlinks=False):
+        for name in dirs:
+            plain(Path(directory) / name)
+        for name in files:
+            path = plain(Path(directory) / name)
+            relative = relative_name(path.relative_to(root).as_posix())
+            if relative.casefold() in folded:
+                raise ReleaseSecurityError("Case-colliding artifact names")
+            folded.add(relative.casefold())
+            inventory[relative] = sha256(path)
+    if not inventory:
+        raise ReleaseSecurityError("Cannot sign an empty release")
+    return dict(
+        schema="tester-release/v1",
+        release_version=release_version,
+        source_sha=source_sha,
+        repository=REPOSITORY,
+        files=inventory,
+    )
+
+
+def prepare_manifest(bundle, *, source_sha, output, release_version="1"):
+    """Prepare reviewable post-Authenticode bytes without accessing any private key."""
+    root, output = plain(bundle), plain(output)
+    if output == root or root in output.parents:
+        raise ReleaseSecurityError("Unsigned review manifest must remain outside the payload")
+    manifest = _unsigned_release_manifest(root, source_sha, release_version)
+    with output.open("xb") as stream:
+        stream.write(canonical_json(manifest))
+        stream.flush()
+        os.fsync(stream.fileno())
+    return manifest
+
+
 def sign_release(
     bundle, *, private_key_path, source_sha, password, release_version="1", manifest_input=None
 ):
@@ -191,27 +236,7 @@ def sign_release(
     root, key_path = plain(bundle), plain(private_key_path)
     if root == key_path or root in key_path.parents:
         raise ReleaseSecurityError("Private signing key must remain outside the release payload")
-    if not re.fullmatch("[0-9a-f]{40}", source_sha) or release_version != "1":
-        raise ReleaseSecurityError("Exact source SHA and supported release version required")
-    if (root / MANIFEST).exists():
-        raise ReleaseSecurityError("Never overwrite an existing signed manifest")
-    inventory = {}
-    for directory, dirs, files in os.walk(root, followlinks=False):
-        for name in dirs:
-            plain(Path(directory) / name)
-        for name in files:
-            path = plain(Path(directory) / name)
-            relative = relative_name(path.relative_to(root).as_posix())
-            inventory[relative] = sha256(path)
-    if not inventory:
-        raise ReleaseSecurityError("Cannot sign an empty release")
-    manifest = dict(
-        schema="tester-release/v1",
-        release_version=release_version,
-        source_sha=source_sha,
-        repository=REPOSITORY,
-        files=inventory,
-    )
+    manifest = _unsigned_release_manifest(root, source_sha, release_version)
     if manifest_input is not None and read_json(manifest_input) != manifest:
         raise ReleaseSecurityError(
             "Unsigned manifest differs from exact payload or source provenance"
@@ -253,6 +278,12 @@ def main(argv=None):
     signing.add_argument("--private-key", required=True)
     signing.add_argument("--source-sha", required=True)
     signing.add_argument("--manifest-input")
+    preparation = commands.add_parser(
+        "manifest", help="Prepare post-Authenticode unsigned file inventory for owner review"
+    )
+    preparation.add_argument("--bundle", required=True)
+    preparation.add_argument("--source-sha", required=True)
+    preparation.add_argument("--output", required=True)
     verification = commands.add_parser("verify")
     verification.add_argument("--bundle", required=True)
     verification.add_argument("--trusted-public-key-sha256", required=True)
@@ -271,6 +302,9 @@ def main(argv=None):
             + hashlib.sha256(bytes.fromhex(envelope["public_key_hex"])).hexdigest()
         )
         print("manifest_sha256=" + sha256(Path(args.bundle) / MANIFEST))
+    elif args.action == "manifest":
+        prepare_manifest(args.bundle, source_sha=args.source_sha, output=args.output)
+        print("unsigned_manifest_sha256=" + sha256(Path(args.output)))
     else:
         result = verify_release(
             args.bundle,

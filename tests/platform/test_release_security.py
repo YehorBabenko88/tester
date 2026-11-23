@@ -136,3 +136,30 @@ def test_owner_signer_rejects_key_inside_payload(tmp_path):
     key.write_text("must never ship this")
     with pytest.raises(security.ReleaseSecurityError):
         security.sign_release(bundle, private_key_path=key, source_sha="a" * 40, password=None)
+
+
+def test_prepare_post_script_signature_manifest_binds_changed_bytes(tmp_path):
+    bundle = tmp_path / "payload"
+    bundle.mkdir()
+    script = bundle / "Setup-Tester.ps1"
+    script.write_bytes(b"approved source\n")
+    original = hashlib.sha256(script.read_bytes()).hexdigest()
+    # This is an inventory test, not an Authenticode acceptance claim.
+    script.write_bytes(script.read_bytes() + b"# owner signing changes artifact bytes\n")
+    output = tmp_path / "post-authenticode.unsigned.json"
+    manifest = security.prepare_manifest(bundle, source_sha="a" * 40, output=output)
+    assert manifest["files"]["Setup-Tester.ps1"] != original
+    assert manifest["files"]["Setup-Tester.ps1"] == hashlib.sha256(script.read_bytes()).hexdigest()
+    assert json.loads(output.read_bytes()) == manifest
+    with pytest.raises(security.ReleaseSecurityError):
+        security.prepare_manifest(bundle, source_sha="a" * 40, output=bundle / "unsigned.json")
+    with pytest.raises((security.ReleaseSecurityError, FileExistsError)):
+        security.prepare_manifest(bundle, source_sha="a" * 40, output=output)
+
+
+def test_manifest_preparation_requires_supported_source_identity(tmp_path):
+    bundle = tmp_path / "payload"
+    bundle.mkdir()
+    (bundle / "a.txt").write_text("approved")
+    with pytest.raises(security.ReleaseSecurityError):
+        security.prepare_manifest(bundle, source_sha="bad", output=tmp_path / "unsigned.json")

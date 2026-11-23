@@ -204,3 +204,151 @@ automatic provisioning rollback, even if readiness later fails and `completed`
 was never recorded. Once API users could have submitted work, retain the root for
 validated resume or the normal `DELETE TESTER` / `YES` uninstall. A provisioning
 actor that never exposes the API remains eligible for authenticated rollback.
+
+## Windows bootstrap trust and AllSigned production gate
+
+Ed25519 release-manifest verification is **not Authenticode**, does not sign a
+PowerShell script for Windows, and cannot authenticate code that has already
+started as Administrator. An unsigned `Setup-Tester.ps1` remains production
+**NO_GO**, even when a manually supplied envelope SHA256 is correct. The release
+also requires an owner-approved code-signing certificate, its independently
+published SHA256 of raw certificate DER, a trusted CA chain, and the approved
+publisher in the operator's Windows trust policy. No owner certificate, private
+key or trust-store change has been supplied or performed by Codex.
+
+PowerShell AllSigned checks script signatures from trusted publishers; the
+separate manifest verifier then checks the externally pinned Ed25519 key and
+payload inventory. These are two different trust roots. See Microsoft's
+[about_Signing](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_signing?view=powershell-7.4).
+
+### Owner production signing order (not executed)
+
+Perform this on the separately trusted owner signing workstation, using an
+independently reviewed source checkout and external approved component inventory.
+Select the actual CA-issued code-signing certificate from the owner's certificate
+store/HSM. Do not create a self-signed production substitute or export its private
+key into the package. Obtain all placeholders below through the owner channel.
+The store thumbprint is only a certificate locator; SHA256 of raw DER is the
+independent identity pin.
+
+```powershell
+$Bundle = 'D:\Release\payload'
+$ApprovedUnsignedManifest = 'D:\Release\payload.unsigned.json'
+$OwnerStoreThumbprint = '<CERTIFICATE_STORE_LOCATOR>'
+$OwnerCertificateSha256 = '<OWNER_APPROVED_64_HEX_DER_SHA256>'
+$TimestampServer = 'http://<OWNER_APPROVED_TIMESTAMP_SERVER>'
+$certs = @(Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert | Where-Object { $_.Thumbprint -eq $OwnerStoreThumbprint })
+if ($certs.Count -ne 1 -or -not $certs[0].HasPrivateKey) { throw 'Approved signing key unavailable' }
+$cert = $certs[0]
+$sha = [Security.Cryptography.SHA256]::Create()
+try { $certHash = [BitConverter]::ToString($sha.ComputeHash($cert.RawData)).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
+if ($certHash -cne $OwnerCertificateSha256) { throw 'Independent publisher identity mismatch' }
+$original = Get-Content -LiteralPath $ApprovedUnsignedManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+$rows = @()
+foreach ($relative in @('Setup-Tester.ps1','payload/scripts/windows/Start-ReleaseTester.ps1','payload/scripts/windows/Uninstall-ReleaseTester.ps1')) {
+    $path = Join-Path $Bundle $relative
+    $before = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($before -cne $original.files.PSObject.Properties[$relative].Value) { throw 'Unsigned source artifact changed before owner signing' }
+    $signature = Set-AuthenticodeSignature -LiteralPath $path -Certificate $cert -HashAlgorithm SHA256 -IncludeChain NotRoot -TimestampServer $TimestampServer
+    if ($signature.Status -ne 'Valid' -or $null -eq $signature.TimeStamperCertificate) { throw 'Authenticode signing/timestamp acceptance failed' }
+    $rows += [ordered]@{path=$relative;source_sha256=$before;signed_sha256=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant();certificate_sha256=$certHash}
+}
+$receipt = [ordered]@{schema='tester-script-signatures/v1';source_sha=$original.source_sha;scripts=$rows}
+[IO.File]::WriteAllText((Join-Path $Bundle 'script-signing-receipt.json'),($receipt | ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
+```
+
+This signs the three canonical executable entry scripts. Vendor `.ps1` templates
+inside immutable runtime components are inert data; they are not alternate TESTER
+entry points and must not be invoked as unsigned bypasses. Any additional script
+that becomes executable in a supported user flow needs an approved signature and
+updated acceptance. Signing adds bytes to the entry scripts, so the builder's
+old unsigned manifest is now stale. Preserve the pre/post script receipt and the
+original source-evidence archive; the logical Git source SHA remains the reviewed
+commit, while the signed artifacts have separately recorded byte hashes.
+
+`Set-AuthenticodeSignature` supports SHA256 and an external timestamp authority;
+Windows PowerShell 5.1 uses an HTTP timestamp URL. Require a valid returned
+signature and an actual timestamp rather than assuming a successful invocation.
+See Microsoft's [Set-AuthenticodeSignature documentation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-authenticodesignature?view=powershell-5.1).
+
+Recompute the complete post-Authenticode inventory using the prepared mechanism,
+review it outside the payload, and only then apply the separate Ed25519 signature:
+
+```powershell
+python -m src.api.release_security manifest --bundle D:\Release\payload --source-sha <FINAL_40_HEX_SHA> --output D:\Release\post-authenticode.unsigned.json
+python -m src.api.release_security sign --bundle D:\Release\payload --private-key D:\OwnerKeys\tester-release.pk8.pem --source-sha <FINAL_40_HEX_SHA> --manifest-input D:\Release\post-authenticode.unsigned.json
+python -m src.api.release_security verify --bundle D:\Release\payload --trusted-public-key-sha256 <OWNER_ED25519_64_HEX> --source-sha <FINAL_40_HEX_SHA>
+```
+
+Finally build the deterministic ZIP from those finalized signed bytes and publish
+its SHA256, Setup SHA256, envelope SHA256, raw code-signing certificate SHA256,
+Ed25519 fingerprint and source SHA through the independently authenticated owner
+channel. Signing/TSA operations can change signature bytes between attempts;
+reproducibility claims must identify the exact signed inputs, not imply that two
+fresh timestamp/signing operations produce identical signatures.
+
+### Operator bootstrap before any package code executes
+
+Use trusted Windows console commands, not a helper copied from the unverified
+package. The operator account, OS trust store and these commands are the bootstrap
+root of trust. Create a fresh UUID staging tree with SYSTEM/Administrators-only
+ACLs and Administrators ownership **before** copying package bytes into it. Copy
+the downloaded ZIP there first, protect the destination object, and verify the
+independent ZIP SHA256 on that protected copy. A mutable Downloads file is never
+executed; any swap or mutation during copying must produce a digest mismatch.
+Extract only into that protected staging tree; reject reparse points, unsafe ZIP
+paths and unexpected entries, and protect all extracted directory/file owners and
+ACLs before verification. Do not follow a link while applying protection.
+
+The trusted operator then performs these checks and invocation against protected
+paths, filling all pins from the owner channel rather than the package itself:
+
+```powershell
+$Setup = '<PROTECTED_STAGING>\bundle\Setup-Tester.ps1'
+$ExpectedSetupSha256 = '<OWNER_SETUP_64_HEX>'
+$ExpectedPublisherSha256 = '<OWNER_CERTIFICATE_64_HEX>'
+if ((Get-FileHash -LiteralPath $Setup -Algorithm SHA256).Hash.ToLowerInvariant() -cne $ExpectedSetupSha256) { throw 'Setup byte fingerprint mismatch' }
+$signature = Get-AuthenticodeSignature -LiteralPath $Setup
+if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) { throw 'Setup Authenticode trust unavailable' }
+$sha = [Security.Cryptography.SHA256]::Create()
+try { $observedPublisher = [BitConverter]::ToString($sha.ComputeHash($signature.SignerCertificate.RawData)).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
+if ($observedPublisher -cne $ExpectedPublisherSha256) { throw 'Unapproved Windows publisher' }
+powershell.exe -NoProfile -ExecutionPolicy AllSigned -File $Setup -Bundle '<PROTECTED_STAGING>\bundle' -ManifestSHA256 '<OWNER_ENVELOPE_64_HEX>' -TrustedPublicKeySHA256 '<OWNER_ED25519_64_HEX>' -TrustedPublisherSHA256 $ExpectedPublisherSha256 -ExpectedSourceSHA '<FINAL_40_HEX_SHA>' -Mode production
+```
+
+Never use ExecutionPolicy Bypass, unsigned elevation, automatic certificate import
+from the bundle, or a fixture certificate/key for this production gate. A stricter
+domain policy must be respected. The installer and installed launch/removal
+shortcuts must enforce AllSigned for production. Test-mode fixtures may remain
+unsigned only when explicitly labeled as such; they cannot count as production
+Authenticode or AllSigned acceptance.
+
+### Rotation, revocation and pin freshness
+
+The owner maintains an independently authenticated, administrator-protected trust
+record containing an increasing policy sequence, issue/expiry times, approved
+source SHAs, both active signer fingerprints, approved artifact digests and
+explicitly revoked Ed25519/certificate fingerprints. Check that record before
+installation or upgrade. Missing, expired, rolled-back or revoked owner trust
+means refusal; neither a package-embedded key nor Windows' cached certificate
+status may renew it. The present low-level verifier accepts an explicit pin and
+has no automatic revocation feed: supplying a stale revoked pin would still
+verify mathematically and is not an authorization decision.
+
+For planned rotation, the owner publishes a newer authenticated trust record,
+independently approves the new certificate/Ed25519 fingerprints, signs new script
+artifacts and manifests, and updates protected operator pins before activation.
+No trust-on-first-use, same-manifest self-rotation or automatic trust-store import
+is allowed. For compromise, revoke the affected fingerprints in the owner record,
+remove their installation/upgrade authorization, and update the Windows publisher
+policy through the owner's normal administrative process. A timestamp does not
+override an explicit owner revocation.
+
+Existing installations keep their exact original source, envelope, ledger and
+native-resource identities. Rotation must not overwrite that evidence or silently
+substitute a new key into an old ledger. Cleanup of a retired installation needs
+an explicitly owner-approved exact-digest cleanup allowance and the normal typed
+confirmations; a compromised signer requires an incident recovery review using
+newly trusted tooling. Do not re-enable a revoked key merely to make old code run.
+No production key, certificate, rotation, trust-store change or production signing
+has been performed as part of these candidate tests.
