@@ -1,3 +1,5 @@
+> Historical technical record from baseline `e64e30d8369626197403b3962f91bb350656e4c9`; retired as final-product instructions on 2026-11-24. The commands and prototype limitations below explain prior evidence and regression fixtures. They are not an alternative installer for the release candidate. Use the canonical [product guide](release/product-guide.md), [release process](release/release-process.md) and [security bootstrap](release/security-signing.md). Do not execute the old installer against ADMINIT or system PostgreSQL for final release installation.
+
 # Local operation and Windows installation
 
 ## Review revision: admission, drain and SCM planning
@@ -40,15 +42,15 @@ are not established by this revision. The synthetic 10-symbol benchmark in
 docs/evidence/ten-symbol-synthetic.json measures bounded local streaming/queue depth,
 not exchange throughput; total network bytes are unmeasured (null).
 
-Requirements: Python 3.11+, PostgreSQL 14+ binaries/server, PowerShell 5.1+ or 7,
+Historical prototype requirements (not the final release matrix): Python 3.11+, PostgreSQL 14+ binaries/server, PowerShell 5.1+ or 7,
 at least 1 GiB free disk (configurable) and internet for dependency installation.
 No trading API keys. Dependencies are constrained by `requirements-platform.lock`.
 The bootstrap creates a dedicated database and login with no superuser, role-creation
 or database-creation privilege. It never adopts an existing database or role.
 
-## Install (after isolated acceptance)
+## Historical repository-local installation (evidence only)
 
-Clone `workstream/e-platform` into a writable `tester` folder. Run:
+The early `workstream/e-platform` procedure used a writable repository-local tree and the following legacy command. It is retained as historical context, not a current release action:
 
 ```powershell
 ./scripts/windows/Install-Tester.ps1

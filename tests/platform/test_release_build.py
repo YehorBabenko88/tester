@@ -116,3 +116,215 @@ def test_missing_canonical_source_fails(tmp_path):
     sha = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"]).decode().strip()
     with pytest.raises(ValueError, match="Canonical source missing"):
         build(repo, sha, components, pins, tmp_path / "out")
+
+
+def frozen_overlay(tmp_path, repo, sha, publisher="a" * 64):
+    from scripts.build_release import SIGNED_SCRIPT_PATHS
+
+    overlay = tmp_path / "frozen-overlay"
+    rows = []
+    for name in sorted(SIGNED_SCRIPT_PATHS):
+        source = (
+            "scripts/windows/Setup-Tester.ps1"
+            if name == "Setup-Tester.ps1"
+            else name.removeprefix("payload/")
+        )
+        before = subprocess.check_output(["git", "-C", str(repo), "show", sha + ":" + source])
+        after = (
+            before
+            + b"\n# SIG # Begin signature block\n# FIXTURE_ONLY_NOT_AUTHENTICODE\n# SIG # End signature block\n"
+        )
+        path = overlay / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(after)
+        rows.append(
+            dict(
+                path=name,
+                source_sha256=hashlib.sha256(before).hexdigest(),
+                signed_sha256=hashlib.sha256(after).hexdigest(),
+                certificate_sha256=publisher,
+            )
+        )
+    (overlay / "script-signing-receipt.json").write_text(
+        json.dumps(dict(schema="tester-script-signatures/v1", source_sha=sha, scripts=rows))
+    )
+    return overlay
+
+
+@pytest.fixture
+def frozen_fixture_handles(monkeypatch):
+    import contextlib
+    from types import SimpleNamespace
+
+    from scripts import build_release as release
+
+    @contextlib.contextmanager
+    def held_fixture(root, names):
+        held = {}
+        for name in names:
+            data = (root / name).read_bytes()
+            held[name] = SimpleNamespace(
+                read_bytes=lambda *, max_bytes, data=data: data,
+                digest=lambda data=data: hashlib.sha256(data).hexdigest(),
+            )
+        yield held
+
+    monkeypatch.setattr(release, "overlay_handles", held_fixture)
+
+
+def test_frozen_fixture_overlay_two_clean_builds_are_identical(
+    tmp_path, monkeypatch, frozen_fixture_handles
+):
+    from scripts import build_release as release
+
+    repo, components, pins, sha = fixture(tmp_path)
+    overlay = frozen_overlay(tmp_path, repo, sha)
+    checked = []
+    # Pure unit fixture only: no production certificate or Authenticode claim.
+    monkeypatch.setattr(
+        release, "verify_overlay_publisher", lambda path, pin: checked.append((path.name, pin))
+    )
+    first, second = tmp_path / "signed-one", tmp_path / "signed-two"
+    a = build(
+        repo,
+        sha,
+        components,
+        pins,
+        first,
+        signed_overlay=overlay,
+        trusted_publisher_sha256="a" * 64,
+    )
+    b = build(
+        repo,
+        sha,
+        components,
+        pins,
+        second,
+        signed_overlay=overlay,
+        trusted_publisher_sha256="a" * 64,
+    )
+    assert a == b and len(checked) == 6
+    assert "script-signing-receipt.json" in a["files"]
+    assert archive(first, tmp_path / "signed-one.zip") == archive(
+        second, tmp_path / "signed-two.zip"
+    )
+    assert (
+        json.loads((tmp_path / "signed-one.status.json").read_text())["production_status"]
+        == "BLOCKED_UNSIGNED"
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation", ["source", "executable-tail", "non-ascii-tail", "certificate", "duplicate", "extra"]
+)
+def test_overlay_refuses_unapproved_source_or_inventory(
+    tmp_path, monkeypatch, mutation, frozen_fixture_handles
+):
+    from scripts import build_release as release
+
+    repo, components, pins, sha = fixture(tmp_path)
+    overlay = frozen_overlay(tmp_path, repo, sha)
+    receipt_path = overlay / "script-signing-receipt.json"
+    receipt = json.loads(receipt_path.read_text())
+    row = receipt["scripts"][0]
+    path = overlay / row["path"]
+    if mutation == "source":
+        path.write_bytes(b"changed executable body\n" + path.read_bytes())
+        row["signed_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    elif mutation == "executable-tail":
+        path.write_bytes(path.read_bytes() + b"Write-Output dangerous\n")
+        row["signed_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    elif mutation == "non-ascii-tail":
+        path.write_bytes(path.read_bytes().replace(b"# FIXTURE_ONLY", b"# \xe2\x80\xa8EXECUTABLE"))
+        row["signed_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    elif mutation == "certificate":
+        row["certificate_sha256"] = "b" * 64
+    elif mutation == "duplicate":
+        receipt["scripts"].append(row.copy())
+    else:
+        (overlay / "unexpected.ps1").write_bytes(b"unreviewed")
+    receipt_path.write_text(json.dumps(receipt))
+    monkeypatch.setattr(release, "verify_overlay_publisher", lambda *args: None)
+    with pytest.raises(ValueError):
+        build(
+            repo,
+            sha,
+            components,
+            pins,
+            tmp_path / "rejected",
+            signed_overlay=overlay,
+            trusted_publisher_sha256="a" * 64,
+        )
+    assert not (tmp_path / "rejected").exists()
+
+
+def test_native_overlay_reuses_pinned_security_handles_top_down(tmp_path, monkeypatch):
+    import os
+    import sys
+    from types import SimpleNamespace
+
+    from scripts import build_release as release
+
+    root = tmp_path / "protected-overlay"
+    leaf = root / "nested/script.ps1"
+    leaf.parent.mkdir(parents=True)
+    leaf.write_bytes(b"fixture")
+    opened, closed = [], []
+
+    class NativeFixture:
+        def __init__(self, path, *, delete=False):
+            assert not delete
+            self.path = path
+            self.is_dir = path.is_dir()
+            opened.append(self)
+
+        def close(self):
+            closed.append(self)
+
+    checks = []
+    monkeypatch.setattr(release, "os", SimpleNamespace(name="nt", environ=os.environ))
+    monkeypatch.setitem(
+        sys.modules,
+        "src.api.release_uninstall",
+        SimpleNamespace(
+            _WindowsObject=NativeFixture,
+            _security_record=lambda obj: obj.path,
+            _validate_admin_security=lambda record: checks.append(record),
+        ),
+    )
+    with release.overlay_handles(root, ["nested/script.ps1"]) as held:
+        assert held["nested/script.ps1"] is opened[-1]
+        assert not closed
+        directories = opened[:-1]
+        assert [len(obj.path.parts) for obj in directories] == sorted(
+            len(obj.path.parts) for obj in directories
+        )
+        assert root in checks and leaf in checks and leaf.parent in checks
+    assert closed == opened[::-1]
+
+
+def test_overlay_copies_captured_verified_bytes_without_path_reread(
+    tmp_path, monkeypatch, frozen_fixture_handles
+):
+    from scripts import build_release as release
+
+    repo, components, pins, sha = fixture(tmp_path)
+    overlay = frozen_overlay(tmp_path, repo, sha)
+    approved = (overlay / "Setup-Tester.ps1").read_bytes()
+
+    def fixture_verifier(path, pin):
+        # Real native leases refuse this write; fake fixture leases preserve captured bytes.
+        path.write_bytes(b"unapproved path replacement")
+
+    monkeypatch.setattr(release, "verify_overlay_publisher", fixture_verifier)
+    output = tmp_path / "captured-output"
+    build(
+        repo,
+        sha,
+        components,
+        pins,
+        output,
+        signed_overlay=overlay,
+        trusted_publisher_sha256="a" * 64,
+    )
+    assert (output / "Setup-Tester.ps1").read_bytes() == approved

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
+import os
 import re
 import shutil
 import stat
@@ -74,7 +76,165 @@ def write_json(path, value):
     path.write_bytes(canonical(value) + b"\n")
 
 
-def build(repo, source_sha, components, pins_path, output):
+SIGNED_SCRIPT_PATHS = {
+    "Setup-Tester.ps1",
+    "payload/scripts/windows/Start-ReleaseTester.ps1",
+    "payload/scripts/windows/Uninstall-ReleaseTester.ps1",
+}
+SIGNATURE_SUFFIX = re.compile(
+    rb"\A[\r\n]*# SIG # Begin signature block\r?\n(?:#[^\r\n]*\r?\n)*# SIG # End signature block[\r\n]*\Z"
+)
+
+
+def verify_overlay_publisher(path, publisher_sha256):
+    if not re.fullmatch(r"[0-9a-f]{64}", publisher_sha256 or ""):
+        raise ValueError("Independent raw certificate SHA256 pin required")
+    if os.name != "nt":
+        raise ValueError("Production Authenticode overlay verification requires Windows")
+    quoted = "'" + str(Path(path).resolve()).replace("'", "''") + "'"
+    code = '$ErrorActionPreference="Stop"; $s=Get-AuthenticodeSignature -LiteralPath ' + quoted
+    code += (
+        "; if($s.Status -ne 'Valid' -or $null -eq $s.SignerCertificate -or $null -eq $s.TimeStamperCertificate){throw 'Valid timestamped Authenticode signature required'}; $h=[Security.Cryptography.SHA256]::Create(); try{$pin=[BitConverter]::ToString($h.ComputeHash($s.SignerCertificate.RawData)).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}; if($pin -cne '"
+        + publisher_sha256
+        + "'){throw 'Independent publisher certificate pin mismatch'}"
+    )
+    subprocess.run(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", code],
+        check=True,
+        env={k: v for k, v in os.environ.items() if k.upper() != "PSMODULEPATH"},
+    )
+
+
+@contextlib.contextmanager
+def overlay_handles(root, names):
+    """Reuse B's no-write/delete native leases and exact admin trust ACL checks."""
+    if os.name != "nt":
+        raise ValueError("Protected signed overlay verification requires Windows")
+    from src.api.release_uninstall import _security_record, _validate_admin_security, _WindowsObject
+
+    directories = {root, *root.parents}
+    for name in names:
+        directories.update((root / name).parents)
+    with contextlib.ExitStack() as stack:
+        for path in sorted(directories, key=lambda p: (len(p.parts), str(p).casefold())):
+            obj = _WindowsObject(path, delete=False)
+            stack.callback(obj.close)
+            if not obj.is_dir:
+                raise ValueError("Overlay ancestor is not a directory")
+            if path == root or root in path.parents:
+                _validate_admin_security(_security_record(obj))
+        held = {}
+        for name in sorted(names):
+            obj = _WindowsObject(root / name, delete=False)
+            stack.callback(obj.close)
+            if obj.is_dir:
+                raise ValueError("Overlay script/receipt is not a regular file")
+            _validate_admin_security(_security_record(obj))
+            held[name] = obj
+        yield held
+
+
+def signed_overlay_inputs(overlay, source_sha, publisher_sha256, original_scripts):
+    """Validate frozen owner inputs; no signing, trust import or certificate-store mutation."""
+    if not re.fullmatch(r"[0-9a-f]{64}", publisher_sha256 or ""):
+        raise ValueError("Independent raw certificate SHA256 pin required")
+    root = Path(overlay).absolute()
+    for p in (root, *root.parents):
+        info = p.lstat()
+        if not stat.S_ISDIR(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+            raise ValueError("Signed overlay path must be a plain directory")
+    actual = {}
+    for path in root.rglob("*"):
+        info = path.lstat()
+        if path.is_symlink() or getattr(info, "st_file_attributes", 0) & 0x400:
+            raise ValueError("Linked overlay object refused")
+        if path.is_file():
+            regular(path)
+            name = path.relative_to(root).as_posix()
+            limit = 65536 if name == "script-signing-receipt.json" else 4 * 1024 * 1024
+            if info.st_size > limit:
+                raise ValueError("Frozen overlay object exceeds size budget")
+            actual[name] = None
+    if set(actual) != SIGNED_SCRIPT_PATHS | {"script-signing-receipt.json"}:
+        raise ValueError("Frozen overlay requires exactly three canonical scripts and receipt")
+    with overlay_handles(root, actual) as held:
+        captured = {
+            name: obj.read_bytes(
+                max_bytes=65536 if name == "script-signing-receipt.json" else 4 * 1024 * 1024
+            )
+            for name, obj in held.items()
+        }
+        actual = {name: hashlib.sha256(data).hexdigest() for name, data in captured.items()}
+        receipt_bytes = captured["script-signing-receipt.json"]
+        if len(receipt_bytes) > 65536:
+            raise ValueError("Script receipt exceeds size budget")
+
+        def unique(pairs):
+            value = {}
+            for key, item in pairs:
+                if key in value:
+                    raise ValueError("Duplicate script receipt key")
+                value[key] = item
+            return value
+
+        receipt = json.loads(receipt_bytes, object_pairs_hook=unique)
+        if (
+            set(receipt) != {"schema", "source_sha", "scripts"}
+            or receipt["schema"] != "tester-script-signatures/v1"
+            or receipt["source_sha"] != source_sha
+            or type(receipt["scripts"]) is not list
+        ):
+            raise ValueError("Frozen script receipt source/schema mismatch")
+        frozen = {}
+        for row in receipt["scripts"]:
+            if type(row) is not dict or set(row) != {
+                "path",
+                "source_sha256",
+                "signed_sha256",
+                "certificate_sha256",
+            }:
+                raise ValueError("Invalid script signing row")
+            name = row["path"]
+            if type(name) is not str:
+                raise ValueError("Invalid signed script path type")
+            if name not in SIGNED_SCRIPT_PATHS or name in frozen:
+                raise ValueError("Unexpected or duplicate signed script")
+            before = original_scripts[name]
+            after = captured[name]
+            if (
+                row["certificate_sha256"] != publisher_sha256
+                or row["source_sha256"] != hashlib.sha256(before).hexdigest()
+                or row["signed_sha256"] != actual[name]
+            ):
+                raise ValueError("Frozen source/script/publisher receipt hash mismatch")
+            tail = after[len(before) :]
+            if any(c > 127 or c < 32 and c not in (9, 10, 13) for c in tail):
+                raise ValueError("Signature suffix must be ASCII comment lines")
+            if not after.startswith(before) or not SIGNATURE_SUFFIX.fullmatch(tail):
+                raise ValueError("Signing changed source body or appended executable bytes")
+            verify_overlay_publisher(root / name, publisher_sha256)
+            if (
+                held[name].digest() != actual[name]
+                or hashlib.sha256(after).hexdigest() != actual[name]
+            ):
+                raise ValueError("Frozen overlay changed during validation")
+            frozen[name] = after
+        if set(frozen) != SIGNED_SCRIPT_PATHS:
+            raise ValueError("Receipt must cover all three signed scripts")
+        frozen["script-signing-receipt.json"] = receipt_bytes
+        return frozen
+
+
+def build(
+    repo,
+    source_sha,
+    components,
+    pins_path,
+    output,
+    *,
+    signed_overlay=None,
+    trusted_publisher_sha256=None,
+):
     repo, components, output = Path(repo), Path(components), Path(output)
     if not re.fullmatch(r"[0-9a-f]{40}", source_sha):
         raise ValueError("Exact forty character SHA required")
@@ -163,6 +323,21 @@ def build(repo, source_sha, components, pins_path, output):
         or any(not n.endswith(".whl") for n in wheels)
     ):
         raise ValueError("Wheelhouse must match full actual-wheel lock exactly")
+    frozen = {}
+    if signed_overlay is not None:
+        original = {
+            (
+                "Setup-Tester.ps1"
+                if name == "scripts/windows/Setup-Tester.ps1"
+                else "payload/" + name
+            ): data
+            for name, data in sources.items()
+        }
+        frozen = signed_overlay_inputs(
+            signed_overlay, source_sha, trusted_publisher_sha256, original
+        )
+    elif trusted_publisher_sha256 is not None:
+        raise ValueError("Publisher pin without signed overlay is ambiguous")
     output.mkdir(parents=True)
     for name, data in sources.items():
         target = (
@@ -199,6 +374,8 @@ def build(repo, source_sha, components, pins_path, output):
         f"# TESTER release candidate\n\nSource: {source_sha}\n\nGUARDIANS_ENABLED=false. Public market data only.\nProduction signing and independent Windows lifecycle acceptance required.\n",
         encoding="utf-8",
     )
+    for name, data in frozen.items():
+        (output / name).write_bytes(data)
     manifest = {
         "schema": "tester-release/v1",
         "release_version": "1",
@@ -334,8 +511,18 @@ def main():
     p.add_argument("--components", required=True, type=Path)
     p.add_argument("--component-pins", required=True, type=Path)
     p.add_argument("--output", required=True, type=Path)
+    p.add_argument("--signed-script-overlay", type=Path)
+    p.add_argument("--trusted-publisher-sha256")
     a = p.parse_args()
-    result = build(a.repo, a.source_sha, a.components, a.component_pins, a.output)
+    result = build(
+        a.repo,
+        a.source_sha,
+        a.components,
+        a.component_pins,
+        a.output,
+        signed_overlay=a.signed_script_overlay,
+        trusted_publisher_sha256=a.trusted_publisher_sha256,
+    )
     print(
         json.dumps(
             {
