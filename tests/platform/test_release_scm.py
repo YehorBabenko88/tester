@@ -91,7 +91,9 @@ def test_real_native_scm_uuid_lifecycle_recovery(tmp_path):
     )
     (host / "native_fixture.py").write_text("""import win32serviceutil,win32service,win32event
 class Fixture(win32serviceutil.ServiceFramework):
+    _svc_name_="TesterDisposableFixture"
     def __init__(self,args):
+        self._svc_name_=args[0]
         super().__init__(args)
         self.stop=win32event.CreateEvent(None,True,False,None)
     def SvcStop(self):
@@ -116,6 +118,7 @@ class Fixture(win32serviceutil.ServiceFramework):
     image = subprocess.list2cmdline([str(host / "pythonservice.exe")])
     scm = NativeSCM(mutating=True)
     proof = []
+    original_failure = None
     try:
         assert scm.inspect(plan["name"]) is None
         scm.install(plan, image, "")
@@ -195,22 +198,70 @@ class Fixture(win32serviceutil.ServiceFramework):
         proof.append(dict(phase="restarted", pid=scm.inspect(plan["name"])["pid"]))
         scm.stop(plan["name"])
         scm.wait(plan["name"], "stopped")
+    except BaseException as exc:
+        original_failure = type(exc).__name__ + ": " + str(exc)
+        raise
     finally:
-        current = scm.inspect(plan["name"])
-        if current is not None:
-            owned(current, plan, image)
-            scm.stop(plan["name"])
-            scm.wait(plan["name"], "stopped")
-            scm.remove(plan["name"])
-        scm.close()
+        diagnostics = {
+            "service": plan["name"],
+            "root": str(root),
+            "source_sha": subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip(),
+            "checks": proof,
+            "failure": original_failure,
+        }
+        try:
+            diagnostics["scm_query"] = subprocess.run(
+                ["sc.exe", "queryex", plan["name"]], capture_output=True, text=True, timeout=15
+            ).stdout
+            diagnostics["scm_config"] = subprocess.run(
+                ["sc.exe", "qc", plan["name"]], capture_output=True, text=True, timeout=15
+            ).stdout
+            diagnostics["private_import"] = subprocess.run(
+                [
+                    str(host / "python.exe"),
+                    "-I",
+                    "-B",
+                    "-c",
+                    "import native_fixture; print(native_fixture.Fixture._svc_name_)",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            ).__dict__
+            event_script = (
+                "Get-WinEvent -FilterHashtable @{LogName='Application';StartTime=(Get-Date).AddMinutes(-10)} -MaxEvents 300 -ErrorAction SilentlyContinue | Where-Object { $_.ProviderName -match 'Python|Tester' -or $_.Message -like '*"
+                + plan["name"]
+                + "*' } | Select-Object TimeCreated,Id,ProviderName,Message | ConvertTo-Json -Depth 4"
+            )
+            diagnostics["application_events"] = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-Command", event_script],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            ).stdout
+        except Exception as exc:
+            diagnostics["diagnostic_error"] = type(exc).__name__ + ": " + str(exc)
+        try:
+            current = scm.inspect(plan["name"])
+            if current is not None:
+                owned(current, plan, image)
+                scm.stop(plan["name"])
+                scm.wait(plan["name"], "stopped")
+                scm.remove(plan["name"])
+        except Exception as exc:
+            diagnostics["cleanup_error"] = type(exc).__name__ + ": " + str(exc)
+            if original_failure is None:
+                raise
+        finally:
+            scm.close()
+            (tmp_path / "native-scm-evidence.json").write_text(
+                json.dumps(diagnostics, indent=2, default=str), encoding="utf-8"
+            )
     check = NativeSCM()
     try:
         assert check.inspect(plan["name"]) is None
     finally:
         check.close()
-    (tmp_path / "native-scm-evidence.json").write_text(
-        json.dumps(dict(service=plan["name"], root=str(root), checks=proof), indent=2)
-    )
 
 
 def test_release_database_scope_refuses_system_and_external_cluster(tmp_path):
