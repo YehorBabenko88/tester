@@ -20,9 +20,19 @@ DIGEST = "sha256:" + "a" * 64
 
 
 def obs(kind="http", **kwargs):
-    defaults = dict(endpoint=URL, kind=kind, elapsed_ms=50,
-                    evidence_ref=DIGEST, status_code=200 if kind == "http" else None,
-                    source_age_seconds=10, source_verified=True)
+    defaults = dict(
+        endpoint=URL,
+        kind=kind,
+        elapsed_ms=50,
+        evidence_ref=DIGEST,
+        status_code=200 if kind == "http" else None,
+        source_age_seconds=10,
+        source_verified=True,
+    )
+    timeout = ExchangeGuardian(enabled=True).inspect(obs("timeout"), now=0)
+    assert decide(
+        supervisor_event(obs("timeout"), timeout, now=0, ownership_verified=True)
+    ).action == ("PROPOSE_BOUNDED_RETRY")
     defaults.update(kwargs)
     return Observation(**defaults)
 
@@ -31,16 +41,19 @@ def test_disabled_default():
     assert ExchangeGuardian().inspect(obs(), now=1).status == "DISABLED"
 
 
-@pytest.mark.parametrize("url", [
-    "http://api.bybit.com/v5/market/kline",
-    "https://evil.com/v5/market/kline",
-    "https://api.bybit.com.evil.com/v5/market/kline",
-    "https://user:secret@api.bybit.com/v5/market/kline",
-    "https://api.bybit.com:444/v5/market/kline",
-    "https://api.bybit.com/v5/order/create",
-    "https://api.bybit.com/v5/market/kline?api_key=secret",
-    "https://api.bybit.com/v5/market/kline#fragment",
-])
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://api.bybit.com/v5/market/kline",
+        "https://evil.com/v5/market/kline",
+        "https://api.bybit.com.evil.com/v5/market/kline",
+        "https://user:secret@api.bybit.com/v5/market/kline",
+        "https://api.bybit.com:444/v5/market/kline",
+        "https://api.bybit.com/v5/order/create",
+        "https://api.bybit.com/v5/market/kline?api_key=secret",
+        "https://api.bybit.com/v5/market/kline#fragment",
+    ],
+)
 def test_endpoint_allowlist(url):
     with pytest.raises(ValueError):
         endpoint_key(url)
@@ -74,8 +87,7 @@ def test_http_date_retry_after():
 def test_timeout_budget_and_open_circuit():
     g = ExchangeGuardian(enabled=True)
     for i in range(3):
-        result = g.inspect(obs("timeout", evidence_ref="sha256:" + str(i) * 64),
-                           now=[0, 2, 5][i])
+        result = g.inspect(obs("timeout", evidence_ref="sha256:" + str(i) * 64), now=[0, 2, 5][i])
     assert result.status == "UNAVAILABLE"
     assert result.circuit == "OPEN"
     assert result.proposal == "NONE"
@@ -90,8 +102,9 @@ def test_tls_halts_until_manual_reset():
     assert g.inspect(obs(evidence_ref="sha256:" + "c" * 64), now=10000).status == "MONITORING"
 
 
-@pytest.mark.parametrize("kind,code", [("malformed", None), ("http", 500),
-                                       ("http", 403), ("http", 302)])
+@pytest.mark.parametrize(
+    "kind,code", [("malformed", None), ("http", 500), ("http", 403), ("http", 302)]
+)
 def test_non_success_never_verifies(kind, code):
     g = ExchangeGuardian(enabled=True)
     result = g.inspect(obs(kind, status_code=code), now=0)
@@ -100,8 +113,11 @@ def test_non_success_never_verifies(kind, code):
 
 
 def test_stale_and_unverified_source():
-    for change in ({"source_age_seconds": 200}, {"source_verified": False},
-                   {"source_age_seconds": None}):
+    for change in (
+        {"source_age_seconds": 200},
+        {"source_verified": False},
+        {"source_age_seconds": None},
+    ):
         result = ExchangeGuardian(enabled=True).inspect(obs(**change), now=0)
         assert result.signal == "source_stale"
         assert result.proposal == "PROPOSE_MARK_UNAVAILABLE"
@@ -126,15 +142,18 @@ def test_duplicate_and_invalid_evidence():
 def test_independent_endpoint_circuits():
     g = ExchangeGuardian(enabled=True)
     g.inspect(obs("tls_failure"), now=0)
-    other = obs(endpoint="https://api.bybit.com/v5/market/orderbook",
-                evidence_ref="sha256:" + "b" * 64)
+    other = obs(
+        endpoint="https://api.bybit.com/v5/market/orderbook", evidence_ref="sha256:" + "b" * 64
+    )
     assert g.inspect(other, now=0).status == "MONITORING"
 
 
 def test_no_transport_or_storage_side_effects(monkeypatch):
     import socket
-    monkeypatch.setattr(socket, "create_connection",
-                        lambda *a, **k: pytest.fail("network not allowed"))
+
+    monkeypatch.setattr(
+        socket, "create_connection", lambda *a, **k: pytest.fail("network not allowed")
+    )
     g = ExchangeGuardian(enabled=True)
     assert g.inspect(obs(), now=0).status == "MONITORING"
 
@@ -154,13 +173,16 @@ def test_archive_url_matches_transport_host_policy():
     )
 
 
-@pytest.mark.parametrize("url", [
-    "https://api.bybit.com/trading/BTCUSDT/file.csv.gz",
-    "https://public.bybit.com/tradingevil/file.csv.gz",
-    "https://public.bybit.com/v5/order/create",
-    "https://public.bybit.com/trading/BTCUSDT/file.csv.gz?token=abc",
-    "https://public.bybit.com:443/trading/BTCUSDT/file.csv.gz",
-])
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://api.bybit.com/trading/BTCUSDT/file.csv.gz",
+        "https://public.bybit.com/tradingevil/file.csv.gz",
+        "https://public.bybit.com/v5/order/create",
+        "https://public.bybit.com/trading/BTCUSDT/file.csv.gz?token=abc",
+        "https://public.bybit.com:443/trading/BTCUSDT/file.csv.gz",
+    ],
+)
 def test_archive_scope_denials(url):
     with pytest.raises(ValueError):
         endpoint_key(url)
@@ -169,17 +191,16 @@ def test_archive_scope_denials(url):
 def test_http_429_cannot_shorten_active_backoff():
     g = ExchangeGuardian(enabled=True)
     first = g.inspect(obs(status_code=429, retry_after="180"), now=100)
-    second = g.inspect(obs(status_code=429, retry_after="1",
-                           evidence_ref="sha256:" + "f" * 64), now=101)
+    second = g.inspect(
+        obs(status_code=429, retry_after="1", evidence_ref="sha256:" + "f" * 64), now=101
+    )
     assert first.retry_at == 280
     assert second.retry_at == 280
     assert second.proposal == "NONE"
 
 
 def test_malformed_200_never_healthy():
-    result = ExchangeGuardian(enabled=True).inspect(
-        obs(status_code=200, parse_valid=False), now=10
-    )
+    result = ExchangeGuardian(enabled=True).inspect(obs(status_code=200, parse_valid=False), now=10)
     assert result.status == "UNAVAILABLE"
     assert result.circuit == "OPEN"
     assert not result.history_complete
@@ -188,8 +209,7 @@ def test_malformed_200_never_healthy():
 def test_500_backoff_bounded():
     g = ExchangeGuardian(enabled=True)
     for i, now in enumerate((0, 2, 5)):
-        r = g.inspect(obs(status_code=500, evidence_ref="sha256:" + str(i) * 64),
-                      now=now)
+        r = g.inspect(obs(status_code=500, evidence_ref="sha256:" + str(i) * 64), now=now)
         assert r.attempts == i + 1
         assert r.proposal == ("NONE" if i == 2 else "PROPOSE_BOUNDED_RETRY")
     assert r.circuit == "OPEN"
@@ -207,11 +227,13 @@ def test_supervisor_policy_bridge_429_and_timeout():
     from src.api.guardian_policy import decide
     g = ExchangeGuardian(enabled=True)
     first = g.inspect(obs(status_code=429, retry_after="20"), now=0)
-    assert decide(supervisor_event(obs(status_code=429, retry_after="20"),
-                                   first, now=0, ownership_verified=True)).action == "PROPOSE_RATE_BACKOFF"
-    timeout = ExchangeGuardian(enabled=True).inspect(obs("timeout"), now=0)
-    assert decide(supervisor_event(obs("timeout"), timeout, now=0, ownership_verified=True)).action == (
-        "PROPOSE_BOUNDED_RETRY"
+    assert (
+        decide(
+            supervisor_event(
+                obs(status_code=429, retry_after="20"), first, now=0, ownership_verified=True
+            )
+        ).action
+        == "PROPOSE_RATE_BACKOFF"
     )
 
 
@@ -225,12 +247,13 @@ def test_invalid_time_and_evidence_fail_closed():
 def test_fault_injection_server_errors_bounded(status):
     g = ExchangeGuardian(enabled=True)
     results = [
-        g.inspect(obs(status_code=status,
-                      evidence_ref="sha256:" + str(i) * 64), now=t)
+        g.inspect(obs(status_code=status, evidence_ref="sha256:" + str(i) * 64), now=t)
         for i, t in enumerate((0, 2, 5))
     ]
     assert [r.proposal for r in results] == [
-        "PROPOSE_BOUNDED_RETRY", "PROPOSE_BOUNDED_RETRY", "NONE"
+        "PROPOSE_BOUNDED_RETRY",
+        "PROPOSE_BOUNDED_RETRY",
+        "NONE",
     ]
     assert results[-1].circuit == "OPEN"
     assert results[-1].history_complete is False
@@ -239,9 +262,11 @@ def test_fault_injection_server_errors_bounded(status):
 def test_fault_injection_429_http_date_and_recovery():
     utc = datetime(2026, 11, 18, tzinfo=UTC)
     g = ExchangeGuardian(enabled=True)
-    delayed = g.inspect(obs(status_code=429,
-                            retry_after=format_datetime(utc + timedelta(seconds=45))),
-                        now=100, now_utc=utc)
+    delayed = g.inspect(
+        obs(status_code=429, retry_after=format_datetime(utc + timedelta(seconds=45))),
+        now=100,
+        now_utc=utc,
+    )
     assert delayed.retry_at == 145
     assert g.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=144).proposal == "NONE"
     recovered = g.inspect(obs(evidence_ref="sha256:" + "c" * 64), now=145)
@@ -253,19 +278,18 @@ def test_fault_injection_429_http_date_and_recovery():
 def test_fault_injection_tls_during_timeout_cooldown():
     g = ExchangeGuardian(enabled=True)
     g.inspect(obs("timeout"), now=10)
-    halted = g.inspect(obs("tls_failure", evidence_ref="sha256:" + "b" * 64),
-                       now=10.1)
+    halted = g.inspect(obs("tls_failure", evidence_ref="sha256:" + "b" * 64), now=10.1)
     assert halted.circuit == "HALTED"
     assert halted.proposal == "PROPOSE_STOP_SOURCE"
-    assert g.inspect(obs(evidence_ref="sha256:" + "c" * 64),
-                     now=999999).status == "UNAVAILABLE"
+    assert g.inspect(obs(evidence_ref="sha256:" + "c" * 64), now=999999).status == "UNAVAILABLE"
 
 
 def test_repeated_429_never_shortens_backoff():
     g = ExchangeGuardian(enabled=True)
     first = g.inspect(obs(status_code=429, retry_after="100"), now=10)
-    blocked = g.inspect(obs(status_code=429, retry_after="1",
-                            evidence_ref="sha256:" + "b" * 64), now=11)
+    blocked = g.inspect(
+        obs(status_code=429, retry_after="1", evidence_ref="sha256:" + "b" * 64), now=11
+    )
     assert blocked.retry_at >= first.retry_at
     assert blocked.proposal == "NONE"
 
@@ -300,8 +324,7 @@ def test_fault_injection_halted_circuit_never_reproposes_stop():
     g = ExchangeGuardian(enabled=True)
     first = g.inspect(obs("tls_failure"), now=1)
     assert first.proposal == "PROPOSE_STOP_SOURCE"
-    second = g.inspect(obs("tls_failure", evidence_ref="sha256:" + "b" * 64),
-                       now=2)
+    second = g.inspect(obs("tls_failure", evidence_ref="sha256:" + "b" * 64), now=2)
     assert second.circuit == "HALTED"
     assert second.proposal == "NONE"
     third = g.inspect(obs(evidence_ref="sha256:" + "c" * 64), now=3)
@@ -312,9 +335,12 @@ def test_fault_injection_halted_circuit_never_reproposes_stop():
 def test_adminit_offline_launcher_default_denies_all_proposals():
     guardian = ExchangeGuardian()
     for observation in (
-        obs(), obs("timeout"), obs("tls_failure"),
+        obs(),
+        obs("timeout"),
+        obs("tls_failure"),
         obs(status_code=429, retry_after="30"),
-        obs(status_code=500), obs(status_code=200, parse_valid=False),
+        obs(status_code=500),
+        obs(status_code=200, parse_valid=False),
     ):
         verdict = guardian.inspect(observation, now=100)
         assert verdict.status == "DISABLED"
@@ -324,9 +350,15 @@ def test_adminit_offline_launcher_default_denies_all_proposals():
 
 def test_adminit_read_only_transport_has_no_trading_capabilities():
     source = inspect.getsource(exchange_guardian)
-    for forbidden in ("requests.post(", "subprocess.run(", "os.system(",
-                      "DROP DATABASE", "DELETE FROM", "verify=False",
-                      "allow_redirects=True"):
+    for forbidden in (
+        "requests.post(",
+        "subprocess.run(",
+        "os.system(",
+        "DROP DATABASE",
+        "DELETE FROM",
+        "verify=False",
+        "allow_redirects=True",
+    ):
         assert forbidden not in source
 
 
@@ -366,9 +398,7 @@ def test_fault_injection_endpoint_cardinality_budget():
             now=1,
         )
         assert result.status == "MONITORING"
-    overflow = guardian.inspect(
-        obs(endpoint="https://api.bybit.com/v5/market/one-extra"), now=2
-    )
+    overflow = guardian.inspect(obs(endpoint="https://api.bybit.com/v5/market/one-extra"), now=2)
     assert overflow.status == "UNAVAILABLE"
     assert overflow.signal == "invalid_observation"
     assert overflow.proposal == "NONE"
@@ -412,9 +442,7 @@ def test_integration_mismatched_evidence_cannot_claim_ownership():
     observed = obs(status_code=429, retry_after="20")
     result = ExchangeGuardian(enabled=True).inspect(observed, now=5)
     tampered = replace(result, evidence_ref="sha256:" + "f" * 64)
-    event = supervisor_event(
-        observed, tampered, now=5, ownership_verified=True
-    )
+    event = supervisor_event(observed, tampered, now=5, ownership_verified=True)
     assert event["signal"] == "untrusted_observation"
     from src.api.guardian_policy import decide
 
@@ -430,18 +458,12 @@ def test_fault_injection_connection_loss_budget_and_recovery(failure_kind):
             now=clock,
         )
         assert failed.attempts == i + 1
-        assert failed.proposal == (
-            "NONE" if i == 2 else "PROPOSE_BOUNDED_RETRY"
-        )
+        assert failed.proposal == ("NONE" if i == 2 else "PROPOSE_BOUNDED_RETRY")
     assert failed.circuit == "OPEN"
-    still_blocked = guardian.inspect(
-        obs(evidence_ref="sha256:" + "a" * 64), now=6
-    )
+    still_blocked = guardian.inspect(obs(evidence_ref="sha256:" + "a" * 64), now=6)
     assert still_blocked.proposal == "NONE"
     assert still_blocked.history_complete is False
-    restored = guardian.inspect(
-        obs(evidence_ref="sha256:" + "b" * 64), now=3606
-    )
+    restored = guardian.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=3606)
     assert restored.status == "MONITORING"
     assert not restored.history_complete and not restored.gaps_reconciled
 
@@ -453,9 +475,7 @@ def test_fault_injection_http_403_never_retries_or_evasion():
     assert first.signal == "http_403"
     assert first.proposal == "NONE"
     assert first.circuit == "HALTED"
-    blocked = guardian.inspect(
-        obs(evidence_ref="sha256:" + "b" * 64), now=100000
-    )
+    blocked = guardian.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=100000)
     assert blocked.proposal == "NONE"
     assert blocked.status == "UNAVAILABLE"
     assert not blocked.history_complete
@@ -475,9 +495,7 @@ def test_fault_injection_partial_response_never_commits_history():
 def test_fault_injection_tls_preempts_dns_cooldown():
     guardian = ExchangeGuardian(enabled=True)
     guardian.inspect(obs("dns_failure"), now=0)
-    tls = guardian.inspect(
-        obs("tls_failure", evidence_ref="sha256:" + "b" * 64), now=0.1
-    )
+    tls = guardian.inspect(obs("tls_failure", evidence_ref="sha256:" + "b" * 64), now=0.1)
     assert tls.circuit == "HALTED"
     assert tls.proposal == "PROPOSE_STOP_SOURCE"
 
@@ -497,16 +515,12 @@ def test_fault_injection_http_403_preempts_rate_limit_cooldown():
     guardian = ExchangeGuardian(enabled=True)
     first = guardian.inspect(obs(status_code=429, retry_after="3600"), now=10)
     assert first.circuit == "OPEN"
-    denied = guardian.inspect(
-        obs(status_code=403, evidence_ref="sha256:" + "b" * 64), now=11
-    )
+    denied = guardian.inspect(obs(status_code=403, evidence_ref="sha256:" + "b" * 64), now=11)
     assert denied.circuit == "HALTED"
     assert denied.signal == "http_403"
     assert denied.proposal == "NONE"
     assert denied.history_complete is False
-    repeated = guardian.inspect(
-        obs(status_code=403, evidence_ref="sha256:" + "c" * 64), now=12
-    )
+    repeated = guardian.inspect(obs(status_code=403, evidence_ref="sha256:" + "c" * 64), now=12)
     assert repeated.circuit == "HALTED"
     assert repeated.proposal == "NONE"
     assert guardian.reset_tls_halt(URL, manual_authorized=False) is False
@@ -515,9 +529,7 @@ def test_fault_injection_http_403_preempts_rate_limit_cooldown():
 def test_fault_injection_http_403_preempts_timeout_cooldown():
     guardian = ExchangeGuardian(enabled=True)
     guardian.inspect(obs("timeout"), now=1)
-    denied = guardian.inspect(
-        obs(status_code=403, evidence_ref="sha256:" + "b" * 64), now=1.5
-    )
+    denied = guardian.inspect(obs(status_code=403, evidence_ref="sha256:" + "b" * 64), now=1.5)
     assert denied.circuit == "HALTED"
     assert denied.proposal == "NONE"
     assert denied.reason == "forbidden_requires_manual_review"
@@ -538,8 +550,9 @@ def test_fault_injection_429_isolated_per_endpoint_and_no_data_writes():
     guardian = ExchangeGuardian(enabled=True)
     blocked = guardian.inspect(obs(status_code=429, retry_after="60"), now=10)
     independent = guardian.inspect(
-        obs(endpoint="https://api.bybit.com/v5/market/orderbook",
-            evidence_ref="sha256:" + "b" * 64),
+        obs(
+            endpoint="https://api.bybit.com/v5/market/orderbook", evidence_ref="sha256:" + "b" * 64
+        ),
         now=11,
     )
     assert blocked.retry_at == 70
@@ -548,12 +561,15 @@ def test_fault_injection_429_isolated_per_endpoint_and_no_data_writes():
     assert independent.gaps_reconciled is False
 
 
-@pytest.mark.parametrize("url", [
-    "https://public.bybit.com/v5/market/kline",
-    "https://api.bybit.com/trading/BTCUSDT/file.csv.gz",
-    "https://public.bybit.com/v5/market/orderbook",
-    "https://api.bybit.com/v5/order/create",
-])
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://public.bybit.com/v5/market/kline",
+        "https://api.bybit.com/trading/BTCUSDT/file.csv.gz",
+        "https://public.bybit.com/v5/market/orderbook",
+        "https://api.bybit.com/v5/order/create",
+    ],
+)
 def test_fault_injection_cross_host_scope_confusion_rejected(url):
     with pytest.raises(ValueError):
         endpoint_key(url)
