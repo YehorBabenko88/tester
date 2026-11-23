@@ -11,6 +11,18 @@ import time
 from .config import load_settings
 from .jobs import JobQueue
 from .logging_setup import configure
+from .restart_budget import BudgetDenied, RestartBudget
+
+
+def launch_component(component, budget=None):
+    if component not in {"main", "worker"}:
+        raise ValueError("Unknown supervised component")
+    if budget is not None:
+        budget.admit("api" if component == "main" else "worker")
+    flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    return subprocess.Popen(
+        [sys.executable, "-m", "src.api." + component], creationflags=flags
+    )  # trusted executable, fixed module names; reservation precedes spawn
 
 
 def run():
@@ -18,6 +30,11 @@ def run():
     logger = configure(settings.data_dir, "supervisor")
     if not settings.dsn:
         raise SystemExit("TESTER_DATABASE_URL is required")
+    budget = RestartBudget.from_environment(os.environ)
+    if budget is not None:
+        if budget.directory != settings.data_dir:
+            raise BudgetDenied("Restart budget runtime scope mismatch")
+        budget.counts()  # Missing/corrupt state cannot unpause the database queue.
     lock_path = settings.data_dir / "supervisor.lock"
     lock_path.touch(exist_ok=True)
     lock = lock_path.open("r+b")
@@ -43,18 +60,17 @@ def run():
     children, restarts = {}, {"api": [], "worker": []}
     code = 0
 
-    def launch(component):
-        flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
-        return subprocess.Popen(
-            [sys.executable, "-m", "src.api." + component], creationflags=flags
-        )  # trusted executable, fixed module names
-
     try:
-        children = {name: launch(name) for name in ("main", "worker")}
+        for name in ("main", "worker"):
+            children[name] = launch_component(name, budget)
         restarts = {name: [] for name in children}
         (settings.data_dir / "supervisor.json").write_text(json.dumps({"pid": os.getpid()}))
         logger.info("supervisor_started")
         while not stopped.wait(0.25) and not stop_file.exists():
+            if budget is not None and (budget.directory / "restart.disabled").exists():
+                logger.error("restart_kill_switch")
+                code = 1
+                break
             for name, child in list(children.items()):
                 if child.poll() is not None:
                     now = time.monotonic()
@@ -68,7 +84,10 @@ def run():
                     restarts[name].append(now)
                     if stopped.wait(min(2 ** len(restarts[name]), 8)) or stop_file.exists():
                         break
-                    children[name] = launch(name)
+                    children[name] = launch_component(name, budget)
+    except BudgetDenied:
+        logger.error("durable_restart_budget_denied")
+        code = 1
     finally:
         # Linearizes shutdown against both API admission and worker claims.
         try:
