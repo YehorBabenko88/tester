@@ -7,12 +7,12 @@ import pytest
 from scripts.build_release import archive, build, component_files
 
 
-def fixture(tmp_path):
+def fixture(tmp_path, version="3.12.10"):
     repo, components = tmp_path / "repo", tmp_path / "components"
     repo.mkdir()
+    lock = "requirements-release-windows" + ("314" if version == "3.14.10" else "312") + ".lock"
     files = {
-        "requirements-release-windows312.lock": "x==1 --hash=sha256:"
-        + hashlib.sha256(b"wheel").hexdigest(),
+        lock: "x==1 --hash=sha256:" + hashlib.sha256(b"wheel").hexdigest(),
         "scripts/windows/Setup-Tester.ps1": "verified bootstrap",
         "src/api/release_install.py": "installer",
         "src/api/release_security.py": "security",
@@ -56,7 +56,7 @@ def fixture(tmp_path):
         json.dumps(
             {
                 "schema": "tester-components/v1",
-                "python_version": "3.12.10",
+                "python_version": version,
                 "architecture": "win_amd64",
                 "files": component_files(components),
             }
@@ -65,8 +65,9 @@ def fixture(tmp_path):
     return repo, components, pins, sha
 
 
-def test_immutable_source_reproducible_manifest_and_archive(tmp_path):
-    repo, components, pins, sha = fixture(tmp_path)
+@pytest.mark.parametrize("version", ["3.12.10", "3.14.10"])
+def test_immutable_source_reproducible_manifest_and_archive(tmp_path, version):
+    repo, components, pins, sha = fixture(tmp_path, version)
     (repo / "frontend/index.html").write_text("dirty secret")
     first, second = tmp_path / "one", tmp_path / "two"
     a = build(repo, sha, components, pins, first)
@@ -86,10 +87,18 @@ def test_immutable_source_reproducible_manifest_and_archive(tmp_path):
         assert z.read("docs/evidence/accepted.json") == b"old acceptance SHA preserved"
 
 
-def test_tampered_component_and_extra_wheel_fail_before_output(tmp_path):
+@pytest.mark.parametrize("mutation", ["tamper", "extra-wheel", "hardlink"])
+def test_tampered_component_and_extra_wheel_fail_before_output(tmp_path, mutation):
     repo, components, pins, sha = fixture(tmp_path)
-    (components / "runtimes/python/python.exe").write_bytes(b"tampered")
-    with pytest.raises(ValueError, match="hash pins"):
+    if mutation == "tamper":
+        (components / "runtimes/python/python.exe").write_bytes(b"tampered")
+    elif mutation == "extra-wheel":
+        (components / "wheelhouse/unpinned.whl").write_bytes(b"untrusted")
+    else:
+        import os
+
+        os.link(components / "runtimes/python/python.exe", tmp_path / "alias.exe")
+    with pytest.raises(ValueError):
         build(repo, sha, components, pins, tmp_path / "out")
     assert not (tmp_path / "out").exists()
 
