@@ -1181,6 +1181,38 @@ def _provisioning_external_entries(state):
     return result
 
 
+@contextlib.contextmanager
+def _locked_provisioning_externals(state, entries):
+    """Retain exact external objects when a previous attempt already removed root."""
+    ancestors = []
+    held = {}
+    try:
+        for name, entry in entries.items():
+            path = plain(name)
+            for parent in reversed(path.parents):
+                ancestors.append(_WindowsObject(parent))
+            handle = _WindowsObject(path, delete=True)
+            held[name] = handle
+            if (
+                handle.is_dir
+                or handle.identity != entry["identity"]
+                or handle.digest() != entry["sha256"]
+            ):
+                raise ReleaseSecurityError(
+                    "External provisioning identity changed before native lock"
+                )
+            if entry.get("provisioning_actor"):
+                _validate_provisioning_actor_security(
+                    _security_record(handle), state["header"]["actor_sid"], initial=True
+                )
+        yield held
+    finally:
+        for handle in reversed(list(held.values())):
+            handle.close()
+        for handle in reversed(ancestors):
+            handle.close()
+
+
 def _append_native_journal(obj, row):
     from ctypes import wintypes
 
@@ -1395,7 +1427,7 @@ def rollback_provisioning(
     evidence_path=None,
     final_resources=None,
 ):
-    """Roll back a never-committed fresh install; never adopt arbitrary Admin files."""
+    """Roll back a never-exposed fresh install; never adopt arbitrary Admin files."""
     root, journal_path = plain(root), plain(journal_path)
     if root == journal_path or root in journal_path.parents:
         raise ReleaseSecurityError("Provisioning journal must be external")
@@ -1410,6 +1442,8 @@ def rollback_provisioning(
             trusted_public_key_sha256=trusted_public_key_sha256,
             expected_source_sha=expected_source_sha,
         )
+        if _identity(root.parent) != state["header"]["root_parent_identity"]:
+            raise ReleaseSecurityError("Provisioning root parent identity changed")
         if state["final_ledger"] is not None:
             return _final_provisioning_rollback(
                 root,
@@ -1428,7 +1462,16 @@ def rollback_provisioning(
             ):
                 raise ReleaseSecurityError("Foreign provisioning evidence path")
             if not root.exists() and previous.get("status") == "rolled_back":
-                return {**previous, "status": "already_rolled_back"}
+                externals = _provisioning_external_entries(state)
+                if not externals:
+                    resources.validate_resources(state["header"]["marker"])
+                    resources.stop_and_prove_exit(state["header"]["marker"])
+                    resources.remove_resources(state["header"]["marker"])
+                    return {**previous, "status": "already_rolled_back"}
+            if not evidence_path.read_bytes().endswith(b"\n"):
+                evidence_path = evidence_path.with_name(
+                    evidence_path.stem + "-retry-" + uuid.uuid4().hex + ".jsonl"
+                )
         evidence = dict(
             schema="tester-removal/v1",
             root=str(root),
@@ -1436,6 +1479,7 @@ def rollback_provisioning(
             status="refused_or_partial",
             deleted_count=0,
             attempt_id=uuid.uuid4().hex,
+            evidence_path=str(evidence_path),
         )
         with evidence_path.open("ab" if evidence_path.exists() else "xb") as stream:
             _write_evidence(stream, evidence)
@@ -1444,8 +1488,14 @@ def rollback_provisioning(
                 resources.validate_resources(marker)
                 resources.stop_and_prove_exit(marker)
                 if not root.exists():
-                    resources.validate_resources(marker)
-                    resources.remove_resources(marker)
+                    externals = _provisioning_external_entries(state)
+                    with _locked_provisioning_externals(state, externals) as held:
+                        resources.validate_resources(marker)
+                        resources.remove_resources(marker)
+                        for path, handle in held.items():
+                            handle.delete()
+                            evidence["deleted_count"] += 1
+                            _write_evidence(stream, evidence)
                 else:
                     root_identity, entries = _provisioning_entries(root, state)
                     externals = _provisioning_external_entries(state)

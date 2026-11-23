@@ -1312,3 +1312,81 @@ def test_exposed_failed_readiness_retains_user_data_without_stopping_resources(
         )
     assert result.read_text() == "KEEP USER DATA" and (root / "app.txt").exists()
     assert resources.events == []
+
+
+@windows_only
+def test_provisioning_root_absence_still_cleans_only_recorded_external_shortcuts(
+    tmp_path, monkeypatch
+):
+    import hashlib
+
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    desktop = tmp_path / "Desktop_owned"
+    desktop.mkdir()
+    paths = [
+        desktop / "TESTER \u2014 \u0417\u0430\u043f\u0443\u0441\u043a.lnk",
+        desktop / "TESTER \u2014 \u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435.lnk",
+    ]
+    header["marker"]["desktop"] = str(desktop)
+    header["external_paths"] = [str(path) for path in paths]
+    for path in paths:
+        path.write_bytes(b"authorized dummy shortcut")
+        rows += [
+            dict(event="planned_external", path=str(path), kind="file", purpose="desktop-shortcut"),
+            dict(event="external_created", path=str(path), identity=removal._identity(path)),
+            dict(
+                event="external_finalized",
+                path=str(path),
+                identity=removal._identity(path),
+                sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            ),
+        ]
+    (root / "app.txt").unlink()
+    root.rmdir()
+    sentinel = desktop / "FOREIGN"
+    sentinel.write_text("KEEP")
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    result = removal.rollback_provisioning(
+        root,
+        journal_path=journal,
+        trusted_public_key_sha256=pin,
+        expected_source_sha="a" * 40,
+        resources=Resources(),
+        lifecycle_lock=fixture_lock,
+    )
+    assert result["status"] == "rolled_back"
+    assert all(not path.exists() for path in paths)
+    assert sentinel.read_text() == "KEEP"
+
+
+@windows_only
+def test_torn_partial_rollback_receipt_is_preserved_and_retry_gets_fresh_evidence(
+    tmp_path, monkeypatch
+):
+    import hashlib
+
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    journal = write_provisioning_fixture(tmp_path, rows)
+    old = journal.with_suffix(".rollback.jsonl")
+    record = dict(
+        schema="tester-removal/v1",
+        root=str(root),
+        provisioning_header_sha256=hashlib.sha256(removal.canonical_json(header)).hexdigest(),
+        status="refused_or_partial",
+        deleted_count=0,
+    )
+    original = removal.canonical_json(record) + b"\n" + b'{"torn":'
+    old.write_bytes(original)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    result = removal.rollback_provisioning(
+        root,
+        journal_path=journal,
+        trusted_public_key_sha256=pin,
+        expected_source_sha="a" * 40,
+        resources=Resources(),
+        lifecycle_lock=fixture_lock,
+    )
+    assert result["status"] == "rolled_back"
+    assert old.read_bytes() == original
+    assert removal.read_evidence(result["evidence_path"])["status"] == "rolled_back"
