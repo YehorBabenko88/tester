@@ -1,57 +1,92 @@
-# TESTER unified integration manifest — candidate snapshot 2026-11-20
+# TESTER Guardian release-candidate integration gate — 2026-11-23
 
-**RELEASE NO_GO.** This manifest pins independent Draft PR heads; it does
-not mean those commits have been merged, tested together or approved for
-deployment.
+**Status: FOUNDATION CI GO / INTEGRATED RELEASE NO_GO.**
+This is a planning manifest on a separate Draft integration branch, not
+a merged Guardian build, installer, signed artifact, or authorization to
+touch ADMINIT. `GUARDIANS_ENABLED=false`.
 
-| Owner | PR | Exact SHA | Required gate |
+## Exact frozen commits and component ownership
+
+| Component | PR | SHA at audit | State |
 | --- | --- | --- | --- |
-| MASTER foundation | #89 | `f235e51fba22172f232afdfb80e3deb78407df5e` | 8/8 exact-head workflow PASS, plus physical ADMINIT |
-| Code | #90 | `c7392bb1913ac7c570bb1a285658a0b55f5b968a` | own exact-head tests, Windows recovery |
-| Data | #91 | `26f3640cdc2d574b494c3f64c763802956b78960` | own exact-head tests, dedicated DB/data integrity |
-| Storage | #92 | `5ff192fa54f005c18eb7d36160823c6c0e0d22af` | own exact-head tests, reparse and deletion scope |
-| Exchange | #93 | `4df3835db4383ffe64caf2776022c862971745f5` | own exact-head tests, 403/TLS/rate limits |
-| Consolidation audit | #94 | `16d794df1305c825b01852aff636d028a44c375e` | reference and consumer audit; no deletion |
+| MASTER foundation | #89 | `bd619eb88e9444c3b414739a27f3053fb240251e` | 8/8 exact-head required CI PASS |
+| Code | #90 | `b9a27d63256a6716149540fdedecb44c773fcab9` | Draft; branch refresh + exact-head CI needed |
+| Data | #91 | `aed02b49eabb7d0389026e09042a1a2343ec708f` | Draft; branch refresh + exact-head CI needed |
+| Storage | #92 | `1ffb810ed68b2c9a0cb27ce1c10be182031672a0` | Draft; branch refresh + exact-head CI needed |
+| Exchange | #93 | `e8b7d4a03783b3dd9df807b1c176e005600bb0d8` | Draft; branch refresh + exact-head CI needed |
+| Repository consolidation | #94 | `16d794df1305c825b01852aff636d028a44c375e` | Audit only; no deletion |
 
-## Foundation CI snapshot
+The four Guardian PR diffs are **non-overlapping, four owned files each**
+(module, pytest and two documents). Non-overlap alone does not certify
+runtime compatibility or a safe three-way merge. The actual integrated
+commit SHA is **NOT CREATED**.
 
-At the time this document was prepared, MASTER isolated fault workflow
-`44784085030` was **PASS**. Python `44784085324`, Platform
-`44784085241`, PG `44784085337`, PC4 `44784085131`, research
-`44784085110`, synthetic browser `44784085104`, contract diagnosis
-`44784085166` were **QUEUED**. Do not transfer these statuses to a
-newer HEAD or call QUEUED a PASS.
+## MASTER exact-head GitHub Actions evidence
 
-## Ownership and integration order
+All eight checks below ran against the same immutable foundation HEAD:
 
-1. Freeze and independently verify a green exact-head MASTER foundation.
-2. Resolve the versioned signed `tester_lab` runtime identity contract
-   without weakening the historical `tester_preview` policy.
-3. Refresh each Guardian branch non-force from the approved foundation
-   while preserving its four owned files. Review the resulting three-way
-   diff; stop on conflicts. Rerun all required exact-head CI.
-4. Integrate only verified Code, Data, Storage and Exchange changes into
-   a separate reviewed release-candidate branch. Pin its new 40-char HEAD
-   and dependency digests, then rerun all combined Windows/Linux checks.
-5. Independently validate the single `C:\TesterLab` installer, owned
-   API/worker/dedicated PostgreSQL service identities, localhost terminal,
-   boot/recovery, exact two Cyrillic desktop shortcuts, explicit
-   `DELETE TESTER`, no retained backups, and full owned-only removal in
-   a disposable Windows system. Confirm system PostgreSQL 5432 unchanged.
-6. Obtain human acceptance before any merge to `main`, physical ADMINIT
-   deployment or legacy file/branch deletion.
+| Workflow | Run | Result |
+| --- | --- | --- |
+| Python static/unit | 45230403697 | PASS |
+| Platform acceptance (Windows, Linux 3.11/3.14) | 45230403853 | PASS |
+| Guardian isolated fault (Windows + Ubuntu) | 45230403627 | PASS |
+| Pinned PostgreSQL integration | 45230403735 | PASS |
+| PC4 qualified snapshot PostgreSQL | 45230403679 | PASS |
+| Research execution with pinned PG snapshot | 45230403698 | PASS |
+| Combined synthetic browser | 45230404030 | PASS |
+| MASTER contract drift diagnosis | 45230403904 | PASS |
 
-## Release blockers
+Two supplementary read-only source workflows also passed:
+`45230403857` and `45230403810`. This is foundation acceptance
+only, not child-branch combined validation or a physical installer test.
 
-- No complete 8/8 foundation CI PASS yet.
-- Code's historical I001 and child-branch foundation/workflow skew need
-  approved refresh; current branch-level mergeability is insufficient.
-- The actual installer, service lifecycle and destructive uninstaller
-  are not implemented/physically accepted; existing shortcut script is
-  disposable CI fixture only.
-- `src/ingest/transport.py` HTTP 403 retry and broad URL allowlist
-  conflict with Exchange's halt/public-path policy.
-- No independently authenticated signed runtime identity and post-action
-  verifier. `GUARDIANS_ENABLED=false` remains mandatory.
-- PR #94 is an audit, not authorization to remove legacy installers or
-  branches.
+## Integration sequence and hard gates
+
+1. Each child owner performs a non-force merge of the **exact approved**
+   foundation SHA into its own branch. Preserve only its four owned files.
+   Stop on any shared-foundation conflict; do not resolve by discarding
+   upstream tests or force-pushing. Verify ancestry and run own tests.
+2. Require the new child exact-head Python/Ruff, Windows/Linux Platform,
+   isolated negative/fault, PostgreSQL, research, PC4, browser and contract
+   workflows to complete successfully. No SKIP or QUEUED masquerades as PASS.
+3. Review a cross-Guardian compatibility matrix: event schema, signed
+   install identity, Service/ImagePath authority, dedupe and lease fencing,
+   trusted data/Storage paths, Exchange HTTP 403/TLS/public URL restriction,
+   and a single network retry owner.
+4. Only after those checks, create a fresh reviewed combined integration
+   commit on this **non-main** branch. Verify full content SHA and rerun
+   all required exact-head CI. Do not merge child Draft PRs into main.
+5. Build a signed immutable, independently pinned Windows installer rooted
+   at `C:\TesterLab`: API, worker, isolated PostgreSQL on a non-5432 port,
+   localhost terminal, four Guardian modules disabled, bounded boot
+   restart/recovery and exclusive operation lock.
+6. In a disposable Windows VM, verify installation, reinstallation refusal/
+   controlled upgrade, start, stop, reboot/recovery, exactly two desktop
+   shortcuts (`TESTER — Запуск`, `TESTER — Удаление`), destructive
+   `DELETE TESTER` + second confirmation, every TESTER-owned DB/history/
+   candles/results/config/log removal, **no retained archive or backup**,
+   no junction traversal, idempotent interrupted uninstall receipt and
+   unchanged system PostgreSQL 18/5432.
+7. Independent physical ADMINIT review, signed artifact hashes, explicit
+   human GO and only then consider controlled merge to protected `main`.
+
+## Blocking issues (all remain NO_GO)
+
+- Child PR exact-head CI and combined Guardian execution/after-check NOT
+  VERIFIED; they have unrefreshed foundation and historical I001/E902/drift.
+- The real effectful installer and full-uninstall adapter are NOT IMPLEMENTED;
+  existing `windows_install_gate`/`windows_release_lifecycle` are pure
+  plans, and `Write-TesterShortcutsFixture.ps1` only targets a disposable
+  CI desktop.
+- A separately trusted signed `tester_lab` environment identity is still
+  missing; previous `tester_preview` hard-coding must not be bypassed.
+- Source `src/ingest/transport.py` may retry HTTP 403 and permits broader
+  Bybit host paths than Exchange Guardian. Do not merge until network
+  execution and proposal policies agree, without duplicate retries.
+- Independent real Windows boot/restart, full no-backup uninstall, ownership
+  receipts, system PG5432 before/after and 24h soak are NOT RUN.
+- Historical installers and branches in PR #94 are only *proposed* future
+  deprecation candidates. No file/branch deletion authorized.
+
+**No deploy, no trading, no Guardian effectors, no main/PR83/Preview/PG5432
+changes. RELEASE NO_GO.**
