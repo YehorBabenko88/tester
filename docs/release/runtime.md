@@ -210,3 +210,59 @@ Precommit evidence with exact changed-file hashes is in
 `work/native-research-projection/run-20261124T002824-eb7d0e68`; it records the base
 SHA and tested file content separately. Replay the committed revision before
 claiming final-published-HEAD acceptance.
+
+The same native factory/worker/browser acceptance was repeated after commit
+`2df28d9d2f070d7e47d89c005cbac50aca5e6beb`: 27 tests and the Playwright test
+passed, including research-DB outage isolation, persistence after API reconstruction
+and graceful worker/cluster shutdown. Evidence is
+`work/native-research-projection/run-20261124T003102-a66c947c`.
+The main strategy-execution panel remains unavailable: only the separately
+authenticated persisted-projection viewer is wired, not execution/summary routes.
+
+## Completed bounded soak and live history roundtrip
+
+An immutable same-interpreter comparison pinned baseline
+`e64e30d8369626197403b3962f91bb350656e4c9` and candidate
+`cc74009a89889b7753832b236cf6cc21a5aa6f53` on CPython 3.12.10 / PostgreSQL 18.1.
+Both completed the requested 600-second synthetic queue/read/HTTP workload and
+passed 34 existing PostgreSQL tests, crash recovery, row digest/checkpoint
+preservation and old-lease fencing. Both clusters were stopped.
+
+| Sustained observation | Baseline | Candidate |
+| --- | ---: | ---: |
+| Measured seconds | 600.520 | 600.166 |
+| Soak jobs completed | 3260 | 3176 |
+| Real HTTP health/body checks | 815 | 794 |
+| Soak jobs/second | 5.4286 | 5.2919 |
+| Soak API mean / p95 ms | 43.855 / 137.186 | 46.612 / 142.239 |
+| Sampled CPU seconds, whole workload | 205.484 | 206.125 |
+| Sampled aggregate peak RSS bytes | 361353216 | 356474880 |
+| PostgreSQL WAL bytes | 13662624 | 13247040 |
+| Database bytes | 13129407 | 13088447 |
+
+Both queues peaked at four and returned to zero after every batch. The sustained
+candidate throughput was 2.52% lower and API mean latency 6.29% higher; API p95 was
+3.68% higher. The initial 40-job burst was 17.55% lower, while the three earlier
+short-pair median was 3.34% lower. Keep this distribution and measurement context;
+do not infer a 24-hour/SLA/performance GO. Total completed work differs during a
+fixed-duration throughput run, so raw WAL/DB/I/O totals are not equal-work ratios.
+OS-wide disk deltas include unrelated host activity; sampled process counters and
+aggregate RSS have the limitations described above. This common runtime workload
+does not test native SCM or the later opt-in projection/host-restart-budget profile.
+Evidence: `work/release-runtime-soak600/run-20261123T235018-462f2e2c`.
+
+Candidate-only CPython 3.14.10 / PostgreSQL 18.7 compatibility was repeated at
+published `64591cc91f5cf0f9c36d0dd81e4c838afd94ca28`: 34 PostgreSQL tests,
+runtime/HTTP checks, crash recovery and public probes passed. This is separate
+from the same-interpreter performance comparison and predates projection wiring.
+Evidence: `work/release-production-compatibility-latest/run-20261124T001326-359b97eb`.
+
+A real public-history roundtrip at
+`2dfb5d5e1904aa94c39936a0b2426ef84d0d6f54` used production CPython 3.14.10,
+PostgreSQL 18.7 and default verified OS trust. Existing Backfill acquired three
+BTCUSDT one-minute candles for UTC `[1704067200000,1704067380000)`, verified two
+original HTTP-body hashes, exported a Journal handoff, passed the shared record
+contract, and published/replayed through Store with declared-run provenance.
+All three records, checkpoint and read digest survived a PostgreSQL immediate
+crash/restart. This proves the bounded window only; global coverage is UNKNOWN.
+Evidence: `work/real-history-production/run-20261123T235832-89d01c56`.
