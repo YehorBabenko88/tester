@@ -328,3 +328,39 @@ def test_overlay_copies_captured_verified_bytes_without_path_reread(
         trusted_publisher_sha256="a" * 64,
     )
     assert (output / "Setup-Tester.ps1").read_bytes() == approved
+
+
+def test_overlay_verifier_uses_kernel_resolved_powershell_not_path_or_systemroot(
+    tmp_path, monkeypatch
+):
+    import os
+    import sys
+    from types import SimpleNamespace
+
+    from scripts import build_release as release
+
+    trusted = tmp_path / "kernel-system/WindowsPowerShell/v1.0/powershell.exe"
+    malicious = tmp_path / "untrusted"
+    monkeypatch.setenv("PATH", str(malicious))
+    monkeypatch.setenv("SystemRoot", str(malicious))
+    monkeypatch.setenv("PSModulePath", "untrusted-powershell-modules")
+    monkeypatch.setattr(release, "os", SimpleNamespace(name="nt", environ=os.environ))
+
+    def kernel_resolver(relative):
+        assert relative == "WindowsPowerShell/v1.0/powershell.exe"
+        return trusted
+
+    monkeypatch.setitem(
+        sys.modules, "src.api.release_install", SimpleNamespace(system_binary=kernel_resolver)
+    )
+    observed = []
+
+    def checked_run(args, **kwargs):
+        observed.append(args)
+        assert args[0] == str(trusted)
+        assert kwargs["check"] is True
+        assert not any(k.upper() == "PSMODULEPATH" for k in kwargs["env"])
+
+    monkeypatch.setattr(release.subprocess, "run", checked_run)
+    release.verify_overlay_publisher(tmp_path / "signed.ps1", "a" * 64)
+    assert len(observed) == 1

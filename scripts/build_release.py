@@ -91,6 +91,8 @@ def verify_overlay_publisher(path, publisher_sha256):
         raise ValueError("Independent raw certificate SHA256 pin required")
     if os.name != "nt":
         raise ValueError("Production Authenticode overlay verification requires Windows")
+    from src.api.release_install import system_binary
+
     quoted = "'" + str(Path(path).resolve()).replace("'", "''") + "'"
     code = '$ErrorActionPreference="Stop"; $s=Get-AuthenticodeSignature -LiteralPath ' + quoted
     code += (
@@ -99,7 +101,13 @@ def verify_overlay_publisher(path, publisher_sha256):
         + "'){throw 'Independent publisher certificate pin mismatch'}"
     )
     subprocess.run(
-        ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", code],
+        [
+            str(system_binary("WindowsPowerShell/v1.0/powershell.exe")),
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command",
+            code,
+        ],
         check=True,
         env={k: v for k, v in os.environ.items() if k.upper() != "PSMODULEPATH"},
     )
