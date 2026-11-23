@@ -537,3 +537,25 @@ def test_provisioning_plan_reuses_app_account_without_automatic_retries(tmp_path
     assert actor["recovery_delays_ms"] == []
     assert actor["dependency"] is None
     assert actor["python_class"].endswith(".ReleaseProvisionService")
+
+
+def test_native_provisioning_root_guard_opens_and_pins_without_scm(tmp_path):
+    import os
+
+    import pytest
+
+    if os.name != "nt":
+        pytest.skip("Native Windows directory guard requires Windows")
+    from src.api.release_provision import open_directory_guard
+
+    root = tmp_path / "own-empty-root"
+    root.mkdir()
+    moved = tmp_path / "moved-root"
+    root.rename(moved)
+    moved.rename(root)
+    guard = open_directory_guard(root)
+    try:
+        with pytest.raises(PermissionError):
+            root.rename(moved)
+    finally:
+        guard.Close()

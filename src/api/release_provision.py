@@ -235,6 +235,22 @@ class ReleaseProvisionService(ReleaseService):
         )
 
 
+def open_directory_guard(path):
+    """LIST_DIRECTORY makes no-share-delete effective, including empty folders."""
+    import win32con
+    import win32file
+
+    return win32file.CreateFile(
+        str(plain(path)),
+        0x20081,
+        win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE,
+        None,
+        win32con.OPEN_EXISTING,
+        win32file.FILE_FLAG_BACKUP_SEMANTICS | win32file.FILE_FLAG_OPEN_REPARSE_POINT,
+        None,
+    )
+
+
 class ProvisioningTransaction:
     """Fsynced plans precede native creation with an atomic unique App SID owner."""
 
@@ -436,7 +452,6 @@ class ProvisioningTransaction:
         return plain(path).relative_to(self.root).as_posix()
 
     def root_created(self):
-        import win32con
         import win32file
 
         from .release_uninstall import (
@@ -449,15 +464,7 @@ class ProvisioningTransaction:
         if self.root.exists():
             raise LabViolation("Fresh provisioning requires an absent root")
         win32file.CreateDirectory(str(self.root), self.attributes(directory=True))
-        self.root_guard = win32file.CreateFile(
-            str(self.root),
-            0x20081,
-            win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE,
-            None,
-            win32con.OPEN_EXISTING,
-            win32con.FILE_FLAG_BACKUP_SEMANTICS | win32con.FILE_FLAG_OPEN_REPARSE_POINT,
-            None,
-        )
+        self.root_guard = open_directory_guard(self.root)
         obj = _WindowsObject(self.root, lock=False)
         try:
             _validate_provisioning_actor_security(
