@@ -620,7 +620,10 @@ def measured_child(command, *, env, cwd, output, pg_pid):
                 counters = item.io_counters()
                 rss += item.memory_info().rss
                 value = (cpu.user + cpu.system, counters.read_bytes, counters.write_bytes)
-                identity = (pid, item.create_time())  # Windows recycles backend PIDs during long runs.
+                identity = (
+                    pid,
+                    item.create_time(),
+                )  # Windows recycles backend PIDs during long runs.
                 if identity not in observed:
                     observed[identity] = {"first": value, "last": value}
                 else:
