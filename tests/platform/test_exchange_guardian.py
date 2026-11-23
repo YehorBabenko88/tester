@@ -397,11 +397,13 @@ def test_fault_injection_endpoint_cardinality_budget():
     guardian = ExchangeGuardian(enabled=True)
     for index in range(MAX_ENDPOINTS):
         result = guardian.inspect(
-            obs(endpoint=f"https://api.bybit.com/v5/market/fixture{index}"),
+            obs(endpoint=f"https://public.bybit.com/trading/BTCUSDT/fixture{index}.csv.gz"),
             now=1,
         )
         assert result.status == "MONITORING"
-    overflow = guardian.inspect(obs(endpoint="https://api.bybit.com/v5/market/one-extra"), now=2)
+    overflow = guardian.inspect(
+        obs(endpoint="https://public.bybit.com/trading/BTCUSDT/one-extra.csv.gz"), now=2
+    )
     assert overflow.status == "UNAVAILABLE"
     assert overflow.signal == "invalid_observation"
     assert overflow.proposal == "NONE"

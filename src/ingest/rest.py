@@ -48,17 +48,23 @@ class API:
     def call(self,path,params):
         if not path.startswith('/') or '..' in path: raise ValueError('Invalid endpoint')
         url='https://api.bybit.com/v5/market'+path+'?'+urlencode(params)
-        for attempt in range(6):
-            with self.transport.get(url) as r:
-                body=r.json(); code=body.get('retCode')
-                if code==0:
-                    self.last_response={'url':url,'bytes_base64':base64.b64encode(r.content).decode(),'sha256':hashlib.sha256(r.content).hexdigest(),'hash_scope':'original_http_body','status_code':r.status_code}
-                    return body['result'],url
-                if code not in {10000,10006,10016,10018}: raise ValueError(f'Bybit {code}: {body.get("retMsg")}')
-                reset=r.headers.get('X-Bapi-Limit-Reset-Timestamp')
-                delay=max(2**attempt,float(reset)/1000-time.time() if reset else 0)
-            if attempt==5: raise RuntimeError(f'Bybit retry exhausted: {code}')
-            self.transport.defer(delay)
+        from contextlib import nullcontext
+        with self.transport.operation() if isinstance(self.transport,Transport) else nullcontext():
+            for attempt in range(6):
+                with self.transport.get(url) as r:
+                    body=r.json()
+                    if not isinstance(body,dict) or type(body.get('retCode')) is not int:
+                        raise ValueError('Malformed Bybit response')
+                    code=body['retCode']
+                    if code==0:
+                        if not isinstance(body.get('result'),dict): raise ValueError('Malformed Bybit result')
+                        self.last_response={'url':url,'bytes_base64':base64.b64encode(r.content).decode(),'sha256':hashlib.sha256(r.content).hexdigest(),'hash_scope':'original_http_body','status_code':r.status_code}
+                        return body['result'],url
+                    if code not in {10000,10006,10016,10018}: raise ValueError(f'Bybit {code}: {body.get("retMsg")}')
+                    reset=r.headers.get('X-Bapi-Limit-Reset-Timestamp')
+                    delay=max(2**attempt,float(reset)/1000-time.time() if reset else 0)
+                if attempt==5: raise RuntimeError(f'Bybit retry exhausted: {code}')
+                self.transport.defer(delay)
         raise RuntimeError('Unreachable')
 
 class Backfill:

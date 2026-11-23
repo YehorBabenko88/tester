@@ -10,7 +10,8 @@ import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
-from urllib.parse import urlsplit
+
+from src.ingest.public_access import public_endpoint_key
 
 HOSTS = frozenset({"api.bybit.com", "public.bybit.com"})
 MAX_RETRIES = 3
@@ -24,31 +25,7 @@ def _number(value: object) -> bool:
 
 def endpoint_key(url: str) -> str:
     """Canonical, credential-free endpoint identity; rejects unsafe URLs."""
-    if type(url) is not str or len(url) > 2048:
-        raise ValueError("invalid_url")
-    try:
-        p = urlsplit(url)
-        if (
-            p.scheme != "https"
-            or p.hostname not in HOSTS
-            or "%" in p.path
-            or "\\" in p.path
-            or any(segment in {".", ".."} for segment in p.path.split("/"))
-            or p.port not in (None, 443)
-            or p.username is not None
-            or p.password is not None
-            or p.fragment
-            or not (
-                (p.hostname == "api.bybit.com" and p.path.startswith("/v5/market/"))
-                or (p.hostname == "public.bybit.com" and p.path.startswith("/trading/"))
-            )
-            or p.query
-            or p.netloc not in HOSTS
-        ):
-            raise ValueError("unapproved_endpoint")
-    except (ValueError, TypeError) as exc:
-        raise ValueError("unapproved_endpoint") from exc
-    return p.hostname + p.path
+    return public_endpoint_key(url)
 
 
 def retry_after_seconds(value: object, now_utc: datetime) -> int | None:
