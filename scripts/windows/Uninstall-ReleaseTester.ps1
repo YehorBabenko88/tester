@@ -48,6 +48,11 @@ public sealed class TesterMaintenanceLease : IDisposable {
         if ((info.attributes & 0x400u) != 0 || (!directory && info.links != 1)) { Dispose(); throw new InvalidOperationException("Reparse or hardlinked maintenance object"); }
         Identity = info.volume.ToString() + ":" + info.indexHigh.ToString() + ":" + info.indexLow.ToString();
     }
+    public static string GetIdentity(SafeFileHandle file) {
+        Info info;
+        if (!GetFileInformationByHandle(file, out info)) { throw new Win32Exception(Marshal.GetLastWin32Error()); }
+        return info.volume.ToString() + ":" + info.indexHigh.ToString() + ":" + info.indexLow.ToString();
+    }
     public void Delete() {
         byte disposition = 1;
         if (!SetFileInformationByHandle(handle, 4, ref disposition, 1)) { throw new Win32Exception(Marshal.GetLastWin32Error()); }
@@ -152,15 +157,19 @@ function Write-RecoveryRecord($Record) {
     $recoveryStream.Flush($true)
 }
 
-function Remove-ProtectedMetadata([string]$Path) {
+function Remove-ProtectedMetadata([string]$Path, [string]$ExpectedIdentity) {
     if (-not (Test-Path -LiteralPath $Path)) { return }
     Assert-AdminTrust $Path $true
     $handle = New-Object TesterMaintenanceLease($Path, $false, $true)
-    try { $handle.Delete() } finally { $handle.Dispose() }
+    try {
+        if ([String]::IsNullOrEmpty($ExpectedIdentity) -or $handle.Identity -cne $ExpectedIdentity) { throw 'Protected metadata identity changed.' }
+        $handle.Delete()
+    } finally { $handle.Dispose() }
 }
 
 if (-not $TrustConfig) { throw 'Use the protected external -TrustConfig created by the installer.' }
 Lock-MaintenancePath $TrustConfig
+$configIdentity = $maintenanceLocked[[IO.Path]::GetFullPath($TrustConfig)].Identity
 Assert-AdminTrust $TrustConfig $true
 $config = Get-Content -LiteralPath $TrustConfig -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($config.schema -ne 'tester-maintenance-trust/v1') { throw 'Unknown maintenance trust schema.' }
@@ -189,6 +198,8 @@ $rootDirectory = [IO.Path]::GetFullPath($Root).TrimEnd('\')
 $recoveryPath = Join-Path $maintenanceParent 'maintenance-recovery.jsonl'
 $recoveryStream = $null
 if (Test-Path -LiteralPath $recoveryPath) {
+    Lock-MaintenancePath $recoveryPath
+    $recoveryIdentity = $maintenanceLocked[[IO.Path]::GetFullPath($recoveryPath)].Identity
     Assert-AdminTrust $recoveryPath $true
     $records = @(Get-Content -LiteralPath $recoveryPath -Encoding UTF8 | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json })
     if ($records.Count -lt 1) { throw 'Empty maintenance recovery journal.' }
@@ -216,12 +227,12 @@ if (Test-Path -LiteralPath $recoveryPath) {
         $proof = @(Get-Content -LiteralPath $header.evidence_path -Encoding UTF8 | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.status -eq 'root_removed_pending_maintenance_cleanup' -and $_.root -ceq $Root -and $_.ledger_sha256 -ceq $TrustedLedgerSha256 })
         if ($proof.Count -eq 0) { throw 'Root absence has no completed native-removal evidence.' }
         $EvidencePath = $header.evidence_path
-        Remove-ProtectedMetadata $TrustConfig
-        Remove-ProtectedMetadata $recoveryPath
+        Remove-ProtectedMetadata $TrustConfig $configIdentity
+        Remove-ProtectedMetadata $recoveryPath $recoveryIdentity
         Write-RemovalEvent 'removed'
         exit 0
     }
-    Remove-ProtectedMetadata $recoveryPath
+    Remove-ProtectedMetadata $recoveryPath $recoveryIdentity
 }
 $stageRoot = Join-Path $maintenanceParent ('maintenance-' + [Guid]::NewGuid().ToString('N'))
 $stageRecords = New-Object 'System.Collections.Generic.List[object]'
@@ -233,6 +244,7 @@ $cleanupPassed = $false
 Set-Location -LiteralPath $maintenanceParent
 try {
     $recoveryStream = New-Object IO.FileStream($recoveryPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+    $recoveryIdentity = [TesterMaintenanceLease]::GetIdentity($recoveryStream.SafeFileHandle)
     Set-AdminTrust $recoveryPath $false
     Write-RecoveryRecord ([ordered]@{schema='tester-maintenance-recovery/v1';root=$Root;ledger_sha256=$TrustedLedgerSha256;stage_root=$stageRoot;evidence_path=$EvidencePath})
     New-Item -ItemType Directory -Path $stageRoot -ErrorAction Stop | Out-Null
@@ -302,9 +314,9 @@ try {
         $env:PYTHONDONTWRITEBYTECODE = $previousBytecode
     }
     if ($cleanupPassed) {
-        Remove-ProtectedMetadata $recoveryPath
+        Remove-ProtectedMetadata $recoveryPath $recoveryIdentity
         if ($childPassed -and -not $ScopeOnly) {
-            Remove-ProtectedMetadata $TrustConfig
+            Remove-ProtectedMetadata $TrustConfig $configIdentity
             Write-RemovalEvent 'removed'
         }
     }

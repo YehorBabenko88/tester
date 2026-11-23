@@ -611,3 +611,41 @@ def test_pinned_boundary_identity_survives_service_account_deregistration(monkey
         sys.modules, "win32security", SimpleNamespace(LookupAccountName=missing_account)
     )
     assert removal._boundaries(ledger) == [boundary]
+
+
+@windows_only
+def test_native_metadata_identity_refusal_after_trusted_acl_gate(tmp_path):
+    import subprocess
+    from pathlib import Path
+
+    wrapper = Path(__file__).resolve().parents[2] / "scripts/windows/Uninstall-ReleaseTester.ps1"
+    prelude = wrapper.read_text(encoding="utf-8").split("if (-not $TrustConfig)", 1)[0]
+    metadata = tmp_path / "fresh-owned-metadata.json"
+    metadata.write_text("authorized dummy metadata")
+    script = tmp_path / "metadata-proof.ps1"
+    # The host cannot assign the Administrators owner SID. Isolate the native ID
+    # gate after a trusted ACL check; the real ACL evaluator is tested separately.
+    script.write_text(
+        prelude
+        + """
+function Assert-AdminTrust([string]$Path, [bool]$StrictConfig=$false) { }
+try {
+    Remove-ProtectedMetadata $env:TESTER_METADATA_PATH 'WRONG-IDENTITY'
+    exit 9
+} catch {
+    if (-not (Test-Path -LiteralPath $env:TESTER_METADATA_PATH)) { exit 8 }
+    exit 0
+}
+""",
+        encoding="utf-8",
+    )
+    child = subprocess.run(
+        ["powershell.exe", "-NoProfile", "-NonInteractive", "-File", str(script)],
+        env={**os.environ, "TESTER_METADATA_PATH": str(metadata)},
+        capture_output=True,
+        text=True,
+        timeout=30,
+        creationflags=subprocess.CREATE_NO_WINDOW,
+    )
+    assert child.returncode == 0, child.stderr
+    assert metadata.read_text() == "authorized dummy metadata"
