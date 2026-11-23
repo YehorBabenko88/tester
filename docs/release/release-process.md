@@ -23,3 +23,11 @@ The manifest contains exactly schema `tester-release/v1`, release_version `1`, s
 Required evidence includes exact SHA/diff/file inventory, CI URLs, SBOM/component pins, installer hash, native SCM and browser evidence, dedicated PostgreSQL and security evidence, known limitations and independent MASTER/four-Guardian decisions. Skips/UNKNOWN/NOT RUN remain open gates. Native SCM CI explicitly requires administrator privileges and cannot silently pass by skipping.
 
 Do not merge main, publish a production release/tag, remove remote branches or install/reboot ADMINIT until independent GO and the owner's final authorization. A local unsigned package is reviewable engineering output, not a production release.
+
+## Disposable native CI provisioning
+
+`python -B scripts/release_ci_components.py --repo . --source-sha <exact-checked-out-HEAD> --work <fresh-scratch-directory> --evidence <sanitized-evidence-directory> --github-env <GITHUB_ENV-file>` automates the full Windows fixture bundle. It downloads the independently reviewed archive SHA-256 pins recorded in the supplier evidence, validates the pinned PSF and EDB executable signers, retrieves actual hash-locked Windows wheels, stages the complete private bootstrap, builds immutable source blobs and uses a freshly generated external **fixture-only** Ed25519 key. The private fixture key stays outside the bundle and uploaded evidence; this never creates production trust.
+
+The script exports `TESTER_RELEASE_BUNDLE`, `TESTER_RELEASE_MANIFEST_SHA256`, `TESTER_RELEASE_PUBLIC_KEY_SHA256` and `TESTER_RELEASE_SOURCE_SHA` for `test_full_native_installer_lifecycle`. The full-installer CI job requires an elevated disposable Windows runner and explicitly sets `TESTER_REQUIRE_FULL_INSTALLER=1`; missing privileges, inputs or runtime must fail rather than silently skip. Pytest tooling runs outside the signed runtime. `PYTHONDONTWRITEBYTECODE=1` propagates to child processes to keep signed component trees immutable.
+
+The hosted fixture checks temporary UUID-owned PostgreSQL/application services, recovery/data preservation, shortcut helper behavior and independent transient uninstall. It does not establish Windows 11 physical reboot acceptance, visual browser acceptance, independent Guardian GO or owner production signing. Those remain separate evidence gates.
