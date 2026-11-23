@@ -630,73 +630,18 @@ def apply_acls(root, marker):
 
 
 def provision_database(root, marker, password):
-    """Run only under the verified private venv; secrets arrive on stdin, never argv."""
-    import secrets
+    """Compose existing canonical migrations under the verified private venv."""
+    from .release_database import provision_release_databases, runtime_configuration
 
-    import psycopg
-    from psycopg import sql
-    from psycopg.conninfo import make_conninfo
-
-    from src.storage.migrations import migrate as storage_migrate
-
-    from .db import migrate
-
-    connection = dict(
-        host="127.0.0.1", port=marker["ports"]["postgres"], user="tester_owner", password=password
-    )
-    admin = make_conninfo(**connection, dbname="postgres")
-    with psycopg.connect(admin, autocommit=True) as conn:
-        conn.execute("CREATE DATABASE tester")
-    owner_dsn = make_conninfo(**connection, dbname="tester")
-    migrate(owner_dsn)
-    runtime_password = secrets.token_urlsafe(36)
-    with psycopg.connect(owner_dsn) as conn:
-        storage_migrate(conn)
-        conn.execute(
-            sql.SQL(
-                "CREATE ROLE tester_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD {}"
-            ).format(sql.Literal(runtime_password))
-        )
-        conn.execute("REVOKE ALL ON DATABASE tester FROM PUBLIC")
-        conn.execute("GRANT CONNECT ON DATABASE tester TO tester_app")
-        conn.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
-        for schema in ("tester_platform", "tester_storage"):
-            conn.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA {} TO tester_app").format(sql.Identifier(schema))
-            )
-            conn.execute(
-                sql.SQL(
-                    "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {} TO tester_app"
-                ).format(sql.Identifier(schema))
-            )
-            conn.execute(
-                sql.SQL("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {} TO tester_app").format(
-                    sql.Identifier(schema)
-                )
-            )
-        conn.execute("REVOKE INSERT, UPDATE, DELETE ON tester_platform.migrations FROM tester_app")
-        conn.execute(
-            "REVOKE INSERT, UPDATE, DELETE ON tester_storage.schema_migrations FROM tester_app"
-        )
-    dsn = make_conninfo(
-        host="127.0.0.1",
-        port=marker["ports"]["postgres"],
-        user="tester_app",
-        password=runtime_password,
-        dbname="tester",
-    )
+    runtime, owners = provision_release_databases(marker, password)
     write_json(
         root / "config.json",
-        dict(
-            database_url=dsn,
-            data_dir=str(root / "runtime"),
-            host="127.0.0.1",
-            port=marker["ports"]["api"],
-            frontend_dir=str(root / "releases" / marker["source_sha"] / "frontend"),
-        ),
+        runtime_configuration(root, marker, runtime["tester"], runtime["tester_catalog"]),
     )
-    # Preserve administrative recovery credential only in the protected private tree.
-    write_json(root / "private/database-owner.json", {"database_url": owner_dsn})
+    # Research and administrative credentials never enter the API/worker config.
+    write_json(
+        root / "private/database-owner.json", dict(database_url=owners["tester"], databases=owners)
+    )
 
 
 def main():

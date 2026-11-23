@@ -248,6 +248,10 @@ def test_full_native_installer_lifecycle(tmp_path):
                 services=validate_resources(marker),
             )
         )
+        config = json.loads((root / "config.json").read_text())
+        assert config.get("provider_factory") == "src.integration.reference_prices:create_reader"
+        assert config.get("handler_factory") == "src.integration.reference_prices:create_handler"
+        assert config.get("market_catalog_enabled") is True
         owner = json.loads((root / "private/database-owner.json").read_text())
         with psycopg.connect(owner["database_url"]) as conn:
             conn.execute("CREATE SCHEMA tester_acceptance")
