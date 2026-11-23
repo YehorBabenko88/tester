@@ -83,6 +83,11 @@ def run():
         raise SystemExit("TESTER_DATABASE_URL is required")
     queue = JobQueue(settings.dsn, settings.lease_seconds)
     handler = load_factory(settings.handler_factory, UnavailableHandler())
+    projection = None
+    if settings.research_projection_enabled:
+        from .research_ledger import create_persistent_control
+
+        projection = create_persistent_control(settings.research_dsn)
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     signal.signal(signal.SIGINT, lambda *_: stop.set())
@@ -113,7 +118,7 @@ def run():
                 if storage["storage"] != "ok":
                     logger.warning("disk_alert", extra=storage)
                     stop.wait(5)
-                elif not process_one(queue, handler, stop, logger):
+                elif not process_available_work(queue, handler, projection, stop, logger):
                     stop.wait(1)
             except Exception as exc:
                 logger.error("worker_cycle_failed", extra={"error_type": type(exc).__name__})
@@ -122,6 +127,42 @@ def run():
         stop.set()
         thread.join(timeout=4)
         logger.info("worker_stopped")
+
+
+def process_one_projection(control, stop, logger):
+    """One idle-worker delegation to the existing fenced projection control."""
+    if control is None or stop.is_set():
+        return False
+    job = None
+    try:
+        job = control.store.next_projection_job()
+        if job is None or stop.is_set():
+            return False
+        from .research_control import Identity
+
+        control.dispatch(Identity(job["actor"]), str(job["job_id"]))
+        return True
+    except Exception as exc:
+        if job is not None:
+            try:
+                # A failed pre-claim validation must consume its durable budget;
+                # a successful claim already incremented attempts atomically.
+                control.store.record_projection_failure(
+                    job["actor"], job["job_id"], job["attempts"]
+                )
+            except Exception:
+                pass  # Database absence cannot authorize work or crash market ingestion.
+        logger.error("worker_cycle_failed", extra={"error_type": type(exc).__name__})
+        return False
+
+
+def process_available_work(queue, handler, projection, stop, logger):
+    """Market work retains priority; projections never get their own worker."""
+    if stop.is_set():
+        return False
+    if process_one(queue, handler, stop, logger):
+        return True
+    return process_one_projection(projection, stop, logger)
 
 
 if __name__ == "__main__":

@@ -410,6 +410,12 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         def index():
             return '<h1>Tester API</h1><p>Frontend not installed.</p><a href="/docs">API docs</a>'
 
+    if settings.research_projection_enabled:
+        from src.integration.combined_routes import compose_research
+
+        from .research_ledger import create_persistent_control_app
+
+        return compose_research(app, create_persistent_control_app(settings.research_dsn))
     return app
 
 

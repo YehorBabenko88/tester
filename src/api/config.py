@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     frontend_dir: Path = Path("frontend")
     market_catalog_enabled: bool = False
     market_catalog_database_url: SecretStr | None = None
+    research_projection_enabled: bool = False
+    research_database_url: SecretStr | None = None
 
     @model_validator(mode="after")
     def validate_paths(self):
@@ -33,6 +35,12 @@ class Settings(BaseSettings):
             from .catalog_store import validate_catalog_dsn
 
             validate_catalog_dsn(self.market_catalog_database_url.get_secret_value())
+        if self.research_projection_enabled and not self.research_database_url:
+            raise ValueError("Enabled research projections require explicit research_database_url")
+        if self.research_database_url:
+            from .research_ledger import validate_research_dsn
+
+            validate_research_dsn(self.research_database_url.get_secret_value())
         if self.database_url:
             from psycopg.conninfo import conninfo_to_dict
 
@@ -56,6 +64,10 @@ class Settings(BaseSettings):
             if self.market_catalog_database_url
             else None
         )
+
+    @property
+    def research_dsn(self) -> str | None:
+        return self.research_database_url.get_secret_value() if self.research_database_url else None
 
 
 def load_settings() -> Settings:

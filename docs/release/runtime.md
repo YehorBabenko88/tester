@@ -157,3 +157,56 @@ A regional HTTP 403 must be reported as unavailable, never a live-data PASS.
 Whole-system browser flows and Windows SCM lifecycle require separate evidence.
 No canonical installation, system PostgreSQL 5432, ADMINIT service or machine reboot
 is used. `GUARDIANS_ENABLED=false` remains unchanged.
+
+## Optional native persisted research projection
+
+`Settings.research_projection_enabled` defaults to false. Enabling it requires
+an explicit `research_database_url` for the existing isolated loopback,
+non-5432 `tester_research_*` database contract. The native release profile can
+pass the installer-prepared research App-role DSN. Startup never migrates,
+publishes a fixture, issues a capability or enables a qualified producer.
+
+The existing persistent control application is composed by `main.create_app`
+using the existing ASGI composition, retaining child authentication, object ACL,
+origin guards and exact artifact binding before the static frontend catch-all.
+Without a capability the research HTTP endpoints return 401; cross-origin
+requests return 403. Research database failure returns a fixed, secret-free 503.
+
+The existing worker checks market work first and delegates at most one eligible
+projection to the existing fenced `PersistentControl.dispatch` when idle.
+There is no additional worker, engine or retry executor. Selection uses persisted
+principals with current credentials and grants. Claims are durably limited to
+three attempts. Malformed pre-claim work consumes a compare-and-update failure
+budget without double-charging an acquired lease. Expired/revoked principals and
+exhausted jobs are not automatically retried. Exhaustion requires an explicit
+operator decision; it never resets itself across worker restarts.
+
+Operators must separately publish a verified artifact and issue its expiring,
+revocable capability through the existing ledger operator API. Tokens belong in
+the research page's in-memory capability field, never a URL or diagnostic log.
+The existing frontend and contract retain `SIMULATED` / `SYNTHETIC ONLY` labels.
+Real-market strategy execution remains **UNAVAILABLE**: the existing producer and
+execution-input gates only admit certified synthetic inputs. Route wiring does
+not qualify real market data or promote a test fixture into production evidence.
+
+New regression tests cover default-off configuration, strict DSN validation,
+startup without DB/producer/credential side effects, native route security,
+safe unavailable responses, market priority, durable attempt exhaustion,
+malformed stored work, revocation/expiry and concurrent lease fencing.
+The original fourth-claim behavior fails the new attempt regression.
+
+Physical acceptance used CPython 3.14.10 and PostgreSQL 18.7 with SCRAM and the
+actual nonowner App roles. Twenty-seven affected tests passed. The existing
+Playwright research-backend test passed against the native application factory,
+reference-prices/catalog profile and actual `src.api.worker` process, with no
+manual ASGI composition. The operator explicitly supplied a labelled synthetic
+test artifact and capability. A research-only DB outage produced HTTP 503 while
+the same worker handled an explicitly rejected test market job; API reconstruction
+preserved the completed projection and ACK. Graceful worker stop and disposable
+cluster stop were observed. This is process/API acceptance, not Windows SCM or
+real-market backtest certification.
+
+Precommit evidence with exact changed-file hashes is in
+`work/native-research-projection/run-20261124T002824-eb7d0e68`; it records the base
+SHA and tested file content separately. Replay the committed revision before
+claiming final-published-HEAD acceptance.

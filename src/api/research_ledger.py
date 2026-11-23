@@ -289,11 +289,41 @@ class PersistentResearchLedger:
             self._credential(conn, actor)
             rows = conn.execute(
                 "SELECT job_id FROM tester_research.jobs WHERE actor=%s "
-                "AND (state='pending' OR (state='running' AND lease_until<clock_timestamp())) "
+                "AND attempts<3 AND (state='pending' OR (state='running' AND lease_until<clock_timestamp())) "
                 "ORDER BY created_at,job_id LIMIT %s",
                 (actor, limit),
             ).fetchall()
             return [str(row["job_id"]) for row in rows]
+
+    def next_projection_job(self):
+        """Bounded worker selection from persisted, currently granted principals."""
+        with self.connection() as conn:
+            row = conn.execute(
+                "SELECT j.actor,j.job_id,j.attempts FROM tester_research.jobs j "
+                "JOIN tester_research.credentials c ON c.actor=j.actor "
+                "JOIN tester_research.grants g ON g.actor=j.actor "
+                "AND g.artifact_digest=j.command->>'expected_artifact_digest' AND g.action='chart.overlay' "
+                "WHERE NOT c.revoked AND c.expires_at>clock_timestamp() AND j.attempts<3 "
+                "AND (j.state='pending' OR (j.state='running' AND j.lease_until<clock_timestamp())) "
+                "ORDER BY j.created_at,j.job_id LIMIT 1"
+            ).fetchone()
+            return dict(row) if row else None
+
+    def record_projection_failure(self, actor, job_id, expected_attempts):
+        """Count malformed pre-claim work once; never double-charge an owned lease."""
+        if type(expected_attempts) is not int or not 0 <= expected_attempts < 3:
+            raise ValueError("bounded projection attempt required")
+        with self.connection() as conn:
+            row = conn.execute(
+                "UPDATE tester_research.jobs j SET attempts=attempts+1 WHERE actor=%s AND job_id=%s "
+                "AND attempts=%s AND (state='pending' OR (state='running' AND lease_until<clock_timestamp())) "
+                "AND EXISTS(SELECT 1 FROM tester_research.credentials c WHERE c.actor=j.actor "
+                "AND NOT c.revoked AND c.expires_at>clock_timestamp()) RETURNING job_id",
+                (actor, job_id, expected_attempts),
+            ).fetchone()
+            if row:
+                self._audit(conn, actor, "projection_attempt_failed", job_id)
+            return row is not None
 
     def claim(self, actor, job_id):
         with self.connection() as conn:
@@ -301,7 +331,7 @@ class PersistentResearchLedger:
             claimed = conn.execute(
                 "UPDATE tester_research.jobs SET state='running',lease_token=%s,"
                 "lease_until=clock_timestamp()+interval '30 seconds',attempts=attempts+1 WHERE job_id=%s "
-                "AND (state='pending' OR (state='running' AND lease_until<clock_timestamp())) RETURNING *",
+                "AND attempts<3 AND (state='pending' OR (state='running' AND lease_until<clock_timestamp())) RETURNING *",
                 (uuid4(), job_id),
             ).fetchone()
             if not claimed:
@@ -380,4 +410,10 @@ def create_persistent_control_app(dsn):
     control = create_persistent_control(dsn)
     app = create_control_app(control, control.store.authenticate)
     app.state.research_control = control
+    from fastapi.responses import JSONResponse
+
+    @app.exception_handler(psycopg.Error)
+    async def database_unavailable(request, exc):
+        return JSONResponse(status_code=503, content={"detail": "research database unavailable"})
+
     return app
