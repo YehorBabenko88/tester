@@ -45,11 +45,7 @@ def check_history_schema(app_dsn: str, catalog_dsn: str) -> dict:
             "tester_lab.projections",
         ):
             schema, name = table.split(".", 1)
-            conn.execute(
-                sql.SQL("SELECT 1 FROM {} LIMIT 0").format(
-                    sql.Identifier(schema, name)
-                )
-            )
+            conn.execute(sql.SQL("SELECT 1 FROM {} LIMIT 0").format(sql.Identifier(schema, name)))
     return {
         "app_database": "SCHEMA_READABLE",
         "worker": "NOT_VERIFIED",
