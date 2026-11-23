@@ -341,7 +341,9 @@ class NativeSCM:
             self.manager,
             plan["name"],
             plan["name"],
-            ws.SERVICE_CHANGE_CONFIG,
+            ws.SERVICE_CHANGE_CONFIG
+            | 0x00010000
+            | (ws.SERVICE_START if plan.get("recovery_delays_ms") else 0),
             ws.SERVICE_WIN32_OWN_PROCESS,
             ws.SERVICE_AUTO_START if plan.get("auto_start", False) else ws.SERVICE_DEMAND_START,
             ws.SERVICE_ERROR_NORMAL,
@@ -375,36 +377,41 @@ class NativeSCM:
                         ],
                     },
                 )
+            base = "SYSTEM\\CurrentControlSet\\Services\\" + plan["name"]
+            with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\Parameters") as key:
+                for k, v in {
+                    "InstallationId": plan["installation_id"],
+                    "Root": plan["root"],
+                    "SourceSHA": plan.get("source_sha", ""),
+                }.items():
+                    winreg.SetValueEx(key, k, 0, winreg.REG_SZ, v)
+            if dependency:
+                with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\PythonClass") as key:
+                    winreg.SetValueEx(key, None, 0, winreg.REG_SZ, plan["python_class"])
+                with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\PythonPath") as key:
+                    site = str(Path(plan["root"]) / "dependencies/venv/Lib/site-packages")
+                    winreg.SetValueEx(
+                        key,
+                        None,
+                        0,
+                        winreg.REG_SZ,
+                        ";".join(
+                            [
+                                str(Path(plan["root"]) / "dependencies/service"),
+                                plan["release"],
+                                site,
+                                site + "\\win32",
+                                site + "\\win32\\lib",
+                            ]
+                        ),
+                    )
+        except BaseException:
+            # Only this exact CreateService handle is eligible for rollback.
+            # Existing/foreign services can never reach this branch.
+            ws.DeleteService(h)
+            raise
         finally:
             ws.CloseServiceHandle(h)
-        base = "SYSTEM\\CurrentControlSet\\Services\\" + plan["name"]
-        with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\Parameters") as key:
-            for k, v in {
-                "InstallationId": plan["installation_id"],
-                "Root": plan["root"],
-                "SourceSHA": plan.get("source_sha", ""),
-            }.items():
-                winreg.SetValueEx(key, k, 0, winreg.REG_SZ, v)
-        if dependency:
-            with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\PythonClass") as key:
-                winreg.SetValueEx(key, None, 0, winreg.REG_SZ, plan["python_class"])
-            with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\PythonPath") as key:
-                site = str(Path(plan["root"]) / "dependencies/venv/Lib/site-packages")
-                winreg.SetValueEx(
-                    key,
-                    None,
-                    0,
-                    winreg.REG_SZ,
-                    ";".join(
-                        [
-                            str(Path(plan["root"]) / "dependencies/service"),
-                            plan["release"],
-                            site,
-                            site + "\\win32",
-                            site + "\\win32\\lib",
-                        ]
-                    ),
-                )
 
     def _call(self, name, access, fn):
         h = self.ws.OpenService(self.manager, name, access)

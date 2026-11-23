@@ -344,3 +344,51 @@ def test_shortcuts_require_explicit_elevated_launch_flag(tmp_path):
     for path in paths:
         data = __import__("pathlib").Path(path).read_bytes()
         assert int.from_bytes(data[20:24], "little") & 0x2000
+
+
+def test_new_native_registration_failure_rolls_back_exact_created_handle(monkeypatch):
+    import sys
+    import types
+
+    import pytest
+
+    from src.api.lab_scm import NativeSCM
+
+    calls = []
+
+    class WS:
+        SERVICE_CHANGE_CONFIG = 2
+        SERVICE_START = 16
+        SERVICE_WIN32_OWN_PROCESS = 16
+        SERVICE_AUTO_START = 2
+        SERVICE_DEMAND_START = 3
+        SERVICE_ERROR_NORMAL = 1
+        SERVICE_CONFIG_FAILURE_ACTIONS = 2
+        SC_ACTION_RESTART = 1
+        SC_ACTION_NONE = 0
+
+        def CreateService(self, *args):
+            calls.append(("access", args[3]))
+            return "new-owned-handle"
+
+        def ChangeServiceConfig2(self, *args):
+            raise RuntimeError("native recovery config failed")
+
+        def DeleteService(self, h):
+            calls.append(("delete", h))
+
+        def CloseServiceHandle(self, h):
+            calls.append(("close", h))
+
+    scm = object.__new__(NativeSCM)
+    scm.ws = WS()
+    scm.manager = "manager"
+    monkeypatch.setitem(sys.modules, "winreg", types.SimpleNamespace())
+    plan = dict(name="TesterReleaseApp_" + uuid.uuid4().hex, recovery_delays_ms=[1000, 5000, 0])
+    with pytest.raises(RuntimeError, match="native recovery config failed"):
+        scm.install(plan, "private-host.exe", None)
+    assert calls == [
+        ("access", 2 | 16 | 0x10000),
+        ("delete", "new-owned-handle"),
+        ("close", "new-owned-handle"),
+    ]
