@@ -146,3 +146,54 @@ Policy evaluator tests and real foreign-owner rejection are not proof of a
 successful virtual-account PostgreSQL lifecycle. The local host lacks symlink
 creation privilege; both symlink cases remain NOT RUN here. Production key
 approval and independent Guardian GO remain required before publication.
+
+## Interrupted fresh-install rollback
+
+`rollback_provisioning(root, journal_path=..., trusted_public_key_sha256=...,
+expected_source_sha=...)` is restricted to an authenticated fresh provisioning
+transaction that has never recorded `ready`, `completed` or `committed`. It is
+not an alternate user uninstaller and does not adopt an existing installation.
+The external `tester-provisioning/v1` JSONL header is created and fsynced under
+protected SYSTEM/Administrators ownership before the root exists. It binds the
+UUID marker, independently verified signed release envelope, parent identity,
+unique provisioning App service SID, and exact actor output scope.
+
+Initial copy plans are fsynced before native creation. Native SECURITY_ATTRIBUTES
+assign the unique App SID as owner **at creation**, with a protected SYSTEM/Admin
+DACL. This closes the create-before-file-ID-receipt crash gap: an unreceipted
+planned temporary object still requires the unique kernel owner and restrictive
+ACL; an Admin/user-owned object at the same planned path is refused. Created
+native IDs, signed source hashes, atomic rename identities and finalized hashes
+are recorded before ownership changes. A rename that completed before its journal
+record can be recovered only through its already recorded temporary file ID and
+exact planned final hash. Malformed complete journal records fail closed. A torn
+last append permits rollback of the authenticated prefix but cannot be resealed.
+
+`seal_provisioning_outputs` stops and proves the existing App provisioning actor
+through the shared native service/job adapter, authenticates newly created outputs
+by unique owner SID and absence of foreign ACL identities, then fsyncs their IDs
+and derived venv code hashes to the protected journal. This occurs before changing
+venv/cluster owners or ACLs. Unknown Admin files are never enrolled. Both helpers
+reuse the existing native handle locking and handle-disposition deletion engine;
+no additional service, supervisor, process killer or PostgreSQL client is added.
+Callers already holding the installer lifecycle lock pass a null context callback
+rather than acquiring the same operation lock twice, and close their writable
+journal handle before calling either helper.
+
+The journal can declare exactly the two Desktop shortcuts. Their plans precede
+native unique-owner creation; recorded IDs and finalized hashes bind COM output.
+Other Desktop files and replaced shortcut identities are preserved. A
+`final_ledger_sealed` event made before normal services start routes subsequent
+fresh-install failure through the already authenticated final ownership ledger
+and its separate App/PostgreSQL writer boundaries. The final marker, source,
+UUID, root identity and trust-config scope must match the provisioning header.
+Automatic rollback authorization applies only to this never-committed fresh
+transaction; a completed installation requires normal irreversible confirmations.
+
+Rollback keeps an external append-only nonsecret removal receipt and the protected
+provisioning journal. Missing already removed identities are tolerated on retry;
+unknown entries, replaced IDs, foreign creator SIDs, reparse points, hardlinks and
+locked objects refuse deletion. Native temporary-fixture tests exercise real
+handle deletion and partial retries; the non-elevated local host isolates only
+the external Admin-ACL enrollment gate. Full elevated virtual-account provisioning,
+COM interruption and populated PostgreSQL acceptance remain integrated CI gates.

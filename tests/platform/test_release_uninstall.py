@@ -649,3 +649,534 @@ try {
     )
     assert child.returncode == 0, child.stderr
     assert metadata.read_text() == "authorized dummy metadata"
+
+
+def provisioning_journal(tmp_path):
+    import hashlib
+
+    bundle, pin = signed_bundle(tmp_path)
+    release = verify(bundle, pin)
+    root = tmp_path / ("fresh-provision-" + uuid.uuid4().hex)
+    root.mkdir()
+    (root / "app.txt").write_bytes(b"TESTER")
+    ident = uuid.uuid4()
+    marker = dict(
+        schema="tester-release-install/v1",
+        root=str(root),
+        installation_id=str(ident),
+        source_sha="a" * 40,
+        release_manifest_sha256=release.manifest_sha256,
+        services={
+            "app": "TesterReleaseApp_" + ident.hex,
+            "postgres": "TesterReleasePG_" + ident.hex,
+        },
+    )
+    header = dict(
+        schema="tester-provisioning/v1",
+        root=str(root),
+        installation_id=str(ident),
+        marker=marker,
+        actor_sid="S-1-5-80-1-2-3-4-5",
+        release_envelope=json.loads(release.manifest),
+        release_manifest_sha256=release.manifest_sha256,
+        root_parent_identity=removal._identity(root.parent),
+        allowed_actor_prefixes=[
+            "runtime",
+            "state",
+            "private",
+            "backups",
+            "postgres-data",
+            "dependencies/venv",
+        ],
+        allowed_actor_files=["config.json", "config.pending"],
+    )
+    temporary = ".tester-copy_" + uuid.uuid4().hex + ".pending"
+    rows = [
+        header,
+        dict(event="root_created", identity=removal._identity(root)),
+        dict(
+            event="planned_file",
+            path="app.txt",
+            temp=temporary,
+            signed_source="app.txt",
+            sha256=hashlib.sha256(b"TESTER").hexdigest(),
+        ),
+        dict(
+            event="created",
+            path="app.txt",
+            identity=removal._identity(root / "app.txt"),
+            kind="file",
+        ),
+        dict(
+            event="finalized",
+            path="app.txt",
+            identity=removal._identity(root / "app.txt"),
+            sha256=hashlib.sha256(b"TESTER").hexdigest(),
+        ),
+    ]
+    encoded = b"".join(removal.canonical_json(row) + b"\n" for row in rows)
+    return root, pin, header, rows, encoded
+
+
+def test_partial_journal_authenticates_signed_source_and_exact_created_ids(tmp_path):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    parsed = removal._parse_provisioning_journal(
+        encoded, root=root, trusted_public_key_sha256=pin, expected_source_sha="a" * 40
+    )
+    assert parsed["entries"]["app.txt"]["identity"] == removal._identity(root / "app.txt")
+    assert parsed["root_identity"] == removal._identity(root)
+    assert parsed["header"] == header
+
+
+@pytest.mark.parametrize(
+    "mutation", ["key", "source", "traversal", "signed_hash", "unknown_event", "committed"]
+)
+def test_partial_journal_rejects_forged_authority_or_unsafe_events(tmp_path, mutation):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    if mutation == "key":
+        pin = "0" * 64
+    elif mutation == "source":
+        header["release_envelope"]["manifest"]["source_sha"] = "b" * 40
+    elif mutation == "traversal":
+        rows[2]["path"] = "../FOREIGN"
+    elif mutation == "signed_hash":
+        rows[2]["sha256"] = "0" * 64
+    elif mutation == "unknown_event":
+        rows.append({"event": "adopt_foreign_snapshot"})
+    else:
+        rows.append({"event": "phase", "phase": "ready"})
+    encoded = b"".join(removal.canonical_json(row) + b"\n" for row in rows)
+    with pytest.raises(ReleaseSecurityError):
+        removal._parse_provisioning_journal(
+            encoded, root=root, trusted_public_key_sha256=pin, expected_source_sha="a" * 40
+        )
+
+
+def test_provisioning_acl_proof_rejects_foreign_creator_and_foreign_access():
+    sid = "S-1-5-80-1-2-3-4-5"
+    initial = dict(
+        owner=sid,
+        protected=True,
+        aces=[(0, 0, 0x1F01FF, "S-1-5-18"), (0, 0, 0x1F01FF, "S-1-5-32-544")],
+    )
+    removal._validate_provisioning_actor_security(initial, sid, initial=True)
+    mutable = {**initial, "aces": initial["aces"] + [(0, 0, 0x1F01FF, sid)]}
+    removal._validate_provisioning_actor_security(mutable, sid)
+    for record in (
+        {**initial, "owner": "S-1-5-19"},
+        {**mutable, "aces": mutable["aces"] + [(0, 0, 0x120089, "S-1-1-0")]},
+    ):
+        with pytest.raises(ReleaseSecurityError):
+            removal._validate_provisioning_actor_security(record, sid)
+
+
+@contextmanager
+def fixture_protected_provisioning(path, *, write=False):
+    # Isolate ACL trust enrollment on this non-elevated host; native IDs, signature,
+    # handle locking, hashes and destructive operations below remain real.
+    obj = removal._WindowsObject(path, write=write)
+    try:
+        yield obj
+    finally:
+        obj.close()
+
+
+def write_provisioning_fixture(tmp_path, rows):
+    path = tmp_path / "protected-provisioning.jsonl"
+    path.write_bytes(b"".join(removal.canonical_json(row) + b"\n" for row in rows))
+    return path
+
+
+@windows_only
+def test_native_partial_install_rollback_and_repeat_preserve_foreign_neighbor(
+    tmp_path, monkeypatch
+):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    journal = write_provisioning_fixture(tmp_path, rows)
+    foreign = tmp_path / "FOREIGN"
+    foreign.write_text("KEEP")
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    resources = Resources()
+    result = removal.rollback_provisioning(
+        root,
+        journal_path=journal,
+        trusted_public_key_sha256=pin,
+        expected_source_sha="a" * 40,
+        resources=resources,
+        lifecycle_lock=fixture_lock,
+    )
+    assert result["status"] == "rolled_back"
+    assert not root.exists() and foreign.read_text() == "KEEP"
+    assert journal.exists()
+    assert (
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=resources,
+            lifecycle_lock=fixture_lock,
+        )["status"]
+        == "already_rolled_back"
+    )
+
+
+@windows_only
+@pytest.mark.parametrize(
+    "mutation", ["foreign", "actor_prefix_foreign", "hardlink", "swapped", "locked"]
+)
+def test_native_partial_rollback_refuses_foreign_or_locked_objects(tmp_path, monkeypatch, mutation):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    held = None
+    if mutation == "foreign":
+        (root / "FOREIGN").write_text("KEEP")
+    elif mutation == "actor_prefix_foreign":
+        (root / "runtime").mkdir()
+        (root / "runtime" / "FOREIGN").write_text("KEEP")
+    elif mutation == "hardlink":
+        (tmp_path / "foreign-hardlink").hardlink_to(root / "app.txt")
+    elif mutation == "swapped":
+        (root / "app.txt").rename(tmp_path / "old-code")
+        (root / "app.txt").write_bytes(b"TESTER")
+    else:
+        held = (root / "app.txt").open("rb")
+    try:
+        with pytest.raises((ReleaseSecurityError, OSError)):
+            removal.rollback_provisioning(
+                root,
+                journal_path=journal,
+                trusted_public_key_sha256=pin,
+                expected_source_sha="a" * 40,
+                resources=Resources(),
+                lifecycle_lock=fixture_lock,
+            )
+        assert root.exists() and (root / "app.txt").exists()
+    finally:
+        if held:
+            held.close()
+
+
+@windows_only
+def test_native_provisioning_seal_appends_fsynced_derived_code_identity(tmp_path, monkeypatch):
+    import hashlib
+
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    for name in ("dependencies", "dependencies/venv"):
+        (root / name).mkdir()
+        rows += [
+            dict(event="planned_dir", path=name),
+            dict(event="created", path=name, identity=removal._identity(root / name), kind="dir"),
+        ]
+    path = root / "dependencies/venv/derived.py"
+    path.write_bytes(b"authorized derived dependency")
+    name = "dependencies/venv/derived.py"
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    rows += [
+        dict(
+            event="planned_file",
+            path=name,
+            temp="dependencies/venv/.tester-copy_" + uuid.uuid4().hex + ".pending",
+            sha256=digest,
+            signed_source=None,
+        ),
+        dict(event="created", path=name, identity=removal._identity(path), kind="file"),
+    ]
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    proof = removal.seal_provisioning_outputs(
+        root,
+        journal_path=journal,
+        trusted_public_key_sha256=pin,
+        expected_source_sha="a" * 40,
+        resources=Resources(),
+        lifecycle_lock=fixture_lock,
+    )
+    assert name in proof
+    final = json.loads(journal.read_bytes().splitlines()[-1])
+    assert final == dict(
+        event="finalized", path=name, identity=removal._identity(path), sha256=digest
+    )
+    removal.rollback_provisioning(
+        root,
+        journal_path=journal,
+        trusted_public_key_sha256=pin,
+        expected_source_sha="a" * 40,
+        resources=Resources(),
+        lifecycle_lock=fixture_lock,
+    )
+    assert not root.exists()
+
+
+@windows_only
+def test_partial_rollback_recovers_recorded_temp_rename_before_rename_event(tmp_path, monkeypatch):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    temp = rows[2]["temp"]
+    (root / "app.txt").rename(root / temp)
+    rows = rows[:3] + [
+        dict(event="created", path=temp, identity=removal._identity(root / temp), kind="file")
+    ]
+    journal = write_provisioning_fixture(tmp_path, rows)
+    (root / temp).rename(root / "app.txt")
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    assert (
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )["status"]
+        == "rolled_back"
+    )
+    assert not root.exists()
+
+
+@windows_only
+def test_planned_unrecorded_temp_with_foreign_owner_is_never_adopted(tmp_path, monkeypatch):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    foreign = root / rows[2]["temp"]
+    foreign.write_text("KEEP FOREIGN")
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    with pytest.raises(ReleaseSecurityError, match="foreign creator"):
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )
+    assert foreign.read_text() == "KEEP FOREIGN"
+    assert (root / "app.txt").exists()
+
+
+@windows_only
+def test_partial_rollback_failure_retains_evidence_and_retries(tmp_path, monkeypatch):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    original = removal._WindowsObject.delete
+    count = []
+
+    def interrupted(obj):
+        if count:
+            raise PermissionError("authorized dummy interruption after real file removal")
+        original(obj)
+        count.append(True)
+
+    monkeypatch.setattr(removal._WindowsObject, "delete", interrupted)
+    with pytest.raises(PermissionError):
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )
+    assert root.exists() and not (root / "app.txt").exists()
+    receipt = journal.with_suffix(".rollback.jsonl")
+    assert removal.read_evidence(receipt)["status"] == "refused_or_partial"
+    assert removal.read_evidence(receipt)["deleted_count"] == 1
+    monkeypatch.setattr(removal._WindowsObject, "delete", original)
+    assert (
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )["status"]
+        == "rolled_back"
+    )
+
+
+@windows_only
+def test_torn_provisioning_append_can_rollback_but_never_seal_over_corruption(
+    tmp_path, monkeypatch
+):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    journal = write_provisioning_fixture(tmp_path, rows)
+    with journal.open("ab") as stream:
+        stream.write(b'{"event":"created"')
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    with pytest.raises(ReleaseSecurityError, match="Incomplete provisioning append"):
+        removal.seal_provisioning_outputs(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )
+    assert (
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )["status"]
+        == "rolled_back"
+    )
+
+
+@windows_only
+def test_partial_rollback_refuses_marker_from_different_installation_even_with_created_id(
+    tmp_path, monkeypatch
+):
+    import hashlib
+
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    wrong = {**header["marker"], "installation_id": str(uuid.uuid4())}
+    path = root / removal.MARKER
+    path.write_text(json.dumps(wrong))
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    rows += [
+        dict(
+            event="planned_file",
+            path=removal.MARKER,
+            temp=".tester-copy_" + uuid.uuid4().hex + ".pending",
+            signed_source=None,
+            sha256=digest,
+        ),
+        dict(event="created", path=removal.MARKER, identity=removal._identity(path), kind="file"),
+    ]
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    with pytest.raises(ReleaseSecurityError, match="marker"):
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )
+    assert path.exists()
+
+
+def test_partial_journal_accepts_final_ledger_proof_but_completed_forbids_rollback(tmp_path):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    event = dict(
+        event="final_ledger_sealed",
+        ledger_path=str(tmp_path / "ownership.json"),
+        ledger_sha256="0" * 64,
+        trust_config_path=str(tmp_path / "trust.json"),
+    )
+    rows.append(event)
+    encoded = b"".join(removal.canonical_json(row) + b"\n" for row in rows)
+    assert (
+        removal._parse_provisioning_journal(
+            encoded, root=root, trusted_public_key_sha256=pin, expected_source_sha="a" * 40
+        )["final_ledger"]
+        == event
+    )
+    rows.append(dict(event="phase", phase="completed"))
+    with pytest.raises(ReleaseSecurityError):
+        removal._parse_provisioning_journal(
+            b"".join(removal.canonical_json(row) + b"\n" for row in rows),
+            root=root,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+        )
+
+
+@windows_only
+def test_partial_rollback_removes_only_created_external_shortcut_ids(tmp_path, monkeypatch):
+    import hashlib
+
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    desktop = tmp_path / "Desktop_owned"
+    desktop.mkdir()
+    links = [
+        desktop / "TESTER \u2014 \u0417\u0430\u043f\u0443\u0441\u043a.lnk",
+        desktop / "TESTER \u2014 \u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435.lnk",
+    ]
+    header["marker"]["desktop"] = str(desktop)
+    header["external_paths"] = [str(path) for path in links]
+    for path in links:
+        path.write_bytes(b"authorized dummy shortcut")
+        rows += [
+            dict(event="planned_external", path=str(path), kind="file", purpose="desktop-shortcut"),
+            dict(event="external_created", path=str(path), identity=removal._identity(path)),
+            dict(
+                event="external_finalized",
+                path=str(path),
+                identity=removal._identity(path),
+                sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            ),
+        ]
+    foreign = desktop / "FOREIGN.lnk"
+    foreign.write_text("KEEP")
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    assert (
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )["status"]
+        == "rolled_back"
+    )
+    assert all(not path.exists() for path in links)
+    assert foreign.read_text() == "KEEP"
+
+
+@windows_only
+def test_final_ledger_commit_routes_fresh_transaction_to_full_owned_uninstaller(
+    tmp_path, monkeypatch
+):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    release = verify(tmp_path / "bundle", pin)
+    config = tmp_path / "trust.json"
+    header["marker"]["trust_config"] = str(config)
+    (root / removal.MARKER).write_text(json.dumps(header["marker"]))
+    ledger = tmp_path / "final-ownership.json"
+    ledger_pin = removal.write_ownership(
+        root,
+        header["marker"],
+        release=release,
+        ledger_path=ledger,
+        owned_paths=("app.txt", removal.MARKER),
+        trust_config_path=config,
+    )
+    rows.append(
+        dict(
+            event="final_ledger_sealed",
+            ledger_path=str(ledger),
+            ledger_sha256=ledger_pin,
+            trust_config_path=str(config),
+        )
+    )
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    calls = []
+
+    def full_remove(actualroot, **kwargs):
+        calls.append((actualroot, kwargs))
+        return dict(status="removed", deleted_count=0)
+
+    monkeypatch.setattr(removal, "uninstall", full_remove)
+    result = removal.rollback_provisioning(
+        root,
+        journal_path=journal,
+        trusted_public_key_sha256=pin,
+        expected_source_sha="a" * 40,
+        resources=Resources(),
+        final_resources=Resources(),
+        lifecycle_lock=fixture_lock,
+    )
+    assert result["status"] == "rolled_back"
+    assert calls[0][0] == root
+    assert calls[0][1]["trusted_ledger_sha256"] == ledger_pin
+    assert calls[0][1]["confirmations"] == ("DELETE TESTER", "YES")

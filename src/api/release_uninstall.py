@@ -37,7 +37,7 @@ MARKER = ".tester-release.json"
 class _WindowsObject:
     """No-share-write/delete handles prevent directory/file swaps through deletion."""
 
-    def __init__(self, path, *, delete=False, lock=True):
+    def __init__(self, path, *, delete=False, lock=True, write=False):
         from ctypes import wintypes
 
         self.api = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -74,7 +74,13 @@ class _WindowsObject:
         ]
         self.path = Path(path)
         is_dir = stat.S_ISDIR(self.path.lstat().st_mode)
-        access = 0x20000 | 0x80 | (0x10000 if delete else 0) | (0x80000000 if not is_dir else 0)
+        access = (
+            0x20000
+            | 0x80
+            | (0x10000 if delete else 0)
+            | (0x80000000 if not is_dir else 0)
+            | (0x40000000 if write else 0)
+        )
         self.handle = self.api.CreateFileW(
             str(self.path), access, 1 if lock else 7, None, 3, 0x02000000 | 0x00200000, None
         )
@@ -105,7 +111,7 @@ class _WindowsObject:
             self.close()
             raise ReleaseSecurityError("Reparse point or hardlink refused")
 
-    def read_bytes(self):
+    def read_bytes(self, *, max_bytes=16 * 1024 * 1024):
         from ctypes import wintypes
 
         if not self.api.SetFilePointerEx(self.handle, 0, None, 0):
@@ -119,7 +125,7 @@ class _WindowsObject:
             if not count.value:
                 return bytes(result)
             result.extend(buf.raw[: count.value])
-            if len(result) > 16 * 1024 * 1024:
+            if len(result) > max_bytes:
                 raise ReleaseSecurityError("Maintenance config too large")
 
     def digest(self):
@@ -760,6 +766,658 @@ def read_evidence(path):
     if result is None:
         raise ReleaseSecurityError("No complete durable evidence record")
     return result
+
+
+# Provisioning journals are created before any root resource. Unlike the final
+# ledger, they permit a signed payload to be only partly copied.
+_PROVISION_PREFIXES = {
+    "runtime",
+    "state",
+    "private",
+    "backups",
+    "postgres-data",
+    "dependencies/venv",
+}
+_PROVISION_FILES = {"config.json", "config.pending"}
+
+
+def _valid_identity(value):
+    if not (
+        isinstance(value, list)
+        and len(value) == 2
+        and all(type(n) is int and n >= 0 for n in value)
+        and value[1] > 0
+    ):
+        raise ReleaseSecurityError("Invalid native provisioning identity")
+    return value
+
+
+def _actor_path(name, header):
+    return name in header["allowed_actor_files"] or any(
+        name == p or name.startswith(p + "/") for p in header["allowed_actor_prefixes"]
+    )
+
+
+def _parse_provisioning_journal(encoded, *, root, trusted_public_key_sha256, expected_source_sha):
+    """Authenticate a complete fsynced prefix; never infer creation from a phase."""
+    try:
+        lines = encoded.splitlines(keepends=True)
+        rows = [
+            json.loads(line, object_pairs_hook=_unique_object)
+            for line in lines
+            if line.endswith(b"\n")
+        ]
+        if not rows or not lines[0].endswith(b"\n"):
+            raise ReleaseSecurityError("Provisioning header was not durably completed")
+        header = rows[0]
+        marker = header["marker"]
+        ident = str(uuid.UUID(header["installation_id"]))
+        expected_services = {
+            "app": "TesterReleaseApp_" + uuid.UUID(ident).hex,
+            "postgres": "TesterReleasePG_" + uuid.UUID(ident).hex,
+        }
+        if (
+            header["schema"] != "tester-provisioning/v1"
+            or header["root"] != str(root)
+            or marker["root"] != str(root)
+            or marker["installation_id"] != ident
+            or marker["schema"] != "tester-release-install/v1"
+            or marker["services"] != expected_services
+            or set(header["allowed_actor_prefixes"]) != _PROVISION_PREFIXES
+            or set(header["allowed_actor_files"]) != _PROVISION_FILES
+            or not re.fullmatch(r"S-1-5-80-(?:[0-9]+-){4}[0-9]+", header["actor_sid"])
+        ):
+            raise ReleaseSecurityError("Foreign provisioning authority or actor scope")
+        _valid_identity(header["root_parent_identity"])
+        envelope = header["release_envelope"]
+        manifest = envelope["manifest"]
+        if (
+            set(envelope) != {"manifest", "signature_hex", "public_key_hex"}
+            or not verify_signed_manifest(
+                manifest,
+                signature_hex=envelope["signature_hex"],
+                public_key_hex=envelope["public_key_hex"],
+                trusted_public_key_sha256=trusted_public_key_sha256,
+            )
+            or set(manifest) != {"schema", "release_version", "source_sha", "repository", "files"}
+            or manifest["schema"] != "tester-release/v1"
+            or manifest["release_version"] != "1"
+            or manifest["repository"] != REPOSITORY
+            or manifest["source_sha"] != expected_source_sha
+            or not re.fullmatch("[0-9a-f]{40}", expected_source_sha)
+            or marker["source_sha"] != expected_source_sha
+            or hashlib.sha256(canonical_json(envelope)).hexdigest()
+            != header["release_manifest_sha256"]
+            or marker["release_manifest_sha256"] != header["release_manifest_sha256"]
+        ):
+            raise ReleaseSecurityError("Provisioning release signature/provenance rejected")
+        files = manifest["files"]
+        if not isinstance(files, dict) or not files:
+            raise ReleaseSecurityError("Missing signed provisioning payload inventory")
+        folded = set()
+        for name, digest in files.items():
+            relative_name(name)
+            if name.casefold() in folded or type(digest) is not str or not HEX64.fullmatch(digest):
+                raise ReleaseSecurityError("Invalid signed provisioning inventory")
+            folded.add(name.casefold())
+        external_paths = header.get("external_paths", [])
+        expected_names = {
+            "TESTER \u2014 \u0417\u0430\u043f\u0443\u0441\u043a.lnk",
+            "TESTER \u2014 \u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435.lnk",
+        }
+        if external_paths and (
+            len(external_paths) != 2
+            or {Path(p).name for p in external_paths} != expected_names
+            or any(
+                not Path(p).is_absolute() or Path(p).parent != Path(marker["desktop"])
+                for p in external_paths
+            )
+        ):
+            raise ReleaseSecurityError("Foreign provisioning external shortcut scope")
+        state = dict(
+            header=header,
+            root_identity=None,
+            entries={},
+            directories=set(),
+            plans={},
+            external_plans=set(),
+            external_entries={},
+            final_ledger=None,
+        )
+        for row in rows[1:]:
+            event = row.get("event")
+            if event == "root_created":
+                identity = _valid_identity(row["identity"])
+                if state["root_identity"] not in (None, identity):
+                    raise ReleaseSecurityError("Conflicting provisioning root identities")
+                state["root_identity"] = identity
+            elif event == "planned_dir":
+                state["directories"].add(relative_name(row["path"]))
+            elif event == "planned_file":
+                name, temp = relative_name(row["path"]), relative_name(row["temp"])
+                if (
+                    Path(name).parent != Path(temp).parent
+                    or not re.fullmatch(r"\.tester-copy_[0-9a-f]{32}\.pending", Path(temp).name)
+                    or type(row["sha256"]) is not str
+                    or not HEX64.fullmatch(row["sha256"])
+                ):
+                    raise ReleaseSecurityError("Unsafe provisioning temporary-file plan")
+                source = row["signed_source"]
+                if source is not None and files.get(relative_name(source)) != row["sha256"]:
+                    raise ReleaseSecurityError(
+                        "Provisioning copy is not the signed source artifact"
+                    )
+                if name in state["plans"] and state["plans"][name] != row:
+                    raise ReleaseSecurityError("Conflicting provisioning file plans")
+                state["plans"][name] = row
+            elif event == "created":
+                name = relative_name(row["path"])
+                kind = row["kind"]
+                planned = (
+                    name in state["directories"]
+                    if kind == "dir"
+                    else any(name in (p["path"], p["temp"]) for p in state["plans"].values())
+                )
+                if kind not in ("file", "dir") or not (planned or _actor_path(name, header)):
+                    raise ReleaseSecurityError(
+                        "Creation receipt has no authorized plan or actor scope"
+                    )
+                state["entries"][name] = dict(identity=_valid_identity(row["identity"]), kind=kind)
+            elif event == "renamed":
+                name, temp = relative_name(row["path"]), relative_name(row["temp"])
+                plan = state["plans"].get(name)
+                old = state["entries"].get(temp)
+                identity = _valid_identity(row["identity"])
+                if (
+                    not plan
+                    or plan["temp"] != temp
+                    or not old
+                    or old["kind"] != "file"
+                    or old["identity"] != identity
+                ):
+                    raise ReleaseSecurityError(
+                        "Rename is not bound to a recorded creation identity"
+                    )
+                state["entries"].pop(temp)
+                state["entries"][name] = dict(identity=identity, kind="file", sha256=plan["sha256"])
+            elif event == "finalized":
+                name = relative_name(row["path"])
+                old = state["entries"].get(name)
+                if (
+                    not old
+                    or old["kind"] != "file"
+                    or old["identity"] != _valid_identity(row["identity"])
+                    or type(row["sha256"]) is not str
+                    or not HEX64.fullmatch(row["sha256"])
+                    or (name in state["plans"] and state["plans"][name]["sha256"] != row["sha256"])
+                ):
+                    raise ReleaseSecurityError("Finalized bytes lack matching creation provenance")
+                old["sha256"] = row["sha256"]
+            elif event == "planned_external":
+                name = row["path"]
+                if (
+                    name not in external_paths
+                    or row["kind"] != "file"
+                    or row["purpose"] != "desktop-shortcut"
+                ):
+                    raise ReleaseSecurityError("External resource has no declared desktop scope")
+                state["external_plans"].add(name)
+            elif event == "external_created":
+                name = row["path"]
+                if name not in state["external_plans"]:
+                    raise ReleaseSecurityError("External creation lacks a prior durable plan")
+                state["external_entries"][name] = dict(identity=_valid_identity(row["identity"]))
+            elif event == "external_finalized":
+                name = row["path"]
+                old = state["external_entries"].get(name)
+                if (
+                    not old
+                    or old["identity"] != _valid_identity(row["identity"])
+                    or type(row["sha256"]) is not str
+                    or not HEX64.fullmatch(row["sha256"])
+                ):
+                    raise ReleaseSecurityError("External finalized bytes lack a creation identity")
+                old["sha256"] = row["sha256"]
+            elif event == "final_ledger_sealed":
+                ledger_path, config_path = Path(row["ledger_path"]), Path(row["trust_config_path"])
+                if (
+                    not ledger_path.is_absolute()
+                    or not config_path.is_absolute()
+                    or ledger_path == root
+                    or root in ledger_path.parents
+                    or root in config_path.parents
+                    or type(row["ledger_sha256"]) is not str
+                    or not HEX64.fullmatch(row["ledger_sha256"])
+                    or state["final_ledger"] not in (None, row)
+                ):
+                    raise ReleaseSecurityError("Invalid final provisioning ownership commitment")
+                state["final_ledger"] = row
+            elif event == "phase":
+                if type(row["phase"]) is not str or row["phase"] in (
+                    "ready",
+                    "committed",
+                    "completed",
+                ):
+                    raise ReleaseSecurityError(
+                        "Committed installation requires confirmed full uninstall"
+                    )
+            else:
+                raise ReleaseSecurityError("Unknown provisioning journal event")
+        return state
+    except (ValueError, TypeError, KeyError, AttributeError, IndexError) as exc:
+        if isinstance(exc, ReleaseSecurityError):
+            raise
+        raise ReleaseSecurityError("Malformed provisioning authority or journal") from exc
+
+
+def _validate_provisioning_actor_security(record, actor_sid, *, initial=False):
+    """Unknown output requires a unique kernel creator; Admin ownership is not enough."""
+    if record["owner"] != actor_sid:
+        raise ReleaseSecurityError("Unknown provisioning object has a foreign creator SID")
+    allowed = {"S-1-5-18", "S-1-5-32-544", actor_sid}
+    if not record["aces"]:
+        raise ReleaseSecurityError("Empty provisioning ACL cannot authorize deletion")
+    if initial:
+        copy = {**record, "owner": "S-1-5-32-544"}
+        _validate_admin_security(copy)
+        return
+    for kind, flags, mask, sid in record["aces"]:
+        if kind != 0 or flags & ~0x1F or sid not in allowed or mask & ~0x1F01FF:
+            raise ReleaseSecurityError("Provisioning actor ACL contains foreign access")
+
+
+def _provisioning_entries(root, state):
+    header = state["header"]
+    if (root / MARKER).exists() and read_json(root / MARKER) != header["marker"]:
+        raise ReleaseSecurityError("Provisioning marker belongs to a different installation")
+    if _identity(root.parent) != header["root_parent_identity"]:
+        raise ReleaseSecurityError("Provisioning root parent identity changed")
+    root_handle = _WindowsObject(root, lock=False)
+    try:
+        if state["root_identity"] is None:
+            _validate_provisioning_actor_security(
+                _security_record(root_handle), header["actor_sid"]
+            )
+            root_identity = root_handle.identity
+        else:
+            root_identity = state["root_identity"]
+            if root_handle.identity != root_identity:
+                raise ReleaseSecurityError("Provisioning root was replaced")
+    finally:
+        root_handle.close()
+    entries = {}
+    for name, path in _tree(root).items():
+        obj = _WindowsObject(path, lock=False)
+        try:
+            known = state["entries"].get(name)
+            if (
+                known
+                and known["identity"] == obj.identity
+                and (known["kind"] == "dir") == obj.is_dir
+            ):
+                if "sha256" not in known or obj.digest() == known["sha256"]:
+                    entries[name] = dict(known)
+                    continue
+                if not _actor_path(name, header):
+                    raise ReleaseSecurityError("Finalized provisioning content changed")
+            plan = state["plans"].get(name)
+            moved = state["entries"].get(plan["temp"]) if plan else None
+            if (
+                plan
+                and moved
+                and moved["kind"] == "file"
+                and moved["identity"] == obj.identity
+                and not obj.is_dir
+                and obj.digest() == plan["sha256"]
+            ):
+                entries[name] = dict(identity=obj.identity, kind="file", sha256=plan["sha256"])
+                continue
+            initial = name in state["directories"] or any(
+                name == p["temp"] for p in state["plans"].values()
+            )
+            if not _actor_path(name, header) and not initial:
+                raise ReleaseSecurityError("Unknown provisioning object has no creator scope")
+            _validate_provisioning_actor_security(
+                _security_record(obj), header["actor_sid"], initial=not _actor_path(name, header)
+            )
+            entries[name] = dict(
+                identity=obj.identity, kind="dir" if obj.is_dir else "file", provisioning_actor=True
+            )
+        finally:
+            obj.close()
+    return root_identity, entries
+
+
+def _provisioning_external_entries(state):
+    result = {}
+    for name in state["external_plans"]:
+        path = plain(name)
+        if not path.exists():
+            continue
+        obj = _WindowsObject(path, lock=False)
+        try:
+            known = state["external_entries"].get(name)
+            if obj.is_dir:
+                raise ReleaseSecurityError("External provisioning shortcut became a directory")
+            if known:
+                if obj.identity != known["identity"] or (
+                    "sha256" in known and obj.digest() != known["sha256"]
+                ):
+                    raise ReleaseSecurityError(
+                        "External provisioning shortcut identity/content changed"
+                    )
+            else:
+                _validate_provisioning_actor_security(
+                    _security_record(obj), state["header"]["actor_sid"], initial=True
+                )
+            result[name] = dict(
+                identity=obj.identity, sha256=obj.digest(), provisioning_actor=not bool(known)
+            )
+        finally:
+            obj.close()
+    return result
+
+
+def _append_native_journal(obj, row):
+    from ctypes import wintypes
+
+    encoded = canonical_json(row) + b"\n"
+    obj.api.WriteFile.argtypes = [
+        wintypes.HANDLE,
+        wintypes.LPCVOID,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.LPVOID,
+    ]
+    obj.api.FlushFileBuffers.argtypes = [wintypes.HANDLE]
+    if not obj.api.SetFilePointerEx(obj.handle, 0, None, 2):
+        raise ctypes.WinError(ctypes.get_last_error())
+    count = wintypes.DWORD()
+    if not obj.api.WriteFile(
+        obj.handle, encoded, len(encoded), ctypes.byref(count), None
+    ) or count.value != len(encoded):
+        raise ReleaseSecurityError("Incomplete provisioning journal append")
+    if not obj.api.FlushFileBuffers(obj.handle):
+        raise ctypes.WinError(ctypes.get_last_error())
+
+
+@contextlib.contextmanager
+def _protected_provisioning_journal(path, *, write=False):
+    path = plain(path)
+    if os.name != "nt":
+        raise ReleaseSecurityError("Provisioning rollback requires native Windows handles")
+    ancestors = []
+    obj = None
+    try:
+        for parent in reversed(path.parents):
+            ancestors.append(_WindowsObject(parent))
+        parent = ancestors[-1]
+        _validate_admin_security(_security_record(parent))
+        obj = _WindowsObject(path, write=write)
+        _validate_admin_security(_security_record(obj))
+        yield obj
+    finally:
+        if obj is not None:
+            obj.close()
+        for handle in reversed(ancestors):
+            handle.close()
+
+
+def _provisioning_resources(resources, lifecycle_lock):
+    if resources is None:
+        from src.api import release_provision
+
+        resources = release_provision
+    if lifecycle_lock is None:
+        from src.api.release_install import lifecycle_lock
+    return resources, lifecycle_lock
+
+
+def _locked_provisioning_proof(root, state, root_identity, entries, held, external_entries=None):
+    if _identity(root.parent) != state["header"]["root_parent_identity"]:
+        raise ReleaseSecurityError("Provisioning parent swapped before native lock")
+    if (
+        MARKER in held
+        and json.loads(held[MARKER].read_bytes(), object_pairs_hook=_unique_object)
+        != state["header"]["marker"]
+    ):
+        raise ReleaseSecurityError("Provisioning marker changed before native lock")
+    if state["root_identity"] is None:
+        _validate_provisioning_actor_security(
+            _security_record(held[""]), state["header"]["actor_sid"]
+        )
+    for path, entry in (external_entries or {}).items():
+        if entry.get("provisioning_actor"):
+            _validate_provisioning_actor_security(
+                _security_record(held["@external:" + path]),
+                state["header"]["actor_sid"],
+                initial=True,
+            )
+    for name, entry in entries.items():
+        if entry.get("provisioning_actor") and name in held:
+            initial = not _actor_path(name, state["header"])
+            _validate_provisioning_actor_security(
+                _security_record(held[name]), state["header"]["actor_sid"], initial=initial
+            )
+
+
+def seal_provisioning_outputs(
+    root,
+    *,
+    journal_path,
+    trusted_public_key_sha256,
+    expected_source_sha,
+    resources=None,
+    lifecycle_lock=None,
+):
+    """Seal only authenticated stopped-actor outputs before owner/ACL transitions."""
+    root, journal_path = plain(root), plain(journal_path)
+    if root == journal_path or root in journal_path.parents:
+        raise ReleaseSecurityError("Provisioning journal must be external")
+    resources, lifecycle_lock = _provisioning_resources(resources, lifecycle_lock)
+    with lifecycle_lock(root), _protected_provisioning_journal(journal_path, write=True) as journal:
+        encoded = journal.read_bytes(max_bytes=128 * 1024 * 1024)
+        if not encoded.endswith(b"\n"):
+            raise ReleaseSecurityError(
+                "Incomplete provisioning append requires rollback before resealing"
+            )
+        state = _parse_provisioning_journal(
+            encoded,
+            root=root,
+            trusted_public_key_sha256=trusted_public_key_sha256,
+            expected_source_sha=expected_source_sha,
+        )
+        resources.validate_resources(state["header"]["marker"])
+        resources.stop_and_prove_exit(state["header"]["marker"])
+        root_identity, entries = _provisioning_entries(root, state)
+        externals = _provisioning_external_entries(state)
+        ledger = dict(
+            root_identity=root_identity,
+            marker=state["header"]["marker"],
+            writer_boundaries=[],
+            external_entries=externals,
+        )
+        with _locked_tree(root, ledger, entries) as held:
+            _locked_provisioning_proof(root, state, root_identity, entries, held, externals)
+            for name, entry in entries.items():
+                if entry.get("provisioning_actor"):
+                    _append_native_journal(
+                        journal,
+                        dict(
+                            event="created",
+                            path=name,
+                            identity=entry["identity"],
+                            kind=entry["kind"],
+                        ),
+                    )
+                if entry["kind"] == "file" and name.startswith("dependencies/venv/"):
+                    _append_native_journal(
+                        journal,
+                        dict(
+                            event="finalized",
+                            path=name,
+                            identity=entry["identity"],
+                            sha256=held[name].digest(),
+                        ),
+                    )
+        return tuple(sorted(entries))
+
+
+def _final_provisioning_rollback(
+    root, state, *, trusted_public_key_sha256, expected_source_sha, evidence_path, final_resources
+):
+    commitment = state["final_ledger"]
+    ledger_path = plain(commitment["ledger_path"])
+    ledger = _load_ledger(
+        root,
+        ledger_path,
+        commitment["ledger_sha256"],
+        trusted_public_key_sha256,
+        expected_source_sha,
+    )
+    config = ledger.get("trust_config")
+    if (
+        ledger["marker"] != state["header"]["marker"]
+        or ledger["installation_id"] != state["header"]["installation_id"]
+        or ledger["release_manifest_sha256"] != state["header"]["release_manifest_sha256"]
+        or (
+            state["root_identity"] is not None and ledger["root_identity"] != state["root_identity"]
+        )
+        or not config
+        or config["path"] != commitment["trust_config_path"]
+    ):
+        raise ReleaseSecurityError(
+            "Final ownership ledger is not the fresh provisioning transaction"
+        )
+    if final_resources is None:
+        from src.api import release_service
+
+        final_resources = release_service
+    if evidence_path.exists():
+        previous = read_evidence(evidence_path)
+        if previous.get("status") != "removed":
+            evidence_path = evidence_path.with_name(
+                evidence_path.stem + "-retry-" + uuid.uuid4().hex + ".jsonl"
+            )
+    # This is rollback of an authenticated, never-committed new installation, not
+    # a user uninstall. The parser rejects ready/completed/committed transactions.
+    result = uninstall(
+        root,
+        ledger_path=ledger_path,
+        trusted_ledger_sha256=commitment["ledger_sha256"],
+        trusted_public_key_sha256=trusted_public_key_sha256,
+        expected_source_sha=expected_source_sha,
+        confirmations=("DELETE TESTER", "YES"),
+        evidence_path=evidence_path,
+        resources=final_resources,
+        lifecycle_lock=lambda unused: contextlib.nullcontext(),
+    )
+    if result["status"] not in ("removed", "already_removed"):
+        raise ReleaseSecurityError("Full ownership rollback did not complete")
+    return {
+        **result,
+        "status": "already_rolled_back" if result["status"] == "already_removed" else "rolled_back",
+        "provisioning_header_sha256": hashlib.sha256(canonical_json(state["header"])).hexdigest(),
+    }
+
+
+def rollback_provisioning(
+    root,
+    *,
+    journal_path,
+    trusted_public_key_sha256,
+    expected_source_sha,
+    resources=None,
+    lifecycle_lock=None,
+    evidence_path=None,
+    final_resources=None,
+):
+    """Roll back a never-committed fresh install; never adopt arbitrary Admin files."""
+    root, journal_path = plain(root), plain(journal_path)
+    if root == journal_path or root in journal_path.parents:
+        raise ReleaseSecurityError("Provisioning journal must be external")
+    evidence_path = plain(evidence_path or journal_path.with_suffix(".rollback.jsonl"))
+    if root == evidence_path or root in evidence_path.parents or evidence_path == journal_path:
+        raise ReleaseSecurityError("Provisioning evidence must be a distinct external file")
+    resources, lifecycle_lock = _provisioning_resources(resources, lifecycle_lock)
+    with lifecycle_lock(root), _protected_provisioning_journal(journal_path) as journal:
+        state = _parse_provisioning_journal(
+            journal.read_bytes(max_bytes=128 * 1024 * 1024),
+            root=root,
+            trusted_public_key_sha256=trusted_public_key_sha256,
+            expected_source_sha=expected_source_sha,
+        )
+        if state["final_ledger"] is not None:
+            return _final_provisioning_rollback(
+                root,
+                state,
+                trusted_public_key_sha256=trusted_public_key_sha256,
+                expected_source_sha=expected_source_sha,
+                evidence_path=evidence_path,
+                final_resources=final_resources,
+            )
+        pin = hashlib.sha256(canonical_json(state["header"])).hexdigest()
+        if evidence_path.exists():
+            previous = read_evidence(evidence_path)
+            if (
+                previous.get("root") != str(root)
+                or previous.get("provisioning_header_sha256") != pin
+            ):
+                raise ReleaseSecurityError("Foreign provisioning evidence path")
+            if not root.exists() and previous.get("status") == "rolled_back":
+                return {**previous, "status": "already_rolled_back"}
+        evidence = dict(
+            schema="tester-removal/v1",
+            root=str(root),
+            provisioning_header_sha256=pin,
+            status="refused_or_partial",
+            deleted_count=0,
+            attempt_id=uuid.uuid4().hex,
+        )
+        with evidence_path.open("ab" if evidence_path.exists() else "xb") as stream:
+            _write_evidence(stream, evidence)
+            try:
+                marker = state["header"]["marker"]
+                resources.validate_resources(marker)
+                resources.stop_and_prove_exit(marker)
+                if not root.exists():
+                    resources.validate_resources(marker)
+                    resources.remove_resources(marker)
+                else:
+                    root_identity, entries = _provisioning_entries(root, state)
+                    externals = _provisioning_external_entries(state)
+                    ledger = dict(
+                        root_identity=root_identity,
+                        marker=marker,
+                        writer_boundaries=[],
+                        external_entries=externals,
+                    )
+                    with _locked_tree(root, ledger, entries) as held:
+                        _locked_provisioning_proof(
+                            root, state, root_identity, entries, held, externals
+                        )
+                        resources.validate_resources(marker)
+                        resources.remove_resources(marker)
+                        for path in externals:
+                            held["@external:" + path].delete()
+                            evidence["deleted_count"] += 1
+                            _write_evidence(stream, evidence)
+                        for name in sorted(
+                            entries, key=lambda n: (len(Path(n).parts), n), reverse=True
+                        ):
+                            held[name].delete()
+                            evidence["deleted_count"] += 1
+                            _write_evidence(stream, evidence)
+                        held[""].delete()
+                if root.exists():
+                    raise ReleaseSecurityError("Provisioning root absence not proven")
+                evidence["status"] = "rolled_back"
+                _write_evidence(stream, evidence)
+                return evidence
+            except Exception as exc:
+                evidence["error_type"] = type(exc).__name__
+                _write_evidence(stream, evidence)
+                raise
 
 
 def main(argv=None):
