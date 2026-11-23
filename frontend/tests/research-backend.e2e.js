@@ -11,7 +11,8 @@ test("real authorized durable research result draws and acknowledges exact fills
   expect(token, "Root-provided disposable capability required").toBeTruthy();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/research.html");
+  await page.goto("/");
+  await page.getByRole("link", { name: "View approved simulation results" }).click();
   await page
     .locator("#research-command")
     .fill(JSON.stringify({ ...command, request_id: randomUUID() }));
