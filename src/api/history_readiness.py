@@ -4,6 +4,7 @@ Does not create schemas or start workers. The installer must provision a distinc
 application database and run existing platform/storage/lab migrations first.
 """
 
+from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict
 
 from src.api.catalog_store import validate_catalog_dsn
@@ -43,7 +44,12 @@ def check_history_schema(app_dsn: str, catalog_dsn: str) -> dict:
             "tester_storage.schema_migrations",
             "tester_lab.projections",
         ):
-            conn.execute("SELECT 1 FROM " + table + " LIMIT 0")
+            schema, name = table.split(".", 1)
+            conn.execute(
+                sql.SQL("SELECT 1 FROM {} LIMIT 0").format(
+                    sql.Identifier(schema, name)
+                )
+            )
     return {
         "app_database": "SCHEMA_READABLE",
         "worker": "NOT_VERIFIED",
