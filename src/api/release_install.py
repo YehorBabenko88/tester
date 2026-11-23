@@ -135,8 +135,8 @@ def create_shortcuts(root, marker):
     target = str(Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe")
     made = []
     for title, script in (
-        ("TESTER — Запуск", "Start-ReleaseTester.ps1"),
-        ("TESTER — Удаление", "Uninstall-ReleaseTester.ps1"),
+        ("TESTER вЂ” Р—Р°РїСѓСЃРє", "Start-ReleaseTester.ps1"),
+        ("TESTER вЂ” РЈРґР°Р»РµРЅРёРµ", "Uninstall-ReleaseTester.ps1"),
     ):
         link = plain(desktop / (title + ".lnk"))
         arguments = (

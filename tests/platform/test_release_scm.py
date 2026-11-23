@@ -310,8 +310,8 @@ def test_real_unicode_com_shortcut_roundtrip(tmp_path):
         (scripts / name).write_text("# signed release fixture")
     paths = create_shortcuts(root, marker)
     assert {__import__("pathlib").Path(path).name for path in paths} == {
-        "TESTER ó «‡ÔÛÒÍ.lnk",
-        "TESTER ó ”‰‡ÎÂÌËÂ.lnk",
+        "TESTER ‚Äî –ó–∞–ø—É—Å–∫.lnk",
+        "TESTER ‚Äî –£–¥–∞–ª–µ–Ω–∏–µ.lnk",
     }
     assert create_shortcuts(root, marker) == paths
     import win32com.client
@@ -605,7 +605,7 @@ def test_native_host_budget_denial_is_normal_stop_decision(monkeypatch, tmp_path
 
     class Budget:
         @classmethod
-        def from_config(cls,*args):
+        def from_config(cls, *args):
             calls.append(args)
             return cls()
 
@@ -630,8 +630,12 @@ def test_native_process_image_exit_is_a_transition(tmp_path):
     import subprocess
     import sys
     import pytest
-    if os.name!='nt':pytest.skip('Native process image requires Windows')
+
+    if os.name != "nt":
+        pytest.skip("Native process image requires Windows")
     from src.api.lab_scm import NativeSCM
-    child=subprocess.Popen([sys.executable,'-c','pass'])
+
+    child = subprocess.Popen([sys.executable, "-c", "pass"])
     child.wait(timeout=15)
-    with pytest.raises(ProcessLookupError):NativeSCM.process_image(child.pid)
+    with pytest.raises(ProcessLookupError):
+        NativeSCM.process_image(child.pid)
