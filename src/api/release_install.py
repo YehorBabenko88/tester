@@ -274,20 +274,7 @@ def install(
         )
         maintenance = plain(maintenance_parent / ("TesterReleaseMaintenance_" + ident.hex))
         maintenance.mkdir()
-        subprocess.run(
-            [
-                "icacls.exe",
-                str(maintenance),
-                "/inheritance:r",
-                "/grant:r",
-                "*S-1-5-18:(OI)(CI)F",
-                "*S-1-5-32-544:(OI)(CI)F",
-                "/setowner",
-                "*S-1-5-32-544",
-            ],
-            check=True,
-            capture_output=True,
-        )
+        protect_external_bundle(maintenance)
         (maintenance / "evidence").mkdir()
         api_port, pg_port = free_port(), free_port()
         while pg_port == api_port or pg_port == 5432:
@@ -546,20 +533,7 @@ def install(
                     evidence_directory=str(maintenance / "evidence"),
                 )
                 write_json(maintenance / "trust.json", trust)
-                subprocess.run(
-                    [
-                        "icacls.exe",
-                        str(maintenance / "trust.json"),
-                        "/inheritance:r",
-                        "/grant:r",
-                        "*S-1-5-18:F",
-                        "*S-1-5-32-544:F",
-                        "/setowner",
-                        "*S-1-5-32-544",
-                    ],
-                    check=True,
-                    capture_output=True,
-                )
+                protect_external_bundle(maintenance)
                 stage("waiting-for-api-worker-storage")
                 controller.apply("start")
             stage("ready")
