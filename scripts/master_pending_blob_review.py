@@ -25,7 +25,9 @@ def git(*args: str) -> bytes:
 
 
 def git_blob_hash(raw: bytes) -> str:
-    return hashlib.sha1(b"blob " + str(len(raw)).encode() + bytes([0]) + raw).hexdigest()
+    return hashlib.sha1(
+        b"blob " + str(len(raw)).encode() + bytes([0]) + raw, usedforsecurity=False
+    ).hexdigest()
 
 
 def main() -> None:
