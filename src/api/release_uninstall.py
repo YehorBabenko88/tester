@@ -1050,11 +1050,16 @@ def _parse_provisioning_journal(encoded, *, root, trusted_public_key_sha256, exp
                 ):
                     raise ReleaseSecurityError("Invalid final provisioning ownership commitment")
                 state["final_ledger"] = row
+            elif event == "runtime_exposed":
+                raise ReleaseSecurityError(
+                    "Runtime was exposed; automatic rollback is forbidden. Use validated resume or confirmed full uninstall"
+                )
             elif event == "phase":
                 if type(row["phase"]) is not str or row["phase"] in (
                     "ready",
                     "committed",
                     "completed",
+                    "runtime_exposed",
                 ):
                     raise ReleaseSecurityError(
                         "Committed installation requires confirmed full uninstall"
@@ -1357,8 +1362,8 @@ def _final_provisioning_rollback(
             evidence_path = evidence_path.with_name(
                 evidence_path.stem + "-retry-" + uuid.uuid4().hex + ".jsonl"
             )
-    # This is rollback of an authenticated, never-committed new installation, not
-    # a user uninstall. The parser rejects ready/completed/committed transactions.
+    # This is rollback of an authenticated, never-exposed new installation, not
+    # a user uninstall. The parser rejects runtime-exposed and ready/completed/committed transactions.
     result = uninstall(
         root,
         ledger_path=ledger_path,

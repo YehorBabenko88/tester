@@ -1273,3 +1273,42 @@ foreach ($lease in $maintenanceLeases) { $lease.Dispose() }
             output, error = child.communicate("\n", timeout=30)
         assert child.returncode == 0, error + output
     fixture.rename(tmp_path / "released")
+
+
+@pytest.mark.parametrize(
+    "row", [dict(event="runtime_exposed"), dict(event="phase", phase="runtime_exposed")]
+)
+def test_runtime_exposure_forbids_automatic_provisioning_rollback(tmp_path, row):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    rows.append(row)
+    with pytest.raises(ReleaseSecurityError, match="exposed|Committed"):
+        removal._parse_provisioning_journal(
+            b"".join(removal.canonical_json(value) + b"\n" for value in rows),
+            root=root,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+        )
+
+
+@windows_only
+def test_exposed_failed_readiness_retains_user_data_without_stopping_resources(
+    tmp_path, monkeypatch
+):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    result = root / "USER_RESULTS"
+    result.write_text("KEEP USER DATA")
+    rows.append(dict(event="runtime_exposed"))
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    resources = Resources()
+    with pytest.raises(ReleaseSecurityError, match="exposed"):
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=resources,
+            lifecycle_lock=fixture_lock,
+        )
+    assert result.read_text() == "KEEP USER DATA" and (root / "app.txt").exists()
+    assert resources.events == []

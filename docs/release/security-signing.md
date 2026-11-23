@@ -151,7 +151,7 @@ approval and independent Guardian GO remain required before publication.
 
 `rollback_provisioning(root, journal_path=..., trusted_public_key_sha256=...,
 expected_source_sha=...)` is restricted to an authenticated fresh provisioning
-transaction that has never recorded `ready`, `completed` or `committed`. It is
+transaction that has never exposed its normal API runtime and has never recorded `ready`, `completed` or `committed`. It is
 not an alternate user uninstaller and does not adopt an existing installation.
 The external `tester-provisioning/v1` JSONL header is created and fsynced under
 protected SYSTEM/Administrators ownership before the root exists. It binds the
@@ -197,3 +197,10 @@ locked objects refuse deletion. Native temporary-fixture tests exercise real
 handle deletion and partial retries; the non-elevated local host isolates only
 the external Admin-ACL enrollment gate. Full elevated virtual-account provisioning,
 COM interruption and populated PostgreSQL acceptance remain integrated CI gates.
+
+The installer must fsync `{event: "runtime_exposed"}` **before** the first normal
+API/app service start, including readiness probing. This event permanently bans
+automatic provisioning rollback, even if readiness later fails and `completed`
+was never recorded. Once API users could have submitted work, retain the root for
+validated resume or the normal `DELETE TESTER` / `YES` uninstall. A provisioning
+actor that never exposes the API remains eligible for authenticated rollback.
