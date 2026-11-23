@@ -140,6 +140,35 @@ def inventory(repo, prs=None):
                 "delete_now": False,
             }
         )
+    reviewed_prs = None
+    if prs is not None:
+        reviewed_prs = []
+        for pr in prs:
+            item = dict(pr)
+            sha = pr.get("headRefOid", "")
+            present = (
+                bool(re.fullmatch(r"[0-9a-f]{40}", sha))
+                and subprocess.run(
+                    ["git", "-C", str(repo), "cat-file", "-e", sha + "^{commit}"],
+                    capture_output=True,
+                ).returncode
+                == 0
+            )
+            item["head_available_locally"] = present
+            item["commits_not_in_candidate"] = (
+                int(git(repo, "rev-list", "--count", head + ".." + sha).strip())
+                if present
+                else None
+            )
+            item["release_action"] = "REVIEW_REQUIRED"
+            if pr.get("state") in {"MERGED", "CLOSED"}:
+                item["release_action"] = "RETAIN_HISTORICAL_PR_EVIDENCE"
+            elif present and item["commits_not_in_candidate"] == 0:
+                item["release_action"] = (
+                    "CLOSE_CANDIDATE_ONLY_AFTER_INDEPENDENT_GO_AND_OWNER_APPROVAL"
+                )
+            item["automatic_close_authorized"] = False
+            reviewed_prs.append(item)
     return {
         "schema": "tester-repository-inventory/v1",
         "source_sha": head,
@@ -164,7 +193,7 @@ def inventory(repo, prs=None):
         "dependency_manifests": dependencies,
         "unresolved_document_links": links,
         "branches": branches,
-        "pull_requests": prs,
+        "pull_requests": reviewed_prs,
     }
 
 
