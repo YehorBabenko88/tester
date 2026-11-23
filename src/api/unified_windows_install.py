@@ -106,11 +106,16 @@ class UnifiedInstaller:
                     fcntl.flock(stream.fileno(), fcntl.LOCK_UN)
 
     def stage(self, source, inventory, source_sha):
+        source = plain(source)
+        verify_tree(source, inventory)
+        if not re.fullmatch("[0-9a-f]{40}", source_sha):
+            raise LabViolation("Exact source SHA required")
+        if self.root.exists() or self.desktop.exists() or self.receipt.exists():
+            raise LabViolation("Fresh fixture root and desktop required")
+        # Bootstrap only creator access to this explicit temporary parent; a
+        # restricted creator otherwise cannot even open the operation lock.
+        self._prepare_creator_parent_acl()
         with self.operation():
-            source = plain(source)
-            verify_tree(source, inventory)
-            if not re.fullmatch("[0-9a-f]{40}", source_sha):
-                raise LabViolation("Exact source SHA required")
             if self.root.exists() or self.desktop.exists() or self.receipt.exists():
                 raise LabViolation("Fresh fixture root and desktop required")
             self.root.mkdir()
@@ -134,6 +139,38 @@ class UnifiedInstaller:
             _json(path, manifest)
             self.pin = _digest(path)
             return self.pin
+
+    def _prepare_creator_parent_acl(self):
+        if os.name != "nt":
+            return
+        # initdb drops Administrator group privileges. Its individual creator
+        # must inherit access before any installation children are created.
+        # Existing helper's PreserveExisting branch changes ONLY this DACL;
+        # it never recursively propagates new rules to existing children.
+        helper = plain(
+            Path(__file__).resolve().parents[2] / "scripts/windows/Repair-TesterLabPortableAcl.ps1"
+        )
+        powershell = (
+            Path(os.environ.get("SystemRoot", r"C:\Windows"))
+            / "System32/WindowsPowerShell/v1.0/powershell.exe"
+        )
+        env = {key: value for key, value in os.environ.items() if key.casefold() != "psmodulepath"}
+        env["TESTER_FIXTURE_ACL_PARENT"] = str(plain(self.parent))
+        env["TESTER_FIXTURE_ACL_HELPER"] = str(helper)
+        code = """$ErrorActionPreference='Stop'
+. $env:TESTER_FIXTURE_ACL_HELPER -FunctionsOnly
+$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+Set-TesterLabExplicitAcl -ItemPath $env:TESTER_FIXTURE_ACL_PARENT -PreserveExisting -CreatorSid $sid -CreatorRights FullControl
+"""
+        _run(
+            [
+                powershell,
+                "-NoProfile",
+                "-EncodedCommand",
+                base64.b64encode(code.encode("utf-16le")).decode(),
+            ],
+            env=env,
+        )
 
     def verify(self):
         path = self.root / "install/install.json"

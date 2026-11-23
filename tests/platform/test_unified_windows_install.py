@@ -15,6 +15,67 @@ import pytest
 from src.api import unified_windows_install as install
 
 
+def test_invalid_stage_never_changes_parent_acl(tmp_path, monkeypatch):
+    source, inventory = fixture(tmp_path)
+    manager = install.UnifiedInstaller(
+        tmp_path / "owned", tmp_path / "Desktop", disposable_parent=tmp_path
+    )
+
+    def forbidden():
+        raise AssertionError("ACL mutation before stage preflight")
+
+    monkeypatch.setattr(manager, "_prepare_creator_parent_acl", forbidden)
+    with pytest.raises(ValueError, match="source SHA"):
+        manager.stage(source, inventory, "invalid")
+
+
+def fixture_acl(directory, *, restrict=False, protect=False):
+    """Scope ACL setup/observation to one explicit disposable fixture directory."""
+    repo = Path(__file__).resolve().parents[2]
+    powershell = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    env = {key: value for key, value in os.environ.items() if key.casefold() != "psmodulepath"}
+    env["TESTER_ACL_PARENT"] = str(directory)
+    env["TESTER_ACL_HELPER"] = str(repo / "scripts/windows/Repair-TesterLabPortableAcl.ps1")
+    env["TESTER_ACL_RESTRICT"] = "1" if restrict else "0"
+    env["TESTER_ACL_PROTECT"] = "1" if protect else "0"
+    code = """$ErrorActionPreference='Stop'
+. $env:TESTER_ACL_HELPER -FunctionsOnly
+$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+if($env:TESTER_ACL_RESTRICT -eq '1') { Set-TesterLabExplicitAcl -ItemPath $env:TESTER_ACL_PARENT -CreatorSid $sid }
+if($env:TESTER_ACL_PROTECT -eq '1') { Set-TesterLabExplicitAcl -ItemPath $env:TESTER_ACL_PARENT -CreatorSid $sid -CreatorRights FullControl -NoInheritance }
+$acl=Get-Acl -LiteralPath $env:TESTER_ACL_PARENT
+$rules=@($acl.GetAccessRules($true,$false,[Security.Principal.SecurityIdentifier]) | Where-Object {$_.IdentityReference.Value -eq $sid -and $_.AccessControlType -eq 'Allow'})
+@{sddl=$acl.Sddl; creator_inheritable_full=@($rules | Where-Object {([int]$_.InheritanceFlags -band 3) -eq 3 -and ($_.FileSystemRights -band [Security.AccessControl.FileSystemRights]::FullControl) -eq [Security.AccessControl.FileSystemRights]::FullControl}).Count -gt 0} | ConvertTo-Json -Compress
+"""
+    return json.loads(
+        subprocess.check_output(
+            [str(powershell), "-NoProfile", "-Command", code], env=env, text=True, timeout=20
+        )
+    )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Actual Windows DACL inheritance regression")
+def test_stage_restores_creator_inheritance_without_changing_existing_children(tmp_path):
+    child = tmp_path / "existing-child"
+    child.mkdir()
+    fixture_acl(child, protect=True)
+    assert not fixture_acl(tmp_path, restrict=True)["creator_inheritable_full"]
+    old_child_acl = fixture_acl(child)["sddl"]
+    with tempfile.TemporaryDirectory(prefix="tester-unified-source-") as external:
+        source, inventory = fixture(Path(external))
+        manager = install.UnifiedInstaller(
+            tmp_path / "owned", tmp_path / "Desktop", disposable_parent=tmp_path
+        )
+        manager.stage(source, inventory, "a" * 40)
+        assert fixture_acl(tmp_path)["creator_inheritable_full"]
+        assert fixture_acl(child)["sddl"] == old_child_acl
+        # Explicitly grant the test-created restricted child for fixture cleanup.
+        child_manager = install.UnifiedInstaller(
+            child / "unused", child / "unused-desktop", disposable_parent=child
+        )
+        child_manager._prepare_creator_parent_acl()
+
+
 def test_initdb_diagnostic_survives_failed_subprocess(tmp_path, monkeypatch):
     log = tmp_path / "initdb.log"
     monkeypatch.setattr(
@@ -299,6 +360,8 @@ def test_real_windows_postgres_supervisor_shortcuts_and_full_delete(tmp_path):
     script = source / "scripts/windows/Manage-UnifiedTester.ps1"
     script.parent.mkdir(parents=True)
     shutil.copyfile(repo / "scripts/windows/Manage-UnifiedTester.ps1", script)
+    helper = source / "scripts/windows/Repair-TesterLabPortableAcl.ps1"
+    shutil.copyfile(repo / "scripts/windows/Repair-TesterLabPortableAcl.ps1", helper)
     inventory = {
         p.relative_to(source).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in source.rglob("*")
@@ -308,13 +371,34 @@ def test_real_windows_postgres_supervisor_shortcuts_and_full_delete(tmp_path):
     sha = subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=repo, env=env, text=True
     ).strip()
-    manager = install.UnifiedInstaller(
-        tmp_path / "owned", tmp_path / "Desktop", disposable_parent=tmp_path
-    )
-    manager.stage(source, inventory, sha)
     pg_bin = Path(os.environ.get("TESTER_UNIFIED_PG_BIN", r"C:\Program Files\PostgreSQL\18\bin"))
     if not (pg_bin / "initdb.exe").is_file():
         pytest.fail("Opted-in Windows fixture requires installed PostgreSQL binaries")
+    fixture_parent = tmp_path / "restricted-parent"
+    fixture_parent.mkdir()
+    assert not fixture_acl(fixture_parent, restrict=True)["creator_inheritable_full"]
+    denied = subprocess.run(
+        [
+            str(pg_bin / "initdb.exe"),
+            "-D",
+            str(fixture_parent / "blocked-root/cluster"),
+            "-U",
+            "tester_fixture_admin",
+            "-A",
+            "trust",
+            "--no-locale",
+            "--encoding=UTF8",
+        ],
+        capture_output=True,
+        timeout=45,
+    )
+    assert denied.returncode != 0, "Restricted-parent ACL did not reproduce initdb failure"
+    assert b"could not create directory" in denied.stderr, denied.stderr
+    manager = install.UnifiedInstaller(
+        fixture_parent / "owned", fixture_parent / "Desktop", disposable_parent=fixture_parent
+    )
+    manager.stage(source, inventory, sha)
+    assert fixture_acl(fixture_parent)["creator_inheritable_full"]
 
     def free_port():
         with socket.socket() as probe:
@@ -430,10 +514,15 @@ def test_real_windows_postgres_supervisor_shortcuts_and_full_delete(tmp_path):
                     "system_pg_5432_service_listener_config_unchanged": before == after,
                     "native_scm_boot_acceptance": False,
                     "canonical_deployment_executed": False,
+                    "restricted_parent_initdb_failure_reproduced": True,
+                    "creator_inheritance_restored_before_install": True,
                 },
                 indent=2,
             ),
             encoding="utf-8",
+        )
+        (evidence / "restricted-parent-initdb-before-fix.log").write_bytes(
+            denied.stdout + denied.stderr
         )
     finally:
         if manager.root.exists():

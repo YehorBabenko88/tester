@@ -18,6 +18,16 @@ The intended native mapping is **two OS services, three logical roles**:
 dedicated PostgreSQL plus the existing API/worker supervisor. Native deployment
 would reuse `lab_scm.NativeSCM` after a separately reviewed adapter exists.
 
+Before creating installation children on Windows, stage adds the current
+individual creator's inheritable FullControl ACE to **only the explicit
+temporary fixture parent**. PostgreSQL initdb drops Administrator group
+privileges, so an Admin/System-only inherited DACL otherwise makes a fresh
+cluster inaccessible. The existing `Set-TesterLabExplicitAcl -PreserveExisting`
+helper preserves existing rules and uses SetFileSecurity without propagating
+changes into existing children. No recursive ACL repair, owner change, system
+ACL change or canonical-root access occurs. The helper is included in the
+staged payload inventory; its PS5.1 child drops inherited `PSModulePath`.
+
 The adapter stages an explicit SHA-256 file inventory and full source SHA.
 The caller must preserve the independently approved inventory/source mapping;
 the source SHA string alone does not prove Git provenance. `stage()` returns a
@@ -92,6 +102,13 @@ service/listener/config observations. It never connects to system PG5432.
 Unreadable configuration files are explicitly recorded as unreadable, not
 claimed verified. Record the candidate commit after publishing and rerun this
 same fixture: a precommit run is not exact published-SHA acceptance.
+
+The real Windows regression first constructs an Admin/System-only disposable
+parent and proves raw initdb fails to create a cluster there. Stage then restores
+creator inheritance before creating fresh children, and the full real lifecycle
+must pass. The initial nonsecret failure is recorded in
+`.scratch/unified-evidence/restricted-parent-initdb-before-fix.log`. A separate
+actual-DACL test confirms existing protected child ACLs remain byte-identical.
 
 These results do not establish native services, reboot recovery, 24-hour soak,
 signer trust, administrator-race resistance, real user Desktop/UAC/browser,
