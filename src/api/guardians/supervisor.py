@@ -32,6 +32,14 @@ def _valid_label(value: object) -> bool:
     )
 
 
+def _canonical_scope(role: str, action: str, scope: str) -> str:
+    # Windows service identities are case-insensitive. Market/filesystem scopes
+    # from other roles retain their case-sensitive identities.
+    if role == "code" and action == "PROPOSE_OWNED_RESTART" and type(scope) is str:
+        return scope.lower()
+    return scope
+
+
 @dataclass(frozen=True)
 class Receipt:
     sequence: int
@@ -82,12 +90,20 @@ class DurableSupervisor:
             seq INTEGER PRIMARY KEY AUTOINCREMENT,
             event_key TEXT, role TEXT NOT NULL, status TEXT NOT NULL,
             reason TEXT NOT NULL, epoch INTEGER, at REAL NOT NULL,
-            previous_hash TEXT NOT NULL, hash TEXT NOT NULL)""")
+            previous_hash TEXT NOT NULL, hash TEXT NOT NULL, scope TEXT)""")
+        receipt_columns = {row[1] for row in self.db.execute("PRAGMA table_info(receipts)")}
+        if "scope" not in receipt_columns:
+            self.db.execute("ALTER TABLE receipts ADD COLUMN scope TEXT")
         self.db.execute("""CREATE TABLE IF NOT EXISTS leases (
             scope TEXT PRIMARY KEY, event_key TEXT NOT NULL, epoch INTEGER NOT NULL,
             expires REAL NOT NULL, owner TEXT NOT NULL)""")
         self.db.execute("""CREATE TABLE IF NOT EXISTS identities (
-            event_key TEXT PRIMARY KEY, role TEXT NOT NULL)""")
+            event_key TEXT PRIMARY KEY, role TEXT NOT NULL, scope TEXT)""")
+        # Legacy admissions have no verifiable canonical scope. Retain their
+        # deduplication history, but never infer reservation authority from a caller.
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(identities)")}
+        if "scope" not in columns:
+            self.db.execute("ALTER TABLE identities ADD COLUMN scope TEXT")
         self.db.execute("""CREATE TABLE IF NOT EXISTS epochs (
             scope TEXT PRIMARY KEY, last_epoch INTEGER NOT NULL)""")
         self.db.execute("""CREATE TABLE IF NOT EXISTS restart_attempts (
@@ -96,22 +112,45 @@ class DurableSupervisor:
         if not self.verify_chain():
             self.db.close()
             raise RuntimeError("guardian_receipt_chain_corrupt")
+        # Never hide an old mixed-case lease by introducing a new canonical
+        # namespace. Its admitted scope was not authenticated by the old chain.
+        if self.db.execute(
+            "SELECT 1 FROM leases AS l LEFT JOIN receipts AS r "
+            "ON r.event_key=l.event_key AND r.status='PROPOSED' "
+            "WHERE l.expires>? AND r.scope IS NULL LIMIT 1",
+            (time.time(),),
+        ).fetchone():
+            self.db.close()
+            raise RuntimeError("guardian_legacy_unbound_lease")
+        # This table has only Code restart attempts. Preserve historical budget
+        # charges when adopting the Windows case-insensitive service namespace.
+        self.db.execute("UPDATE restart_attempts SET scope=lower(scope)")
 
     def close(self) -> None:
         self.db.close()
 
     def _append(
-        self, key: str | None, role: str, status: str, reason: str, epoch: int | None = None
+        self,
+        key: str | None,
+        role: str,
+        status: str,
+        reason: str,
+        epoch: int | None = None,
+        *,
+        scope: str | None = None,
     ) -> Receipt:
         # Store only fixed reason codes, never raw event payloads or credentials.
         prev = self.db.execute("SELECT hash FROM receipts ORDER BY seq DESC LIMIT 1").fetchone()
         prior = prev[0] if prev else "0" * 64
         at = time.time()
-        payload = json.dumps([prior, key, role, status, reason, epoch, at], separators=(",", ":"))
+        fields = [prior, key, role, status, reason, epoch, at]
+        if scope is not None:
+            fields.append(scope)
+        payload = json.dumps(fields, separators=(",", ":"))
         digest = hashlib.sha256(payload.encode()).hexdigest()
         cur = self.db.execute(
-            "INSERT INTO receipts(event_key,role,status,reason,epoch,at,previous_hash,hash) VALUES (?,?,?,?,?,?,?,?)",
-            (key, role, status, reason, epoch, at, prior, digest),
+            "INSERT INTO receipts(event_key,role,status,reason,epoch,at,previous_hash,hash,scope) VALUES (?,?,?,?,?,?,?,?,?)",
+            (key, role, status, reason, epoch, at, prior, digest, scope),
         )
         return Receipt(cur.lastrowid, key, role, status, reason, epoch)
 
@@ -166,8 +205,14 @@ class DurableSupervisor:
                     ).fetchone():
                         result = self._append(proposal.key, role, "DENIED", "duplicate_event")
                     else:
-                        self.db.execute("INSERT INTO identities VALUES (?,?)", (proposal.key, role))
-                        result = self._append(proposal.key, role, "PROPOSED", proposal.action)
+                        scope = _canonical_scope(role, proposal.action, scope)
+                        self.db.execute(
+                            "INSERT INTO identities(event_key,role,scope) VALUES (?,?,?)",
+                            (proposal.key, role, scope),
+                        )
+                        result = self._append(
+                            proposal.key, role, "PROPOSED", proposal.action, scope=scope
+                        )
             self.db.execute("COMMIT")
             return result
         except BaseException:
@@ -192,11 +237,13 @@ class DurableSupervisor:
                 result = self._append(None, "master", "DENIED", "invalid_reservation")
             else:
                 original = self.db.execute(
-                    "SELECT role,status,reason FROM receipts WHERE seq=? AND event_key=?",
+                    "SELECT role,status,reason,scope FROM receipts WHERE seq=? AND event_key=?",
                     (receipt.sequence, receipt.event_key),
                 ).fetchone()
+                if original:
+                    scope = _canonical_scope(original[0], original[2], scope)
                 identity = self.db.execute(
-                    "SELECT role FROM identities WHERE event_key=?", (receipt.event_key,)
+                    "SELECT role,scope FROM identities WHERE event_key=?", (receipt.event_key,)
                 ).fetchone()
                 active = self.db.execute(
                     "SELECT COUNT(*) FROM leases WHERE expires>?", (now,)
@@ -204,20 +251,30 @@ class DurableSupervisor:
                 existing = self.db.execute(
                     "SELECT expires FROM leases WHERE scope=?", (scope,)
                 ).fetchone()
-                is_restart = original == ("code", "PROPOSED", "PROPOSE_OWNED_RESTART")
+                is_restart = original is not None and original[:3] == (
+                    "code",
+                    "PROPOSED",
+                    "PROPOSE_OWNED_RESTART",
+                )
                 recent = self.db.execute(
                     "SELECT COUNT(*) FROM restart_attempts WHERE scope=? AND at>?",
                     (scope, now - self.restart_window_seconds),
                 ).fetchone()[0]
                 if (
-                    original != (receipt.role, "PROPOSED", receipt.reason)
-                    or identity != (receipt.role,)
+                    original is None
+                    or original[:3] != (receipt.role, "PROPOSED", receipt.reason)
+                    or identity is None
+                    or identity[0] != receipt.role
                     or self.db.execute(
                         "SELECT 1 FROM receipts WHERE event_key=? AND status='RESERVED'",
                         (receipt.event_key,),
                     ).fetchone()
                 ):
                     result = self._append(None, "master", "DENIED", "untrusted_receipt")
+                elif original[3] is None or original[3] != scope or identity[1] != original[3]:
+                    result = self._append(
+                        receipt.event_key, receipt.role, "DENIED", "scope_mismatch"
+                    )
                 elif existing and existing[0] > now:
                     result = self._append(receipt.event_key, receipt.role, "DENIED", "lease_busy")
                 elif active >= self.max_active:
@@ -265,6 +322,12 @@ class DurableSupervisor:
         """
         self._begin()
         try:
+            admitted = self.db.execute(
+                "SELECT role,reason FROM receipts WHERE event_key=? AND status='PROPOSED'",
+                (reservation.event_key,),
+            ).fetchone()
+            if admitted:
+                scope = _canonical_scope(admitted[0], admitted[1], scope)
             row = self.db.execute(
                 "SELECT event_key,epoch,owner,expires FROM leases WHERE scope=?", (scope,)
             ).fetchone()
@@ -311,12 +374,23 @@ class DurableSupervisor:
     def verify_chain(self) -> bool:
         previous = "0" * 64
         expected_seq = 1
-        for seq, key, role, status, reason, epoch, at, prev, digest in self.db.execute(
-            "SELECT seq,event_key,role,status,reason,epoch,at,previous_hash,hash FROM receipts ORDER BY seq"
+        for seq, key, role, status, reason, epoch, at, prev, digest, scope in self.db.execute(
+            "SELECT seq,event_key,role,status,reason,epoch,at,previous_hash,hash,scope FROM receipts ORDER BY seq"
         ):
-            payload = json.dumps(
-                [previous, key, role, status, reason, epoch, at], separators=(",", ":")
-            )
+            fields = [previous, key, role, status, reason, epoch, at]
+            if scope is not None:
+                fields.append(scope)
+                if (
+                    status != "PROPOSED"
+                    or not _valid_label(scope)
+                    or scope != _canonical_scope(role, reason, scope)
+                    or self.db.execute(
+                        "SELECT role,scope FROM identities WHERE event_key=?", (key,)
+                    ).fetchone()
+                    != (role, scope)
+                ):
+                    return False
+            payload = json.dumps(fields, separators=(",", ":"))
             if (
                 seq != expected_seq
                 or prev != previous

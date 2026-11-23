@@ -109,11 +109,14 @@ def test_durable_proposals_fencing_kill_and_reopen(tmp_path):
 def test_durable_restart_budget_and_tamper(tmp_path):
     supervisor = DurableSupervisor(tmp_path / "r.sqlite", enabled=True, restart_limit=1)
     first = supervisor.submit(event())
-    lease = supervisor.reserve(first, scope="api", owner="worker")
+    lease = supervisor.reserve(first, scope="tester-preview/api", owner="worker")
     assert lease.status == "RESERVED"
-    assert supervisor.finish(lease, scope="api", owner="worker").status == "CLOSED"
+    assert supervisor.finish(lease, scope="tester-preview/api", owner="worker").status == "CLOSED"
     second = supervisor.submit(event(evidence_ref="sha256:" + "b" * 64))
-    assert supervisor.reserve(second, scope="api", owner="worker").reason == "restart_budget"
+    assert (
+        supervisor.reserve(second, scope="tester-preview/api", owner="worker").reason
+        == "restart_budget"
+    )
     assert supervisor.verify_chain()
     supervisor.db.execute("UPDATE receipts SET reason='tampered' WHERE seq=1")
     assert not supervisor.verify_chain()
@@ -142,13 +145,15 @@ def test_forged_receipt_cannot_evade_restart_budget(tmp_path):
     first = s.submit(event())
     assert s.reserve(first, scope="../api", owner="worker").status == "DENIED"
     forged = replace(first, reason="REQUEST_CODE_REVIEW")
-    assert s.reserve(forged, scope="api", owner="worker").reason == "untrusted_receipt"
-    lease = s.reserve(first, scope="api", owner="worker")
+    assert (
+        s.reserve(forged, scope="tester-preview/api", owner="worker").reason == "untrusted_receipt"
+    )
+    lease = s.reserve(first, scope="tester-preview/api", owner="worker")
     assert lease.status == "RESERVED"
     assert s.reserve(first, scope="api2", owner="worker").reason == "untrusted_receipt"
     forged_lease = replace(lease, sequence=lease.sequence + 999)
-    assert s.finish(forged_lease, scope="api", owner="worker").status == "DENIED"
-    assert s.finish(lease, scope="api", owner="worker").status == "CLOSED"
+    assert s.finish(forged_lease, scope="tester-preview/api", owner="worker").status == "DENIED"
+    assert s.finish(lease, scope="tester-preview/api", owner="worker").status == "CLOSED"
     s.close()
 
 
@@ -156,14 +161,16 @@ def test_reboot_simulation_persists_epoch_and_budget(tmp_path):
     path = tmp_path / "r.sqlite"
     s = DurableSupervisor(path, enabled=True, restart_limit=1)
     first = s.submit(event())
-    lease = s.reserve(first, scope="api", owner="worker")
+    lease = s.reserve(first, scope="tester-preview/api", owner="worker")
     assert lease.epoch == 1
     s.close()
     s = DurableSupervisor(path, enabled=True, restart_limit=1)
-    assert s.reserve(first, scope="api", owner="worker").reason == "untrusted_receipt"
-    assert s.finish(lease, scope="api", owner="worker").status == "CLOSED"
+    assert (
+        s.reserve(first, scope="tester-preview/api", owner="worker").reason == "untrusted_receipt"
+    )
+    assert s.finish(lease, scope="tester-preview/api", owner="worker").status == "CLOSED"
     second = s.submit(event(evidence_ref="sha256:" + "b" * 64))
-    assert s.reserve(second, scope="api", owner="worker").reason == "restart_budget"
+    assert s.reserve(second, scope="tester-preview/api", owner="worker").reason == "restart_budget"
     assert s.verify_chain()
     s.close()
 
@@ -221,8 +228,11 @@ def test_two_connections_compete_for_one_lease(tmp_path):
     second = DurableSupervisor(path, enabled=True)
     proposal = first.submit(event())
     assert proposal.status == "PROPOSED"
-    assert first.reserve(proposal, scope="api", owner="first").status == "RESERVED"
-    assert second.reserve(proposal, scope="api", owner="second").reason == "untrusted_receipt"
+    assert first.reserve(proposal, scope="tester-preview/api", owner="first").status == "RESERVED"
+    assert (
+        second.reserve(proposal, scope="tester-preview/api", owner="second").reason
+        == "untrusted_receipt"
+    )
     assert second.submit(event()).reason == "duplicate_event"
     assert first.verify_chain()
     assert second.verify_chain()
@@ -235,9 +245,9 @@ def test_kill_persists_across_independent_connections(tmp_path):
     first = DurableSupervisor(path, enabled=True)
     second = DurableSupervisor(path, enabled=True)
     proposal = first.submit(event())
-    reservation = first.reserve(proposal, scope="api", owner="first")
+    reservation = first.reserve(proposal, scope="tester-preview/api", owner="first")
     assert second.kill().status == "STOPPED"
-    assert first.finish(reservation, scope="api", owner="first").status == "DENIED"
+    assert first.finish(reservation, scope="tester-preview/api", owner="first").status == "DENIED"
     assert first.submit(event(evidence_ref="sha256:" + "c" * 64)).status == "DENIED"
     first.close()
     second.close()
@@ -260,14 +270,14 @@ def test_expired_lease_fencing_after_reopen(tmp_path):
     path = tmp_path / "receipts.sqlite"
     s = DurableSupervisor(path, enabled=True)
     first = s.submit(event())
-    old = s.reserve(first, scope="api", owner="worker")
+    old = s.reserve(first, scope="tester-preview/api", owner="worker")
     assert old.status == "RESERVED"
-    s.db.execute("UPDATE leases SET expires=0 WHERE scope='api'")
+    s.db.execute("UPDATE leases SET expires=0 WHERE scope='tester-preview/api'")
     s.close()
     s = DurableSupervisor(path, enabled=True)
     second = s.submit(event(evidence_ref="sha256:" + "b" * 64))
-    new = s.reserve(second, scope="api", owner="worker")
+    new = s.reserve(second, scope="tester-preview/api", owner="worker")
     assert new.epoch == old.epoch + 1
-    assert s.finish(old, scope="api", owner="worker").status == "DENIED"
-    assert s.finish(new, scope="api", owner="worker").status == "CLOSED"
+    assert s.finish(old, scope="tester-preview/api", owner="worker").status == "DENIED"
+    assert s.finish(new, scope="tester-preview/api", owner="worker").status == "CLOSED"
     s.close()
