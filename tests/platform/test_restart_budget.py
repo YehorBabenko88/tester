@@ -85,3 +85,15 @@ def test_kill_switch_denies_without_database_io(tmp_path, monkeypatch):
     (tmp_path / "restart.disabled").touch()
     with pytest.raises(BudgetDenied, match="disabled"):
         budget(tmp_path).admit("host")
+
+
+def test_database_outage_is_not_misreported_as_exhausted_policy(tmp_path, monkeypatch):
+    from src.api import db
+    from src.api.restart_budget import BudgetUnavailable
+
+    def unavailable(_):
+        raise psycopg.OperationalError("private database restarting")
+
+    monkeypatch.setattr(db, "connect", unavailable)
+    with pytest.raises(BudgetUnavailable):
+        budget(tmp_path).admit("host")

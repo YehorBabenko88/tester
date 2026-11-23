@@ -14,6 +14,10 @@ class BudgetDenied(ValueError):
     pass
 
 
+class BudgetUnavailable(BudgetDenied):
+    """Infrastructure unavailable; a bounded SCM retry may recover authority."""
+
+
 class DatabaseRestartBudget:
     """Production authority: owner table, runtime EXECUTE-only definer functions.
 
@@ -103,6 +107,8 @@ class DatabaseRestartBudget:
                     result = None
             # Exiting the context commits before the caller may spawn a child.
             return result
+        except (psycopg.OperationalError, psycopg.InterfaceError) as exc:
+            raise BudgetUnavailable("Restart authority temporarily unavailable") from exc
         except psycopg.Error as exc:
             raise BudgetDenied("Durable restart reservation denied") from exc
 

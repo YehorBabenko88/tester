@@ -18,6 +18,10 @@ functions with `search_path=pg_catalog`; it cannot UPDATE, DELETE, TRUNCATE or r
 the authority. The separate PostgreSQL service writer boundary must prevent the
 application SID from modifying the cluster. A local file rollback cannot reset
 counters. Missing identity, unavailable database and failed commit deny launch.
+Database/connection unavailability remains distinct from exhausted policy: the
+service host reports an infrastructure failure so its existing two SCM recovery
+actions can retry. Exhausted, disabled or malformed policy stops normally and
+does not ask SCM to restart indefinitely. Neither case spawns an unreserved child.
 There is no file-backed production fallback. The earlier mutable journal was
 replaced after a valid-prefix rollback regression exposed its authority gap.
 
