@@ -27,14 +27,23 @@ def endpoint_key(url: str) -> str:
         raise ValueError("invalid_url")
     try:
         p = urlsplit(url)
-        if (p.scheme != "https" or p.hostname not in HOSTS or
-                "%" in p.path or "\\" in p.path or
-                any(segment in {".", ".."} for segment in p.path.split("/")) or
-                p.port not in (None, 443) or p.username is not None or
-                p.password is not None or p.fragment or
-                not ((p.hostname == "api.bybit.com" and p.path.startswith("/v5/market/")) or
-                     (p.hostname == "public.bybit.com" and p.path.startswith("/trading/"))) or
-                p.query or p.netloc not in HOSTS):
+        if (
+            p.scheme != "https"
+            or p.hostname not in HOSTS
+            or "%" in p.path
+            or "\\" in p.path
+            or any(segment in {".", ".."} for segment in p.path.split("/"))
+            or p.port not in (None, 443)
+            or p.username is not None
+            or p.password is not None
+            or p.fragment
+            or not (
+                (p.hostname == "api.bybit.com" and p.path.startswith("/v5/market/"))
+                or (p.hostname == "public.bybit.com" and p.path.startswith("/trading/"))
+            )
+            or p.query
+            or p.netloc not in HOSTS
+        ):
             raise ValueError("unapproved_endpoint")
     except (ValueError, TypeError) as exc:
         raise ValueError("unapproved_endpoint") from exc
@@ -43,8 +52,13 @@ def endpoint_key(url: str) -> str:
 
 def retry_after_seconds(value: object, now_utc: datetime) -> int | None:
     """Parse delta seconds or HTTP date, rejecting invalid/out-of-budget values."""
-    if (type(value) is not str or not value or len(value) > 128 or
-            not isinstance(now_utc, datetime) or now_utc.tzinfo is None):
+    if (
+        type(value) is not str
+        or not value
+        or len(value) > 128
+        or not isinstance(now_utc, datetime)
+        or now_utc.tzinfo is None
+    ):
         return None
     if value.isascii() and value.isdecimal():
         seconds = int(value) if len(value) <= 6 else MAX_BACKOFF + 1
@@ -98,32 +112,60 @@ class ExchangeGuardian:
         self.enabled = enabled is True
         self._state: dict[str, dict] = {}
 
-    def inspect(self, observation: Observation, *, now: float,
-                now_utc: datetime | None = None) -> Verdict:
+    def inspect(
+        self, observation: Observation, *, now: float, now_utc: datetime | None = None
+    ) -> Verdict:
         if not self.enabled:
-            return Verdict("DISABLED", "disabled", "NONE", "guardians_disabled",
-                           None, 0, "CLOSED", "", False, False)
+            return Verdict(
+                "DISABLED",
+                "disabled",
+                "NONE",
+                "guardians_disabled",
+                None,
+                0,
+                "CLOSED",
+                "",
+                False,
+                False,
+            )
         if not _number(now) or not isinstance(observation, Observation):
             return self._invalid()
         try:
             key = endpoint_key(observation.endpoint)
         except ValueError:
             return self._invalid()
-        if (observation.kind not in {"http", "timeout", "dns_failure", "websocket_disconnect", "tls_failure", "malformed", "partial_response"} or
-                not _number(observation.elapsed_ms) or
-                type(observation.evidence_ref) is not str or
-                len(observation.evidence_ref) != 71 or
-                not observation.evidence_ref.startswith("sha256:") or
-                any(c not in "0123456789abcdef" for c in observation.evidence_ref[7:]) or
-                type(observation.parse_valid) is not bool or
-                type(observation.source_verified) is not bool or
-                not _number(observation.freshness_limit_seconds) or
-                observation.freshness_limit_seconds == 0 or
-                (observation.source_age_seconds is not None and
-                 not _number(observation.source_age_seconds)) or
-                (observation.status_code is not None and
-                 (type(observation.status_code) is not int or
-                  not 100 <= observation.status_code <= 599))):
+        if (
+            observation.kind
+            not in {
+                "http",
+                "timeout",
+                "dns_failure",
+                "websocket_disconnect",
+                "tls_failure",
+                "malformed",
+                "partial_response",
+            }
+            or not _number(observation.elapsed_ms)
+            or type(observation.evidence_ref) is not str
+            or len(observation.evidence_ref) != 71
+            or not observation.evidence_ref.startswith("sha256:")
+            or any(c not in "0123456789abcdef" for c in observation.evidence_ref[7:])
+            or type(observation.parse_valid) is not bool
+            or type(observation.source_verified) is not bool
+            or not _number(observation.freshness_limit_seconds)
+            or observation.freshness_limit_seconds == 0
+            or (
+                observation.source_age_seconds is not None
+                and not _number(observation.source_age_seconds)
+            )
+            or (
+                observation.status_code is not None
+                and (
+                    type(observation.status_code) is not int
+                    or not 100 <= observation.status_code <= 599
+                )
+            )
+        ):
             return self._invalid()
         if observation.kind == "http" and observation.status_code is None:
             return self._invalid()
@@ -132,89 +174,168 @@ class ExchangeGuardian:
         # Untrusted endpoint paths must not grow the in-memory circuit map without bound.
         if key not in self._state and len(self._state) >= MAX_ENDPOINTS:
             return self._invalid()
-        state = self._state.setdefault(key, {"attempts": 0, "until": 0.0,
-                                             "circuit": "CLOSED", "seen": set(), "last_now": now})
+        state = self._state.setdefault(
+            key, {"attempts": 0, "until": 0.0, "circuit": "CLOSED", "seen": set(), "last_now": now}
+        )
         # Clock rollback cannot shorten a protective cooldown.
         if now < state["last_now"]:
             state["circuit"] = "HALTED"
-            return self._verdict(state, observation, "UNAVAILABLE",
-                                 "clock_rollback", "NONE",
-                                 "monotonic_clock_rollback", None)
+            return self._verdict(
+                state,
+                observation,
+                "UNAVAILABLE",
+                "clock_rollback",
+                "NONE",
+                "monotonic_clock_rollback",
+                None,
+            )
         state["last_now"] = now
         # A TLS fault is a safety signal even during a rate-limit cooldown.
         if observation.kind == "tls_failure" and state["circuit"] != "HALTED":
             state["circuit"] = "HALTED"
             state["seen"].add(observation.evidence_ref)
-            return self._verdict(state, observation, "UNAVAILABLE",
-                                 "tls_verification_failed", "PROPOSE_STOP_SOURCE",
-                                 "tls_fail_closed", None)
+            return self._verdict(
+                state,
+                observation,
+                "UNAVAILABLE",
+                "tls_verification_failed",
+                "PROPOSE_STOP_SOURCE",
+                "tls_fail_closed",
+                None,
+            )
         # HTTP 403 must preempt any active 429/timeout cooldown, as TLS does.
         # It never authorizes automatic retry, proxy rotation or IP evasion.
-        if (observation.kind == "http" and observation.status_code == 403
-                and state["circuit"] != "HALTED"):
+        if (
+            observation.kind == "http"
+            and observation.status_code == 403
+            and state["circuit"] != "HALTED"
+        ):
             state["circuit"] = "HALTED"
             state["seen"].add(observation.evidence_ref)
-            return self._verdict(state, observation, "UNAVAILABLE", "http_403",
-                                 "NONE", "forbidden_requires_manual_review", None)
+            return self._verdict(
+                state,
+                observation,
+                "UNAVAILABLE",
+                "http_403",
+                "NONE",
+                "forbidden_requires_manual_review",
+                None,
+            )
         if observation.evidence_ref in state["seen"]:
-            return self._verdict(state, observation, "DEGRADED", "duplicate",
-                                 "NONE", "duplicate_evidence", None)
+            return self._verdict(
+                state, observation, "DEGRADED", "duplicate", "NONE", "duplicate_evidence", None
+            )
         # Reject observations while breaker is open; never bypass a TLS halt.
         if state["circuit"] == "HALTED":
-            return self._verdict(state, observation, "UNAVAILABLE", "circuit_halted",
-                                 "NONE", "manual_reset_required", None)
+            return self._verdict(
+                state,
+                observation,
+                "UNAVAILABLE",
+                "circuit_halted",
+                "NONE",
+                "manual_reset_required",
+                None,
+            )
         if now < state["until"]:
-            return self._verdict(state, observation, "DEGRADED", "cooldown",
-                                 "NONE", "backoff_active", state["until"])
+            return self._verdict(
+                state, observation, "DEGRADED", "cooldown", "NONE", "backoff_active", state["until"]
+            )
         state["seen"].add(observation.evidence_ref)
         if len(state["seen"]) > 128:
             state["seen"] = {observation.evidence_ref}
         if observation.kind == "http" and observation.status_code == 429:
-            after = retry_after_seconds(observation.retry_after,
-                                        now_utc or datetime.now(UTC))
+            after = retry_after_seconds(observation.retry_after, now_utc or datetime.now(UTC))
             if after is None:
                 state["circuit"] = "OPEN"
                 state["until"] = now + MAX_BACKOFF
-                return self._verdict(state, observation, "UNAVAILABLE", "http_429",
-                                     "NONE", "unqualified_retry_after", state["until"])
+                return self._verdict(
+                    state,
+                    observation,
+                    "UNAVAILABLE",
+                    "http_429",
+                    "NONE",
+                    "unqualified_retry_after",
+                    state["until"],
+                )
             state["circuit"] = "OPEN"
             state["until"] = now + after
-            return self._verdict(state, observation, "DEGRADED", "http_429",
-                                 "PROPOSE_RATE_BACKOFF", "verified_retry_after",
-                                 state["until"])
+            return self._verdict(
+                state,
+                observation,
+                "DEGRADED",
+                "http_429",
+                "PROPOSE_RATE_BACKOFF",
+                "verified_retry_after",
+                state["until"],
+            )
         if observation.kind in {"timeout", "dns_failure", "websocket_disconnect"} or (
-                observation.kind == "http" and observation.status_code in {500, 502, 503, 504}):
+            observation.kind == "http" and observation.status_code in {500, 502, 503, 504}
+        ):
             state["attempts"] += 1
             if state["attempts"] >= MAX_RETRIES:
                 state["circuit"] = "OPEN"
                 state["until"] = now + MAX_BACKOFF
-                return self._verdict(state, observation, "UNAVAILABLE",
-                                     "retry_exhausted", "NONE", "circuit_open",
-                                     state["until"])
+                return self._verdict(
+                    state,
+                    observation,
+                    "UNAVAILABLE",
+                    "retry_exhausted",
+                    "NONE",
+                    "circuit_open",
+                    state["until"],
+                )
             delay = min(2 ** (state["attempts"] - 1), 30)
             state["until"] = now + delay
-            return self._verdict(state, observation, "DEGRADED",
-                                 "transient_timeout", "PROPOSE_BOUNDED_RETRY",
-                                 "bounded_retry_proposal", state["until"])
+            return self._verdict(
+                state,
+                observation,
+                "DEGRADED",
+                "transient_timeout",
+                "PROPOSE_BOUNDED_RETRY",
+                "bounded_retry_proposal",
+                state["until"],
+            )
         if observation.kind in {"malformed", "partial_response"} or (
-                observation.kind == "http" and (
-                    observation.status_code != 200 or not observation.parse_valid)):
+            observation.kind == "http"
+            and (observation.status_code != 200 or not observation.parse_valid)
+        ):
             state["circuit"] = "OPEN"
             state["until"] = now + MAX_BACKOFF
-            return self._verdict(state, observation, "UNAVAILABLE",
-                                 "malformed_response", "NONE",
-                                 "response_untrusted", state["until"])
-        if (observation.source_age_seconds is None or
-                not observation.source_verified or
-                observation.source_age_seconds > observation.freshness_limit_seconds):
-            return self._verdict(state, observation, "UNAVAILABLE",
-                                 "source_stale", "PROPOSE_MARK_UNAVAILABLE",
-                                 "freshness_not_verified", None)
+            return self._verdict(
+                state,
+                observation,
+                "UNAVAILABLE",
+                "malformed_response",
+                "NONE",
+                "response_untrusted",
+                state["until"],
+            )
+        if (
+            observation.source_age_seconds is None
+            or not observation.source_verified
+            or observation.source_age_seconds > observation.freshness_limit_seconds
+        ):
+            return self._verdict(
+                state,
+                observation,
+                "UNAVAILABLE",
+                "source_stale",
+                "PROPOSE_MARK_UNAVAILABLE",
+                "freshness_not_verified",
+                None,
+            )
         state["attempts"] = 0
         state["until"] = 0.0
         state["circuit"] = "CLOSED"
-        return self._verdict(state, observation, "MONITORING", "http_200",
-                             "NONE", "transport_healthy_history_unverified", None)
+        return self._verdict(
+            state,
+            observation,
+            "MONITORING",
+            "http_200",
+            "NONE",
+            "transport_healthy_history_unverified",
+            None,
+        )
 
     def reset_tls_halt(self, endpoint: str, *, manual_authorized: bool) -> bool:
         """Manual gate only; cannot assert source freshness or historical coverage."""
@@ -231,15 +352,30 @@ class ExchangeGuardian:
 
     @staticmethod
     def _invalid() -> Verdict:
-        return Verdict("UNAVAILABLE", "invalid_observation", "NONE",
-                       "fail_closed", None, 0, "OPEN", "")
+        return Verdict(
+            "UNAVAILABLE", "invalid_observation", "NONE", "fail_closed", None, 0, "OPEN", ""
+        )
 
     @staticmethod
-    def _verdict(state: dict, observation: Observation, status: str, signal: str,
-                 proposal: str, reason: str, retry_at: float | None) -> Verdict:
-        return Verdict(status, signal, proposal, reason, retry_at,
-                       state["attempts"], state["circuit"],
-                       observation.evidence_ref)
+    def _verdict(
+        state: dict,
+        observation: Observation,
+        status: str,
+        signal: str,
+        proposal: str,
+        reason: str,
+        retry_at: float | None,
+    ) -> Verdict:
+        return Verdict(
+            status,
+            signal,
+            proposal,
+            reason,
+            retry_at,
+            state["attempts"],
+            state["circuit"],
+            observation.evidence_ref,
+        )
 
 
 def supervisor_event(
@@ -252,11 +388,14 @@ def supervisor_event(
     """Build a sanitized, unauthoritative event; external scope attestation required."""
     scope = endpoint_key(observation.endpoint)
     trusted = ownership_verified is True and verdict.evidence_ref == observation.evidence_ref
-    event = {"component": "exchange", "environment": "tester_preview",
-             "scope": "bybit/rest/" + scope,
-             "signal": verdict.signal if trusted else "untrusted_observation",
-             "evidence_ref": verdict.evidence_ref,
-             "ownership_verified": trusted}
+    event = {
+        "component": "exchange",
+        "environment": "tester_preview",
+        "scope": "bybit/rest/" + scope,
+        "signal": verdict.signal if trusted else "untrusted_observation",
+        "evidence_ref": verdict.evidence_ref,
+        "ownership_verified": trusted,
+    }
     if trusted and verdict.signal == "http_429" and verdict.proposal == "PROPOSE_RATE_BACKOFF":
         event["retry_after_seconds"] = math.ceil((verdict.retry_at or 0) - now)
     if trusted and verdict.signal == "http_429" and verdict.proposal != "PROPOSE_RATE_BACKOFF":
