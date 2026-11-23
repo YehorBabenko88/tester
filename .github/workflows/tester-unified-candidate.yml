@@ -1,0 +1,81 @@
+name: TESTER unified candidate
+on:
+  pull_request:
+    paths:
+      - 'src/api/guardians/**'
+      - 'src/api/unified_windows_install.py'
+      - 'scripts/verify_unified_sources.py'
+      - 'scripts/windows/Manage-UnifiedTester.ps1'
+      - 'tests/platform/test_guardian_combined_integration.py'
+      - 'tests/platform/test_unified_*.py'
+      - 'docs/guardians/unified-candidate-sources.json'
+      - '.github/workflows/tester-unified-candidate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tester-unified-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  candidate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      GUARDIANS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'pip>=26.2,<27'
+      - run: python -m pip install -e ".[dev]" -c requirements-platform.lock
+      - name: Verify source assembly and exact checkout
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          python scripts/verify_unified_sources.py
+      - run: python -m compileall -q src/api scripts tests/platform
+      - run: python -m ruff check src/api scripts tests/platform
+      - run: python -m ruff format --check src/api scripts tests/platform
+      - name: Four Guardians and MASTER proposal coordination
+        run: >
+          python -m pytest -q
+          tests/platform/test_code_guardian.py
+          tests/platform/test_data_guardian.py
+          tests/platform/test_storage_guardian.py
+          tests/platform/test_exchange_guardian.py
+          tests/platform/test_guardian_supervisor.py
+          tests/platform/test_guardian_combined_integration.py
+          tests/platform/test_unified_sources.py
+          tests/platform/test_unified_windows_install.py
+      - name: Real disposable Windows install and complete uninstall
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          TESTER_UNIFIED_WINDOWS_REAL: '1'
+        run: |
+          $pgBin = Get-ChildItem 'C:/Program Files/PostgreSQL' -Directory |
+            Where-Object Name -Match '^\d+$' | Sort-Object { [int]$_.Name } -Descending |
+            ForEach-Object { Join-Path $_.FullName 'bin' } |
+            Where-Object { Test-Path -LiteralPath (Join-Path $_ 'initdb.exe') } |
+            Select-Object -First 1
+          if (-not $pgBin) { throw 'Disposable test requires PostgreSQL binaries' }
+          $env:TESTER_UNIFIED_PG_BIN = $pgBin
+          New-Item -ItemType Directory -Force '.scratch/unified-evidence' | Out-Null
+          & (Join-Path $pgBin 'postgres.exe') --version |
+            Set-Content '.scratch/unified-evidence/postgres-version.txt'
+          python -m pytest -q -rs tests/platform/test_unified_windows_install.py
+          if ($LASTEXITCODE -ne 0) { throw 'Real Windows lifecycle failed' }
+      - name: Keep lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tester-unified-${{ matrix.os }}
+          path: .scratch/unified-evidence/**
+          if-no-files-found: ignore
