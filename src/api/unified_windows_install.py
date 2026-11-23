@@ -492,9 +492,10 @@ class UnifiedInstaller:
             try:
                 arguments = ancestor.cmdline()
                 if (
-                    plain(ancestor.exe()).resolve() == powershell.resolve()
+                    os.name == "nt"
                     and "-File" in arguments
                     and arguments[arguments.index("-File") + 1] == script
+                    and plain(ancestor.exe()).resolve() == powershell.resolve()
                 ):
                     controllers.add(ancestor.pid)
                 runtime = self.root / "install/runtime.json"
@@ -520,8 +521,11 @@ class UnifiedInstaller:
             try:
                 cwd = process.info["cwd"]
                 if cwd:
-                    path = plain(cwd).resolve()
+                    # Foreign OS processes may legitimately use symlink paths.
+                    # Apply our no-reparse rule only within the owned tree.
+                    path = Path(cwd).resolve()
                     if path == self.root or self.root in path.parents:
+                        plain(path)
                         raise LabViolation("Live process beneath owned tree blocks deletion")
                 for argument in process.info["cmdline"] or []:
                     if str(self.root).casefold() in argument.casefold():

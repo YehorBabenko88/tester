@@ -8,10 +8,51 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from src.api import unified_windows_install as install
+
+
+def test_unrelated_ancestor_executable_is_not_attested(tmp_path, monkeypatch):
+    import psutil
+
+    manager = install.UnifiedInstaller(
+        tmp_path / "owned", tmp_path / "Desktop", disposable_parent=tmp_path
+    )
+
+    def unrelated_exe():
+        raise AssertionError("Do not inspect unrelated init/system executable")
+
+    ancestor = SimpleNamespace(cmdline=lambda: ["/sbin/init"], exe=unrelated_exe)
+    monkeypatch.setattr(psutil, "Process", lambda: SimpleNamespace(parents=lambda: [ancestor]))
+    monkeypatch.setattr(psutil, "process_iter", lambda _: [])
+    manager._assert_no_owned_processes()
+
+
+def test_unrelated_process_directory_is_not_subject_to_owned_path_policy(tmp_path, monkeypatch):
+    import psutil
+
+    manager = install.UnifiedInstaller(
+        tmp_path / "owned", tmp_path / "Desktop", disposable_parent=tmp_path
+    )
+    foreign = tmp_path / "foreign"
+    original = install.plain
+
+    def owned_paths_only(path):
+        if Path(path) == foreign:
+            raise AssertionError("Do not attest unrelated process cwd")
+        return original(path)
+
+    monkeypatch.setattr(install, "plain", owned_paths_only)
+    monkeypatch.setattr(psutil, "Process", lambda: SimpleNamespace(parents=lambda: []))
+    monkeypatch.setattr(
+        psutil,
+        "process_iter",
+        lambda _: [SimpleNamespace(pid=os.getpid() + 1, info={"cwd": str(foreign), "cmdline": []})],
+    )
+    manager._assert_no_owned_processes()
 
 
 @pytest.fixture
