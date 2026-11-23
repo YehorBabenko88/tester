@@ -52,6 +52,11 @@ class LabService(_Framework):
 
         return preflight(root)
 
+    def create_job(self, marker):
+        import win32job
+
+        return win32job.CreateJobObject(None, "")
+
     def record_phase(self, phase):
         """Optional release lifecycle receipt; legacy behavior stays unchanged."""
 
@@ -125,7 +130,7 @@ class LabService(_Framework):
         self.instance = instance
         self.record_phase("starting")
         contract["env"]["TESTER_SERVICE_INSTANCE"] = instance
-        job = win32job.CreateJobObject(None, "")
+        job = self.create_job(marker)
         limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
         limits["BasicLimitInformation"]["LimitFlags"] |= win32job.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
         win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)

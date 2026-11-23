@@ -392,3 +392,49 @@ def test_new_native_registration_failure_rolls_back_exact_created_handle(monkeyp
         ("delete", "new-owned-handle"),
         ("close", "new-owned-handle"),
     ]
+
+
+def test_service_sid_is_deterministic_and_case_insensitive():
+    assert rs.service_sid("TesterReleaseApp_0123456789abcdef0123456789abcdef") == rs.service_sid(
+        "TESTERRELEASEAPP_0123456789ABCDEF0123456789ABCDEF"
+    )
+    assert rs.service_sid("TesterReleaseApp_0123456789abcdef0123456789abcdef").startswith(
+        "S-1-5-80-"
+    )
+
+
+def test_stop_proof_ignores_unrelated_protected_processes(monkeypatch):
+    from contextlib import nullcontext
+
+    marker = {"installation_id": "test"}
+    calls = []
+
+    class Controller:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def apply(self, action):
+            calls.append(action)
+            return [{"state": "stopped"}]
+
+    class Proof:
+        def prove_exit(self):
+            calls.append("prove-exit")
+
+    monkeypatch.setattr(rs, "NativeController", lambda marker: Controller())
+    monkeypatch.setattr(
+        rs, "capture_stop_proof", lambda marker: nullcontext(Proof()), raising=False
+    )
+    monkeypatch.setattr(
+        rs,
+        "writer_processes",
+        lambda marker: (_ for _ in ()).throw(
+            AssertionError("must not inspect unrelated protected processes")
+        ),
+        raising=False,
+    )
+    assert rs.stop_and_prove_exit(marker) == [{"state": "stopped"}]
+    assert calls == ["stop", "prove-exit"]

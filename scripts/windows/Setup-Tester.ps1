@@ -115,7 +115,11 @@ $Python=Join-Path $Bundle 'runtimes\python\python.exe'
 $Payload=Join-Path $Bundle 'payload'
 $Arguments=@('-I','-B','-c','import sys; sys.path.insert(0,sys.argv.pop(1)); from src.api.release_install import main; main()', $Payload,'--bundle',$Bundle,'--root',$Root,'--trusted-public-key-sha256',$TrustedPublicKeySHA256,'--expected-source-sha',$ExpectedSourceSHA,'--mode',$Mode)
 if ($Desktop) {$Arguments+=@('--desktop',$Desktop)}
-& $Python @Arguments
+$PreviousBytecode=$env:PYTHONDONTWRITEBYTECODE
+try {
+    $env:PYTHONDONTWRITEBYTECODE='1'
+    & $Python @Arguments
+} finally {$env:PYTHONDONTWRITEBYTECODE=$PreviousBytecode}
 if ($LASTEXITCODE -ne 0) {throw 'TESTER installation failed; preserve state/install.json for diagnosis.'}
 Write-Progress -Activity 'TESTER installation' -Completed
 Write-Output 'TESTER installation ready.'

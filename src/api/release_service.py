@@ -66,60 +66,268 @@ def validate_resources(marker, scm=None):
             scm.close()
 
 
-def stop_and_prove_exit(marker):
-    import time
-
-    with NativeController(marker) as controller:
-        states = controller.apply("stop")
-    deadline = time.monotonic() + 15
-    while True:
-        writers = writer_processes(marker)
-        if not writers:
-            return states
-        if time.monotonic() >= deadline:
-            raise ValueError("Unique TESTER service-account writers remain after stop")
-        time.sleep(0.1)
-
-
-def writer_processes(marker):
-    """Query kernel token SIDs; never infer writer identity from process names."""
+def service_sid(name):
+    """Windows service SID derivation remains stable after SCM deregistration."""
     import hashlib
     import struct
 
+    digest = hashlib.sha1(name.upper().encode("utf-16le"), usedforsecurity=False).digest()
+    return "S-1-5-80-" + "-".join(str(n) for n in struct.unpack("<5I", digest))
+
+
+def job_name(marker):
+    return "Global\\TesterReleaseJob_" + marker["installation_id"].replace("-", "")
+
+
+def create_owned_job(marker):
+    import pywintypes
     import win32api
-    import win32con
-    import win32process
+    import win32job
     import win32security
 
-    sids = set()
-    for name in marker["services"].values():
-        digest = hashlib.sha1(name.upper().encode("utf-16le"), usedforsecurity=False).digest()
-        sids.add("S-1-5-80-" + "-".join(str(n) for n in struct.unpack("<5I", digest)))
-    found = []
-    for pid in win32process.EnumProcesses():
-        if pid in (0, 4):
-            continue
-        process = token = None
+    sid = win32security.ConvertStringSidToSid(service_sid(marker["services"]["app"]))
+    acl = win32security.ACL()
+    for value in (
+        sid,
+        win32security.ConvertStringSidToSid("S-1-5-18"),
+        win32security.ConvertStringSidToSid("S-1-5-32-544"),
+    ):
+        acl.AddAccessAllowedAce(win32security.ACL_REVISION, 0x1F003F, value)
+    descriptor = win32security.SECURITY_DESCRIPTOR()
+    descriptor.SetSecurityDescriptorOwner(sid, False)
+    descriptor.SetSecurityDescriptorDacl(True, acl, False)
+    descriptor.SetSecurityDescriptorControl(
+        win32security.SE_DACL_PROTECTED, win32security.SE_DACL_PROTECTED
+    )
+    attributes = pywintypes.SECURITY_ATTRIBUTES()
+    attributes.SECURITY_DESCRIPTOR = descriptor
+    handle = win32job.CreateJobObject(attributes, job_name(marker))
+    if win32api.GetLastError() == 183:
+        handle.Close()
+        raise ValueError("Owned TESTER supervisor job already exists")
+    _validate_job_owner(handle, marker)
+    return handle
+
+
+def _validate_job_owner(handle, marker):
+    import win32security
+
+    descriptor = win32security.GetSecurityInfo(
+        handle,
+        win32security.SE_KERNEL_OBJECT,
+        win32security.OWNER_SECURITY_INFORMATION | win32security.DACL_SECURITY_INFORMATION,
+    )
+    expected = {service_sid(marker["services"]["app"]), "S-1-5-18", "S-1-5-32-544"}
+    if win32security.ConvertSidToStringSid(descriptor.GetSecurityDescriptorOwner()) != service_sid(
+        marker["services"]["app"]
+    ):
+        raise ValueError("Foreign TESTER supervisor job owner")
+    acl = descriptor.GetSecurityDescriptorDacl()
+    actual = set()
+    for index in range(acl.GetAceCount()):
+        (kind, flags), mask, sid = acl.GetAce(index)
+        if kind != 0 or flags != 0 or mask != 0x1F003F:
+            raise ValueError("Foreign TESTER supervisor job access")
+        actual.add(win32security.ConvertSidToStringSid(sid))
+    if actual != expected or acl.GetAceCount() != 3:
+        raise ValueError("Unexpected TESTER supervisor job principals")
+
+
+def stop_and_prove_exit(marker):
+    with capture_stop_proof(marker) as proof:
+        with NativeController(marker) as controller:
+            states = controller.apply("stop")
+        proof.prove_exit()
+        return states
+
+
+def _process_parents():
+    """Read process ancestry only; never open or query tokens of unrelated PPLs."""
+    import ctypes
+    from ctypes import wintypes
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+
+    class Entry(ctypes.Structure):
+        _fields_ = [
+            ("size", wintypes.DWORD),
+            ("usage", wintypes.DWORD),
+            ("pid", wintypes.DWORD),
+            ("heap", ctypes.c_size_t),
+            ("module", wintypes.DWORD),
+            ("threads", wintypes.DWORD),
+            ("parent", wintypes.DWORD),
+            ("priority", wintypes.LONG),
+            ("flags", wintypes.DWORD),
+            ("exe", wintypes.WCHAR * 260),
+        ]
+
+    kernel.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+    kernel.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+    kernel.Process32FirstW.argtypes = [wintypes.HANDLE, ctypes.POINTER(Entry)]
+    kernel.Process32NextW.argtypes = [wintypes.HANDLE, ctypes.POINTER(Entry)]
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    handle = kernel.CreateToolhelp32Snapshot(2, 0)
+    if handle == wintypes.HANDLE(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    result = {}
+    try:
+        entry = Entry()
+        entry.size = ctypes.sizeof(entry)
+        more = kernel.Process32FirstW(handle, ctypes.byref(entry))
+        while more:
+            result[entry.pid] = entry.parent
+            more = kernel.Process32NextW(handle, ctypes.byref(entry))
+        if ctypes.get_last_error() != 18:
+            raise ctypes.WinError(ctypes.get_last_error())
+    finally:
+        kernel.CloseHandle(handle)
+    return result
+
+
+class NativeStopProof:
+    """Stable handles for authenticated service roots, PG descendants and app job."""
+
+    def __init__(self, marker):
+        import win32job
+
+        self.handles = []
+        self.job = None
         try:
-            process = win32api.OpenProcess(0x1000, False, pid)
-            token = win32security.OpenProcessToken(process, win32con.TOKEN_QUERY)
-            sid = win32security.GetTokenInformation(token, win32security.TokenUser)[0]
-            if win32security.ConvertSidToStringSid(sid) in sids:
-                found.append(pid)
+            states = validate_resources(marker)
+            root = Path(marker["root"])
+            pg_roots = set()
+            for role, state, plan in zip(("app", "postgres"), states, plans(marker), strict=True):
+                if state and state.get("pid"):
+                    self._capture(
+                        state["pid"], service_sid(marker["services"][role]), {plan["executable"]}
+                    )
+                    if role == "postgres":
+                        pg_roots.add(state["pid"])
+            try:
+                self.job = win32job.OpenJobObject(0x20000 | 4 | 8, False, job_name(marker))
+            except Exception as exc:
+                if getattr(exc, "winerror", None) != 2 or (
+                    states[0] and states[0]["state"] == "running"
+                ):
+                    raise
+            if self.job is not None:
+                _validate_job_owner(self.job, marker)
+            pidfile = root / "postgres-data/postmaster.pid"
+            if pidfile.exists():
+                from .lab_install import plain
+
+                lines = plain(pidfile).read_text().splitlines()
+                if (
+                    len(lines) < 4
+                    or plain(lines[1]) != root / "postgres-data"
+                    or lines[3] != str(marker["ports"]["postgres"])
+                ):
+                    raise ValueError("Dedicated PostgreSQL PID receipt scope mismatch")
+                pg_roots.add(int(lines[0]))
+            parents = _process_parents()
+            descendants = set(pg_roots)
+            while True:
+                more = {pid for pid, parent in parents.items() if parent in descendants}
+                if more <= descendants:
+                    break
+                descendants.update(more)
+            allowed = {
+                str(root / "dependencies/postgres/bin/postgres.exe"),
+                str(root / "dependencies/postgres/bin/pg_ctl.exe"),
+            }
+            for pid in descendants:
+                self._capture(pid, service_sid(marker["services"]["postgres"]), allowed)
+        except BaseException:
+            self.close()
+            raise
+
+    def _capture(self, pid, sid, allowed):
+        import ctypes
+        from ctypes import wintypes
+
+        import win32api
+        import win32con
+        import win32security
+
+        try:
+            handle = win32api.OpenProcess(0x100000 | 0x1000, False, pid)
         except Exception as exc:
-            if getattr(exc, "winerror", None) not in (5, 87, 6):
-                raise
-            if getattr(exc, "winerror", None) == 5:
-                raise ValueError(
-                    "Cannot prove process token identity while stopping writers"
-                ) from exc
-            # Invalid handles/PIDs are process exit races, never positive proof.
+            if getattr(exc, "winerror", None) == 87:
+                return
+            raise
+        token = None
+        try:
+            token = win32security.OpenProcessToken(handle, win32con.TOKEN_QUERY)
+            actual = win32security.ConvertSidToStringSid(
+                win32security.GetTokenInformation(token, win32security.TokenUser)[0]
+            )
+            kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel.QueryFullProcessImageNameW.argtypes = [
+                wintypes.HANDLE,
+                wintypes.DWORD,
+                wintypes.LPWSTR,
+                ctypes.POINTER(wintypes.DWORD),
+            ]
+            buffer = ctypes.create_unicode_buffer(32768)
+            size = wintypes.DWORD(len(buffer))
+            if not kernel.QueryFullProcessImageNameW(int(handle), 0, buffer, ctypes.byref(size)):
+                raise ctypes.WinError(ctypes.get_last_error())
+            if actual != sid or buffer.value.casefold() not in {
+                path.casefold() for path in allowed
+            }:
+                raise ValueError("Foreign executable/token in owned service ancestry")
+            self.handles.append(handle)
+            handle = None
         finally:
             if token is not None:
                 token.Close()
-            if process is not None:
-                process.Close()
-    return found
+            if handle is not None:
+                handle.Close()
+
+    def prove_exit(self):
+        import time
+
+        import win32event
+        import win32job
+
+        if self.job is not None:
+            if win32job.QueryInformationJobObject(
+                self.job, win32job.JobObjectBasicAccountingInformation
+            )["ActiveProcesses"]:
+                win32job.TerminateJobObject(self.job, 1)
+            deadline = time.monotonic() + 15
+            while win32job.QueryInformationJobObject(
+                self.job, win32job.JobObjectBasicAccountingInformation
+            )["ActiveProcesses"]:
+                if time.monotonic() >= deadline:
+                    raise ValueError("Owned supervisor job did not empty")
+                time.sleep(0.1)
+        for handle in self.handles:
+            if win32event.WaitForSingleObject(handle, 15000) != win32event.WAIT_OBJECT_0:
+                raise ValueError("Authenticated TESTER process survived service stop")
+
+    def close(self):
+        if self.job is not None:
+            self.job.Close()
+            self.job = None
+        for handle in self.handles:
+            handle.Close()
+        self.handles = []
+
+
+def capture_stop_proof(marker):
+    from contextlib import contextmanager
+
+    @contextmanager
+    def lease():
+        proof = NativeStopProof(marker)
+        try:
+            yield proof
+        finally:
+            proof.close()
+
+    return lease()
 
 
 def remove_resources(marker):
@@ -264,6 +472,9 @@ class ReleaseService(LabService):
 
     _receipt_lock = threading.Lock()
     marker_reader = staticmethod(load_marker)
+
+    def create_job(self, marker):
+        return create_owned_job(marker)
 
     def record_phase(self, phase):
         import json

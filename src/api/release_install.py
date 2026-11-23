@@ -204,6 +204,9 @@ def install(
 
     from .release_security import verify_release
 
+    python_env = dict(
+        os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1", GUARDIANS_ENABLED="false"
+    )
     release = verify_release(
         Path(bundle),
         trusted_public_key_sha256=trusted_public_key_sha256,
@@ -342,6 +345,7 @@ def install(
                 [str(python), "-I", "-B", "-m", "venv", str(root / "dependencies/venv")],
                 check=True,
                 timeout=120,
+                env=python_env,
             )
             venv = root / "dependencies/venv/Scripts/python.exe"
             subprocess.run(
@@ -363,6 +367,7 @@ def install(
                 ],
                 check=True,
                 timeout=300,
+                env=python_env,
             )
             subprocess.run(
                 [
@@ -375,11 +380,16 @@ def install(
                 cwd=release_root,
                 check=True,
                 timeout=180,
+                env=python_env,
             )
             # Stage using the same private runtime implementation as the verified lab.
             code = 'from pathlib import Path; from src.api.lab_scm import stage_service_runtime; from src.api.release_install import load_marker; stage_service_runtime(Path(__import__("sys").argv[1]),marker_reader=load_marker,bootstrap="release_service_bootstrap.py")'
             subprocess.run(
-                [str(venv), "-B", "-c", code, str(root)], cwd=release_root, check=True, timeout=180
+                [str(venv), "-B", "-c", code, str(root)],
+                cwd=release_root,
+                check=True,
+                timeout=180,
+                env=python_env,
             )
             write_json(
                 root / "state/postgres-runtime.json",
@@ -441,6 +451,7 @@ def install(
                     cwd=release_root,
                     check=True,
                     timeout=120,
+                    env=python_env,
                 )
                 control = subprocess.run(
                     [str(pgbin / "pg_controldata.exe"), "-D", str(root / "postgres-data")],
