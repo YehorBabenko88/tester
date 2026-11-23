@@ -1180,3 +1180,96 @@ def test_final_ledger_commit_routes_fresh_transaction_to_full_owned_uninstaller(
     assert calls[0][0] == root
     assert calls[0][1]["trusted_ledger_sha256"] == ledger_pin
     assert calls[0][1]["confirmations"] == ("DELETE TESTER", "YES")
+
+
+@windows_only
+def test_provisioning_seal_cooperates_with_retained_root_rename_guard(tmp_path, monkeypatch):
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    journal = write_provisioning_fixture(tmp_path, rows)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", fixture_protected_provisioning)
+    guard = removal._WindowsObject(root)
+    try:
+        proof = removal.seal_provisioning_outputs(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=Resources(),
+            lifecycle_lock=fixture_lock,
+        )
+        assert proof["app.txt"] == removal._identity(root / "app.txt")
+    finally:
+        guard.close()
+
+
+@windows_only
+def test_final_enrollment_refuses_replacement_after_sealed_creation_receipt(tmp_path):
+    values = installation(tmp_path)
+    root, _, _, pin = values
+    marker = json.loads((root / removal.MARKER).read_text())
+    paths = tuple(p.relative_to(root).as_posix() for p in root.rglob("*"))
+    identities = {name: removal._identity(root / name) for name in paths}
+    root_identity = removal._identity(root)
+    (root / "app.txt").rename(tmp_path / "old-original")
+    (root / "app.txt").write_bytes(b"TESTER")
+    with pytest.raises(ReleaseSecurityError):
+        removal.write_ownership(
+            root,
+            marker,
+            release=verify(tmp_path / "bundle", pin),
+            ledger_path=tmp_path / "final-after-transition.json",
+            owned_paths=paths,
+            expected_identities=identities,
+            expected_root_identity=root_identity,
+        )
+    assert (root / "app.txt").exists()
+
+
+@windows_only
+@pytest.mark.parametrize("backend", ["python", "powershell"])
+def test_empty_directory_lease_really_blocks_rename_without_child_file_handles(tmp_path, backend):
+    import subprocess
+    from pathlib import Path
+
+    fixture = tmp_path / "empty-owned-directory"
+    fixture.mkdir()
+    if backend == "python":
+        guard = removal._WindowsObject(fixture)
+        try:
+            with pytest.raises(OSError):
+                fixture.rename(tmp_path / "swapped")
+        finally:
+            guard.close()
+    else:
+        wrapper = (
+            Path(__file__).resolve().parents[2] / "scripts/windows/Uninstall-ReleaseTester.ps1"
+        )
+        prelude = wrapper.read_text(encoding="utf-8").split("function Assert-PlainPath", 1)[0]
+        script = tmp_path / "empty-dir-proof.ps1"
+        script.write_text(
+            prelude
+            + """
+Lock-MaintenancePath $env:TESTER_EMPTY_DIR
+[Console]::WriteLine('READY')
+[Console]::ReadLine() | Out-Null
+foreach ($lease in $maintenanceLeases) { $lease.Dispose() }
+""",
+            encoding="utf-8",
+        )
+        child = subprocess.Popen(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-File", str(script)],
+            env={**os.environ, "TESTER_EMPTY_DIR": str(fixture)},
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        try:
+            assert child.stdout.readline().strip() == "READY"
+            with pytest.raises(OSError):
+                fixture.rename(tmp_path / "swapped")
+        finally:
+            output, error = child.communicate("\n", timeout=30)
+        assert child.returncode == 0, error + output
+    fixture.rename(tmp_path / "released")

@@ -74,11 +74,13 @@ class _WindowsObject:
         ]
         self.path = Path(path)
         is_dir = stat.S_ISDIR(self.path.lstat().st_mode)
+        # Attribute-only directory opens do not enforce share-delete exclusion.
+        # FILE_LIST_DIRECTORY (0x1) makes the directory lease participate in sharing.
         access = (
             0x20000
             | 0x80
             | (0x10000 if delete else 0)
-            | (0x80000000 if not is_dir else 0)
+            | (0x80000000 if not is_dir else 0x1)
             | (0x40000000 if write else 0)
         )
         self.handle = self.api.CreateFileW(
@@ -368,6 +370,62 @@ def write_ownership(
     installed_files=None,
     external_paths=(),
     trust_config_path=None,
+    expected_identities=None,
+    expected_root_identity=None,
+):
+    """Bind final enrollment to sealed creation IDs, including across owner changes.
+
+    The canonical provisioning caller passes the mapping returned by
+    seal_provisioning_outputs plus its original root ID. Older explicit fixture
+    receipts can still use the creation-path contract without this transition.
+    """
+    root = plain(root)
+    arguments = dict(
+        release=release,
+        ledger_path=ledger_path,
+        owned_paths=owned_paths,
+        release_prefix=release_prefix,
+        writer_boundaries=writer_boundaries,
+        installed_files=installed_files,
+        external_paths=external_paths,
+        trust_config_path=trust_config_path,
+    )
+    if expected_identities is None:
+        if expected_root_identity is not None:
+            raise ReleaseSecurityError(
+                "Creation ID mapping required with the original root identity"
+            )
+        return _write_ownership_receipts(root, marker, **arguments)
+    actual = _tree(root)
+    if set(expected_identities) != set(actual):
+        raise ReleaseSecurityError(
+            "Final enrollment contains objects absent from sealed creation receipts"
+        )
+    entries = {
+        name: dict(
+            identity=_valid_identity(identity), kind="dir" if actual[name].is_dir() else "file"
+        )
+        for name, identity in expected_identities.items()
+    }
+    ledger = dict(
+        root_identity=_valid_identity(expected_root_identity), marker=marker, writer_boundaries=[]
+    )
+    with _locked_tree(root, ledger, entries, delete=False):
+        return _write_ownership_receipts(root, marker, **arguments)
+
+
+def _write_ownership_receipts(
+    root,
+    marker,
+    *,
+    release,
+    ledger_path,
+    owned_paths,
+    release_prefix="",
+    writer_boundaries=(),
+    installed_files=None,
+    external_paths=(),
+    trust_config_path=None,
 ):
     """Seal explicit installation creation receipts, without adopting extra entries.
 
@@ -556,20 +614,20 @@ def _write_evidence(stream, value):
 
 
 @contextlib.contextmanager
-def _locked_tree(root, ledger, entries, *, defer_completion=False):
+def _locked_tree(root, ledger, entries, *, defer_completion=False, delete=True):
     if os.name != "nt":
         raise ReleaseSecurityError("Native handle-safe deletion currently supports Windows only")
     held, ancestors = {}, []
     try:
         for path in reversed(root.parents):
             ancestors.append(_WindowsObject(path))
-        held[""] = _WindowsObject(root, delete=True)
+        held[""] = _WindowsObject(root, delete=delete)
         if held[""].identity != ledger["root_identity"]:
             raise ReleaseSecurityError("Root swapped before lock")
         for name, entry in sorted(entries.items(), key=lambda pair: len(Path(pair[0]).parts)):
             if not (root / name).exists():
                 continue  # A previous partial attempt may already have removed this identity.
-            handle = _WindowsObject(root / name, delete=True)
+            handle = _WindowsObject(root / name, delete=delete)
             held[name] = handle
             if handle.identity != entry["identity"] or handle.is_dir != (entry["kind"] == "dir"):
                 raise ReleaseSecurityError("Object swapped before lock")
@@ -584,7 +642,7 @@ def _locked_tree(root, ledger, entries, *, defer_completion=False):
                 continue
             for parent in reversed(path.parents):
                 ancestors.append(_WindowsObject(parent))
-            handle = _WindowsObject(path, delete=True)
+            handle = _WindowsObject(path, delete=delete)
             held["@external:" + str(path)] = handle
             if (
                 handle.identity != entry["identity"]
@@ -603,7 +661,7 @@ def _locked_tree(root, ledger, entries, *, defer_completion=False):
             ancestors.append(parent_handle)
             _validate_admin_security(_security_record(parent_handle))
             if path.exists():
-                handle = _WindowsObject(path, delete=True)
+                handle = _WindowsObject(path, delete=delete)
                 held[("@config:" if defer_completion else "@external:") + str(path)] = handle
                 _validate_admin_security(_security_record(handle))
                 config = json.loads(handle.read_bytes(), object_pairs_hook=_unique_object)
@@ -1237,7 +1295,7 @@ def seal_provisioning_outputs(
             writer_boundaries=[],
             external_entries=externals,
         )
-        with _locked_tree(root, ledger, entries) as held:
+        with _locked_tree(root, ledger, entries, delete=False) as held:
             _locked_provisioning_proof(root, state, root_identity, entries, held, externals)
             for name, entry in entries.items():
                 if entry.get("provisioning_actor"):
@@ -1260,7 +1318,7 @@ def seal_provisioning_outputs(
                             sha256=held[name].digest(),
                         ),
                     )
-        return tuple(sorted(entries))
+        return {name: list(entries[name]["identity"]) for name in sorted(entries)}
 
 
 def _final_provisioning_rollback(

@@ -39,7 +39,7 @@ public sealed class TesterMaintenanceLease : IDisposable {
     public string Identity { get; private set; }
     public TesterMaintenanceLease(string path, bool directory) : this(path, directory, false) {}
     public TesterMaintenanceLease(string path, bool directory, bool delete) {
-        uint access = directory ? 0x20080u : 0x80020080u;
+        uint access = directory ? 0x20081u : 0x80020080u;
         if (delete) { access |= 0x10000u; }
         handle = CreateFileW(path, access, directory ? 3u : 1u, IntPtr.Zero, 3u, 0x02200000u, IntPtr.Zero);
         if (handle.IsInvalid) { throw new Win32Exception(Marshal.GetLastWin32Error()); }
