@@ -34,6 +34,21 @@ def test_configuration_connects_existing_typed_catalog_history_adapter(tmp_path)
     assert result["data_dir"] == str(tmp_path / "runtime")
 
 
+def test_projection_configuration_uses_only_owned_isolated_research_database(tmp_path):
+    dsn = "host=127.0.0.1 port=55822 dbname=tester_research_release user=tester_research_app password=temporary"
+    config = runtime_configuration(tmp_path, marker(), "APP-DSN", "CATALOG-DSN", research_dsn=dsn)
+    assert config["research_projection_enabled"] is True
+    assert config["research_database_url"] == dsn
+    with pytest.raises(ValueError):
+        runtime_configuration(
+            tmp_path, marker(), "APP-DSN", "CATALOG-DSN", research_dsn=dsn.replace("55822", "5432")
+        )
+    with pytest.raises(ValueError):
+        runtime_configuration(
+            tmp_path, marker(), "APP-DSN", "CATALOG-DSN", research_dsn=dsn.replace("55822", "55823")
+        )
+
+
 def test_release_projection_migration_is_guarded_and_idempotent():
     from unittest.mock import MagicMock
 

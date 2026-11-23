@@ -12,7 +12,7 @@ from src.storage.migrations import migrate as migrate_storage
 from .catalog_store import migrate_catalog
 from .db import migrate as migrate_platform
 from .history_lab_bootstrap import migrate_release_projections
-from .research_ledger import migrate_research
+from .research_ledger import migrate_research, validate_research_dsn
 
 DATABASES = {
     "tester": ("tester_app", ("tester_platform", "tester_storage", "tester_lab")),
@@ -37,10 +37,10 @@ def database_identity(marker):
     return dict(host="127.0.0.1", hostaddr="127.0.0.1", port=port)
 
 
-def runtime_configuration(root, marker, app_dsn, catalog_dsn):
+def runtime_configuration(root, marker, app_dsn, catalog_dsn, *, research_dsn=None):
     database_identity(marker)
     root = Path(root)
-    return dict(
+    config = dict(
         database_url=app_dsn,
         data_dir=str(root / "runtime"),
         host="127.0.0.1",
@@ -51,6 +51,17 @@ def runtime_configuration(root, marker, app_dsn, catalog_dsn):
         market_catalog_enabled=True,
         market_catalog_database_url=catalog_dsn,
     )
+    if research_dsn is not None:
+        endpoint = validate_research_dsn(research_dsn)
+        if (
+            endpoint.get("host") != "127.0.0.1"
+            or endpoint.get("port") != str(marker["ports"]["postgres"])
+            or endpoint.get("dbname") != "tester_research_release"
+            or endpoint.get("user") != "tester_research_app"
+        ):
+            raise ValueError("Release projection database scope mismatch")
+        config.update(research_projection_enabled=True, research_database_url=research_dsn)
+    return config
 
 
 def provision_release_databases(marker, owner_password):
