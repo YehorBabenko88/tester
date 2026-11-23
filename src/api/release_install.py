@@ -146,6 +146,14 @@ def create_shortcuts(root, marker):
             + str(root)
             + '"'
         )
+        if script == "Uninstall-ReleaseTester.ps1" and marker.get("trust_config"):
+            arguments = (
+                '-NoProfile -File "'
+                + str(root / "releases" / marker["source_sha"] / "scripts/windows" / script)
+                + '" -TrustConfig "'
+                + marker["trust_config"]
+                + '"'
+            )
         script_path = root / "releases" / marker["source_sha"] / "scripts/windows" / script
         if not plain(script_path).is_file():
             raise LabViolation("Shortcut target script is missing")
@@ -217,7 +225,7 @@ def install(
     required = (
         "payload/src/api/supervisor.py",
         "payload/frontend/index.html",
-        "payload/requirements-release-windows312.lock",
+        "payload/requirements-release-windows314.lock",
         "runtimes/python/python.exe",
         "runtimes/postgres/bin/initdb.exe",
         "runtimes/postgres/bin/pg_ctl.exe",
@@ -252,6 +260,26 @@ def install(
         ):
             (root / name).mkdir()
         ident = uuid.uuid4()
+        maintenance_parent = (
+            Path(os.environ["ProgramData"]) if mode == "production" else root.parent
+        )
+        maintenance = plain(maintenance_parent / ("TesterReleaseMaintenance_" + ident.hex))
+        maintenance.mkdir()
+        subprocess.run(
+            [
+                "icacls.exe",
+                str(maintenance),
+                "/inheritance:r",
+                "/grant:r",
+                "*S-1-5-18:(OI)(CI)F",
+                "*S-1-5-32-544:(OI)(CI)F",
+                "/setowner",
+                "*S-1-5-32-544",
+            ],
+            check=True,
+            capture_output=True,
+        )
+        (maintenance / "evidence").mkdir()
         api_port, pg_port = free_port(), free_port()
         while pg_port == api_port or pg_port == 5432:
             pg_port = free_port()
@@ -262,6 +290,7 @@ def install(
             source_sha=release.source_sha,
             release_manifest_sha256=release.manifest_sha256,
             mode=mode,
+            trust_config=str(maintenance / "trust.json"),
             test_desktop=str(plain(desktop)) if desktop else None,
             services={
                 "app": "TesterReleaseApp_" + ident.hex,
@@ -270,12 +299,39 @@ def install(
             ports={"api": api_port, "postgres": pg_port},
         )
         write_json(root / MARKER, marker)
-        journal = root / "state/install.json"
+        journal = root / "state/install.jsonl"
+        creation_receipt = root / "state/creation-receipts.jsonl"
+        creation_receipt.touch()
+        created = {}
+        sealed = False
 
-        def stage(name):
-            write_json(
-                journal, dict(installation_id=str(ident), source_sha=release.source_sha, phase=name)
-            )
+        def stage(name, **details):
+            with journal.open("a", encoding="utf-8") as stream:
+                stream.write(
+                    json.dumps(
+                        dict(
+                            installation_id=str(ident),
+                            source_sha=release.source_sha,
+                            phase=name,
+                            **details,
+                        )
+                    )
+                    + "\n"
+                )
+            if not sealed:
+                # Only invoked while the fresh root is builder-owned and services
+                # have never started. Never re-enroll a running/preexisting tree.
+                rows = []
+                for item in root.rglob("*"):
+                    item = plain(item)
+                    relative = item.relative_to(root).as_posix()
+                    info = item.stat()
+                    identity = [info.st_dev, info.st_ino]
+                    if created.get(relative) != identity:
+                        rows.append(dict(path=relative, identity=identity))
+                        created[relative] = identity
+                with creation_receipt.open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps(dict(builder_phase=name, created=rows)) + "\n")
 
         try:
             stage("copying-verified-payload")
@@ -287,7 +343,7 @@ def install(
             stage("installing-hash-locked-dependencies")
             python = root / "dependencies/python/python.exe"
             subprocess.run(
-                [str(python), "-I", "-m", "venv", str(root / "dependencies/venv")],
+                [str(python), "-I", "-B", "-m", "venv", str(root / "dependencies/venv")],
                 check=True,
                 timeout=120,
             )
@@ -296,19 +352,33 @@ def install(
                 [
                     str(venv),
                     "-I",
+                    "-B",
                     "-m",
                     "pip",
                     "install",
                     "--no-index",
+                    "--no-compile",
                     "--require-hashes",
                     "--only-binary=:all:",
                     "--find-links",
                     str(Path(bundle) / "wheelhouse"),
                     "-r",
-                    str(release_root / "requirements-release-windows312.lock"),
+                    str(release_root / "requirements-release-windows314.lock"),
                 ],
                 check=True,
                 timeout=300,
+            )
+            subprocess.run(
+                [
+                    str(venv),
+                    "-B",
+                    "-c",
+                    "from pathlib import Path; from src.api.release_install import protect_external_bundle; import sys; protect_external_bundle(Path(sys.argv[1]))",
+                    str(plain(bundle)),
+                ],
+                cwd=release_root,
+                check=True,
+                timeout=180,
             )
             # Stage using the same private runtime implementation as the verified lab.
             code = 'from pathlib import Path; from src.api.lab_scm import stage_service_runtime; from src.api.release_install import load_marker; stage_service_runtime(Path(__import__("sys").argv[1]),marker_reader=load_marker,bootstrap="release_service_bootstrap.py")'
@@ -411,22 +481,108 @@ def install(
                 controller.apply("install")
                 stage("applying-service-acls")
                 apply_acls(root, marker)
+                links = create_shortcuts(root, marker)
+                write_json(root / "state/shortcuts.json", {"paths": links})
+                stage("sealing-ownership")
+                import win32security
+
+                from .release_uninstall import write_ownership
+
+                boundaries = []
+                for role, relative in (("app", "runtime"), ("postgres", "postgres-data")):
+                    sid, _, _ = win32security.LookupAccountName(
+                        None, "NT SERVICE\\" + marker["services"][role]
+                    )
+                    boundaries.append(
+                        dict(
+                            path=relative,
+                            service_name=marker["services"][role],
+                            service_sid=win32security.ConvertSidToStringSid(sid),
+                        )
+                    )
+                mapping = {}
+                for relative, _ in release.files:
+                    for prefix, installed in (
+                        ("payload/", "releases/" + release.source_sha + "/"),
+                        ("runtimes/python/", "dependencies/python/"),
+                        ("runtimes/postgres/", "dependencies/postgres/"),
+                    ):
+                        if relative.startswith(prefix):
+                            mapping[relative] = installed + relative.removeprefix(prefix)
+                ledger = maintenance / "ownership.json"
+                ledger_digest = write_ownership(
+                    root,
+                    marker,
+                    release=release,
+                    ledger_path=ledger,
+                    owned_paths=tuple(created),
+                    installed_files=mapping,
+                    writer_boundaries=tuple(boundaries),
+                    external_paths=tuple(links),
+                    trust_config_path=maintenance / "trust.json",
+                )
+                sealed = True
+                trust = dict(
+                    schema="tester-maintenance-trust/v1",
+                    installation_id=str(ident),
+                    root=str(root),
+                    ledger=str(ledger),
+                    trusted_ledger_sha256=ledger_digest,
+                    trusted_public_key_sha256=trusted_public_key_sha256,
+                    source_sha=release.source_sha,
+                    manifest_sha256=release.manifest_sha256,
+                    bundle=str(plain(bundle)),
+                    module_source=str(plain(Path(bundle) / "payload")),
+                    python=str(plain(Path(bundle) / "runtimes/python/python.exe")),
+                    evidence_directory=str(maintenance / "evidence"),
+                )
+                write_json(maintenance / "trust.json", trust)
+                subprocess.run(
+                    [
+                        "icacls.exe",
+                        str(maintenance / "trust.json"),
+                        "/inheritance:r",
+                        "/grant:r",
+                        "*S-1-5-18:F",
+                        "*S-1-5-32-544:F",
+                        "/setowner",
+                        "*S-1-5-32-544",
+                    ],
+                    check=True,
+                    capture_output=True,
+                )
                 stage("waiting-for-api-worker-storage")
                 controller.apply("start")
-            write_json(root / "state/shortcuts.json", {"paths": create_shortcuts(root, marker)})
             stage("ready")
         except BaseException as exc:
-            write_json(
-                journal,
-                dict(
-                    installation_id=str(ident),
-                    source_sha=release.source_sha,
-                    phase="interrupted",
-                    error_type=type(exc).__name__,
-                ),
-            )
+            stage("interrupted", error_type=type(exc).__name__)
             raise
     return marker
+
+
+def protect_external_bundle(bundle):
+    """Original signed maintenance media: immutable admin-owned code, never user data."""
+    import win32security
+
+    admin = win32security.ConvertStringSidToSid("S-1-5-32-544")
+    system = win32security.ConvertStringSidToSid("S-1-5-18")
+    for item in (bundle, *bundle.rglob("*")):
+        item = plain(item)
+        acl = win32security.ACL()
+        flags = 3 if item.is_dir() else 0
+        for sid in (system, admin):
+            acl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, 0x1F01FF, sid)
+        win32security.SetNamedSecurityInfo(
+            str(item),
+            win32security.SE_FILE_OBJECT,
+            win32security.OWNER_SECURITY_INFORMATION
+            | win32security.DACL_SECURITY_INFORMATION
+            | win32security.PROTECTED_DACL_SECURITY_INFORMATION,
+            admin,
+            None,
+            acl,
+            None,
+        )
 
 
 def apply_acls(root, marker):
@@ -448,6 +604,11 @@ def apply_acls(root, marker):
             capture_output=True,
         )
 
+    # Normalize only this newly created, exclusively builder-owned tree before
+    # exposing it to service writers; PostgreSQL initdb may create explicit ACLs.
+    subprocess.run(
+        ["icacls.exe", str(root / "*"), "/reset", "/T", "/Q"], check=True, capture_output=True
+    )
     read = administrators + [sid + ":(OI)(CI)RX" for sid in sids.values()]
     acl(root, read)
     for name in ("dependencies", "releases", "state"):

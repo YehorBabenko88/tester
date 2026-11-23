@@ -247,7 +247,12 @@ def test_real_unicode_com_shortcut_roundtrip(tmp_path):
     root.mkdir()
     desktop = tmp_path / ("Desktop_" + ident.hex)
     desktop.mkdir()
-    marker = dict(mode="test", test_desktop=str(desktop), source_sha="a" * 40)
+    marker = dict(
+        mode="test",
+        test_desktop=str(desktop),
+        source_sha="a" * 40,
+        trust_config=str(tmp_path / ("TesterReleaseMaintenance_" + ident.hex) / "trust.json"),
+    )
     scripts = root / "releases" / marker["source_sha"] / "scripts/windows"
     scripts.mkdir(parents=True)
     for name in ("Start-ReleaseTester.ps1", "Uninstall-ReleaseTester.ps1"):
@@ -258,3 +263,60 @@ def test_real_unicode_com_shortcut_roundtrip(tmp_path):
         "TESTER — Удаление.lnk",
     }
     assert create_shortcuts(root, marker) == paths
+    import win32com.client
+
+    shell = win32com.client.Dispatch("WScript.Shell")
+    uninstall = shell.CreateShortcut(paths[1])
+    assert '-TrustConfig "' + marker["trust_config"] + '"' in uninstall.Arguments
+    assert " -Root " not in uninstall.Arguments
+    assert uninstall.WorkingDirectory == str(root)
+
+
+def test_startup_interruption_receipt_retains_exact_instance(tmp_path):
+    import json
+
+    from src.api.release_install import MARKER, SCHEMA
+
+    ident = uuid.uuid4()
+    root = tmp_path / ("TesterReleaseTest_" + ident.hex)
+    root.mkdir()
+    (root / "runtime").mkdir()
+    marker = dict(
+        schema=SCHEMA,
+        root=str(root),
+        installation_id=str(ident),
+        source_sha="a" * 40,
+        release_manifest_sha256="b" * 64,
+        mode="test",
+        test_desktop=str(tmp_path / ("Desktop_" + ident.hex)),
+        services={
+            "app": "TesterReleaseApp_" + ident.hex,
+            "postgres": "TesterReleasePG_" + ident.hex,
+        },
+        ports={"api": 18767, "postgres": 55471},
+    )
+    (root / MARKER).write_text(json.dumps(marker))
+    service = object.__new__(rs.ReleaseService)
+    service.root = root
+    service.instance = "exact-startup-instance"
+    service.record_phase("starting")
+    service.record_phase("startup-interrupted")
+    receipt = json.loads((root / "runtime/service-lifecycle.json").read_text())
+    assert receipt["installation_id"] == str(ident)
+    assert receipt["source_sha"] == "a" * 40
+    assert receipt["instance_id"] == "exact-startup-instance"
+    assert [row["phase"] for row in receipt["transitions"]] == ["starting", "startup-interrupted"]
+
+
+def test_release_postgres_config_refuses_include_and_system_port():
+    import pytest
+
+    from src.api.lab_scm import validate_pg_config
+
+    validate_pg_config("listen_addresses = '127.0.0.1'\nport = 55471\n", expected_port=55471)
+    for config in (
+        "listen_addresses = '127.0.0.1'\nport = 5432\n",
+        "listen_addresses = '127.0.0.1'\nport = 55471\ninclude = 'foreign.conf'\n",
+    ):
+        with pytest.raises(ValueError):
+            validate_pg_config(config, expected_port=55471)

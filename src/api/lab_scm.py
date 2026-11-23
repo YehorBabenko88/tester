@@ -12,7 +12,7 @@ from .lab_install import LabViolation, check, plain, verify_tree
 ACCOUNT = "NT AUTHORITY\\LocalService"
 
 
-def validate_pg_config(text):
+def validate_pg_config(text, *, expected_port=55470):
     allowed = {
         "listen_addresses",
         "port",
@@ -37,7 +37,7 @@ def validate_pg_config(text):
         if not match or match[1] not in allowed or match[1] in values:
             raise LabViolation("Unsupported or duplicate PostgreSQL configuration")
         values[match[1]] = match[2].strip()
-    if values.get("port") != "55470" or values.get("listen_addresses") != "'127.0.0.1'":
+    if values.get("port") != str(expected_port) or values.get("listen_addresses") != "'127.0.0.1'":
         raise LabViolation("Dedicated PostgreSQL port/listen configuration required")
 
 

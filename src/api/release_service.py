@@ -67,8 +67,59 @@ def validate_resources(marker, scm=None):
 
 
 def stop_and_prove_exit(marker):
+    import time
+
     with NativeController(marker) as controller:
-        return controller.apply("stop")
+        states = controller.apply("stop")
+    deadline = time.monotonic() + 15
+    while True:
+        writers = writer_processes(marker)
+        if not writers:
+            return states
+        if time.monotonic() >= deadline:
+            raise ValueError("Unique TESTER service-account writers remain after stop")
+        time.sleep(0.1)
+
+
+def writer_processes(marker):
+    """Query kernel token SIDs; never infer writer identity from process names."""
+    import hashlib
+    import struct
+
+    import win32api
+    import win32con
+    import win32process
+    import win32security
+
+    sids = set()
+    for name in marker["services"].values():
+        digest = hashlib.sha1(name.upper().encode("utf-16le"), usedforsecurity=False).digest()
+        sids.add("S-1-5-80-" + "-".join(str(n) for n in struct.unpack("<5I", digest)))
+    found = []
+    for pid in win32process.EnumProcesses():
+        if pid in (0, 4):
+            continue
+        process = token = None
+        try:
+            process = win32api.OpenProcess(0x1000, False, pid)
+            token = win32security.OpenProcessToken(process, win32con.TOKEN_QUERY)
+            sid = win32security.GetTokenInformation(token, win32security.TokenUser)[0]
+            if win32security.ConvertSidToStringSid(sid) in sids:
+                found.append(pid)
+        except Exception as exc:
+            if getattr(exc, "winerror", None) not in (5, 87, 6):
+                raise
+            if getattr(exc, "winerror", None) == 5:
+                raise ValueError(
+                    "Cannot prove process token identity while stopping writers"
+                ) from exc
+            # Invalid handles/PIDs are process exit races, never positive proof.
+        finally:
+            if token is not None:
+                token.Close()
+            if process is not None:
+                process.Close()
+    return found
 
 
 def remove_resources(marker):
@@ -147,6 +198,18 @@ def preflight(root):
 
     config = json.loads((root / "config.json").read_text())
     validate_config(marker, config)
+    from .lab_install import plain
+    from .lab_scm import validate_pg_config
+
+    validate_pg_config(
+        plain(root / "postgres-data/postgresql.conf").read_text(),
+        expected_port=marker["ports"]["postgres"],
+    )
+    auto = plain(root / "postgres-data/postgresql.auto.conf")
+    if auto.exists() and any(
+        line.split("#", 1)[0].strip() for line in auto.read_text().splitlines()
+    ):
+        raise ValueError("PostgreSQL ALTER SYSTEM overrides are forbidden")
     for name in ("service", "postgres"):
         receipt = json.loads((root / "state" / f"{name}-runtime.json").read_text())
         verify_tree(root / "dependencies" / name, receipt["files"])
@@ -197,7 +260,32 @@ def main():
 
 
 class ReleaseService(LabService):
+    import threading
+
+    _receipt_lock = threading.Lock()
     marker_reader = staticmethod(load_marker)
+
+    def record_phase(self, phase):
+        import json
+        import time
+
+        from .release_install import write_json
+
+        marker = load_marker(self.root)
+        path = self.root / "runtime/service-lifecycle.json"
+        with self._receipt_lock:
+            previous = json.loads(path.read_text()) if path.exists() else {}
+            rows = previous.get("transitions", [])[-63:]
+            rows.append({"phase": phase, "at": time.time(), "instance_id": self.instance})
+            write_json(
+                path,
+                dict(
+                    source_sha=marker["source_sha"],
+                    installation_id=marker["installation_id"],
+                    instance_id=self.instance,
+                    transitions=rows,
+                ),
+            )
 
     def service_preflight(self, root):
         return preflight(root)

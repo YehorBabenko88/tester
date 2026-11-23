@@ -9,7 +9,7 @@ No production signing key is supplied by this repository.
 The installer verifies the full artifact inventory before executing bundled
 Python; the Python verifier then verifies the signed envelope with the independent
 key pin. The offline package contains `payload/`, `runtimes/python/`,
-`runtimes/postgres/` and `wheelhouse/`. `requirements-release-windows312.lock` pins CPython 3.12 Windows wheels. Dependency installation uses only hash-locked
+`runtimes/postgres/` and `wheelhouse/`. `requirements-release-windows314.lock` pins CPython 3.14 Windows wheels. Dependency installation uses only hash-locked
 binary wheels without network access. PostgreSQL is private and binds loopback on
 a dynamically selected port other than 5432. Windows registers exactly two
 UUID-named virtual-account services: PostgreSQL and the existing API/worker supervisor.
@@ -25,9 +25,9 @@ provider-degraded HTTP 503 may still represent an operational read-only installa
 `Start-ReleaseTester.ps1` starts owned services idempotently, verifies readiness and
 opens the terminal. COM shortcuts use exactly `TESTER — Запуск` and
 `TESTER — Удаление`, with installed script targets and installation working directory.
-The uninstall shortcut invokes the single security-owned uninstaller.
+The uninstall shortcut invokes the single security-owned uninstaller with a protected external TrustConfig. Links are finalized before the ownership ledger is sealed. Builder creation receipts and signed artifact mappings are sealed before either service first starts; later writer-boundary files require the unique virtual account owner and exact inherited ACL.
 
-The installation journal is `state/install.json`; interruption records the exact
+The installation journal is `state/install.jsonl`; interruption records the exact
 phase and error type. An OS lifecycle lock outside the root excludes concurrent
 installation/start/removal and does not prevent safe root deletion. A completed
 same-release reinstall is idempotent. Incomplete installations preserve evidence
@@ -56,6 +56,5 @@ Host reboot and existing ADMINIT installation remain owner-authorized VM gates.
 ## Remaining release gates
 
 A trusted production signature, fully staged offline runtime package, full installer
-and uninstaller lifecycle on a disposable Windows VM, post-reboot autostart, runtime
-file ownership journal and independent review are required before production GO.
+and uninstaller lifecycle on a disposable Windows VM, post-reboot autostart, native writer-boundary provenance and independent review are required before production GO.
 A passing contract test is not production installation evidence.

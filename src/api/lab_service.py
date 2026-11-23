@@ -52,6 +52,9 @@ class LabService(_Framework):
 
         return preflight(root)
 
+    def record_phase(self, phase):
+        """Optional release lifecycle receipt; legacy behavior stays unchanged."""
+
     def health_port(self, marker):
         return 18766
 
@@ -119,6 +122,8 @@ class LabService(_Framework):
         self.root = root
         contract = self.contract_builder(root)
         instance = instance_token()
+        self.instance = instance
+        self.record_phase("starting")
         contract["env"]["TESTER_SERVICE_INSTANCE"] = instance
         job = win32job.CreateJobObject(None, "")
         limits = win32job.QueryInformationJobObject(job, win32job.JobObjectExtendedLimitInformation)
@@ -143,12 +148,14 @@ class LabService(_Framework):
             win32job.AssignProcessToJobObject(job, process)
             assigned = True
             if win32event.WaitForSingleObject(self.stop_event, 0) == win32event.WAIT_OBJECT_0:
+                self.record_phase("startup-interrupted")
                 return  # Suspended child is destroyed when the job closes.
             win32process.ResumeThread(thread)
             deadline = time.monotonic() + 55
             while True:
                 if win32event.WaitForSingleObject(self.stop_event, 0) == win32event.WAIT_OBJECT_0:
                     # Startup cancellation kills the job rather than racing supervisor's initial unlink.
+                    self.record_phase("startup-interrupted")
                     return
                 if win32event.WaitForSingleObject(process, 0) == win32event.WAIT_OBJECT_0:
                     raise LabViolation("Unexpected supervisor exit during startup")
@@ -168,6 +175,7 @@ class LabService(_Framework):
                     raise LabViolation("Service health readiness timed out")
                 self.ReportServiceStatus(win32service.SERVICE_START_PENDING, waitHint=60000)
                 win32event.WaitForSingleObject(self.stop_event, 250)
+            self.record_phase("running")
             self.ReportServiceStatus(win32service.SERVICE_RUNNING)
             evidence.write_text(
                 json.dumps(
@@ -187,6 +195,7 @@ class LabService(_Framework):
             )
             if result == win32event.WAIT_OBJECT_0:
                 # supervisor drains admission/claims then waits children; job kills survivors at deadline.
+                self.record_phase("stopping")
                 plain(root / "runtime/stop.request").touch()
                 if win32event.WaitForSingleObject(process, 32000) != win32event.WAIT_OBJECT_0:
                     raise LabViolation("Graceful shutdown timed out")
@@ -202,4 +211,5 @@ class LabService(_Framework):
                 win32api.CloseHandle(thread)
             if process is not None:
                 win32api.CloseHandle(process)
+            self.record_phase("stopped")
             evidence.unlink(missing_ok=True)
