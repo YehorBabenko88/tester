@@ -1,11 +1,17 @@
 """Release regressions use the sole production HTTP transport."""
 
+import json
+import logging
 from unittest.mock import Mock
 
 import pytest
 import requests
 
-from src.api.guardians.exchange_guardian import endpoint_key
+from src.api.bybit_catalog import AcquisitionError, BybitCatalogSource
+from src.api.guardians.exchange_guardian import ExchangeGuardian, endpoint_key
+from src.api.logging_setup import JsonFormatter
+from src.ingest.archive import ArchiveLoader
+from src.ingest.journal import Journal
 from src.ingest.rest import API
 from src.ingest.transport import Transport
 
@@ -156,3 +162,130 @@ def test_forbidden_halts_endpoint_until_manual_reset():
         transport.reset_halt(URL, manual_authorized=False)
     transport.reset_halt(URL, manual_authorized=True)
     assert transport.get(URL).status_code == 200
+
+
+def test_archive_recovery_and_http_failures_share_one_attempt_budget(tmp_path):
+    session = Mock()
+    session.request.side_effect = requests.ConnectionError("offline")
+    journal = Journal(tmp_path / "journal.sqlite")
+    try:
+        with pytest.raises((requests.ConnectionError, RuntimeError)):
+            ArchiveLoader(journal, Transport(session=session, sleep=Mock())).download(
+                "https://public.bybit.com/trading/BTCUSDT/a.csv.gz", tmp_path / "archive.csv.gz"
+            )
+        assert session.request.call_count == 3
+    finally:
+        journal.close()
+
+
+def test_archive_rejects_unapproved_url_before_destination_side_effects(tmp_path):
+    journal = Journal(tmp_path / "journal.sqlite")
+    destination = tmp_path / "uncreated" / "archive.csv.gz"
+    try:
+        with pytest.raises(ValueError):
+            ArchiveLoader(journal).download("https://api.bybit.com/v5/order/create", destination)
+        assert not destination.parent.exists()
+    finally:
+        journal.close()
+
+
+def test_actual_get_emits_query_free_guardian_event_and_closed_structured_log(caplog):
+    events = []
+    session = Mock()
+    session.request.return_value = response(403)
+    transport = Transport(
+        session=session, guardian=ExchangeGuardian(enabled=True), event_sink=events.append
+    )
+    with caplog.at_level(logging.INFO, logger="tester.worker"):
+        with pytest.raises(requests.HTTPError):
+            transport.get(URL + "?cursor=DO_NOT_LOG_SECRET")
+    observation = transport.last_observation
+    assert observation.endpoint == URL and observation.status_code == 403
+    assert transport.last_verdict.circuit == "HALTED"
+    assert len(events) == 1 and events[0]["ownership_verified"] is False
+    assert events[0]["signal"] == "untrusted_observation"
+    records = [r for r in caplog.records if r.msg == "guardian_transport"]
+    assert len(records) == 1
+    encoded = JsonFormatter().format(records[0])
+    logged = json.loads(encoded)
+    assert logged["guardian_event"] == events[0]
+    assert logged["http_status"] == 403
+    assert "DO_NOT_LOG_SECRET" not in encoded and "cursor" not in encoded
+
+
+def test_default_get_observations_keep_guardians_disabled():
+    session = Mock()
+    session.request.return_value = response()
+    transport = Transport(session=session)
+    transport.get(URL)
+    assert transport.last_verdict.status == "DISABLED"
+    assert transport.last_observation.source_verified is False
+
+
+def test_actual_tls_failure_emits_sanitized_observation_once():
+    session = Mock()
+    session.request.side_effect = requests.exceptions.SSLError("DO_NOT_LOG_SECRET")
+    events = []
+    transport = Transport(
+        session=session, guardian=ExchangeGuardian(enabled=True), event_sink=events.append
+    )
+    with pytest.raises(requests.exceptions.SSLError):
+        transport.get(URL)
+    assert transport.last_observation.kind == "tls_failure"
+    assert transport.last_verdict.signal == "tls_verification_failed"
+    assert len(events) == 1 and "DO_NOT_LOG_SECRET" not in json.dumps(events)
+
+
+def test_failed_diagnostic_sink_cannot_clear_a_forbidden_halt():
+    session = Mock()
+    session.request.return_value = response(403)
+
+    def broken_sink(event):
+        raise RuntimeError("sink unavailable")
+
+    transport = Transport(session=session, event_sink=broken_sink)
+    with pytest.raises(RuntimeError):
+        transport.get(URL)
+    with pytest.raises(ValueError, match="halted"):
+        transport.get(URL)
+    assert session.request.call_count == 1
+
+
+def test_structured_transport_log_drops_unrecognized_signal():
+    record = logging.LogRecord("tester.worker", logging.INFO, "", 0, "guardian_transport", (), None)
+    record.guardian_event = dict(
+        component="exchange",
+        environment="tester_preview",
+        scope="bybit/rest/api.bybit.com/v5/market/time",
+        signal="do_not_log_secret",
+        evidence_ref="sha256:" + "a" * 64,
+        ownership_verified=False,
+    )
+    record.elapsed_ms = 10**1000
+    encoded = JsonFormatter().format(record)
+    assert "do_not_log_secret" not in encoded and "guardian_event" not in encoded
+
+
+def test_catalog_uses_single_transport_and_preserves_http_rate_limit_mapping():
+    source = BybitCatalogSource()
+    assert isinstance(source.transport, Transport)
+    session = Mock()
+    session.request.return_value = response(429, {"Retry-After": "1"})
+    source.transport.session = session
+    with pytest.raises(AcquisitionError, match="rate_limited"):
+        source.call("/tickers", {"category": "linear"})
+    assert session.request.call_count == 1
+    assert source.transport.last_observation.status_code == 429
+    assert session.trust_env is False
+
+
+def test_catalog_forbidden_halt_survives_later_catalog_request():
+    source = BybitCatalogSource()
+    session = Mock()
+    session.request.return_value = response(403)
+    source.transport.session = session
+    with pytest.raises(requests.HTTPError):
+        source.call("/instruments-info", {"category": "linear"})
+    with pytest.raises(ValueError, match="halted"):
+        source.call("/instruments-info", {"category": "inverse"})
+    assert session.request.call_count == 1

@@ -145,6 +145,11 @@ def test_invalid_clock(tmp_path, clock):
     assert result["status"] == "ALERT_INVALID_CLOCK"
 
 
+def test_huge_integer_clock_fails_closed_without_numeric_overflow(tmp_path):
+    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1, now=10**1000, enabled=True)
+    assert result["status"] == "ALERT_INVALID_CLOCK"
+
+
 def test_symlink_ancestor(tmp_path):
     real = tmp_path / "real"
     (real / "tmp").mkdir(parents=True)

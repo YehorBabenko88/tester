@@ -20,7 +20,7 @@ MAX_ENDPOINTS = 128
 
 
 def _number(value: object) -> bool:
-    return type(value) in (int, float) and math.isfinite(value) and value >= 0
+    return type(value) in (int, float) and 0 <= value <= 1e15 and math.isfinite(value)
 
 
 def endpoint_key(url: str) -> str:
@@ -118,6 +118,7 @@ class ExchangeGuardian:
                 "http",
                 "timeout",
                 "dns_failure",
+                "connection_failure",
                 "websocket_disconnect",
                 "tls_failure",
                 "malformed",
@@ -246,9 +247,12 @@ class ExchangeGuardian:
                 "verified_retry_after",
                 state["until"],
             )
-        if observation.kind in {"timeout", "dns_failure", "websocket_disconnect"} or (
-            observation.kind == "http" and observation.status_code in {500, 502, 503, 504}
-        ):
+        if observation.kind in {
+            "timeout",
+            "dns_failure",
+            "connection_failure",
+            "websocket_disconnect",
+        } or (observation.kind == "http" and observation.status_code in {500, 502, 503, 504}):
             state["attempts"] += 1
             if state["attempts"] >= MAX_RETRIES:
                 state["circuit"] = "OPEN"
@@ -371,7 +375,7 @@ def supervisor_event(
         "environment": "tester_preview",
         "scope": "bybit/rest/" + scope,
         "signal": verdict.signal if trusted else "untrusted_observation",
-        "evidence_ref": verdict.evidence_ref,
+        "evidence_ref": observation.evidence_ref,
         "ownership_verified": trusted,
     }
     if trusted and verdict.signal == "http_429" and verdict.proposal == "PROPOSE_RATE_BACKOFF":

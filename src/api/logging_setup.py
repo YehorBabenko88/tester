@@ -1,9 +1,12 @@
 import json
 import logging
+import math
 import re
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 from uuid import UUID
+
+from src.ingest.public_access import public_endpoint_key
 
 EVENTS = frozenset(
     {
@@ -21,6 +24,7 @@ EVENTS = frozenset(
         "record",
         "admission_rejected",
         "budget_exceeded",
+        "guardian_transport",
     }
 )
 ERROR_TYPES = frozenset(
@@ -82,6 +86,64 @@ class JsonFormatter(logging.Formatter):
             value = getattr(record, key, None)
             if type(value) is int and value >= 0:
                 result[key] = value
+        if record.msg == "guardian_transport":
+            event = getattr(record, "guardian_event", None)
+            if type(event) is dict and set(event) <= {
+                "component",
+                "environment",
+                "scope",
+                "signal",
+                "evidence_ref",
+                "ownership_verified",
+                "retry_after_seconds",
+                "attempts",
+            }:
+                try:
+                    scope = event["scope"]
+                    identity = scope.removeprefix("bybit/rest/")
+                    valid = (
+                        event["component"] == "exchange"
+                        and event["environment"] == "tester_preview"
+                        and scope == "bybit/rest/" + public_endpoint_key("https://" + identity)
+                        and type(event["signal"]) is str
+                        and event["signal"]
+                        in {
+                            "untrusted_observation",
+                            "disabled",
+                            "invalid_observation",
+                            "http_403",
+                            "http_429",
+                            "tls_verification_failed",
+                            "transient_timeout",
+                            "retry_exhausted",
+                            "http_200",
+                            "clock_rollback",
+                            "duplicate",
+                            "circuit_halted",
+                            "cooldown",
+                            "malformed_response",
+                            "source_stale",
+                            "unqualified_http_429",
+                        }
+                        and type(event["evidence_ref"]) is str
+                        and re.fullmatch("sha256:[a-f0-9]{64}", event["evidence_ref"])
+                        and type(event["ownership_verified"]) is bool
+                        and all(
+                            type(event[k]) is int and 0 <= event[k] <= 3600
+                            for k in ("retry_after_seconds", "attempts")
+                            if k in event
+                        )
+                    )
+                    if valid:
+                        result["guardian_event"] = dict(event)
+                except (ValueError, TypeError, KeyError, AttributeError):
+                    pass
+            status = getattr(record, "http_status", None)
+            if type(status) is int and 100 <= status <= 599:
+                result["http_status"] = status
+            elapsed = getattr(record, "elapsed_ms", None)
+            if type(elapsed) in (int, float) and 0 <= elapsed <= 1e15 and math.isfinite(elapsed):
+                result["elapsed_ms"] = elapsed
         return json.dumps(result)
 
 

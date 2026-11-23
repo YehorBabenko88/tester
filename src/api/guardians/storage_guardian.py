@@ -80,8 +80,8 @@ def inventory(
     timestamp = time.time() if now is None else now
     if (
         type(timestamp) not in (float, int)
-        or not math.isfinite(timestamp)
         or not 0 < timestamp < 1e15
+        or not math.isfinite(timestamp)
     ):
         return {**result, "status": "ALERT_INVALID_CLOCK"}
     try:

@@ -38,6 +38,27 @@ def test_disabled_default():
     assert ExchangeGuardian().inspect(obs(), now=1).status == "DISABLED"
 
 
+def test_huge_integer_observation_clock_fails_closed_without_overflow():
+    assert (
+        ExchangeGuardian(enabled=True).inspect(obs(), now=10**1000).signal == "invalid_observation"
+    )
+
+
+def test_endpoint_capacity_never_evicts_existing_safety_halt():
+    guardian = ExchangeGuardian(enabled=True)
+    assert guardian.inspect(obs(status_code=403), now=1).circuit == "HALTED"
+    for index in range(MAX_ENDPOINTS - 1):
+        guardian.inspect(
+            obs(endpoint=f"https://public.bybit.com/trading/BTCUSDT/f{index}.csv.gz"), now=1
+        )
+    overflow = guardian.inspect(
+        obs(endpoint="https://public.bybit.com/trading/BTCUSDT/overflow.csv.gz"), now=2
+    )
+    assert overflow.signal == "invalid_observation"
+    original = guardian.inspect(obs(evidence_ref="sha256:" + "b" * 64), now=2)
+    assert original.circuit == "HALTED" and original.signal == "circuit_halted"
+
+
 @pytest.mark.parametrize(
     "url",
     [

@@ -4,8 +4,11 @@ import json
 import ssl
 import time
 from contextlib import contextmanager
+from urllib.parse import urlencode
 
 import requests
+
+from src.ingest.transport import Transport
 
 
 class _SystemTrustAdapter(requests.adapters.HTTPAdapter):
@@ -18,10 +21,31 @@ class _SystemTrustAdapter(requests.adapters.HTTPAdapter):
 
 @contextmanager
 def _public_get(url, **kwargs):
-    with requests.Session() as session:
-        session.mount("https://", _SystemTrustAdapter())
-        with session.get(url, **kwargs) as response:
+    transport = kwargs.pop("transport")
+    verify = kwargs.pop("verify", True)
+    if verify is not True and (type(verify) is not str or not verify):
+        raise ValueError("TLS verification required")
+    params = kwargs.pop("params", None)
+    if params:
+        if type(params) is not dict:
+            raise ValueError("Public query mapping required")
+        url += "?" + urlencode(params)
+    if transport.session is None:
+        if not hasattr(transport.local, "session"):
+            transport.local.session = requests.Session()
+            transport.local.session.mount("https://", _SystemTrustAdapter())
+        session = transport.local.session
+    else:
+        session = transport.session
+    session.trust_env = False
+    session.verify = verify
+    try:
+        with transport.get(url, **kwargs) as response:
             yield response
+    except requests.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 429:
+            raise AcquisitionError("rate_limited") from None
+        raise
 
 
 class AcquisitionError(ValueError):
@@ -39,13 +63,19 @@ class BybitCatalogSource:
         if verify is not True and (not isinstance(verify, str) or not verify):
             raise ValueError("TLS verification must use system trust or an explicit CA bundle")
         self.verify = verify
+        self.transport = Transport(attempts=1)
 
     def call(self, endpoint, params):
         if endpoint not in {"/instruments-info", "/tickers"}:
             raise ValueError("Unsupported public catalog endpoint")
         url = "https://api.bybit.com/v5/market" + endpoint
         with _public_get(
-            url, params=params, timeout=(5, 15), stream=True, verify=self.verify
+            url,
+            params=params,
+            timeout=(5, 15),
+            stream=True,
+            verify=self.verify,
+            transport=self.transport,
         ) as response:
             if response.status_code == 429:
                 raise AcquisitionError("rate_limited")

@@ -1,21 +1,32 @@
 """Single read-only transport with bounded logical budgets and public scope."""
 
+import hashlib
+import json
+import logging
 import math
 import random
 import threading
 import time
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from uuid import uuid4
 
 import requests
 
-from src.api.guardians.exchange_guardian import retry_after_seconds
+from src.api.guardians.exchange_guardian import (
+    ExchangeGuardian,
+    Observation,
+    retry_after_seconds,
+    supervisor_event,
+)
 
 from .public_access import public_endpoint_key
 
 
 class Transport:
-    def __init__(self, session=None, attempts=3, rate=3, sleep=time.sleep):
+    def __init__(
+        self, session=None, attempts=3, rate=3, sleep=time.sleep, *, guardian=None, event_sink=None
+    ):
         if (
             type(attempts) is not int
             or not 1 <= attempts <= 6
@@ -30,6 +41,62 @@ class Transport:
         self.lock = threading.Lock()
         self.next_request = 0
         self.halted = set()
+        if guardian is not None and not isinstance(guardian, ExchangeGuardian):
+            raise ValueError("Existing Exchange Guardian required")
+        if event_sink is not None and not callable(event_sink):
+            raise ValueError("Callable diagnostic event sink required")
+        self.guardian = guardian if guardian is not None else ExchangeGuardian()
+        self.event_sink = event_sink
+        self.last_observation = self.last_verdict = None
+
+    def _observe(self, key, started, kind, *, status_code=None, retry_after=None):
+        trace = uuid4().hex
+        with self.lock:
+            now = time.monotonic()
+            measured = {
+                "endpoint": key,
+                "kind": kind,
+                "status_code": status_code,
+                "elapsed_ms": max(0, (now - started) * 1000),
+                "trace_id": trace,
+            }
+            ref = (
+                "sha256:"
+                + hashlib.sha256(json.dumps(measured, sort_keys=True).encode()).hexdigest()
+            )
+            observation = Observation(
+                endpoint="https://" + key,
+                kind=kind,
+                elapsed_ms=measured["elapsed_ms"],
+                evidence_ref=ref,
+                status_code=status_code,
+                retry_after=retry_after,
+                source_verified=False,
+            )
+            verdict = self.guardian.inspect(observation, now=now)
+            self.last_observation, self.last_verdict = observation, verdict
+        # Request metadata qualifies a network observation, never ownership, body
+        # integrity, source freshness or historical completeness.
+        event = supervisor_event(observation, verdict, now=now, ownership_verified=False)
+        logger = next(
+            (
+                logging.getLogger("tester." + name)
+                for name in ("worker", "api")
+                if logging.getLogger("tester." + name).handlers
+            ),
+            logging.getLogger("tester.worker"),
+        )
+        logger.info(
+            "guardian_transport",
+            extra={
+                "trace_id": trace,
+                "guardian_event": event,
+                "http_status": status_code,
+                "elapsed_ms": measured["elapsed_ms"],
+            },
+        )
+        if self.event_sink is not None:
+            self.event_sink(dict(event))
 
     def reset_halt(self, url, *, manual_authorized):
         key = public_endpoint_key(url)
@@ -37,6 +104,7 @@ class Transport:
             raise ValueError("Manual review required")
         with self.lock:
             self.halted.discard(key)
+            self.guardian.reset_tls_halt(url, manual_authorized=True)
 
     @contextmanager
     def operation(self):
@@ -107,6 +175,7 @@ class Transport:
                 self._wait(wait, cancel)
                 self.local.remaining -= 1
                 response = None
+                started = time.monotonic()
                 try:
                     if self.session is None and not hasattr(self.local, "session"):
                         self.local.session = requests.Session()
@@ -116,12 +185,38 @@ class Transport:
                     response = session.request(
                         "GET", url, timeout=timeout, allow_redirects=False, **kwargs
                     )
+                    if response.status_code == 403:
+                        with self.lock:
+                            self.halted.add(key)
+                    try:
+                        self._observe(
+                            key,
+                            started,
+                            "http",
+                            status_code=response.status_code,
+                            retry_after=response.headers.get("Retry-After"),
+                        )
+                    except Exception:
+                        response.close()
+                        raise
                     if 300 <= response.status_code < 400:
                         response.close()
                         raise ValueError("Unexpected redirect")
                     response.raise_for_status()
                     return response
                 except requests.RequestException as exc:
+                    if isinstance(exc, requests.exceptions.SSLError):
+                        with self.lock:
+                            self.halted.add(key)
+                    if response is None:
+                        kind = (
+                            "tls_failure"
+                            if isinstance(exc, requests.exceptions.SSLError)
+                            else "timeout"
+                            if isinstance(exc, requests.Timeout)
+                            else "connection_failure"
+                        )
+                        self._observe(key, started, kind)
                     status = exc.response.status_code if exc.response is not None else None
                     delay = min(
                         2 ** (self.attempts - self.local.remaining - 1), 30

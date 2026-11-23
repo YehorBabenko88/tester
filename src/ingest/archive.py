@@ -9,12 +9,14 @@ from datetime import date,timedelta,datetime,timezone
 from decimal import Decimal
 from itertools import chain
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import quote,urljoin,urlsplit,unquote
 import requests
 from .journal import Journal,utcnow
 from .transport import Transport
+from .public_access import public_endpoint_key
 
 BASE='https://public.bybit.com'
 ROOTS={'trading','spot','premium_index','spot_index','kline_for_metatrader4'}
@@ -128,7 +130,14 @@ def iter_trade_records(path,category,symbol,provenance,allow_composite=False):
 class ArchiveLoader:
     def __init__(self,journal,transport=None): self.journal=journal; self.transport=transport or Transport()
 
-    def download(self,url,destination):
+    def download(self,url,destination,*,cancel=None):
+        public_endpoint_key(url)
+        with self.transport.operation() if isinstance(self.transport,Transport) else nullcontext():
+            return self._download(url,destination,cancel=cancel)
+
+    def _download(self,url,destination,*,cancel=None):
+        if cancel and cancel(): raise InterruptedError('Archive download cancelled')
+        request_options={'cancel':cancel} if cancel else {}
         path=Path(destination); path.parent.mkdir(parents=True,exist_ok=True)
         key='archive:'+url; old=self.journal.task(key)
         if old and old['status']=='validated' and path.exists():
@@ -145,18 +154,19 @@ class ArchiveLoader:
         self.journal.save(key,'running',{'url':url,'path':str(path)},run_id=run_id)
         try:
             for attempt in range(3):
+                if cancel and cancel(): raise InterruptedError('Archive download cancelled')
                 headers={'Accept-Encoding':'identity'}; offset=0
                 if part.exists() and meta.exists():
                     try: saved=json.loads(meta.read_text())
                     except (ValueError,OSError): saved={}
                     etag=saved.get('etag')
                     if saved.get('url')==url and etag and not etag.startswith('W/') and part.stat().st_size:
-                        with self.transport.get(url,headers={'Range':'bytes=0-0','Accept-Encoding':'identity'},stream=True) as probe:
+                        with self.transport.get(url,headers={'Range':'bytes=0-0','Accept-Encoding':'identity'},stream=True,**request_options) as probe:
                             total=re.fullmatch(r'bytes 0-0/(\d+)',probe.headers.get('Content-Range',''))
                             if probe.status_code==206 and total and probe.headers.get('ETag')==etag and part.stat().st_size<int(total[1]):
                                 offset=part.stat().st_size; headers.update({'Range':f'bytes={offset}-','If-Range':etag})
                 try:
-                    with self.transport.get(url,headers=headers,stream=True) as r:
+                    with self.transport.get(url,headers=headers,stream=True,**request_options) as r:
                         if offset:
                             cr=re.fullmatch(r'bytes (\d+)-(\d+)/(\d+)',r.headers.get('Content-Range',''))
                             if r.status_code!=206 or not cr or int(cr[1])!=offset or int(cr[2])+1!=int(cr[3]) or r.headers.get('ETag')!=etag:
@@ -169,6 +179,7 @@ class ArchiveLoader:
                         meta.write_text(json.dumps({'url':url,'etag':r.headers.get('ETag')}))
                         with part.open('ab' if offset else 'wb') as out:
                             for block in r.iter_content(1024*1024):
+                                if cancel and cancel(): raise InterruptedError('Archive download cancelled')
                                 if block: out.write(block)
                         if expected is not None and part.stat().st_size!=expected: raise ValueError('Incomplete Content-Length')
                         info={**validate(part,url),'url':url,'path':str(path),'fetched_at':utcnow(),'etag':r.headers.get('ETag'),'last_modified':r.headers.get('Last-Modified'),'source_kind':'bybit_archive','ingestion_run':run_id}
@@ -177,8 +188,11 @@ class ArchiveLoader:
                     part.replace(path); self.journal.save(key,'validated',info,run_id=run_id); meta.unlink(missing_ok=True)
                     self.journal.finish_run(run_id,'PARTIAL')
                     return info
-                except requests.RequestException:
+                except requests.RequestException as exc:
+                    if isinstance(exc,requests.exceptions.SSLError) or (exc.response is not None and exc.response.status_code==403): raise
                     if attempt==2: raise
+                except InterruptedError:
+                    raise
                 except (ValueError,EOFError,OSError,csv.Error,UnicodeError):
                     part.unlink(missing_ok=True); meta.unlink(missing_ok=True)
                     if attempt==2: raise
