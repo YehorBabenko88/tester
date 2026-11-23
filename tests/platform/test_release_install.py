@@ -58,3 +58,344 @@ def test_marker_authority_remains_fail_closed_under_optimized_python(tmp_path):
     )
     assert result.returncode != 0
     assert "invalid release ownership marker" in result.stderr
+
+
+def test_full_native_installer_lifecycle(tmp_path):
+    """Elevated disposable Windows only: real PG, API/worker and safe full removal."""
+    import ctypes
+    import hashlib
+    import json
+    import os
+    import shutil
+    import subprocess
+    import time
+    from pathlib import Path
+    from urllib.error import HTTPError
+    from urllib.request import urlopen
+
+    required = os.environ.get("TESTER_REQUIRE_FULL_INSTALLER") == "1"
+    if not required:
+        pytest.skip("Full native installer requires explicit disposable-runner opt-in")
+    if os.name != "nt" or not ctypes.windll.shell32.IsUserAnAdmin():
+        pytest.fail("Full installer opt-in requires elevated disposable Windows runner")
+    required_names = (
+        "TESTER_RELEASE_BUNDLE",
+        "TESTER_RELEASE_MANIFEST_SHA256",
+        "TESTER_RELEASE_PUBLIC_KEY_SHA256",
+        "TESTER_RELEASE_SOURCE_SHA",
+    )
+    if any(not os.environ.get(name) for name in required_names):
+        pytest.fail("Full installer opt-in requires signed fixture bundle and independent pins")
+    import psycopg
+    import win32api
+    import win32com.client
+    import win32con
+    import win32security
+    from src.api.release_security import verify_release
+
+    from src.api.release_service import NativeController, service_sid, validate_resources
+
+    ident = uuid.uuid4().hex
+    root = tmp_path / ("TesterReleaseTest_" + ident)
+    desktop = tmp_path / ("Desktop_" + ident)
+    desktop.mkdir()
+    media = tmp_path / ("InstallerMedia_" + ident)
+    shutil.copytree(Path(os.environ["TESTER_RELEASE_BUNDLE"]), media)
+    source_sha = os.environ["TESTER_RELEASE_SOURCE_SHA"]
+    key_pin = os.environ["TESTER_RELEASE_PUBLIC_KEY_SHA256"]
+    manifest_pin = os.environ["TESTER_RELEASE_MANIFEST_SHA256"]
+    if hashlib.sha256((media / "release-manifest.json").read_bytes()).hexdigest() != manifest_pin:
+        pytest.fail("Fixture manifest pin mismatch")
+    verify_release(media, trusted_public_key_sha256=key_pin, expected_source_sha=source_sha)
+    evidence = dict(
+        source_sha=source_sha,
+        signature_scope="FIXTURE_ONLY_NOT_PRODUCTION_TRUST",
+        root=str(root),
+        checks=[],
+    )
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", GUARDIANS_ENABLED="false")
+    marker = None
+    failure = None
+
+    def powershell(args, *, input_text=None, timeout=120):
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", *map(str, args)],
+            input=input_text,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            env=env,
+        )
+        if result.returncode:
+            raise AssertionError(
+                "Native PowerShell failed: " + result.stdout[-6000:] + "\n" + result.stderr[-6000:]
+            )
+        return result
+
+    def system_pg():
+        script = "@{services=@(Get-CimInstance Win32_Service | Where-Object {$_.Name -match 'postgres' -or $_.PathName -match 'PostgreSQL'} | Select-Object Name,PathName,StartName,StartMode,State,ProcessId);listeners=@(Get-NetTCPConnection -LocalPort 5432 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,OwningProcess)} | ConvertTo-Json -Depth 6 -Compress"
+        return json.loads(powershell(["-Command", script]).stdout)
+
+    def health():
+        try:
+            response = urlopen(
+                "http://127.0.0.1:" + str(marker["ports"]["api"]) + "/api/health", timeout=3
+            )
+        except HTTPError as exc:
+            if exc.code != 503:
+                raise
+            response = exc
+        with response:
+            return json.loads(response.read())["data"]
+
+    def ready(*, different_instance=None):
+        deadline = time.monotonic() + 100
+        while time.monotonic() < deadline:
+            try:
+                data = health()
+                native = json.loads((root / "runtime/service.json").read_text())
+                if (
+                    all(data.get(key) == "ok" for key in ("database", "worker", "storage"))
+                    and data.get("instance_id") == native["instance_id"]
+                    and native["source_sha"] == source_sha
+                    and native["installation_id"] == marker["installation_id"]
+                    and (different_instance is None or native["instance_id"] != different_instance)
+                ):
+                    return native
+            except (OSError, ValueError, KeyError):
+                pass
+            time.sleep(0.3)
+        pytest.fail("Real API/worker/storage readiness deadline exceeded")
+
+    def kill_owned(pid, *, role, allowed):
+        handle = win32api.OpenProcess(win32con.PROCESS_TERMINATE | 0x1000, False, pid)
+        token = None
+        try:
+            token = win32security.OpenProcessToken(handle, win32con.TOKEN_QUERY)
+            sid = win32security.ConvertSidToStringSid(
+                win32security.GetTokenInformation(token, win32security.TokenUser)[0]
+            )
+            if sid != service_sid(marker["services"][role]):
+                pytest.fail("Refused fault injection into foreign process token")
+            from src.api.lab_scm import NativeSCM
+
+            if NativeSCM.process_image(pid).casefold() not in {str(p).casefold() for p in allowed}:
+                pytest.fail("Refused fault injection into foreign executable")
+            win32api.TerminateProcess(handle, 9)
+        finally:
+            if token is not None:
+                token.Close()
+            handle.Close()
+
+    def component_leaves(component):
+        script = (
+            "Get-CimInstance Win32_Process | Where-Object {$_.CommandLine -like '*-m src.api."
+            + component
+            + "*'} | Select-Object ProcessId,ParentProcessId,CommandLine | ConvertTo-Json -Compress"
+        )
+        rows = json.loads(powershell(["-Command", script]).stdout or "[]")
+        rows = rows if isinstance(rows, list) else [rows]
+        own = []
+        for row in rows:
+            try:
+                handle = win32api.OpenProcess(0x1000, False, row["ProcessId"])
+                token = win32security.OpenProcessToken(handle, win32con.TOKEN_QUERY)
+                try:
+                    sid = win32security.ConvertSidToStringSid(
+                        win32security.GetTokenInformation(token, win32security.TokenUser)[0]
+                    )
+                    if sid == service_sid(marker["services"]["app"]):
+                        own.append(row)
+                finally:
+                    token.Close()
+                    handle.Close()
+            except OSError:
+                pass
+        parents = {r["ParentProcessId"] for r in own}
+        leaves = [r for r in own if r["ProcessId"] not in parents]
+        return leaves
+
+    before = system_pg()
+    try:
+        powershell(
+            [
+                "-File",
+                media / "Setup-Tester.ps1",
+                "-Bundle",
+                media,
+                "-Root",
+                root,
+                "-Mode",
+                "test",
+                "-Desktop",
+                desktop,
+                "-ManifestSHA256",
+                manifest_pin,
+                "-TrustedPublicKeySHA256",
+                key_pin,
+                "-ExpectedSourceSHA",
+                source_sha,
+            ],
+            timeout=1200,
+        )
+        marker = ri.load_marker(root)
+        native = ready()
+        assert len(marker["services"]) == 2 and marker["ports"]["postgres"] != 5432
+        evidence["checks"].append(
+            dict(
+                phase="installed-ready",
+                instance_id=native["instance_id"],
+                services=validate_resources(marker),
+            )
+        )
+        owner = json.loads((root / "private/database-owner.json").read_text())
+        with psycopg.connect(owner["database_url"]) as conn:
+            conn.execute("CREATE SCHEMA tester_acceptance")
+            conn.execute("CREATE TABLE tester_acceptance.lifecycle (value text PRIMARY KEY)")
+            conn.execute(
+                "INSERT INTO tester_acceptance.lifecycle VALUES (%s)", ("durable-" + ident,)
+            )
+            assert conn.execute("SELECT count(*) FROM tester_platform.workers").fetchone()[0] >= 1
+            assert (
+                conn.execute("SELECT count(*) FROM tester_storage.schema_migrations").fetchone()[0]
+                > 0
+            )
+        shell = win32com.client.Dispatch("WScript.Shell")
+        links = sorted(desktop.glob("*.lnk"))
+        assert {p.name for p in links} == {"TESTER — Запуск.lnk", "TESTER — Удаление.lnk"}
+        start_path = desktop / "TESTER — Запуск.lnk"
+        start_link = shell.CreateShortcut(str(start_path))
+        exact_command = (
+            subprocess.list2cmdline([start_link.TargetPath])
+            + " "
+            + start_link.Arguments
+            + " -NoBrowser"
+        )
+        for _ in range(2):
+            result = subprocess.run(
+                exact_command, capture_output=True, text=True, timeout=120, env=env
+            )
+            if result.returncode:
+                raise AssertionError(
+                    "Installed launch shortcut command failed: " + result.stderr[-5000:]
+                )
+        assert ready()["supervisor_pid"] == native["supervisor_pid"]
+        evidence["checks"].append(
+            dict(
+                phase="exact-shortcut-command-idempotent",
+                browser_scope="NoBrowser; browser acceptance separate",
+            )
+        )
+        with NativeController(marker) as controller:
+            controller.apply("restart")
+        native = ready(different_instance=native["instance_id"])
+        # Kill a real API and worker child, authenticated by unique service SID.
+        for component in ("worker", "main"):
+            leaves = component_leaves(component)
+            assert len(leaves) == 1
+            old_pid = leaves[0]["ProcessId"]
+            kill_owned(
+                old_pid,
+                role="app",
+                allowed=(
+                    root / "dependencies/python/python.exe",
+                    root / "dependencies/venv/Scripts/python.exe",
+                ),
+            )
+            deadline = time.monotonic() + 40
+            while time.monotonic() < deadline:
+                recovered = component_leaves(component)
+                if len(recovered) == 1 and recovered[0]["ProcessId"] != old_pid:
+                    break
+                time.sleep(0.5)
+            else:
+                pytest.fail("Real child process did not recover with a new PID")
+            assert ready()["supervisor_pid"] == native["supervisor_pid"]
+            evidence["checks"].append(
+                dict(
+                    phase="child-recovered",
+                    component=component,
+                    old_pid=old_pid,
+                    new_pid=recovered[0]["ProcessId"],
+                )
+            )
+        app_state = validate_resources(marker)[0]
+        previous_instance = native["instance_id"]
+        kill_owned(
+            app_state["pid"], role="app", allowed=(root / "dependencies/service/pythonservice.exe",)
+        )
+        native = ready(different_instance=previous_instance)
+        evidence["checks"].append(
+            dict(phase="scm-host-recovered", instance_id=native["instance_id"])
+        )
+        with psycopg.connect(owner["database_url"]) as conn:
+            assert (
+                conn.execute("SELECT value FROM tester_acceptance.lifecycle").fetchone()[0]
+                == "durable-" + ident
+            )
+        evidence["checks"].append(dict(phase="database-durability-after-recovery"))
+        # A successful repeated setup must not create additional services/processes.
+        powershell(
+            [
+                "-File",
+                media / "Setup-Tester.ps1",
+                "-Bundle",
+                media,
+                "-Root",
+                root,
+                "-Mode",
+                "test",
+                "-Desktop",
+                desktop,
+                "-ManifestSHA256",
+                manifest_pin,
+                "-TrustedPublicKeySHA256",
+                key_pin,
+                "-ExpectedSourceSHA",
+                source_sha,
+            ],
+            timeout=180,
+        )
+        assert ready()["supervisor_pid"] == native["supervisor_pid"]
+        # Original installation media is unavailable during transient uninstallation.
+        renamed = tmp_path / ("UnavailableOriginalMedia_" + ident)
+        assert media.parent == renamed.parent == tmp_path
+        os.replace(media, renamed)
+        uninstall = root / "releases" / source_sha / "scripts/windows/Uninstall-ReleaseTester.ps1"
+        result = powershell(
+            ["-File", uninstall, "-TrustConfig", marker["trust_config"]],
+            input_text="DELETE TESTER\nYES\n",
+            timeout=600,
+        )
+        evidence["checks"].append(
+            dict(phase="transient-uninstalled-without-original-media", output=result.stdout[-3000:])
+        )
+        assert not root.exists()
+        assert not list(desktop.glob("*.lnk"))
+        assert all(state is None for state in validate_resources(marker))
+        maintenance = Path(marker["trust_config"]).parent
+        assert not list(maintenance.glob("maintenance-*"))
+        evidence["checks"].append(dict(phase="absence-verified"))
+    except BaseException as exc:
+        failure = type(exc).__name__ + ": " + str(exc)
+        evidence["failure"] = failure
+        raise
+    finally:
+        try:
+            after = system_pg()
+            evidence["system_postgres_unchanged"] = before == after
+            if before != after and failure is None:
+                pytest.fail("Unrelated PostgreSQL service/listener snapshot changed")
+            if marker is not None and root.exists():
+                try:
+                    with NativeController(marker) as controller:
+                        controller.apply("remove")
+                    evidence["failure_cleanup"] = (
+                        "owned services removed; installation files preserved for diagnosis"
+                    )
+                except Exception as exc:
+                    evidence["failure_cleanup_error"] = type(exc).__name__ + ": " + str(exc)
+        finally:
+            (tmp_path / "full-native-installer-evidence.json").write_text(
+                json.dumps(evidence, indent=2, default=str), encoding="utf-8"
+            )

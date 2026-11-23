@@ -482,7 +482,11 @@ def install(
                     timeout=65,
                 )
             from .release_service import NativeController
+            from .restart_budget import RestartBudget
 
+            RestartBudget(
+                root / "runtime", marker["installation_id"], marker["source_sha"]
+            ).initialize()
             stage("registering-native-services")
             with NativeController(marker) as controller:
                 controller.apply("install")

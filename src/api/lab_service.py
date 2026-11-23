@@ -52,6 +52,9 @@ class LabService(_Framework):
 
         return preflight(root)
 
+    def admit_start(self, root):
+        return True
+
     def create_job(self, marker):
         import win32job
 
@@ -125,9 +128,12 @@ class LabService(_Framework):
             raise LabViolation("Registered release/ownership does not match marker")
         self.service_preflight(root)
         self.root = root
-        contract = self.contract_builder(root)
         instance = instance_token()
         self.instance = instance
+        if not self.admit_start(root):
+            self.record_phase("restart-budget-denied")
+            return  # Normal STOPPED: budget denial must not trigger SCM recovery.
+        contract = self.contract_builder(root)
         self.record_phase("starting")
         contract["env"]["TESTER_SERVICE_INSTANCE"] = instance
         job = self.create_job(marker)

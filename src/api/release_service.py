@@ -486,6 +486,18 @@ class ReleaseService(LabService):
     _receipt_lock = threading.Lock()
     marker_reader = staticmethod(load_marker)
 
+    def admit_start(self, root):
+        from .restart_budget import BudgetDenied, RestartBudget
+
+        marker = load_marker(root)
+        try:
+            RestartBudget(root / "runtime", marker["installation_id"], marker["source_sha"]).admit(
+                "host"
+            )
+        except BudgetDenied:
+            return False
+        return True
+
     def create_job(self, marker):
         return create_owned_job(marker)
 
@@ -537,6 +549,9 @@ class ReleaseService(LabService):
             PYTHONNOUSERSITE="1",
             PYTHONDONTWRITEBYTECODE="1",
             GUARDIANS_ENABLED="false",
+            TESTER_RESTART_BUDGET_DIR=str(root / "runtime"),
+            TESTER_INSTALLATION_ID=marker["installation_id"],
+            TESTER_SOURCE_SHA=marker["source_sha"],
         )
         return dict(
             argv=[str(root / "dependencies/venv/Scripts/python.exe"), "-m", "src.api.supervisor"],

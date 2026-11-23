@@ -592,3 +592,32 @@ def test_native_lifecycle_retains_original_service_object(monkeypatch):
         )
         scm.remove(plan["name"])
     assert calls == [("open", plan["name"]), ("delete", "original"), ("close", "original")]
+
+
+def test_native_host_budget_denial_is_normal_stop_decision(monkeypatch, tmp_path):
+    import sys
+    import types
+
+    calls = []
+
+    class Denied(ValueError):
+        pass
+
+    class Budget:
+        def __init__(self, *args):
+            calls.append(args)
+
+        def admit(self, role):
+            calls.append(role)
+            raise Denied("durable budget exhausted")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "src.api.restart_budget",
+        types.SimpleNamespace(RestartBudget=Budget, BudgetDenied=Denied),
+    )
+    marker = dict(installation_id=str(uuid.uuid4()), source_sha="a" * 40)
+    monkeypatch.setattr(rs, "load_marker", lambda root: marker)
+    service = object.__new__(rs.ReleaseService)
+    assert service.admit_start(tmp_path) is False
+    assert calls[-1] == "host"
