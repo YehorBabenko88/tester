@@ -1,0 +1,66 @@
+{
+  "schema": "tester-guardian-integration-static-pins/v1",
+  "foundation": "bd619eb88e9444c3b414739a27f3053fb240251e",
+  "guardians": {
+    "code": {
+      "pr": 90,
+      "sha": "31513f7d821ba8d7b274efd1e91fd1488a128c38",
+      "module": "src/api/guardians/code_guardian.py",
+      "test": "tests/platform/test_code_guardian.py",
+      "docs": [
+        "docs/guardians/code-guardian.md",
+        "docs/guardians/workstream-code-p0.md"
+      ],
+      "exports": [
+        "CodeGuardian",
+        "Identity",
+        "Probe",
+        "request_code_review"
+      ]
+    },
+    "data": {
+      "pr": 91,
+      "sha": "392571ce52191023f2318b1fb3cf5d3cec4e41bd",
+      "module": "src/api/guardians/data_guardian.py",
+      "test": "tests/platform/test_data_guardian.py",
+      "docs": [
+        "docs/guardians/data-guardian.md",
+        "docs/guardians/workstream-data-p0.md"
+      ],
+      "exports": [
+        "reconcile",
+        "assess_data_removal_receipt",
+        "to_policy_event"
+      ]
+    },
+    "storage": {
+      "pr": 92,
+      "sha": "bb5e22148f7a06cff91d4dececf6126218ad210a",
+      "module": "src/api/guardians/storage_guardian.py",
+      "test": "tests/platform/test_storage_guardian.py",
+      "docs": [
+        "docs/guardians/storage-guardian.md",
+        "docs/guardians/workstream-storage-p0.md"
+      ],
+      "exports": [
+        "inventory",
+        "cleanup_authorization"
+      ]
+    },
+    "exchange": {
+      "pr": 93,
+      "sha": "952667cbee4c677ad90c46bed033fd4061a16053",
+      "module": "src/api/guardians/exchange_guardian.py",
+      "test": "tests/platform/test_exchange_guardian.py",
+      "docs": [
+        "docs/guardians/exchange-guardian.md",
+        "docs/guardians/workstream-exchange-p0.md"
+      ],
+      "exports": [
+        "ExchangeGuardian",
+        "endpoint_key",
+        "supervisor_event"
+      ]
+    }
+  }
+}
