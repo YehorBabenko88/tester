@@ -15,6 +15,18 @@ import pytest
 from src.api import unified_windows_install as install
 
 
+def test_initdb_diagnostic_survives_failed_subprocess(tmp_path, monkeypatch):
+    log = tmp_path / "initdb.log"
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *a, **kw: SimpleNamespace(returncode=1, stdout=b"initdb: diagnostic failure\n"),
+    )
+    with pytest.raises(ValueError):
+        install._run(["initdb"], diagnostic=log)
+    assert log.read_text() == "initdb: diagnostic failure\n"
+
+
 def test_unrelated_ancestor_executable_is_not_attested(tmp_path, monkeypatch):
     import psutil
 
@@ -311,7 +323,16 @@ def test_real_windows_postgres_supervisor_shortcuts_and_full_delete(tmp_path):
 
     pg_port, api_port = free_port(), free_port()
     assert pg_port != 5432
-    manager.initialize(pg_bin, sys.executable, pg_port=pg_port, api_port=api_port)
+    try:
+        manager.initialize(pg_bin, sys.executable, pg_port=pg_port, api_port=api_port)
+    except install.LabViolation:
+        diagnostic = manager.root / "logs/initdb.log"
+        if diagnostic.exists():
+            evidence = repo / ".scratch/unified-evidence"
+            evidence.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(diagnostic, evidence / "initdb-failure.log")
+            pytest.fail(diagnostic.read_text(encoding="utf-8", errors="replace"))
+        raise
     runtime = json.loads((manager.root / "install/runtime.json").read_text())
     assert (
         Path(runtime["supervisor_module"]).resolve() == manager.root / "app/src/api/supervisor.py"

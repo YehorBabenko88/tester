@@ -45,7 +45,7 @@ def _json(path, value):
         json.dump(value, stream, sort_keys=True)
 
 
-def _run(args, *, capture=True, **kwargs):
+def _run(args, *, capture=True, diagnostic=None, **kwargs):
     result = subprocess.run(
         [str(arg) for arg in args],
         stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
@@ -53,6 +53,9 @@ def _run(args, *, capture=True, **kwargs):
         timeout=90,
         **kwargs,
     )
+    if diagnostic is not None:
+        # Used only for initdb's nonsecret diagnostics, never bootstrap/DSNs.
+        plain(diagnostic).write_bytes(result.stdout or b"")
     if result.returncode:
         raise LabViolation("Owned subprocess failed; inspect disposable logs locally")
     return (result.stdout or b"").decode("utf-8", errors="replace")
@@ -241,7 +244,8 @@ class UnifiedInstaller:
                     "trust",
                     "--no-locale",
                     "--encoding=UTF8",
-                ]
+                ],
+                diagnostic=self.root / "logs/initdb.log",
             )
             with (cluster / "postgresql.conf").open("a") as stream:
                 stream.write(f"\nport={pg_port}\nlisten_addresses='127.0.0.1'\n")
