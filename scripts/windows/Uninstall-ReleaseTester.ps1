@@ -279,7 +279,7 @@ try {
     $env:PYTHONDONTWRITEBYTECODE = '1'
     $env:GUARDIANS_ENABLED = 'false'
     $bootstrap = "import sys,site,runpy;sys.path.insert(0,sys.argv.pop(1));site.addsitedir(sys.argv.pop(1));runpy.run_module('src.api.release_uninstall',run_name='__main__')"
-    $arguments = @('-B', '-S', '-c', $bootstrap, $moduleDirectory, $sitePackages, '--root', $Root, '--ledger', $Ledger,
+    $arguments = @('-I', '-B', '-S', '-c', $bootstrap, $moduleDirectory, $sitePackages, '--root', $Root, '--ledger', $Ledger,
         '--trusted-ledger-sha256', $TrustedLedgerSha256, '--trusted-public-key-sha256', $TrustedPublicKeySha256,
         '--source-sha', $SourceSha, '--evidence-path', $EvidencePath, '--defer-completion')
     if ($ScopeOnly) { $arguments += '--scope-only' }
