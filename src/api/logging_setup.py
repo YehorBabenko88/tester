@@ -87,6 +87,14 @@ class JsonFormatter(logging.Formatter):
             if type(value) is int and value >= 0:
                 result[key] = value
         if record.msg == "guardian_transport":
+            kind = getattr(record, "observation_kind", None)
+            if type(kind) is str and kind in {
+                "http",
+                "timeout",
+                "connection_failure",
+                "tls_failure",
+            }:
+                result["observation_kind"] = kind
             event = getattr(record, "guardian_event", None)
             if type(event) is dict and set(event) <= {
                 "component",

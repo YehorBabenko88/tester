@@ -222,18 +222,22 @@ def test_default_get_observations_keep_guardians_disabled():
     assert transport.last_observation.source_verified is False
 
 
-def test_actual_tls_failure_emits_sanitized_observation_once():
+def test_actual_tls_failure_emits_sanitized_observation_once(caplog):
     session = Mock()
     session.request.side_effect = requests.exceptions.SSLError("DO_NOT_LOG_SECRET")
     events = []
     transport = Transport(
         session=session, guardian=ExchangeGuardian(enabled=True), event_sink=events.append
     )
-    with pytest.raises(requests.exceptions.SSLError):
-        transport.get(URL)
+    with caplog.at_level(logging.INFO, logger="tester.worker"):
+        with pytest.raises(requests.exceptions.SSLError):
+            transport.get(URL)
     assert transport.last_observation.kind == "tls_failure"
     assert transport.last_verdict.signal == "tls_verification_failed"
     assert len(events) == 1 and "DO_NOT_LOG_SECRET" not in json.dumps(events)
+    records = [r for r in caplog.records if r.msg == "guardian_transport"]
+    assert len(records) == 1
+    assert json.loads(JsonFormatter().format(records[0]))["observation_kind"] == "tls_failure"
 
 
 def test_failed_diagnostic_sink_cannot_clear_a_forbidden_halt():

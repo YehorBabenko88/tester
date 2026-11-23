@@ -101,6 +101,7 @@ class Transport:
                 "trace_id": trace,
                 "guardian_event": event,
                 "http_status": status_code,
+                "observation_kind": kind,
                 "elapsed_ms": measured["elapsed_ms"],
             },
         )
