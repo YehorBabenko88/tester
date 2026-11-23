@@ -82,8 +82,12 @@ def test_real_native_scm_uuid_lifecycle_recovery(tmp_path):
     for dll in (site / "pywin32_system32").glob("*.dll"):
         shutil.copy2(dll, host / dll.name)
     (host / "Lib/site-packages").mkdir(exist_ok=True)
+    shutil.copytree(site / "win32", host / "Lib/site-packages/win32")
+    (host / "Lib/sitecustomize.py").write_text("import sys; sys.dont_write_bytecode=True")
     (host / "Lib/site-packages/tester.pth").write_text(
-        "\n".join(map(str, [host, site, site / "win32", site / "win32/lib"]))
+        "\n".join(
+            map(str, [host, host / "Lib/site-packages/win32", host / "Lib/site-packages/win32/lib"])
+        )
     )
     (host / "native_fixture.py").write_text("""import win32serviceutil,win32service,win32event
 class Fixture(win32serviceutil.ServiceFramework):
@@ -122,6 +126,13 @@ class Fixture(win32serviceutil.ServiceFramework):
             "SYSTEM\\CurrentControlSet\\Services\\" + plan["name"] + "\\PythonClass",
         ) as key:
             winreg.SetValueEx(key, None, 0, winreg.REG_SZ, plan["python_class"])
+        import win32security
+
+        sid, _, _ = win32security.LookupAccountName(None, plan["account"])
+        grant = "*" + win32security.ConvertSidToStringSid(sid) + ":(OI)(CI)RX"
+        subprocess.run(
+            ["icacls.exe", str(root), "/grant:r", grant, "/T"], check=True, capture_output=True
+        )
         current = scm.inspect(plan["name"])
         owned(current, plan, image)
         handle = win32service.OpenService(
