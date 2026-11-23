@@ -11,7 +11,9 @@ def test_history_schema_uses_quoted_identifiers_without_sql_concatenation():
     connection = MagicMock()
     connection.__enter__.return_value = connection
     with (
-        patch("src.api.history_readiness.validate_history_dsn", return_value="isolated") as validate,
+        patch(
+            "src.api.history_readiness.validate_history_dsn", return_value="isolated"
+        ) as validate,
         patch("src.api.history_readiness.connect", return_value=connection) as connect,
     ):
         result = check_history_schema("app", "catalog")
