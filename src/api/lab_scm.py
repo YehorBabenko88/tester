@@ -120,6 +120,11 @@ def owned(current, plan, image):
         or current.get("root") != plan["root"]
         or current.get("account", "").casefold() != ACCOUNT.casefold()
         or ("source_sha" in plan and current.get("source_sha") != plan["source_sha"])
+        or (
+            plan.get("executable")
+            and current.get("state") == "running"
+            and str(current.get("executable", "")).casefold() != str(plan["executable"]).casefold()
+        )
     ):
         raise LabViolation("SCM registration is foreign or has an unexpected image/account")
 
@@ -295,10 +300,38 @@ class NativeSCM:
                 status["CurrentState"], "pending"
             ),
             pid=status["ProcessId"],
+            executable=self.process_image(status["ProcessId"]) if status["ProcessId"] else None,
             installation_id=options["InstallationId"],
             root=options["Root"],
             source_sha=options["SourceSHA"],
         )
+
+    @staticmethod
+    def process_image(pid):
+        import ctypes
+        from ctypes import wintypes
+
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel.OpenProcess.restype = wintypes.HANDLE
+        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel.QueryFullProcessImageNameW.argtypes = [
+            wintypes.HANDLE,
+            wintypes.DWORD,
+            wintypes.LPWSTR,
+            ctypes.POINTER(wintypes.DWORD),
+        ]
+        handle = kernel.OpenProcess(0x1000, False, pid)
+        if not handle:
+            raise LabViolation("Cannot prove service executable identity")
+        try:
+            buffer = ctypes.create_unicode_buffer(32768)
+            size = wintypes.DWORD(len(buffer))
+            if not kernel.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size)):
+                raise LabViolation("Cannot query service executable identity")
+            return buffer.value
+        finally:
+            kernel.CloseHandle(handle)
 
     def install(self, plan, image, dependency):
         import winreg
@@ -310,7 +343,7 @@ class NativeSCM:
             plan["name"],
             ws.SERVICE_CHANGE_CONFIG,
             ws.SERVICE_WIN32_OWN_PROCESS,
-            ws.SERVICE_DEMAND_START,
+            ws.SERVICE_AUTO_START if plan.get("auto_start", False) else ws.SERVICE_DEMAND_START,
             ws.SERVICE_ERROR_NORMAL,
             image,
             None,
@@ -319,7 +352,27 @@ class NativeSCM:
             ACCOUNT,
             None,
         )
-        ws.CloseServiceHandle(h)
+        try:
+            if plan.get("recovery_delays_ms"):
+                delays = plan["recovery_delays_ms"]
+                if len(delays) != 3 or delays[-1] != 0:
+                    raise LabViolation("Finite recovery budget required")
+                ws.ChangeServiceConfig2(
+                    h,
+                    ws.SERVICE_CONFIG_FAILURE_ACTIONS,
+                    {
+                        "ResetPeriod": 86400,
+                        "RebootMsg": "",
+                        "Command": "",
+                        "Actions": [
+                            (ws.SC_ACTION_RESTART, delays[0]),
+                            (ws.SC_ACTION_RESTART, delays[1]),
+                            (ws.SC_ACTION_NONE, 0),
+                        ],
+                    },
+                )
+        finally:
+            ws.CloseServiceHandle(h)
         base = "SYSTEM\\CurrentControlSet\\Services\\" + plan["name"]
         with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\Parameters") as key:
             for k, v in {
@@ -382,7 +435,7 @@ class NativeSCM:
         raise LabViolation("SCM transition timed out")
 
 
-def stage_service_runtime(root):
+def stage_service_runtime(root, *, marker_reader=check, bootstrap="lab_service_bootstrap.py"):
     """Stage a private SCM host from already locked bootstrap dependencies, never user Python.
 
     The resulting byte inventory is an integrity receipt. Bootstrap must independently
@@ -394,7 +447,7 @@ def stage_service_runtime(root):
     import shutil
 
     root = plain(root)
-    marker = check(root)
+    marker = marker_reader(root)
     base = plain(root / "dependencies/python")
     site = plain(root / "dependencies/venv/Lib/site-packages")
     destination = plain(root / "dependencies/service")
@@ -426,7 +479,7 @@ def stage_service_runtime(root):
     # Plain .pth paths are processed by CPython before loading PythonClass.
     paths = [
         destination,
-        root / "releases" / marker["active_sha"],
+        root / "releases" / marker.get("active_sha", marker.get("source_sha")),
         site,
         site / "win32",
         site / "win32/lib",
@@ -439,14 +492,14 @@ def stage_service_runtime(root):
     startup = Path(__file__).with_name("lab_sitecustomize.py")
     shutil.copy2(startup, destination / "Lib/sitecustomize.py")
     shutil.copy2(
-        Path(__file__).with_name("lab_service_bootstrap.py"),
-        destination / "lab_service_bootstrap.py",
+        Path(__file__).with_name(bootstrap),
+        destination / bootstrap,
     )
     # Cache both startup modules: disabling bytecode during execution can still
     # cache the disabling module itself. Bootstrap Python must match private Python.
     if not compileall.compile_dir(str(destination / "Lib"), quiet=2):
         raise LabViolation("Private service standard library precompilation failed")
-    py_compile.compile(str(destination / "lab_service_bootstrap.py"), doraise=True)
+    py_compile.compile(str(destination / bootstrap), doraise=True)
     files = {
         p.relative_to(destination).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in destination.rglob("*")

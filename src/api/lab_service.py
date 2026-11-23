@@ -44,6 +44,24 @@ class LabService(_Framework):
     _svc_name_ = "TesterLabDynamic"
     _svc_display_name_ = "Tester fresh isolated lab"
 
+    marker_reader = staticmethod(check)
+    contract_builder = staticmethod(launch_contract)
+
+    def service_preflight(self, root):
+        from .lab_scm import preflight
+
+        return preflight(root)
+
+    def health_port(self, marker):
+        return 18766
+
+    def health_ready(self, response, health, instance):
+        return (
+            response.status == 200
+            and health.get("status") == "ok"
+            and health.get("instance_id") == instance
+        )
+
     def __init__(self, args):
         import win32event
 
@@ -85,23 +103,21 @@ class LabService(_Framework):
         import win32process
         import win32service
 
-        from .lab_scm import preflight
-
         key = "SYSTEM\\CurrentControlSet\\Services\\" + self.service_name + "\\Parameters"
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key, 0, winreg.KEY_QUERY_VALUE) as reg:
             root = plain(winreg.QueryValueEx(reg, "Root")[0])
             ident = winreg.QueryValueEx(reg, "InstallationId")[0]
             sha = winreg.QueryValueEx(reg, "SourceSHA")[0]
-        marker = check(root)
+        marker = self.marker_reader(root)
         if (
             marker["installation_id"] != ident
             or marker["services"]["app"] != self.service_name
-            or marker["active_sha"] != sha
+            or marker.get("active_sha", marker.get("source_sha")) != sha
         ):
             raise LabViolation("Registered release/ownership does not match marker")
-        preflight(root)
+        self.service_preflight(root)
         self.root = root
-        contract = launch_contract(root)
+        contract = self.contract_builder(root)
         instance = instance_token()
         contract["env"]["TESTER_SERVICE_INSTANCE"] = instance
         job = win32job.CreateJobObject(None, "")
@@ -137,18 +153,14 @@ class LabService(_Framework):
                 if win32event.WaitForSingleObject(process, 0) == win32event.WAIT_OBJECT_0:
                     raise LabViolation("Unexpected supervisor exit during startup")
                 try:
-                    connection = HTTPConnection("127.0.0.1", 18766, timeout=1)
+                    connection = HTTPConnection("127.0.0.1", self.health_port(marker), timeout=1)
                     try:
                         connection.request("GET", "/api/health")
                         response = connection.getresponse()
                         health = json.loads(response.read())["data"]
                     finally:
                         connection.close()
-                    if (
-                        response.status == 200
-                        and health.get("status") == "ok"
-                        and health.get("instance_id") == instance
-                    ):
+                    if self.health_ready(response, health, instance):
                         break
                 except (OSError, ValueError, KeyError):
                     pass
