@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/guardian_pinned_static_gate.py'
+      - 'scripts/guardian_assembly_plan.py'
+      - 'tests/platform/test_guardian_assembly_plan.py'
       - 'docs/guardians/guardian-static-pins.json'
       - '.github/workflows/guardian-pinned-static.yml'
   workflow_dispatch:
@@ -22,7 +24,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Pin Ruff only for read-only static gate
-        run: python -m pip install ruff==0.17.4
+        run: python -m pip install ruff==0.17.4 pytest
       - name: Verify exact checkout and Ruff
         shell: bash
         run: |
@@ -32,3 +34,5 @@ jobs:
           python -m ruff format --check scripts/guardian_pinned_static_gate.py
       - name: Inspect four pinned Guardian trees without executing them
         run: python scripts/guardian_pinned_static_gate.py
+      - name: Verify fail-closed assembly receipt tests
+        run: python -m pytest -q tests/platform/test_guardian_assembly_plan.py
