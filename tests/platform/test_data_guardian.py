@@ -1,4 +1,5 @@
 """Independent positive and negative tests for read-only Data Guardian."""
+
 import unittest
 from copy import deepcopy
 
@@ -18,23 +19,37 @@ STEP = 60_000
 
 def snapshot():
     return {
-        "environment": "tester_preview", "schema_verified": True,
-        "dsn_isolated": True, "postgres_port": 55432,
-        "database_name": "tester_preview", "database_role": "guardian_readonly",
+        "environment": "tester_preview",
+        "schema_verified": True,
+        "dsn_isolated": True,
+        "postgres_port": 55432,
+        "database_name": "tester_preview",
+        "database_role": "guardian_readonly",
         "dsn_identity_verified": True,
-        "read_only_snapshot": True, "baseline_verified": True,
-        "independent_integrity_check": True, "ownership_verified": True,
+        "read_only_snapshot": True,
+        "baseline_verified": True,
+        "independent_integrity_check": True,
+        "ownership_verified": True,
         "history_state": "bounded_verified",
-        "baseline_sha256": H, "category": "linear", "symbol": "BTCUSDT",
-        "interval": "1", "start_ms": 0, "end_ms": 3 * STEP,
-        "source": "bybit", "source_verified": True,
+        "baseline_sha256": H,
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "interval": "1",
+        "start_ms": 0,
+        "end_ms": 3 * STEP,
+        "source": "bybit",
+        "source_verified": True,
         "source_evidence_sha256": H,
-        "source_gap_proof_verified": True, "catalog_verified": True,
+        "source_gap_proof_verified": True,
+        "catalog_verified": True,
         "source_gap_proof_sha256": H,
         "source_gap_proof_scope": "bybit/linear/BTCUSDT/1",
-        "source_gap_proof_start_ms": 0, "source_gap_proof_end_ms": 3 * STEP,
-        "catalog_handler": "CatalogHandler", "fenced_writer_verified": True,
-        "lease_epoch": 12, "overlapping_writer": False,
+        "source_gap_proof_start_ms": 0,
+        "source_gap_proof_end_ms": 3 * STEP,
+        "catalog_handler": "CatalogHandler",
+        "fenced_writer_verified": True,
+        "lease_epoch": 12,
+        "overlapping_writer": False,
         "lease_scope": "bybit/linear/BTCUSDT/1",
         "lease_evidence_sha256": H,
         "queue_identity_verified": True,
@@ -44,12 +59,22 @@ def snapshot():
 
 def row(ts):
     return {
-        "open_time_ms": ts, "close_time_ms": ts + STEP - 1,
-        "source": "bybit", "provenance_verified": True,
-        "category": "linear", "symbol": "BTCUSDT", "interval": "1",
-        "source_sha256": H, "observed_sha256": H,
-        "original_projection_verified": True, "open": 2, "high": 3,
-        "low": 1, "close": 2, "volume": 0, "closed": True,
+        "open_time_ms": ts,
+        "close_time_ms": ts + STEP - 1,
+        "source": "bybit",
+        "provenance_verified": True,
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "interval": "1",
+        "source_sha256": H,
+        "observed_sha256": H,
+        "original_projection_verified": True,
+        "open": 2,
+        "high": 3,
+        "low": 1,
+        "close": 2,
+        "volume": 0,
+        "closed": True,
     }
 
 
@@ -175,47 +200,67 @@ def test_invalid_volume_quarantine(bad):
     assert reconcile(data, enabled=True).reason == "invalid_volume"
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("database_name", "production"), ("database_role", "postgres"),
-    ("dsn_identity_verified", False), ("postgres_port", True),
-    ("postgres_port", "55432"), ("postgres_port", 5432),
-    ("dsn_isolated", "true"),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("database_name", "production"),
+        ("database_role", "postgres"),
+        ("dsn_identity_verified", False),
+        ("postgres_port", True),
+        ("postgres_port", "55432"),
+        ("postgres_port", 5432),
+        ("dsn_isolated", "true"),
+    ],
+)
 def test_forged_dsn_attestation_denied(field, bad):
     data = snapshot()
     data[field] = bad
     assert reconcile(data, enabled=True).reason == "database_isolation_unverified"
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("history_state", "unknown"), ("history_state", "complete"),
-    ("baseline_verified", False), ("baseline_sha256", "bad"),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("history_state", "unknown"),
+        ("history_state", "complete"),
+        ("baseline_verified", False),
+        ("baseline_sha256", "bad"),
+    ],
+)
 def test_unknown_history_or_baseline_denied(field, bad):
     data = snapshot()
     data[field] = bad
     assert reconcile(data, enabled=True).action == "ALERT"
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("source_gap_proof_sha256", "bad"),
-    ("source_gap_proof_scope", "bybit/spot/BTCUSDT/1"),
-    ("source_gap_proof_start_ms", STEP),
-    ("source_gap_proof_end_ms", 4 * STEP),
-    ("source_gap_proof_verified", "true"),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("source_gap_proof_sha256", "bad"),
+        ("source_gap_proof_scope", "bybit/spot/BTCUSDT/1"),
+        ("source_gap_proof_start_ms", STEP),
+        ("source_gap_proof_end_ms", 4 * STEP),
+        ("source_gap_proof_verified", "true"),
+    ],
+)
 def test_forged_or_wrong_scope_gap_proof_denied(field, bad):
     data = snapshot()
     data[field] = bad
     assert reconcile(data, enabled=True).reason == "gap_source_proof_missing"
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("lease_scope", "bybit/spot/BTCUSDT/1"),
-    ("lease_evidence_sha256", "bad"), ("lease_epoch", True),
-    ("lease_epoch", -1), ("overlapping_writer", None),
-    ("fenced_writer_verified", False), ("queue_identity_verified", False),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("lease_scope", "bybit/spot/BTCUSDT/1"),
+        ("lease_evidence_sha256", "bad"),
+        ("lease_epoch", True),
+        ("lease_epoch", -1),
+        ("overlapping_writer", None),
+        ("fenced_writer_verified", False),
+        ("queue_identity_verified", False),
+    ],
+)
 def test_fencing_and_overlap_denied(field, bad):
     data = snapshot()
     data[field] = bad
@@ -287,8 +332,7 @@ def test_fault_injection_corrupt_each_row_without_repair():
             result = reconcile(data, enabled=True)
             assert result.action == "PROPOSE_QUARANTINE", (index, field)
             assert result.proposal["execution_authorized"] is False
-            assert result.proposal["preserve_raw"] is True
-            assert data == original
+            assert result.proposal["preserve_raw"] is True            assert data == original
 
 
 def test_fault_injection_gap_fencing_matrix():
@@ -331,13 +375,16 @@ def test_fault_injection_empty_snapshot_is_not_fabricated():
     assert result.proposal["history_complete"] is False
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("source", "synthetic"),
-    ("provenance_verified", None),
-    ("source_sha256", "z" * 64),
-    ("observed_sha256", None),
-    ("original_projection_verified", "true"),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("source", "synthetic"),
+        ("provenance_verified", None),
+        ("source_sha256", "z" * 64),
+        ("observed_sha256", None),
+        ("original_projection_verified", "true"),
+    ],
+)
 def test_fault_injection_untrusted_record_provenance(field, bad):
     data = snapshot()
     data["rows"][1][field] = bad
@@ -347,12 +394,15 @@ def test_fault_injection_untrusted_record_provenance(field, bad):
     assert result.proposal["preserve_raw"] is True
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("schema_verified", "true"),
-    ("read_only_snapshot", "true"),
-    ("source_verified", "true"),
-    ("source_evidence_sha256", "unknown"),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("schema_verified", "true"),
+        ("read_only_snapshot", "true"),
+        ("source_verified", "true"),
+        ("source_evidence_sha256", "unknown"),
+    ],
+)
 def test_fault_injection_forged_reader_attestation(field, bad):
     data = snapshot()
     data[field] = bad
@@ -369,11 +419,14 @@ def test_fault_injection_duplicate_identity_has_stable_evidence():
     assert first.proposal["execution_authorized"] is False
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("category", "spot"),
-    ("symbol", "ETHUSDT"),
-    ("interval", "5"),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("category", "spot"),
+        ("symbol", "ETHUSDT"),
+        ("interval", "5"),
+    ],
+)
 def test_cross_scope_row_provenance_quarantined(field, bad):
     data = snapshot()
     data["rows"][0][field] = bad
@@ -406,15 +459,18 @@ def test_closed_candle_end_timestamp_fault_injection(bad):
     assert result.proposal["preserve_raw"] is True
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("schema_verified", False),
-    ("baseline_verified", False),
-    ("dsn_isolated", False),
-    ("database_name", "postgres"),
-    ("database_role", "postgres"),
-    ("postgres_port", 5432),
-    ("read_only_snapshot", False),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("schema_verified", False),
+        ("baseline_verified", False),
+        ("dsn_isolated", False),
+        ("database_name", "postgres"),
+        ("database_role", "postgres"),
+        ("postgres_port", 5432),
+        ("read_only_snapshot", False),
+    ],
+)
 def test_reinstall_readonly_preflight_fails_closed(field, bad):
     """No data repair or installation authorization follows from bad inventory."""
     data = snapshot()
@@ -437,12 +493,15 @@ def test_reinstall_preflight_never_authorizes_effects():
         assert finding.proposal["preserve_raw"] is True
 
 
-@pytest.mark.parametrize("port,role,dbname", [
-    (5432, "guardian_readonly", "tester_preview"),
-    (55432, "postgres", "tester_preview"),
-    (55432, "guardian_readonly", "postgres"),
-    (None, "guardian_readonly", "tester_preview"),
-])
+@pytest.mark.parametrize(
+    "port,role,dbname",
+    [
+        (5432, "guardian_readonly", "tester_preview"),
+        (55432, "postgres", "tester_preview"),
+        (55432, "guardian_readonly", "postgres"),
+        (None, "guardian_readonly", "tester_preview"),
+    ],
+)
 def test_destructive_contract_foreign_cluster_never_authorized(port, role, dbname):
     """A foreign or unknown cluster cannot yield any data mutation capability."""
     data = snapshot()
@@ -479,20 +538,23 @@ def data_removal_fixture():
         "data_receipt_sha256": H,
     }
     for key in (
-        "dedicated_cluster_absent", "raw_candles_absent",
-        "history_absent", "original_projections_absent",
-        "provenance_absent", "source_hashes_absent",
-        "test_results_absent", "checkpoints_absent",
-        "download_queue_absent", "data_backups_absent",
+        "dedicated_cluster_absent",
+        "raw_candles_absent",
+        "history_absent",
+        "original_projections_absent",
+        "provenance_absent",
+        "source_hashes_absent",
+        "test_results_absent",
+        "checkpoints_absent",
+        "download_queue_absent",
+        "data_backups_absent",
     ):
         evidence[key] = True
     return evidence
 
 
 def test_data_removal_disabled_default():
-    assert assess_data_removal_receipt(data_removal_fixture()).reason == (
-        "guardians_disabled"
-    )
+    assert assess_data_removal_receipt(data_removal_fixture()).reason == ("guardians_disabled")
 
 
 def test_data_removal_is_fixture_only_not_an_uninstall():
@@ -501,29 +563,40 @@ def test_data_removal_is_fixture_only_not_an_uninstall():
     assert result.proposal is None
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("environment", "tester_preview"),
-    ("master_gate_verified", False),
-    ("master_gate_receipt_sha256", "fake"),
-    ("independent_data_readback_verified", False),
-    ("dedicated_cluster_identity_verified", False),
-    ("system_pg_identity_unchanged", False),
-    ("system_pg_data_hash_unchanged", False),
-    ("data_receipt_sha256", None),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("environment", "tester_preview"),
+        ("master_gate_verified", False),
+        ("master_gate_receipt_sha256", "fake"),
+        ("independent_data_readback_verified", False),
+        ("dedicated_cluster_identity_verified", False),
+        ("system_pg_identity_unchanged", False),
+        ("system_pg_data_hash_unchanged", False),
+        ("data_receipt_sha256", None),
+    ],
+)
 def test_data_removal_rejects_foreign_or_unsigned_receipt(field, bad):
     evidence = data_removal_fixture()
     evidence[field] = bad
     assert assess_data_removal_receipt(evidence, enabled=True).action == "ALERT"
 
 
-@pytest.mark.parametrize("missing", [
-    "dedicated_cluster_absent", "raw_candles_absent",
-    "history_absent", "original_projections_absent",
-    "provenance_absent", "source_hashes_absent",
-    "test_results_absent", "checkpoints_absent",
-    "download_queue_absent", "data_backups_absent",
-])
+@pytest.mark.parametrize(
+    "missing",
+    [
+        "dedicated_cluster_absent",
+        "raw_candles_absent",
+        "history_absent",
+        "original_projections_absent",
+        "provenance_absent",
+        "source_hashes_absent",
+        "test_results_absent",
+        "checkpoints_absent",
+        "download_queue_absent",
+        "data_backups_absent",
+    ],
+)
 def test_data_removal_rejects_partial_deletion(missing):
     evidence = data_removal_fixture()
     evidence[missing] = False
@@ -587,11 +660,14 @@ def test_foundation_policy_event_quarantine_integration():
     assert proposal.action == "PROPOSE_QUARANTINE"
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("ownership_verified", False),
-    ("source_evidence_sha256", None),
-    ("catalog_verified", False),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("ownership_verified", False),
+        ("source_evidence_sha256", None),
+        ("catalog_verified", False),
+    ],
+)
 def test_forged_gap_supervisor_event_denied(field, bad):
     data = snapshot()
     finding = reconcile(data, enabled=True)
@@ -622,8 +698,10 @@ def test_forged_finding_is_not_a_supervisor_capability():
     from src.api.guardians.data_guardian import Finding
 
     forged = Finding(
-        action="PROPOSE_BOUNDED_BACKFILL", reason=actual.reason,
-        scope=actual.scope, evidence_ref=actual.evidence_ref,
+        action="PROPOSE_BOUNDED_BACKFILL",
+        reason=actual.reason,
+        scope=actual.scope,
+        evidence_ref=actual.evidence_ref,
         proposal={"adapter": "CatalogHandler", "execution_authorized": False},
     )
     assert to_policy_event(data, forged) is None
@@ -643,10 +721,14 @@ def test_revoked_source_proof_invalidates_existing_finding():
     assert to_policy_event(data, prior) is None
 
 
-@pytest.mark.parametrize("field", [
-    "source_gap_proof_sha256", "source_evidence_sha256",
-    "lease_evidence_sha256",
-])
+@pytest.mark.parametrize(
+    "field",
+    [
+        "source_gap_proof_sha256",
+        "source_evidence_sha256",
+        "lease_evidence_sha256",
+    ],
+)
 def test_changed_verified_gap_proof_rotates_receipt(field):
     original = snapshot()
     old = reconcile(original, enabled=True)
@@ -847,9 +929,7 @@ def test_disposable_sqlite_connection_drop_rolls_back_pending_candle(tmp_path):
     connection.execute("INSERT INTO candles VALUES (?, ?)", (STEP, "b" * 64))
     connection.close()  # simulate lost connection before COMMIT
     with sqlite3.connect(db) as reopened:
-        assert reopened.execute(
-            "SELECT open_ms, source_sha FROM candles"
-        ).fetchall() == [(0, H)]
+        assert reopened.execute("SELECT open_ms, source_sha FROM candles").fetchall() == [(0, H)]
 
 
 def test_disposable_sqlite_failed_duplicate_batch_is_atomic(tmp_path):
@@ -858,9 +938,7 @@ def test_disposable_sqlite_failed_duplicate_batch_is_atomic(tmp_path):
 
     db = tmp_path / "data-guardian-atomic.sqlite3"
     with sqlite3.connect(db) as conn:
-        conn.execute(
-            "CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)"
-        )
+        conn.execute("CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)")
         conn.execute("INSERT INTO candles VALUES (?, ?)", (0, H))
     with sqlite3.connect(db) as conn:
         try:
@@ -882,9 +960,7 @@ def test_disposable_sqlite_bad_candle_rejected_before_write(tmp_path):
 
     db = tmp_path / "data-guardian-reject.sqlite3"
     with sqlite3.connect(db) as conn:
-        conn.execute(
-            "CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)"
-        )
+        conn.execute("CREATE TABLE candles (open_ms INTEGER PRIMARY KEY, source_sha TEXT NOT NULL)")
         conn.execute("INSERT INTO candles VALUES (?, ?)", (0, H))
     incoming = snapshot()
     incoming["rows"][0]["high"] = float("nan")
@@ -910,22 +986,23 @@ def test_disposable_sqlite_foreign_database_remains_unchanged(tmp_path):
     with sqlite3.connect(owned) as conn:
         conn.execute("DELETE FROM marker")
     with sqlite3.connect(foreign) as conn:
-        assert conn.execute("SELECT value FROM marker").fetchall() == [
-            ("foreign",)
-        ]
+        assert conn.execute("SELECT value FROM marker").fetchall() == [("foreign",)]
     assert foreign.exists()
 
 
-@pytest.mark.parametrize("field,bad", [
-    ("open_time_ms", None),
-    ("open_time_ms", STEP // 2),
-    ("open_time_ms", -STEP),
-    ("close_time_ms", STEP - 2),
-    ("closed", False),
-    ("provenance_verified", False),
-    ("source_sha256", None),
-    ("observed_sha256", "b" * 64),
-])
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("open_time_ms", None),
+        ("open_time_ms", STEP // 2),
+        ("open_time_ms", -STEP),
+        ("close_time_ms", STEP - 2),
+        ("closed", False),
+        ("provenance_verified", False),
+        ("source_sha256", None),
+        ("observed_sha256", "b" * 64),
+    ],
+)
 def test_restarted_reader_rejects_corrupt_candle_without_mutating_baseline(field, bad):
     confirmed = snapshot()
     confirmed["rows"].insert(1, row(STEP))
@@ -945,11 +1022,16 @@ def test_restarted_reader_rejects_corrupt_candle_without_mutating_baseline(field
 def test_data_removal_receipt_requires_all_data_categories_and_no_backups():
     evidence = data_removal_fixture()
     for field in (
-        "raw_candles_absent", "history_absent",
-        "original_projections_absent", "provenance_absent",
-        "source_hashes_absent", "test_results_absent",
-        "checkpoints_absent", "download_queue_absent",
-        "data_backups_absent", "dedicated_cluster_absent",
+        "raw_candles_absent",
+        "history_absent",
+        "original_projections_absent",
+        "provenance_absent",
+        "source_hashes_absent",
+        "test_results_absent",
+        "checkpoints_absent",
+        "download_queue_absent",
+        "data_backups_absent",
+        "dedicated_cluster_absent",
     ):
         missing = deepcopy(evidence)
         missing.pop(field)
@@ -995,9 +1077,7 @@ class DataGuardianUnittestAcceptance(unittest.TestCase):
 
     def test_ohlcv_provenance_duplicate_and_gap(self):
         sample = snapshot()
-        self.assertEqual(
-            reconcile(sample, enabled=True).action, "PROPOSE_BOUNDED_BACKFILL"
-        )
+        self.assertEqual(reconcile(sample, enabled=True).action, "PROPOSE_BOUNDED_BACKFILL")
         sample["rows"][0]["high"] = float("nan")
         self.assertEqual(reconcile(sample, enabled=True).action, "PROPOSE_QUARANTINE")
         sample = snapshot()
@@ -1025,9 +1105,7 @@ class DataGuardianUnittestAcceptance(unittest.TestCase):
             connection.commit()
             connection.execute("INSERT INTO candles VALUES (?)", (STEP,))
             connection.rollback()
-            self.assertEqual(
-                connection.execute("SELECT stamp FROM candles").fetchall(), [(0,)]
-            )
+            self.assertEqual(connection.execute("SELECT stamp FROM candles").fetchall(), [(0,)])
         finally:
             connection.close()
 
