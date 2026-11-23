@@ -4,7 +4,7 @@
   "guardians": {
     "code": {
       "pr": 90,
-      "sha": "31513f7d821ba8d7b274efd1e91fd1488a128c38",
+      "sha": "96731dfe493e5967c1336d2315fd7187381bee70",
       "module": "src/api/guardians/code_guardian.py",
       "test": "tests/platform/test_code_guardian.py",
       "docs": [
@@ -20,7 +20,7 @@
     },
     "data": {
       "pr": 91,
-      "sha": "392571ce52191023f2318b1fb3cf5d3cec4e41bd",
+      "sha": "e7cc55a24a12ffcc9da82dda1f532fd13ae78af9",
       "module": "src/api/guardians/data_guardian.py",
       "test": "tests/platform/test_data_guardian.py",
       "docs": [
@@ -35,7 +35,7 @@
     },
     "storage": {
       "pr": 92,
-      "sha": "bb5e22148f7a06cff91d4dececf6126218ad210a",
+      "sha": "a58d0d428ac003dc8d9d3b829a97aeaa115e895f",
       "module": "src/api/guardians/storage_guardian.py",
       "test": "tests/platform/test_storage_guardian.py",
       "docs": [
@@ -49,7 +49,7 @@
     },
     "exchange": {
       "pr": 93,
-      "sha": "952667cbee4c677ad90c46bed033fd4061a16053",
+      "sha": "eea38f54340a943886a9ad95803626ddf5f49331",
       "module": "src/api/guardians/exchange_guardian.py",
       "test": "tests/platform/test_exchange_guardian.py",
       "docs": [
