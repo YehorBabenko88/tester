@@ -352,3 +352,91 @@ confirmations; a compromised signer requires an incident recovery review using
 newly trusted tooling. Do not re-enable a revoked key merely to make old code run.
 No production key, certificate, rotation, trust-store change or production signing
 has been performed as part of these candidate tests.
+
+### Reproduce finalized signed archives using a frozen signature overlay
+
+Authenticode/TSA is performed **once**, not independently for each comparison.
+Freeze the three accepted signed script byte strings and the script-signing
+receipt as reviewed build inputs. Keep the original unsigned source bundle, and
+require the signed files to contain its exact byte prefix followed only by the
+Authenticode comment block. Encoding conversion or executable source-body
+changes fail this check and require a new reviewed source/build; they must not
+be explained away as a signature difference.
+
+From the trusted owner console, after the signing/chain/certificate-pin checks
+above, create a fresh protected overlay directory and run this prefix check for
+each of the three canonical relative paths. The paths and expected certificate
+fingerprint come from the same approved signing receipt:
+
+```powershell
+$Unsigned = 'D:\Release\pristine-unsigned'
+$Signed = 'D:\Release\owner-signed-once'
+$Overlay = 'D:\OwnerApproved\frozen-script-overlay'
+$OwnerCertificateSha256 = '<OWNER_APPROVED_64_HEX_DER_SHA256>'
+$ScriptPaths = @('Setup-Tester.ps1','payload/scripts/windows/Start-ReleaseTester.ps1','payload/scripts/windows/Uninstall-ReleaseTester.ps1')
+foreach ($relative in $ScriptPaths) {
+    $before = [IO.File]::ReadAllBytes((Join-Path $Unsigned $relative))
+    $after = [IO.File]::ReadAllBytes((Join-Path $Signed $relative))
+    if ($after.Length -le $before.Length) { throw 'Missing signature-only suffix' }
+    for ($i=0; $i -lt $before.Length; $i++) { if ($before[$i] -ne $after[$i]) { throw 'Signing changed the approved source body' } }
+    $tail = [Text.Encoding]::ASCII.GetString($after,$before.Length,$after.Length-$before.Length)
+    if ($tail -notmatch '\A[\r\n]*# SIG # Begin signature block\r?\n(?:#[^\r\n]*\r?\n)*# SIG # End signature block[\r\n]*\z') { throw 'Executable bytes outside approved source body' }
+    $sig = Get-AuthenticodeSignature -LiteralPath (Join-Path $Signed $relative)
+    if ($sig.Status -ne 'Valid' -or $null -eq $sig.TimeStamperCertificate) { throw 'Frozen signature is not accepted' }
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $pin=[BitConverter]::ToString($sha.ComputeHash($sig.SignerCertificate.RawData)).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
+    if ($pin -cne $OwnerCertificateSha256) { throw 'Frozen publisher differs from approved certificate' }
+    $target = Join-Path $Overlay $relative
+    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target)) | Out-Null
+    [IO.File]::WriteAllBytes($target,$after)
+}
+Copy-Item -LiteralPath (Join-Path $Signed 'script-signing-receipt.json') -Destination (Join-Path $Overlay 'script-signing-receipt.json')
+```
+
+Use a fresh, already protected overlay path; the command does not establish trust
+in an existing arbitrary directory. Record the overlay files' hashes in the
+owner release evidence and keep that overlay immutable. Do not sign those
+scripts again. Make **two clean builds** from the same exact Git commit and the
+same independently approved component pins, then copy only the frozen three
+script files and identical signing receipt into each build. Verify every unsigned
+script's original hash against the receipt before replacing it, and every copied
+script's final hash against the frozen receipt afterward.
+
+```powershell
+$SourceSha = '<FINAL_40_HEX_SHA>'
+$Repo = 'D:\TrustedCheckout\tester'
+$Components = 'D:\OwnerApproved\components'
+$Pins = 'D:\OwnerApproved\component-pins.json'
+$BuildA = 'D:\Release\clean-a'
+$BuildB = 'D:\Release\clean-b'
+python scripts/build_release.py --repo $Repo --source-sha $SourceSha --components $Components --component-pins $Pins --output $BuildA
+python scripts/build_release.py --repo $Repo --source-sha $SourceSha --components $Components --component-pins $Pins --output $BuildB
+$receipt = Get-Content -LiteralPath (Join-Path $Overlay 'script-signing-receipt.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+foreach ($build in @($BuildA,$BuildB)) {
+    foreach ($row in $receipt.scripts) {
+        $target = Join-Path $build $row.path
+        $frozen = Join-Path $Overlay $row.path
+        if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.source_sha256) { throw 'Clean build source differs from approved body' }
+        if ((Get-FileHash -LiteralPath $frozen -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.signed_sha256) { throw 'Frozen signed bytes changed' }
+        [IO.File]::WriteAllBytes($target,[IO.File]::ReadAllBytes($frozen))
+        if ((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash.ToLowerInvariant() -cne $row.signed_sha256) { throw 'Signed overlay copy changed' }
+    }
+    [IO.File]::WriteAllBytes((Join-Path $build 'script-signing-receipt.json'),[IO.File]::ReadAllBytes((Join-Path $Overlay 'script-signing-receipt.json')))
+}
+python -m src.api.release_security manifest --bundle $BuildA --source-sha $SourceSha --output D:\Release\clean-a.post-authenticode.json
+python -m src.api.release_security manifest --bundle $BuildB --source-sha $SourceSha --output D:\Release\clean-b.post-authenticode.json
+python -m src.api.release_security sign --bundle $BuildA --private-key D:\OwnerKeys\tester-release.pk8.pem --source-sha $SourceSha --manifest-input D:\Release\clean-a.post-authenticode.json
+python -m src.api.release_security sign --bundle $BuildB --private-key D:\OwnerKeys\tester-release.pk8.pem --source-sha $SourceSha --manifest-input D:\Release\clean-b.post-authenticode.json
+python -c "from scripts.build_release import archive; print(archive(r'D:\Release\clean-a',r'D:\Release\clean-a.zip')); print(archive(r'D:\Release\clean-b',r'D:\Release\clean-b.zip'))"
+if ((Get-FileHash D:\Release\clean-a.zip -Algorithm SHA256).Hash -cne (Get-FileHash D:\Release\clean-b.zip -Algorithm SHA256).Hash) { throw 'Final signed archives are not byte-identical' }
+```
+
+Both manifest operations must produce identical canonical inventories. Both
+Ed25519 operations use the same approved external key over identical canonical
+bytes, while the Authenticode bytes are reused verbatim. Compare complete ZIP
+SHA256 values and record both builds' exact source/component/overlay inputs.
+This tests reproducible assembly from **pinned signed artifacts**; it does not
+claim independently timestamped Authenticode operations are reproducible.
+The owner certificate/key are absent here, so production AllSigned/signature
+and this production reproducibility gate remain **NOT RUN**. Fixture-signature
+archive comparisons do not satisfy that gate.
