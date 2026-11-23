@@ -120,9 +120,32 @@ def inventory(path):
     }
 
 
+def _shell_link():
+    import pythoncom
+    from win32com.shell import shell
+
+    return pythoncom.CoCreateInstance(
+        shell.CLSID_ShellLink, None, pythoncom.CLSCTX_INPROC_SERVER, shell.IID_IShellLink
+    )
+
+
+def read_shortcut(path):
+    """IShellLinkW/IPersistFile keep Cyrillic filenames on every Windows ACP."""
+    import pythoncom
+    from win32com.shell import shell
+
+    link = _shell_link()
+    link.QueryInterface(pythoncom.IID_IPersistFile).Load(str(plain(path)))
+    return dict(
+        target=link.GetPath(shell.SLGP_RAWPATH)[0],
+        arguments=link.GetArguments(),
+        working_directory=link.GetWorkingDirectory(),
+    )
+
+
 def create_shortcuts(root, marker):
     """Real COM links, including exact Unicode names; fake Desktop only in test mode."""
-    import win32com.client
+    import pythoncom
 
     desktop = (
         Path(marker["test_desktop"])
@@ -131,7 +154,6 @@ def create_shortcuts(root, marker):
     )
     desktop = plain(desktop)
     desktop.mkdir(exist_ok=True)
-    shell = win32com.client.Dispatch("WScript.Shell")
     target = str(Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe")
     made = []
     for title, script in (
@@ -158,21 +180,19 @@ def create_shortcuts(root, marker):
         if not plain(script_path).is_file():
             raise LabViolation("Shortcut target script is missing")
         if link.exists():
-            current = shell.CreateShortcut(str(link))
+            current = read_shortcut(link)
             if (
-                current.TargetPath.casefold() != target.casefold()
-                or current.Arguments != arguments
-                or current.WorkingDirectory != str(root)
+                current["target"].casefold() != target.casefold()
+                or current["arguments"] != arguments
+                or current["working_directory"] != str(root)
             ):
                 raise LabViolation("Foreign shortcut collision")
         else:
-            shortcut = shell.CreateShortcut(str(link))
-            shortcut.TargetPath, shortcut.Arguments, shortcut.WorkingDirectory = (
-                target,
-                arguments,
-                str(root),
-            )
-            shortcut.Save()
+            shortcut = _shell_link()
+            shortcut.SetPath(target)
+            shortcut.SetArguments(arguments)
+            shortcut.SetWorkingDirectory(str(root))
+            shortcut.QueryInterface(pythoncom.IID_IPersistFile).Save(str(link), 0)
             # MS-SHLLINK LinkFlags at 0x14; explicit user activation prompts UAC.
             data = bytearray(link.read_bytes())
             if data[:4] != b"\x4c\x00\x00\x00":
@@ -182,11 +202,11 @@ def create_shortcuts(root, marker):
             link.write_bytes(data)
         if not int.from_bytes(link.read_bytes()[20:24], "little") & 0x2000:
             raise LabViolation("Shortcut must request explicit elevated activation")
-        actual = shell.CreateShortcut(str(link))
+        actual = read_shortcut(link)
         if (
-            actual.TargetPath.casefold() != target.casefold()
-            or actual.Arguments != arguments
-            or actual.WorkingDirectory != str(root)
+            actual["target"].casefold() != target.casefold()
+            or actual["arguments"] != arguments
+            or actual["working_directory"] != str(root)
         ):
             raise LabViolation("COM shortcut readback mismatch")
         made.append(str(link))

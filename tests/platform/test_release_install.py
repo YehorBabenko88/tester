@@ -88,7 +88,6 @@ def test_full_native_installer_lifecycle(tmp_path):
         pytest.fail("Full installer opt-in requires signed fixture bundle and independent pins")
     import psycopg
     import win32api
-    import win32com.client
     import win32con
     import win32security
 
@@ -264,15 +263,14 @@ def test_full_native_installer_lifecycle(tmp_path):
                 conn.execute("SELECT count(*) FROM tester_storage.schema_migrations").fetchone()[0]
                 > 0
             )
-        shell = win32com.client.Dispatch("WScript.Shell")
         links = sorted(desktop.glob("*.lnk"))
         assert {p.name for p in links} == {"TESTER — Запуск.lnk", "TESTER — Удаление.lnk"}
         start_path = desktop / "TESTER — Запуск.lnk"
-        start_link = shell.CreateShortcut(str(start_path))
+        start_link = ri.read_shortcut(start_path)
         exact_command = (
-            subprocess.list2cmdline([start_link.TargetPath])
+            subprocess.list2cmdline([start_link["target"]])
             + " "
-            + start_link.Arguments
+            + start_link["arguments"]
             + " -NoBrowser"
         )
         for _ in range(2):

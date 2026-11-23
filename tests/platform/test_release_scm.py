@@ -314,13 +314,12 @@ def test_real_unicode_com_shortcut_roundtrip(tmp_path):
         "TESTER — Удаление.lnk",
     }
     assert create_shortcuts(root, marker) == paths
-    import win32com.client
+    from src.api.release_install import read_shortcut
 
-    shell = win32com.client.Dispatch("WScript.Shell")
-    uninstall = shell.CreateShortcut(paths[1])
-    assert '-TrustConfig "' + marker["trust_config"] + '"' in uninstall.Arguments
-    assert " -Root " not in uninstall.Arguments
-    assert uninstall.WorkingDirectory == str(root)
+    uninstall = read_shortcut(paths[1])
+    assert '-TrustConfig "' + marker["trust_config"] + '"' in uninstall["arguments"]
+    assert " -Root " not in uninstall["arguments"]
+    assert uninstall["working_directory"] == str(root)
 
 
 def test_startup_interruption_receipt_retains_exact_instance(tmp_path):
@@ -566,6 +565,7 @@ def test_native_lifecycle_retains_original_service_object(monkeypatch):
     class API:
         SERVICE_QUERY_CONFIG = 1
         SERVICE_QUERY_STATUS = 4
+        SERVICE_CHANGE_CONFIG = 2
         SERVICE_START = 16
         SERVICE_STOP = 32
 
@@ -640,3 +640,16 @@ def test_native_process_image_exit_is_a_transition(tmp_path):
     child.wait(timeout=15)
     with pytest.raises(ProcessLookupError):
         NativeSCM.process_image(child.pid)
+
+
+def test_unicode_shell_link_reader_roundtrip(tmp_path):
+    import os
+
+    import pytest
+
+    if os.name != "nt":
+        pytest.skip("Unicode ShellLink requires Windows")
+    from src.api.release_install import read_shortcut
+
+    with pytest.raises(Exception):
+        read_shortcut(tmp_path / "missing.lnk")
