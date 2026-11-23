@@ -248,7 +248,6 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
             ("ALERT", "after_check_evidence_not_independent"),
         )
 
-
     def test_untrusted_metrics_and_unknown_source_fail_closed(self):
         for now, budget, circuit in (
             (True, 0, False),
@@ -283,7 +282,6 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         samples[2] = replace(samples[2], source="scm")
         rejected = CodeGuardian.verify(ident(), tuple(samples), now=100, independent_verifier=True)
         self.assertEqual(rejected.reason, "after_check_not_independent")
-
 
     def test_launcher_foreign_service_and_version_never_propose(self):
         for identity in (
