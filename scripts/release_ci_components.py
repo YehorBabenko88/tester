@@ -167,7 +167,7 @@ def provision(repo, sha, work, evidence, github_env=None):
     # Ephemeral fixture key lives OUTSIDE bundle and is never exported as evidence.
     result = subprocess.check_output(
         [
-            str(py / "python.exe"),
+            str(components / "runtimes/python/python.exe"),
             "-I",
             "-B",
             "-c",
