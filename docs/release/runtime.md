@@ -172,8 +172,10 @@ origin guards and exact artifact binding before the static frontend catch-all.
 Without a capability the research HTTP endpoints return 401; cross-origin
 requests return 403. Research database failure returns a fixed, secret-free 503.
 
-The existing worker checks market work first and delegates at most one eligible
-projection to the existing fenced `PersistentControl.dispatch` when idle.
+The existing worker processes market work first and then delegates at most one
+eligible projection to the existing fenced `PersistentControl.dispatch`, checking
+shutdown again before delegation. This bound permits both queues to progress
+under a continuous market backlog without another worker or executor.
 There is no additional worker, engine or retry executor. Selection uses persisted
 principals with current credentials and grants. Claims are durably limited to
 three attempts. Malformed pre-claim work consumes a compare-and-update failure
@@ -218,6 +220,15 @@ and graceful worker/cluster shutdown. Evidence is
 `work/native-research-projection/run-20261124T003102-a66c947c`.
 The main strategy-execution panel remains unavailable: only the separately
 authenticated persisted-projection viewer is wired, not execution/summary routes.
+
+Review identified starvation under a continuous market backlog. Commit
+`ca1b69084f5a1356d9576099a71a3e451800062d` bounds delegation to market-first,
+then at most one projection with a stop recheck. The new ten-cycle regression
+first observed zero projection progress and now requires ten market-first
+projection delegations. The actual PostgreSQL/route suite passed 29 tests, and
+the existing Playwright case passed from the terminal's approved-results link
+against this committed frontend/backend revision. Evidence:
+`work/native-research-projection/run-20261124T004328-c6b090d0`.
 
 ## Completed bounded soak and live history roundtrip
 
