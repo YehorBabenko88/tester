@@ -4,20 +4,36 @@
   "files": {
     "src/api/guardians/exchange_guardian.py": {
       "baseline_sha256": "f3eb242f3f28ccc8fe1826edca9d3bf41e70643cc6f0c1eba8211b28e0038ff8",
-      "candidate_sha256": "3712f1f620f94f7eda449ac44ac24344247fd75e9241845468df97e59164c422",
-      "reason": "Unify validated public REST/archive identities with the sole transport and preserve bounded endpoint memory; reject private paths and halt HTTP403/TLS with shared retry budget. C commit5408cddd93c40f1b3630e5d4c450b57129bdc4e7.",
+      "candidate_sha256": "28a5baf0d3459c3aa2201be5f9ca915c5fcbacfa14a37bab2085876d977c4fb7",
+      "reason": "Share the sole public transport observation and query policy; fail closed on nonfinite/huge timestamps and retain halted endpoint state at capacity. Reviewed C release changes; no Guardian execution enabled.",
       "regression_tests": [
-        "tests/ingest/test_transport_release.py",
-        "tests/platform/test_exchange_guardian.py"
+        "tests/platform/test_exchange_guardian.py",
+        "tests/ingest/test_transport_release.py"
       ]
     },
     "tests/platform/test_exchange_guardian.py": {
       "baseline_sha256": "ed3046c390508ad9a0c4011f0c9026d227382daa976edd5ac561eaf722c22bf5",
-      "candidate_sha256": "e759fafa4fe83353d59c123d116fd10e9f0ae297e1ea227d61f136346e5d73f9",
-      "reason": "Unify validated public REST/archive identities with the sole transport and preserve bounded endpoint memory; reject private paths and halt HTTP403/TLS with shared retry budget. C commit5408cddd93c40f1b3630e5d4c450b57129bdc4e7.",
+      "candidate_sha256": "8acec8183ed5fe99bdbd93b13e76d604443f1446ff45f622f3d0c9c332259cf2",
+      "reason": "Share the sole public transport observation and query policy; fail closed on nonfinite/huge timestamps and retain halted endpoint state at capacity. Reviewed C release changes; no Guardian execution enabled.",
       "regression_tests": [
-        "tests/ingest/test_transport_release.py",
-        "tests/platform/test_exchange_guardian.py"
+        "tests/platform/test_exchange_guardian.py",
+        "tests/ingest/test_transport_release.py"
+      ]
+    },
+    "src/api/guardians/storage_guardian.py": {
+      "baseline_sha256": "92ac52e268b2947ee694d2a3aaf7e48c200ee5cbbda9e52144ad14a00e87850d",
+      "candidate_sha256": "2707814d16c74211ad4aa521d84a5488c10327a6ed1c4cc582a765007b7abf3b",
+      "reason": "Reject huge integer timestamps before float conversion can raise OverflowError; preserve fail-closed Storage observation and proposal-only behavior.",
+      "regression_tests": [
+        "tests/platform/test_storage_guardian.py"
+      ]
+    },
+    "tests/platform/test_storage_guardian.py": {
+      "baseline_sha256": "d960b71438023d6152bef71632f59acdc2a8da6df21f2308cbb6e4aab392490b",
+      "candidate_sha256": "9d662e6d87fb5decd3ac45c802316ee951a6b347abb4bbd31ededbd651902465",
+      "reason": "Reject huge integer timestamps before float conversion can raise OverflowError; preserve fail-closed Storage observation and proposal-only behavior.",
+      "regression_tests": [
+        "tests/platform/test_storage_guardian.py"
       ]
     }
   }
