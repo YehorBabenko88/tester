@@ -1,4 +1,5 @@
 """Independent Storage Guardian P0 negative tests; disposable directories only."""
+
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -33,8 +34,7 @@ def test_aged_direct_part_only(tmp_path):
     nested = folder / "nested"
     nested.mkdir()
     (nested / "old.part").write_bytes(b"nested")
-    receipt = inventory(tmp_path, min_free_bytes=0, quota_bytes=1000,
-                        now=100 + 86401, enabled=True)
+    receipt = inventory(tmp_path, min_free_bytes=0, quota_bytes=1000, now=100 + 86401, enabled=True)
     assert receipt["status"] == "OBSERVED"
     assert [c["name"] for c in receipt["candidates"]] == ["old.part"]
     assert receipt["bytes_reclaimable"] == 3
@@ -45,16 +45,22 @@ def test_aged_direct_part_only(tmp_path):
 @pytest.mark.parametrize("budget,quota", [(-1, 10), (0, 0), (True, 10), (0, True)])
 def test_invalid_budgets(tmp_path, budget, quota):
     (tmp_path / "tmp").mkdir()
-    assert inventory(tmp_path, min_free_bytes=budget, quota_bytes=quota,
-                     enabled=True)["status"] == "ALERT_INVALID_BUDGET"
+    assert (
+        inventory(tmp_path, min_free_bytes=budget, quota_bytes=quota, enabled=True)["status"]
+        == "ALERT_INVALID_BUDGET"
+    )
 
 
 def test_missing_root_and_path_traversal(tmp_path):
-    assert inventory(tmp_path / "missing", min_free_bytes=0,
-                     quota_bytes=1, enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
+    assert (
+        inventory(tmp_path / "missing", min_free_bytes=0, quota_bytes=1, enabled=True)["status"]
+        == "ALERT_UNVERIFIED_ROOT"
+    )
     (tmp_path / "tmp").mkdir()
-    assert inventory(tmp_path / "..", min_free_bytes=0,
-                     quota_bytes=1, enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
+    assert (
+        inventory(tmp_path / "..", min_free_bytes=0, quota_bytes=1, enabled=True)["status"]
+        == "ALERT_UNVERIFIED_ROOT"
+    )
 
 
 def test_symlink_entry_never_selected(tmp_path):
@@ -67,8 +73,7 @@ def test_symlink_entry_never_selected(tmp_path):
         (folder / "linked.part").symlink_to(outside)
     except (OSError, NotImplementedError):
         pytest.skip("symlink creation not permitted")
-    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                       now=100000, enabled=True)
+    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert result["candidates"] == []
     assert result["status"] == "ALERT_REPARSE_ENTRY"
     assert outside.read_bytes() == b"secret"
@@ -81,14 +86,15 @@ def test_symlink_tmp_rejected(tmp_path):
         (tmp_path / "tmp").symlink_to(target, target_is_directory=True)
     except (OSError, NotImplementedError):
         pytest.skip("symlink creation not permitted")
-    assert inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                     enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
+    assert (
+        inventory(tmp_path, min_free_bytes=0, quota_bytes=1, enabled=True)["status"]
+        == "ALERT_UNVERIFIED_ROOT"
+    )
 
 
 def test_low_disk_is_proposal_only(tmp_path):
     (tmp_path / "tmp").mkdir()
-    result = inventory(tmp_path, min_free_bytes=10**30, quota_bytes=1,
-                       enabled=True)
+    result = inventory(tmp_path, min_free_bytes=10**30, quota_bytes=1, enabled=True)
     assert "PROPOSE_PAUSE_NEW_DOWNLOADS" in result["proposals"]
 
 
@@ -98,7 +104,10 @@ def test_no_executor(tmp_path):
 
 
 def test_missing_tmp(tmp_path):
-    assert inventory(tmp_path, min_free_bytes=0, quota_bytes=1, enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
+    assert (
+        inventory(tmp_path, min_free_bytes=0, quota_bytes=1, enabled=True)["status"]
+        == "ALERT_UNVERIFIED_ROOT"
+    )
 
 
 def test_exact_age_boundary_and_young(tmp_path):
@@ -108,8 +117,7 @@ def test_exact_age_boundary_and_young(tmp_path):
         path = folder / name
         path.write_bytes(b"x")
         os.utime(path, (stamp, stamp))
-    receipt = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                        now=100000, enabled=True)
+    receipt = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert [item["name"] for item in receipt["candidates"]] == ["boundary.part"]
 
 
@@ -117,8 +125,7 @@ def test_directory_part_not_selected(tmp_path):
     folder = tmp_path / "tmp"
     folder.mkdir()
     (folder / "fake.part").mkdir()
-    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                       now=100000, enabled=True)
+    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert result["candidates"] == []
 
 
@@ -134,8 +141,7 @@ def test_limit_10001(tmp_path):
 
 @pytest.mark.parametrize("clock", [float("nan"), float("inf"), -1, True, "bad"])
 def test_invalid_clock(tmp_path, clock):
-    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                       now=clock, enabled=True)
+    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1, now=clock, enabled=True)
     assert result["status"] == "ALERT_INVALID_CLOCK"
 
 
@@ -147,8 +153,10 @@ def test_symlink_ancestor(tmp_path):
         link.symlink_to(real, target_is_directory=True)
     except (OSError, NotImplementedError):
         pytest.skip("symlink privilege unavailable")
-    assert inventory(link, min_free_bytes=0, quota_bytes=1,
-                     enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
+    assert (
+        inventory(link, min_free_bytes=0, quota_bytes=1, enabled=True)["status"]
+        == "ALERT_UNVERIFIED_ROOT"
+    )
 
 
 def test_reparse_flag_simulation(tmp_path):
@@ -185,8 +193,7 @@ def test_toctou_root_revalidation(tmp_path):
         return _safe(path)
 
     with patch("src.api.guardians.storage_guardian._safe", side_effect=changed):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert checks == 2
     assert result["status"] == "ALERT_ROOT_CHANGED"
     assert result["candidates"] == []
@@ -204,8 +211,7 @@ def test_toctou_file_replaced_with_link(tmp_path):
         return False if path == target else _safe(path)
 
     with patch("src.api.guardians.storage_guardian._safe", side_effect=changed):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert result["candidates"] == []
     assert target.exists()
 
@@ -222,12 +228,16 @@ def test_candidate_identity_swap_fail_closed(tmp_path):
 
     class ChangedStat:
         def __init__(self, source):
-            self.__dict__.update({
-                "st_dev": source.st_dev, "st_ino": source.st_ino,
-                "st_mode": source.st_mode, "st_size": source.st_size + 1,
-                "st_mtime_ns": source.st_mtime_ns,
-                "st_file_attributes": getattr(source, "st_file_attributes", 0),
-            })
+            self.__dict__.update(
+                {
+                    "st_dev": source.st_dev,
+                    "st_ino": source.st_ino,
+                    "st_mode": source.st_mode,
+                    "st_size": source.st_size + 1,
+                    "st_mtime_ns": source.st_mtime_ns,
+                    "st_file_attributes": getattr(source, "st_file_attributes", 0),
+                }
+            )
 
     def injected(path):
         nonlocal calls
@@ -239,8 +249,7 @@ def test_candidate_identity_swap_fail_closed(tmp_path):
         return info
 
     with patch.object(Path, "lstat", injected):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert result["status"] == "ALERT_FILE_CHANGED"
     assert result["candidates"] == []
     assert target.read_bytes() == b"safe"
@@ -259,22 +268,25 @@ def test_dry_run_does_not_modify_any_file(tmp_path):
     # Freeze the external disk telemetry: the evidence hash includes free space.
     usage = SimpleNamespace(free=100000, total=200000)
     with patch("src.api.guardians.storage_guardian.shutil.disk_usage", return_value=usage):
-        first = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                          now=100000, enabled=True)
-        second = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                           now=100000, enabled=True)
+        first = inventory(tmp_path, min_free_bytes=0, quota_bytes=1, now=100000, enabled=True)
+        second = inventory(tmp_path, min_free_bytes=0, quota_bytes=1, now=100000, enabled=True)
     assert first["status"] == second["status"] == "OBSERVED"
     assert first["evidence_sha256"] == second["evidence_sha256"]
     assert [item["name"] for item in first["candidates"]] == ["old.part"]
-    assert all((folder / name).read_bytes() == content
-               for name, content in protected.items())
+    assert all((folder / name).read_bytes() == content for name, content in protected.items())
 
 
 def test_invalid_root_relative_and_missing(tmp_path):
-    assert inventory("relative/runtime", min_free_bytes=0, quota_bytes=100,
-                     enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
-    assert inventory(tmp_path / "tmp" / "..", min_free_bytes=0,
-                     quota_bytes=100, enabled=True)["status"] == "ALERT_UNVERIFIED_ROOT"
+    assert (
+        inventory("relative/runtime", min_free_bytes=0, quota_bytes=100, enabled=True)["status"]
+        == "ALERT_UNVERIFIED_ROOT"
+    )
+    assert (
+        inventory(tmp_path / "tmp" / "..", min_free_bytes=0, quota_bytes=100, enabled=True)[
+            "status"
+        ]
+        == "ALERT_UNVERIFIED_ROOT"
+    )
 
 
 def test_scan_limit_exactly_10000(tmp_path):
@@ -282,8 +294,7 @@ def test_scan_limit_exactly_10000(tmp_path):
     folder.mkdir()
     for i in range(MAX_ENTRIES):
         (folder / f"entry-{i}.txt").touch()
-    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                       enabled=True)
+    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1, enabled=True)
     assert result["status"] == "OBSERVED"
     assert result["candidates"] == []
 
@@ -303,8 +314,7 @@ def test_reparse_poison_discards_other_candidates(tmp_path):
         return False if path == unsafe else original(path)
 
     with patch("src.api.guardians.storage_guardian._safe", side_effect=poisoned):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert result["status"] == "ALERT_REPARSE_ENTRY"
     assert result["candidates"] == []
     assert result["bytes_reclaimable"] == 0
@@ -322,11 +332,11 @@ def test_disposable_tree_cannot_be_reinterpreted_as_owned_root(tmp_path):
     old = owned / "tmp" / "old.part"
     old.write_bytes(b"temporary")
     os.utime(old, (100, 100))
-    valid = inventory(owned, min_free_bytes=0, quota_bytes=1000,
-                      now=100000, enabled=True)
+    valid = inventory(owned, min_free_bytes=0, quota_bytes=1000, now=100000, enabled=True)
     assert [entry["name"] for entry in valid["candidates"]] == ["old.part"]
-    invalid = inventory(owned / "tmp" / "..", min_free_bytes=0,
-                        quota_bytes=1000, now=100000, enabled=True)
+    invalid = inventory(
+        owned / "tmp" / "..", min_free_bytes=0, quota_bytes=1000, now=100000, enabled=True
+    )
     assert invalid["status"] == "ALERT_UNVERIFIED_ROOT"
     assert sentinel.read_text() == "port=5432"
     assert old.read_bytes() == b"temporary"
@@ -367,8 +377,7 @@ def test_directory_identity_swap_discard_manifest(tmp_path):
         return current
 
     with patch.object(Path, "lstat", switched):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1000,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1000, now=100000, enabled=True)
     assert seen_tmp == 6
     assert result["status"] == "ALERT_ROOT_CHANGED"
     assert result["candidates"] == []
@@ -388,8 +397,7 @@ def test_no_delete_or_maintenance_effectors_even_when_enabled(tmp_path):
         patch("os.remove", side_effect=AssertionError("remove forbidden")),
         patch("os.rmdir", side_effect=AssertionError("rmdir forbidden")),
     ):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1, now=100000, enabled=True)
     assert result["status"] == "OBSERVED"
     assert [entry["name"] for entry in result["candidates"]] == ["old.part"]
     assert candidate.read_bytes() == b"intact"
@@ -400,8 +408,7 @@ def test_scan_permission_and_locked_directory_fail_closed(tmp_path, failure):
     """No cleanup or partial manifest if enumeration is inaccessible."""
     (tmp_path / "tmp").mkdir()
     with patch("src.api.guardians.storage_guardian.os.scandir", side_effect=failure):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert result["status"] == "ALERT_IO_FAILURE"
     assert result["candidates"] == []
     assert result["bytes_reclaimable"] == 0
@@ -421,8 +428,7 @@ def test_lstat_permission_failure_does_not_escape(tmp_path):
         return original(path)
 
     with patch.object(Path, "lstat", inaccessible):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert result["status"] == "ALERT_REPARSE_ENTRY"
     assert result["candidates"] == []
     assert candidate.read_bytes() == b"protected"
@@ -430,10 +436,10 @@ def test_lstat_permission_failure_does_not_escape(tmp_path):
 
 def test_disk_telemetry_failure_rejects_manifest(tmp_path):
     (tmp_path / "tmp").mkdir()
-    with patch("src.api.guardians.storage_guardian.shutil.disk_usage",
-               side_effect=OSError("disk offline")):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                           enabled=True)
+    with patch(
+        "src.api.guardians.storage_guardian.shutil.disk_usage", side_effect=OSError("disk offline")
+    ):
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, enabled=True)
     assert result["status"] == "ALERT_IO_FAILURE"
     assert result["candidates"] == []
 
@@ -441,19 +447,37 @@ def test_disk_telemetry_failure_rejects_manifest(tmp_path):
 def test_full_uninstall_requires_master_owned_adapter(tmp_path):
     """No Storage API may delete even an isolated full TESTER fixture."""
     owned = tmp_path / "TesterLab"
-    for directory in ("app", "config", "data", "postgres-data",
-                      "logs", "scripts", "install", "tmp"):
+    for directory in (
+        "app",
+        "config",
+        "data",
+        "postgres-data",
+        "logs",
+        "scripts",
+        "install",
+        "tmp",
+    ):
         (owned / directory).mkdir(parents=True)
-    for relative in ("data/candles.db", "data/results.json",
-                     "postgres-data/PG_VERSION", "logs/log.txt",
-                     "config/config.json", "install/backup.zip"):
+    for relative in (
+        "data/candles.db",
+        "data/results.json",
+        "postgres-data/PG_VERSION",
+        "logs/log.txt",
+        "config/config.json",
+        "install/backup.zip",
+    ):
         target = owned / relative
         target.write_bytes(b"retain until MASTER verified uninstall")
     with pytest.raises(PermissionError):
         cleanup_authorization(owned, confirmation="DELETE TESTER", enabled=True)
-    for relative in ("data/candles.db", "data/results.json",
-                     "postgres-data/PG_VERSION", "logs/log.txt",
-                     "config/config.json", "install/backup.zip"):
+    for relative in (
+        "data/candles.db",
+        "data/results.json",
+        "postgres-data/PG_VERSION",
+        "logs/log.txt",
+        "config/config.json",
+        "install/backup.zip",
+    ):
         assert (owned / relative).exists()
 
 
@@ -468,8 +492,7 @@ def test_non_part_foreign_data_never_becomes_cleanup_candidate(tmp_path, foreign
     foreign = folder / foreign_name
     foreign.write_bytes(b"foreign")
     os.utime(foreign, (100, 100))
-    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                       now=100000, enabled=True)
+    result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1, now=100000, enabled=True)
     assert result["status"] == "OBSERVED"
     assert result["candidates"] == []
     assert foreign.read_bytes() == b"foreign"
@@ -485,8 +508,7 @@ def test_disk_full_proposes_pause_without_mutation(tmp_path):
     with patch("src.api.guardians.storage_guardian.shutil.disk_usage") as disk:
         disk.return_value.free = 0
         disk.return_value.total = 100
-        result = inventory(tmp_path, min_free_bytes=1, quota_bytes=1,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=1, quota_bytes=1, now=100000, enabled=True)
     assert result["status"] == "OBSERVED"
     assert "PROPOSE_PAUSE_NEW_DOWNLOADS" in result["proposals"]
     assert "ALERT_TMP_QUOTA" in result["proposals"]
@@ -508,8 +530,7 @@ def test_mid_scan_file_disappearance_rejects_entire_manifest(tmp_path):
         return original(path)
 
     with patch.object(Path, "lstat", disappeared):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1, now=100000, enabled=True)
     assert result["status"] in ("ALERT_REPARSE_ENTRY", "ALERT_IO_FAILURE")
     assert result["candidates"] == []
     assert old.read_bytes() == b"retain"
@@ -518,24 +539,42 @@ def test_mid_scan_file_disappearance_rejects_entire_manifest(tmp_path):
 @pytest.mark.parametrize("invalid", [float("nan"), float("inf"), -1, True, "bad"])
 def test_invalid_clock_preempts_missing_root(invalid, tmp_path):
     """Invalid clock is deterministic even when no runtime root is installed."""
-    result = inventory(tmp_path / "not-installed", min_free_bytes=0,
-                       quota_bytes=1, now=invalid, enabled=True)
+    result = inventory(
+        tmp_path / "not-installed", min_free_bytes=0, quota_bytes=1, now=invalid, enabled=True
+    )
     assert result["status"] == "ALERT_INVALID_CLOCK"
     assert result["candidates"] == []
 
 
 def test_quota_budget_rejects_bool_and_noninteger_before_io():
-    with patch("src.api.guardians.storage_guardian.shutil.disk_usage",
-               side_effect=AssertionError("disk must not be inspected")):
-        assert inventory("nonexistent", min_free_bytes=True,
-                         quota_bytes=1, enabled=True)["status"] == "ALERT_INVALID_BUDGET"
-        assert inventory("nonexistent", min_free_bytes=0,
-                         quota_bytes=1.5, enabled=True)["status"] == "ALERT_INVALID_BUDGET"
+    with patch(
+        "src.api.guardians.storage_guardian.shutil.disk_usage",
+        side_effect=AssertionError("disk must not be inspected"),
+    ):
+        assert (
+            inventory("nonexistent", min_free_bytes=True, quota_bytes=1, enabled=True)["status"]
+            == "ALERT_INVALID_BUDGET"
+        )
+        assert (
+            inventory("nonexistent", min_free_bytes=0, quota_bytes=1.5, enabled=True)["status"]
+            == "ALERT_INVALID_BUDGET"
+        )
 
 
-@pytest.mark.parametrize("bad_name", ["../outside.part", "/absolute.part",
-                                      "sub/child.part", "C:stream.part",
-                                      "..", "", "a\\\\b.part", "a\\b.part", "a\\x00b.part"])
+@pytest.mark.parametrize(
+    "bad_name",
+    [
+        "../outside.part",
+        "/absolute.part",
+        "sub/child.part",
+        "C:stream.part",
+        "..",
+        "",
+        "a\\\\b.part",
+        "a\\b.part",
+        "a\\x00b.part",
+    ],
+)
 def test_forged_directory_entry_name_rejected(tmp_path, bad_name):
     """Even a forged scandir entry cannot escape the direct-child boundary."""
     folder = tmp_path / "tmp"
@@ -557,8 +596,7 @@ def test_forged_directory_entry_name_rejected(tmp_path, bad_name):
         return FakeScan() if path == folder else original(path)
 
     with patch("src.api.guardians.storage_guardian.os.scandir", side_effect=injected):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=100, now=100000, enabled=True)
     assert result["status"] == "ALERT_UNSAFE_ENTRY"
     assert result["candidates"] == []
     assert outside.read_bytes() == b"foreign"
@@ -593,8 +631,7 @@ def test_runtime_root_identity_swap_fail_closed(tmp_path):
         return actual
 
     with patch.object(Path, "lstat", changed):
-        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1000,
-                           now=100000, enabled=True)
+        result = inventory(tmp_path, min_free_bytes=0, quota_bytes=1000, now=100000, enabled=True)
     assert result["status"] == "ALERT_ROOT_CHANGED"
     assert result["candidates"] == []
     assert old.read_bytes() == b"intact"
