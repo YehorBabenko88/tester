@@ -11,6 +11,10 @@ jobs:
   native-scm:
     runs-on: windows-2022
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12.10', '3.14.10']
     env:
       GUARDIANS_ENABLED: 'false'
       TESTER_REQUIRE_NATIVE_SCM: '1'
@@ -21,7 +25,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12.10'
+          python-version: ${{ matrix.python }}
           architecture: x64
       - name: Install native fixture dependencies
         run: |
@@ -44,7 +48,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native-scm-${{ github.event.pull_request.head.sha || github.sha }}
+          name: native-scm-${{ matrix.python }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: .scratch/release-evidence/
           if-no-files-found: error
 
