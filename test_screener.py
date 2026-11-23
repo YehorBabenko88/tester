@@ -13,7 +13,7 @@ class ScreenerTests(unittest.TestCase):
                 for t in range(self.end - 60 * 60000, self.end, 60000)]
 
     def calculate(self, rows):
-        function = next(n for n in ast.parse(Path(__file__).with_name('app.py').read_text(encoding='utf-8')).body
+        function = next(n for n in ast.parse(Path(__file__).parent.joinpath('tests/platform/reference/legacy_screener.py').read_text(encoding='utf-8')).body
                         if isinstance(n, ast.FunctionDef) and n.name == 'one_hour_range')
         function.decorator_list = []
         class API:
@@ -21,7 +21,7 @@ class ScreenerTests(unittest.TestCase):
                 self.params = params
                 return {'list': rows}
         scope = {'math': math, 'utc_ms': lambda: self.end + 12345, 'bybit': API}
-        exec(compile(ast.Module(body=[function], type_ignores=[]), 'app.py', 'exec'), scope)
+        exec(compile(ast.Module(body=[function], type_ignores=[]), 'legacy_screener.py', 'exec'), scope)
         return scope['one_hour_range']('linear', 'TESTUSDT')
 
     def test_exact_hour_and_hand_derived_range(self):

@@ -1,0 +1,78 @@
+{
+  "schema": "tester-cleanup-proof/v1",
+  "baseline": "e64e30d8369626197403b3962f91bb350656e4c9",
+  "replacement": "scripts/windows/Setup-Tester.ps1 plus src/api and frontend canonical product",
+  "deletions": [
+    {
+      "path": "app.py",
+      "sha256": "a74dc530d8d54c178258435ba96e096e63062a9fdf922a4189b01ab7b91d5b6c",
+      "purpose": "Legacy Streamlit UI",
+      "active_consumers": [
+        "test_screener.py migrated to test reference"
+      ],
+      "historical_consumers": "Prior accepted source manifests and coordination documents retained with original SHA",
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Old externally installed Preview copies remain untouched; release now exposes only signed Setup entrypoint",
+      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; history migration guard retained",
+      "hash_basis": "Pre-removal working-tree SHA256 plus immutable baseline Git-blob SHA256",
+      "git_blob_sha256": "a74dc530d8d54c178258435ba96e096e63062a9fdf922a4189b01ab7b91d5b6c"
+    },
+    {
+      "path": "scripts/windows_preview/Install-TesterPreview-ADMINIT-v3.5.ps1",
+      "sha256": "afadcb83d2410623d164d10074d8d534d6a5b79313e73dc98fade016b1c1f089",
+      "purpose": "Legacy Preview installation/history/readiness entrypoint",
+      "active_consumers": [],
+      "historical_consumers": "Prior accepted source manifests and coordination documents retained with original SHA",
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Old externally installed Preview copies remain untouched; release now exposes only signed Setup entrypoint",
+      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; history migration guard retained",
+      "hash_basis": "Pre-removal working-tree SHA256 plus immutable baseline Git-blob SHA256",
+      "git_blob_sha256": "a77585b409293688ebeb738b71ce2ee6ee6ef96f3b862e82627eac864cee24e5"
+    },
+    {
+      "path": "scripts/windows_preview/Start-TesterPreviewHistory.ps1",
+      "sha256": "ca3192354601511b63e2e4f0cad2b913f233b3e27f66a7497f38ebe0f2eaf907",
+      "purpose": "Legacy Preview installation/history/readiness entrypoint",
+      "active_consumers": [],
+      "historical_consumers": "Prior accepted source manifests and coordination documents retained with original SHA",
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Old externally installed Preview copies remain untouched; release now exposes only signed Setup entrypoint",
+      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; history migration guard retained",
+      "hash_basis": "Pre-removal working-tree SHA256 plus immutable baseline Git-blob SHA256",
+      "git_blob_sha256": "d247540190e937f219d9c2bd36a8660d986a51c5b41c7eae159c2550c85769f8"
+    },
+    {
+      "path": "scripts/windows_preview/Test-BybitHistoricalProviderReadiness.ps1",
+      "sha256": "edd5ff53b9ad97dcade5b935541a6c349b52e5c89d43bce2a919a870ca0e6e56",
+      "purpose": "Legacy Preview installation/history/readiness entrypoint",
+      "active_consumers": [],
+      "historical_consumers": "Prior accepted source manifests and coordination documents retained with original SHA",
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Old externally installed Preview copies remain untouched; release now exposes only signed Setup entrypoint",
+      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; history migration guard retained",
+      "hash_basis": "Pre-removal working-tree SHA256 plus immutable baseline Git-blob SHA256",
+      "git_blob_sha256": "93f3cb7904038d6acaee977e208f07d4091db925405671df4f1c622ae911a2ff"
+    }
+  ],
+  "preserved": [
+    "All original historical docs/manifests/screenshots remain unchanged",
+    "Root screener regression retains exact original one_hour_range AST in test-only reference",
+    "scripts/windows_preview/migrate_preview_history.py and its isolation regression remain",
+    "Old scripts/windows/Install-Tester.ps1 retained: active Test-Isolated/Start-Tester consumers",
+    "bybit.py,engine.py,db.py retained: active core/ingest/PostgreSQL regressions"
+  ],
+  "validation_before": {
+    "legacy_core_ingest_screener_unittest_passed": 29,
+    "preview_migration_guard_pytest_passed": 2
+  },
+  "compatibility": "Retired source entrypoints are removed from the candidate only; no installed host resources or Git history are changed.",
+  "validation_after": {
+    "legacy_core_ingest_screener_unittest_passed": 29,
+    "preview_migration_guard_and_release_pytest_passed": 9,
+    "compileall": "PASS"
+  }
+}

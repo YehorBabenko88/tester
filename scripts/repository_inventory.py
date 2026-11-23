@@ -71,7 +71,9 @@ def inventory(repo, prs=None):
         reason = (
             "Tracked functionality or evidence preserved; no deletion inferred from static absence"
         )
-        if name.startswith("scripts/windows_preview/"):
+        if name == "scripts/windows_preview/migrate_preview_history.py":
+            reason = "Owned Preview history migration still consumed by isolation regression tests"
+        elif name.startswith("scripts/windows_preview/"):
             state, reason = (
                 "REPLACE",
                 "Legacy preview entrypoint superseded by signed Setup-Tester.ps1; migration and dynamic consumers require review before deletion",
@@ -169,6 +171,10 @@ def inventory(repo, prs=None):
                 )
             item["automatic_close_authorized"] = False
             reviewed_prs.append(item)
+    cleanup_path = repo / "docs/release/cleanup-proof.json"
+    cleanup = (
+        json.loads(cleanup_path.read_text(encoding="utf-8-sig")) if cleanup_path.exists() else {}
+    )
     return {
         "schema": "tester-repository-inventory/v1",
         "source_sha": head,
@@ -187,6 +193,9 @@ def inventory(repo, prs=None):
             "No file or branch deletion is authorized by this report",
         ],
         "files": files,
+        "deleted_files": [
+            dict(row, classification="DELETE") for row in cleanup.get("deletions", [])
+        ],
         "imports": imports,
         "parse_errors": errors,
         "unresolved_internal_imports": unresolved_internal,

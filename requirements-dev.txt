@@ -1,4 +1,4 @@
-# Legacy UI dependencies plus the canonical platform/dev extras.
+# Shared public-data regression dependencies plus canonical platform/dev extras.
 -r requirements.txt
 -c requirements-platform.lock
 -e .[dev]
