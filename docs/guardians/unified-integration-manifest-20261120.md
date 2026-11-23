@@ -10,10 +10,10 @@ touch ADMINIT. `GUARDIANS_ENABLED=false`.
 | Component | PR | SHA at audit | State |
 | --- | --- | --- | --- |
 | MASTER foundation | #89 | `bd619eb88e9444c3b414739a27f3053fb240251e` | 8/8 exact-head required CI PASS |
-| Code | #90 | `b9a27d63256a6716149540fdedecb44c773fcab9` | Draft; branch refresh + exact-head CI needed |
-| Data | #91 | `aed02b49eabb7d0389026e09042a1a2343ec708f` | Draft; branch refresh + exact-head CI needed |
-| Storage | #92 | `1ffb810ed68b2c9a0cb27ce1c10be182031672a0` | Draft; branch refresh + exact-head CI needed |
-| Exchange | #93 | `e8b7d4a03783b3dd9df807b1c176e005600bb0d8` | Draft; branch refresh + exact-head CI needed |
+| Code | #90 | `31513f7d821ba8d7b274efd1e91fd1488a128c38` | Draft; foundation synced, own Python/Platform CI blocked |
+| Data | #91 | `392571ce52191023f2318b1fb3cf5d3cec4e41bd` | Draft; foundation synced, own Python/Platform CI blocked |
+| Storage | #92 | `bb5e22148f7a06cff91d4dececf6126218ad210a` | Draft; foundation synced, own Python/Platform CI blocked |
+| Exchange | #93 | `952667cbee4c677ad90c46bed033fd4061a16053` | Draft; foundation synced, own Python/Platform CI blocked |
 | Repository consolidation | #94 | `16d794df1305c825b01852aff636d028a44c375e` | Audit only; no deletion |
 
 The four Guardian PR diffs are **non-overlapping, four owned files each**
@@ -39,6 +39,28 @@ All eight checks below ran against the same immutable foundation HEAD:
 Two supplementary read-only source workflows also passed:
 `45230403857` and `45230403810`. This is foundation acceptance
 only, not child-branch combined validation or a physical installer test.
+
+
+## Independent source-only compatibility receipt
+
+A separate pinned static gate verifies exact child commit ancestry against
+foundation, rejects unexpected or overlapping file paths, checks regular Git
+blob modes and SHA-256, compiles four Python modules/tests as AST without
+importing or running them, validates expected public API names, and rejects
+obvious direct runtime-effector imports. This is **NOT** a combined runtime
+acceptance and does not establish signed installed identity.
+
+- Pin manifest: `docs/guardians/guardian-static-pins.json`.
+- Verifier: `scripts/guardian_pinned_static_gate.py`.
+- Exact-head static workflow: https://github.com/YehorBabenko88/tester/actions/runs/45236453041 — PASS on PR95 `14752780d215ac94f82a453a29c1522b123862a9`.
+- New standalone independent Windows acceptance protocol:
+  `docs/guardians/adminit-independent-acceptance-20261123.md` — all
+  physical rows NOT RUN, including no-backup owned-data deletion and PG5432
+  before/after invariance.
+
+The current four pinned child HEADs are a **preliminary** synchronized
+snapshot, not the final fully-green child SHA list. The release candidate
+must re-pin and re-check after child owners fix their own formatter CI.
 
 ## Integration sequence and hard gates
 
@@ -73,7 +95,7 @@ only, not child-branch combined validation or a physical installer test.
 ## Blocking issues (all remain NO_GO)
 
 - Child PR exact-head CI and combined Guardian execution/after-check NOT
-  VERIFIED; they have unrefreshed foundation and historical I001/E902/drift.
+  VERIFIED; the branches now descend from verified foundation, but own Ruff format/CI FAIL remains.
 - The real effectful installer and full-uninstall adapter are NOT IMPLEMENTED;
   existing `windows_install_gate`/`windows_release_lifecycle` are pure
   plans, and `Write-TesterShortcutsFixture.ps1` only targets a disposable
