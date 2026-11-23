@@ -14,14 +14,14 @@ FILE = "src/api/guardians/exchange_guardian.py"
 
 
 def entry(manifest, candidate):
-    return {
-        FILE: {
-            "baseline_sha256": manifest["owner_files"]["exchange"][FILE],
-            "candidate_sha256": hashlib.sha256(candidate).hexdigest(),
-            "reason": "Share strict public endpoint policy with the sole transport",
-            "regression_tests": ["tests/platform/test_release_source_overrides.py"],
-        }
+    result = load_release_overrides(ROOT)
+    result[FILE] = {
+        "baseline_sha256": manifest["owner_files"]["exchange"][FILE],
+        "candidate_sha256": hashlib.sha256(candidate).hexdigest(),
+        "reason": "Share strict public endpoint policy with the sole transport",
+        "regression_tests": ["tests/platform/test_release_source_overrides.py"],
     }
+    return result
 
 
 def test_declared_override_checks_baseline_and_candidate_bytes(monkeypatch):

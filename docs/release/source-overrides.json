@@ -1,5 +1,24 @@
 {
   "schema": "tester-release-source-overrides/v1",
   "baseline_sha": "e64e30d8369626197403b3962f91bb350656e4c9",
-  "files": {}
+  "files": {
+    "src/api/guardians/exchange_guardian.py": {
+      "baseline_sha256": "f3eb242f3f28ccc8fe1826edca9d3bf41e70643cc6f0c1eba8211b28e0038ff8",
+      "candidate_sha256": "3712f1f620f94f7eda449ac44ac24344247fd75e9241845468df97e59164c422",
+      "reason": "Unify validated public REST/archive identities with the sole transport and preserve bounded endpoint memory; reject private paths and halt HTTP403/TLS with shared retry budget. C commit5408cddd93c40f1b3630e5d4c450b57129bdc4e7.",
+      "regression_tests": [
+        "tests/ingest/test_transport_release.py",
+        "tests/platform/test_exchange_guardian.py"
+      ]
+    },
+    "tests/platform/test_exchange_guardian.py": {
+      "baseline_sha256": "ed3046c390508ad9a0c4011f0c9026d227382daa976edd5ac561eaf722c22bf5",
+      "candidate_sha256": "e759fafa4fe83353d59c123d116fd10e9f0ae297e1ea227d61f136346e5d73f9",
+      "reason": "Unify validated public REST/archive identities with the sole transport and preserve bounded endpoint memory; reject private paths and halt HTTP403/TLS with shared retry budget. C commit5408cddd93c40f1b3630e5d4c450b57129bdc4e7.",
+      "regression_tests": [
+        "tests/ingest/test_transport_release.py",
+        "tests/platform/test_exchange_guardian.py"
+      ]
+    }
+  }
 }
