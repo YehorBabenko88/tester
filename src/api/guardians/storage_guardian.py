@@ -3,6 +3,7 @@
 The manifest is advisory, not authorization. A separate reviewed executor must
 revalidate the root, identities, age and reparse flags before using maintenance.cleanup_temp.
 """
+
 import hashlib
 import json
 import math
@@ -37,7 +38,6 @@ def _invalid_root(root: Path) -> bool:
     return not root.is_absolute() or any(part in (".", "..") for part in root.parts)
 
 
-
 def _identity(info) -> tuple:
     """Observation identity; cannot authorize deletion or close a TOCTOU race."""
     return (
@@ -50,20 +50,39 @@ def _identity(info) -> tuple:
     )
 
 
-def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
-              now: float | None = None, enabled: bool = False) -> dict:
+def inventory(
+    runtime_root: Path,
+    *,
+    min_free_bytes: int,
+    quota_bytes: int,
+    now: float | None = None,
+    enabled: bool = False,
+) -> dict:
     """Bounded, direct-child-only, no writes. Disabled by default."""
-    result = {"schema": "storage-guardian/v1", "enabled": enabled is True,
-              "status": "DISABLED", "candidates": [], "bytes_reclaimable": 0,
-              "proposals": [], "evidence_sha256": None}
+    result = {
+        "schema": "storage-guardian/v1",
+        "enabled": enabled is True,
+        "status": "DISABLED",
+        "candidates": [],
+        "bytes_reclaimable": 0,
+        "proposals": [],
+        "evidence_sha256": None,
+    }
     if enabled is not True:
         return result
-    if (type(min_free_bytes) is not int or min_free_bytes < 0 or
-            type(quota_bytes) is not int or quota_bytes <= 0):
+    if (
+        type(min_free_bytes) is not int
+        or min_free_bytes < 0
+        or type(quota_bytes) is not int
+        or quota_bytes <= 0
+    ):
         return {**result, "status": "ALERT_INVALID_BUDGET"}
     timestamp = time.time() if now is None else now
-    if (type(timestamp) not in (float, int) or not math.isfinite(timestamp)
-            or not 0 < timestamp < 1e15):
+    if (
+        type(timestamp) not in (float, int)
+        or not math.isfinite(timestamp)
+        or not 0 < timestamp < 1e15
+    ):
         return {**result, "status": "ALERT_INVALID_CLOCK"}
     try:
         root = Path(runtime_root)
@@ -86,12 +105,22 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
                 name = entry.name
                 # Refuse malformed/forged directory entries before constructing paths.
                 # Windows alternate streams, separators and dot segments are not owned.
-                if (not isinstance(name, str) or not name or name in (".", "..")
-                        or "/" in name or "\\" in name or ":" in name
-                        or "\x00" in name):
-                    return {**result, "status": "ALERT_UNSAFE_ENTRY",
-                            "candidates": [], "bytes_reclaimable": 0,
-                            "proposals": []}
+                if (
+                    not isinstance(name, str)
+                    or not name
+                    or name in (".", "..")
+                    or "/" in name
+                    or "\\" in name
+                    or ":" in name
+                    or "\x00" in name
+                ):
+                    return {
+                        **result,
+                        "status": "ALERT_UNSAFE_ENTRY",
+                        "candidates": [],
+                        "bytes_reclaimable": 0,
+                        "proposals": [],
+                    }
                 entries.append(name)
                 if len(entries) > MAX_ENTRIES:
                     return {**result, "status": "ALERT_SCAN_LIMIT"}
@@ -99,30 +128,52 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
         for name in entries:
             path = tmp / name
             if not _safe(path):
-                return {**result, "status": "ALERT_REPARSE_ENTRY",
-                        "candidates": [], "bytes_reclaimable": 0, "proposals": []}
+                return {
+                    **result,
+                    "status": "ALERT_REPARSE_ENTRY",
+                    "candidates": [],
+                    "bytes_reclaimable": 0,
+                    "proposals": [],
+                }
             info = path.lstat()
             if not stat.S_ISREG(info.st_mode):
                 continue
             # Second observation catches some swaps, but is not atomic.
             second = path.lstat()
             if _identity(info) != _identity(second) or not _safe(path):
-                return {**result, "status": "ALERT_FILE_CHANGED",
-                        "candidates": [], "bytes_reclaimable": 0, "proposals": []}
+                return {
+                    **result,
+                    "status": "ALERT_FILE_CHANGED",
+                    "candidates": [],
+                    "bytes_reclaimable": 0,
+                    "proposals": [],
+                }
             used += info.st_size
             if not name.endswith(".part") or info.st_mtime > timestamp - AGE_SECONDS:
                 continue
             # Store basename only; never a user-supplied absolute deletion target.
-            result["candidates"].append({
-                "name": name, "bytes": info.st_size,
-                "mtime_ns": info.st_mtime_ns, "device": info.st_dev,
-                "inode": info.st_ino,
-            })
+            result["candidates"].append(
+                {
+                    "name": name,
+                    "bytes": info.st_size,
+                    "mtime_ns": info.st_mtime_ns,
+                    "device": info.st_dev,
+                    "inode": info.st_ino,
+                }
+            )
             result["bytes_reclaimable"] += info.st_size
-        if (not _safe(tmp) or _identity(root.lstat()) != root_identity
-                or _identity(tmp.lstat()) != tmp_identity):
-            return {**result, "status": "ALERT_ROOT_CHANGED", "candidates": [],
-                    "bytes_reclaimable": 0, "proposals": []}
+        if (
+            not _safe(tmp)
+            or _identity(root.lstat()) != root_identity
+            or _identity(tmp.lstat()) != tmp_identity
+        ):
+            return {
+                **result,
+                "status": "ALERT_ROOT_CHANGED",
+                "candidates": [],
+                "bytes_reclaimable": 0,
+                "proposals": [],
+            }
         result["tmp_direct_bytes"] = used
         result["quota_bytes"] = quota_bytes
         result["status"] = "OBSERVED"
@@ -140,8 +191,13 @@ def inventory(runtime_root: Path, *, min_free_bytes: int, quota_bytes: int,
         ).hexdigest()
         return result
     except (OSError, ValueError, TypeError):
-        return {**result, "status": "ALERT_IO_FAILURE", "candidates": [],
-                "bytes_reclaimable": 0, "proposals": []}
+        return {
+            **result,
+            "status": "ALERT_IO_FAILURE",
+            "candidates": [],
+            "bytes_reclaimable": 0,
+            "proposals": [],
+        }
 
 
 def cleanup_authorization(*args, **kwargs):
