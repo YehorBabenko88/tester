@@ -91,8 +91,8 @@ def test_full_native_installer_lifecycle(tmp_path):
     import win32com.client
     import win32con
     import win32security
-    from src.api.release_security import verify_release
 
+    from src.api.release_security import verify_release
     from src.api.release_service import NativeController, service_sid, validate_resources
 
     ident = uuid.uuid4().hex
