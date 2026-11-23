@@ -617,6 +617,17 @@ def apply_acls(root, marker):
     acl(root / "postgres-data", administrators + [sids["postgres"] + ":(OI)(CI)M"])
     acl(root / "private", administrators)
     acl(root / "backups", administrators)
+    subprocess.run(
+        ["icacls.exe", str(root), "/setowner", "*S-1-5-32-544", "/Q"],
+        check=True,
+        capture_output=True,
+    )
+    for name in ("releases", "dependencies"):
+        subprocess.run(
+            ["icacls.exe", str(root / name), "/setowner", "*S-1-5-32-544", "/T", "/Q"],
+            check=True,
+            capture_output=True,
+        )
     acl(root / "config.json", ["*S-1-5-18:F", "*S-1-5-32-544:F", sids["app"] + ":R"])
 
 
