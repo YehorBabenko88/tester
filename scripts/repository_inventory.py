@@ -17,8 +17,188 @@ def git(repo, *args):
     return subprocess.check_output(["git", "-C", str(repo), *args]).decode("utf-8")
 
 
-def inventory(repo, prs=None):
+NETWORK_CONTRACTS = {
+    "bybit.py": {
+        "classification": "MIGRATE",
+        "semantics": "Legacy public candle/archive endpoint adapter and timeframe helpers; engine.py, test_core.py and live baseline acceptance consume it",
+        "migration_gate": "Preserve parser/timeframe/coverage regressions and historical archive semantics before routing network calls through the canonical transport",
+    },
+    "bybit_history.py": {
+        "classification": "MIGRATE",
+        "semantics": "Standalone CLI with raw_market/ingest_ranges schema, eight-attempt loop and legacy DATABASE_URL default; no current Python/workflow importer found",
+        "migration_gate": "Prove candle/mark/index/premium/OI/funding and raw-schema data migration equivalence before retiring this independent CLI",
+    },
+    "src/api/bybit_catalog.py": {
+        "classification": "KEEP",
+        "semantics": "Active catalog API adapter: instruments/tickers, one bounded streaming attempt, Windows system TLS and scheduler-owned retry; different DTO/acquisition budget from history",
+        "migration_gate": "Any transport consolidation must preserve streaming byte limits, TLS policy, scheduler retry ownership and catalog contracts; do not add nested retry",
+    },
+    "src/ingest/transport.py": {
+        "classification": "KEEP",
+        "semantics": "Canonical historical public GET transport with shared throttling and bounded retries; active lab_market, pipeline and live acceptance consumers",
+        "migration_gate": "Retain Guardian/public endpoint, cancellation and retry-budget regression contracts",
+    },
+}
+
+
+def hosted_query(repository, endpoint):
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        raise ValueError("Explicit owner/repository required")
+    try:
+        result = subprocess.run(
+            ["gh", "api", "--paginate", "--slurp", f"repos/{repository}/{endpoint}"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode:
+            return {
+                "status": "NOT_VERIFIED",
+                "items": None,
+                "reason": "Hosted API request failed",
+                "endpoint": endpoint,
+            }
+        pages = json.loads(result.stdout)
+        if not isinstance(pages, list) or any(not isinstance(page, list) for page in pages):
+            raise ValueError("Unexpected paginated response")
+        return {
+            "status": "VERIFIED",
+            "items": [item for page in pages for item in page],
+            "endpoint": endpoint,
+        }
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return {
+            "status": "NOT_VERIFIED",
+            "items": None,
+            "reason": "Hosted API unavailable or malformed",
+            "endpoint": endpoint,
+        }
+
+
+def hosted_inventory(repository):
+    result = {}
+    fields = {
+        "tags": ("tags?per_page=100", ("name", "commit")),
+        "releases": (
+            "releases?per_page=100",
+            (
+                "id",
+                "tag_name",
+                "target_commitish",
+                "draft",
+                "prerelease",
+                "published_at",
+                "html_url",
+            ),
+        ),
+        "deployments": (
+            "deployments?per_page=100",
+            ("id", "ref", "sha", "environment", "created_at", "statuses_url"),
+        ),
+        "pull_requests": ("pulls?state=all&per_page=100", ()),
+    }
+    for kind, (endpoint, selected) in fields.items():
+        query = hosted_query(repository, endpoint)
+        if query["status"] == "VERIFIED":
+            if kind == "pull_requests":
+                query["items"] = [
+                    dict(
+                        number=x["number"],
+                        title=x["title"],
+                        state="MERGED" if x.get("merged_at") else x["state"].upper(),
+                        headRefName=x["head"]["ref"],
+                        headRefOid=x["head"]["sha"],
+                        baseRefName=x["base"]["ref"],
+                        baseRefOid=x["base"]["sha"],
+                        mergedAt=x.get("merged_at"),
+                        url=x["html_url"],
+                    )
+                    for x in query["items"]
+                ]
+            else:
+                query["items"] = [
+                    {key: item.get(key) for key in selected} for item in query["items"]
+                ]
+        result[kind] = query
+    return result
+
+
+def reference_consumers(ref, sha, hosted):
+    if not hosted:
+        return {"status": "NOT_VERIFIED", "items": None}
+    short = re.sub(r"^refs/(heads/|remotes/origin/)", "", ref)
+    items = []
+    for kind, query in hosted.items():
+        if query.get("status") != "VERIFIED":
+            continue
+        for item in query["items"]:
+            match = False
+            if kind == "pull_requests":
+                match = short in {item.get("headRefName"), item.get("baseRefName")} or sha in {
+                    item.get("headRefOid"),
+                    item.get("baseRefOid"),
+                }
+            elif kind == "deployments":
+                match = short == item.get("ref") or sha == item.get("sha")
+            elif kind == "releases":
+                match = short == item.get("target_commitish")
+            elif kind == "tags":
+                match = sha == (item.get("commit") or {}).get("sha")
+            if match:
+                items.append({"kind": kind, "reference": item})
+    status = (
+        "VERIFIED"
+        if all(q.get("status") == "VERIFIED" for q in hosted.values())
+        else "PARTIALLY_VERIFIED"
+    )
+    return {
+        "status": status,
+        "items": items,
+        "scope": "Exact ref/tip matches only; ancestor/deployment runtime reachability still requires review",
+    }
+
+
+def workflow_filters(texts):
+    result = {}
+    for name, text in texts.items():
+        if not name.startswith(".github/workflows/"):
+            continue
+        found = []
+        lines = text.splitlines()
+        for i, line in enumerate(lines):
+            match = re.match(r"^(\s*)(paths|paths-ignore):\s*(.*)$", line)
+            if not match:
+                continue
+            indent, kind, inline = match.groups()
+            values = []
+            if not inline:
+                for child in lines[i + 1 :]:
+                    if child.strip() and len(child) - len(child.lstrip()) <= len(indent):
+                        break
+                    value = re.match(r"^\s*-\s*(.+?)\s*$", child)
+                    if value:
+                        values.append(value[1].strip("\"'"))
+            found.append(
+                {
+                    "kind": kind,
+                    "paths": values if not inline else None,
+                    "inline_raw": inline or None,
+                    "line": i + 1,
+                    "status": "REVIEW_REQUIRED" if inline else "PARSED_STATIC_LIST",
+                }
+            )
+        result[name] = {
+            "filters": found,
+            "absence_means": "No explicit paths/paths-ignore key observed; event/job conditions still require review",
+            "sha256": hashlib.sha256(text.encode()).hexdigest(),
+        }
+    return result
+
+
+def inventory(repo, prs=None, hosted=None):
     repo = Path(repo)
+    if hosted and hosted.get("pull_requests", {}).get("status") == "VERIFIED":
+        prs = hosted["pull_requests"]["items"]
     names = git(repo, "ls-files", "-z").strip("\0").split("\0")
     texts = {}
     for name in names:
@@ -71,7 +251,14 @@ def inventory(repo, prs=None):
         reason = (
             "Tracked functionality or evidence preserved; no deletion inferred from static absence"
         )
-        if name == "scripts/windows_preview/migrate_preview_history.py":
+        if name in NETWORK_CONTRACTS:
+            state = NETWORK_CONTRACTS[name]["classification"]
+            reason = (
+                NETWORK_CONTRACTS[name]["semantics"]
+                + "; "
+                + NETWORK_CONTRACTS[name]["migration_gate"]
+            )
+        elif name == "scripts/windows_preview/migrate_preview_history.py":
             reason = "Owned Preview history migration still consumed by isolation regression tests"
         elif name.startswith("scripts/windows_preview/"):
             state, reason = (
@@ -140,6 +327,7 @@ def inventory(repo, prs=None):
                 else "UNIQUE_CODE_REVIEW_REQUIRED",
                 "cleanup": "Owner approval only after independent GO and main integration; inspect cherry-equivalent and unmerged changes",
                 "delete_now": False,
+                "protected_reference_consumers": reference_consumers(ref, sha, hosted),
             }
         )
     reviewed_prs = None
@@ -203,6 +391,22 @@ def inventory(repo, prs=None):
         "unresolved_document_links": links,
         "branches": branches,
         "pull_requests": reviewed_prs,
+        "hosted_reference_consumers": hosted
+        or {
+            kind: {"status": "NOT_VERIFIED", "items": None, "reason": "Hosted query not requested"}
+            for kind in ("tags", "releases", "deployments", "pull_requests")
+        },
+        "local_tags": git(
+            repo, "for-each-ref", "--format=%(refname) %(objectname) %(objecttype)", "refs/tags"
+        ).splitlines(),
+        "workflow_path_filters": workflow_filters(texts),
+        "network_contracts": {
+            name: proof for name, proof in NETWORK_CONTRACTS.items() if name in names
+        },
+        "installed_host_pins": {
+            "status": "NOT_VERIFIED",
+            "reason": "No live installed-host or system-service query authorized by this inventory; historical deployment evidence does not establish current installation",
+        },
     }
 
 
@@ -211,11 +415,22 @@ def main():
     p.add_argument("--repo", type=Path, default=Path.cwd())
     p.add_argument("--output", required=True, type=Path)
     p.add_argument("--pr-snapshot", type=Path)
+    p.add_argument(
+        "--github-repository", help="Read-only paginated tags/releases/deployments/PR audit"
+    )
     a = p.parse_args()
     prs = json.loads(a.pr_snapshot.read_text(encoding="utf-8-sig")) if a.pr_snapshot else None
     a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_text(
-        json.dumps(inventory(a.repo, prs), indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        json.dumps(
+            inventory(
+                a.repo, prs, hosted_inventory(a.github_repository) if a.github_repository else None
+            ),
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
 
