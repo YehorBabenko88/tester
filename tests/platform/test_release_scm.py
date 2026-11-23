@@ -320,3 +320,27 @@ def test_release_postgres_config_refuses_include_and_system_port():
     ):
         with pytest.raises(ValueError):
             validate_pg_config(config, expected_port=55471)
+
+
+def test_shortcuts_require_explicit_elevated_launch_flag(tmp_path):
+    import os
+
+    import pytest
+
+    from src.api.release_install import create_shortcuts
+
+    if os.name != "nt":
+        pytest.skip("Native Windows links require Windows")
+    ident = uuid.uuid4()
+    root = tmp_path / ("TesterReleaseTest_" + ident.hex)
+    scripts = root / "releases" / ("a" * 40) / "scripts/windows"
+    scripts.mkdir(parents=True)
+    for name in ("Start-ReleaseTester.ps1", "Uninstall-ReleaseTester.ps1"):
+        (scripts / name).write_text("# fixture")
+    desktop = tmp_path / ("Desktop_" + ident.hex)
+    desktop.mkdir()
+    marker = dict(mode="test", test_desktop=str(desktop), source_sha="a" * 40)
+    paths = create_shortcuts(root, marker)
+    for path in paths:
+        data = __import__("pathlib").Path(path).read_bytes()
+        assert int.from_bytes(data[20:24], "little") & 0x2000

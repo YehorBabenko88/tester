@@ -23,7 +23,7 @@ requires installed service instance identity and database, worker and storage `o
 provider-degraded HTTP 503 may still represent an operational read-only installation.
 
 `Start-ReleaseTester.ps1` starts owned services idempotently, verifies readiness and
-opens the terminal. COM shortcuts use exactly `TESTER — Запуск` and
+opens the terminal. Each shortcut requests administrator activation through Windows; creating links never launches elevation itself. The RunAs flag follows [Microsoft Shell Link flags](https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/ne-shlobj_core-shell_link_data_flags). COM shortcuts use exactly `TESTER — Запуск` and
 `TESTER — Удаление`, with installed script targets and installation working directory.
 The uninstall shortcut invokes the single security-owned uninstaller with a protected external TrustConfig. Links are finalized before the ownership ledger is sealed. Builder creation receipts and signed artifact mappings are sealed before either service first starts; later writer-boundary files require the unique virtual account owner and exact inherited ACL.
 

@@ -173,6 +173,15 @@ def create_shortcuts(root, marker):
                 str(root),
             )
             shortcut.Save()
+            # MS-SHLLINK LinkFlags at 0x14; explicit user activation prompts UAC.
+            data = bytearray(link.read_bytes())
+            if data[:4] != b"\x4c\x00\x00\x00":
+                raise LabViolation("Unexpected ShellLink header")
+            flags = int.from_bytes(data[20:24], "little") | 0x2000
+            data[20:24] = flags.to_bytes(4, "little")
+            link.write_bytes(data)
+        if not int.from_bytes(link.read_bytes()[20:24], "little") & 0x2000:
+            raise LabViolation("Shortcut must request explicit elevated activation")
         actual = shell.CreateShortcut(str(link))
         if (
             actual.TargetPath.casefold() != target.casefold()
