@@ -157,12 +157,14 @@ def process_one_projection(control, stop, logger):
 
 
 def process_available_work(queue, handler, projection, stop, logger):
-    """Market work retains priority; projections never get their own worker."""
+    """Market runs first; one projection may follow so backlogs cannot starve it."""
     if stop.is_set():
         return False
-    if process_one(queue, handler, stop, logger):
-        return True
-    return process_one_projection(projection, stop, logger)
+    market_work = process_one(queue, handler, stop, logger)
+    if stop.is_set():
+        return market_work
+    projection_work = process_one_projection(projection, stop, logger)
+    return market_work or projection_work
 
 
 if __name__ == "__main__":

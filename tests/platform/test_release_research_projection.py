@@ -118,13 +118,37 @@ def test_projection_worker_stop_and_database_failure_do_not_escape():
     control.dispatch.assert_not_called()
 
 
-def test_market_admission_has_priority_over_projection(monkeypatch):
-    market = Mock(return_value=True)
-    projection = Mock()
+def test_continuous_market_backlog_keeps_priority_and_projection_progress(monkeypatch):
+    order = []
+    market = Mock(side_effect=lambda *args: order.append("market") or True)
+    projection = Mock(side_effect=lambda *args: order.append("projection") or True)
     monkeypatch.setattr(worker, "process_one", market)
     monkeypatch.setattr(worker, "process_one_projection", projection, raising=False)
-    assert worker.process_available_work(Mock(), Mock(), Mock(), threading.Event(), Mock()) is True
+    for _ in range(10):
+        assert (
+            worker.process_available_work(Mock(), Mock(), Mock(), threading.Event(), Mock()) is True
+        )
+    assert projection.call_count == 10 and order == ["market", "projection"] * 10
+
+
+def test_stop_after_market_work_prevents_projection_delegation(monkeypatch):
+    stop = threading.Event()
+
+    def market(*args):
+        stop.set()
+        return True
+
+    projection = Mock()
+    monkeypatch.setattr(worker, "process_one", market)
+    monkeypatch.setattr(worker, "process_one_projection", projection)
+    assert worker.process_available_work(Mock(), Mock(), Mock(), stop, Mock()) is True
     projection.assert_not_called()
+
+
+def test_projection_outage_does_not_hide_completed_market_work(monkeypatch):
+    monkeypatch.setattr(worker, "process_one", Mock(return_value=True))
+    monkeypatch.setattr(worker, "process_one_projection", Mock(return_value=False))
+    assert worker.process_available_work(Mock(), Mock(), Mock(), threading.Event(), Mock()) is True
 
 
 @pytest.fixture
@@ -355,14 +379,11 @@ def test_real_market_queue_work_precedes_persisted_projection(persisted_projecti
 
     class ExplicitTestHandler:
         def run(self, request, checkpoint, report, stop, commit):
+            assert control.result(identity, projection["job_id"])["state"] == "pending"
             report({"fixture": "priority-only-no-market-acquisition"}, 1)
 
     assert worker.process_available_work(
         queue, ExplicitTestHandler(), control, threading.Event(), logging.getLogger("test")
     )
     assert queue.get(job.id).state == "completed"
-    assert control.result(identity, projection["job_id"])["state"] == "pending"
-    assert worker.process_available_work(
-        queue, ExplicitTestHandler(), control, threading.Event(), logging.getLogger("test")
-    )
     assert control.result(identity, projection["job_id"])["state"] == "complete"
