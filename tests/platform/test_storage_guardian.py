@@ -589,6 +589,7 @@ def test_forged_directory_entry_name_rejected(tmp_path, bad_name):
     class FakeScan:
         def __enter__(self):
             return iter([Forged()])
+
         def __exit__(self, exc_type, exc, tb):
             return False
 
