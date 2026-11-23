@@ -1,22 +1,13 @@
 """Bounded, public Bybit catalog acquisition without trading credentials."""
 
 import json
-import ssl
 import time
 from contextlib import contextmanager
 from urllib.parse import urlencode
 
 import requests
 
-from src.ingest.transport import Transport
-
-
-class _SystemTrustAdapter(requests.adapters.HTTPAdapter):
-    def init_poolmanager(self, *args, **kwargs):
-        # Python's default context loads the Windows ROOT store. Verification and
-        # hostname checking remain required; no insecure retry is permitted.
-        kwargs["ssl_context"] = ssl.create_default_context()
-        return super().init_poolmanager(*args, **kwargs)
+from src.ingest.transport import SystemTrustAdapter, Transport
 
 
 @contextmanager
@@ -33,7 +24,7 @@ def _public_get(url, **kwargs):
     if transport.session is None:
         if not hasattr(transport.local, "session"):
             transport.local.session = requests.Session()
-            transport.local.session.mount("https://", _SystemTrustAdapter())
+            transport.local.session.mount("https://", SystemTrustAdapter())
         session = transport.local.session
     else:
         session = transport.session

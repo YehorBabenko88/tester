@@ -289,3 +289,20 @@ def test_catalog_forbidden_halt_survives_later_catalog_request():
     with pytest.raises(ValueError, match="halted"):
         source.call("/instruments-info", {"category": "inverse"})
     assert session.request.call_count == 1
+
+
+def test_default_rest_session_mounts_verified_system_trust_once(monkeypatch):
+    import ssl
+
+    session = Mock()
+    session.request.return_value = response()
+    monkeypatch.setattr("src.ingest.transport.requests.Session", lambda: session)
+    transport = Transport(sleep=Mock())
+    transport.get(URL)
+    transport.get(URL)
+    assert session.mount.call_count == 1
+    scheme, adapter = session.mount.call_args.args
+    context = adapter.poolmanager.connection_pool_kw["ssl_context"]
+    assert scheme == "https://" and context.verify_mode == ssl.CERT_REQUIRED
+    assert context.check_hostname is True
+    assert session.trust_env is False

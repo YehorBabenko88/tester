@@ -70,6 +70,11 @@ explicit CA option, body-size limit and public endpoint whitelist. Its transport
 persists across pages/refreshes, so a 403 halt cannot disappear on the next page.
 No environment proxy/netrc authentication is inherited. HTTP 429 retains the
 existing `AcquisitionError("rate_limited")` contract for the catalog scheduler.
+The former catalog system-trust adapter is now defined once in Transport and
+reused by default REST/archive sessions. Live checking found that the catalog
+worked with Windows ROOT trust while default REST failed certificate verification
+on this host. Loading verified OS trust consistently fixes that mismatch without
+disabling certificate or hostname validation or inheriting proxies/credentials.
 
 Archive resumptions and HTTP retries now share the same logical operation budget.
 URL validation occurs before destination creation. Cancellation during streaming

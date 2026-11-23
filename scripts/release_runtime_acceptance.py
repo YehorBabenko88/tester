@@ -620,10 +620,11 @@ def measured_child(command, *, env, cwd, output, pg_pid):
                 counters = item.io_counters()
                 rss += item.memory_info().rss
                 value = (cpu.user + cpu.system, counters.read_bytes, counters.write_bytes)
-                if pid not in observed:
-                    observed[pid] = {"first": value, "last": value}
+                identity = (pid, item.create_time())  # Windows recycles backend PIDs during long runs.
+                if identity not in observed:
+                    observed[identity] = {"first": value, "last": value}
                 else:
-                    observed[pid]["last"] = value
+                    observed[identity]["last"] = value
             except psutil.Error:
                 pass
         rss_peak = max(rss_peak, rss)

@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import random
+import ssl
 import threading
 import time
 from contextlib import contextmanager
@@ -21,6 +22,14 @@ from src.api.guardians.exchange_guardian import (
 )
 
 from .public_access import public_endpoint_key
+
+
+class SystemTrustAdapter(requests.adapters.HTTPAdapter):
+    """Reuse verified OS trust, including the Windows ROOT certificate store."""
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs["ssl_context"] = ssl.create_default_context()
+        return super().init_poolmanager(*args, **kwargs)
 
 
 class Transport:
@@ -179,6 +188,7 @@ class Transport:
                 try:
                     if self.session is None and not hasattr(self.local, "session"):
                         self.local.session = requests.Session()
+                        self.local.session.mount("https://", SystemTrustAdapter())
                         # Never inherit .netrc credentials, environment proxies or auth.
                         self.local.session.trust_env = False
                     session = self.session if self.session is not None else self.local.session
