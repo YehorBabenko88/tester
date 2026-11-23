@@ -1,0 +1,124 @@
+"""Fresh release DB composition using the existing migrations and adapters."""
+
+import secrets
+from pathlib import Path
+
+import psycopg
+from psycopg import sql
+from psycopg.conninfo import make_conninfo
+
+from src.storage.migrations import migrate as migrate_storage
+
+from .catalog_store import migrate_catalog
+from .db import migrate as migrate_platform
+from .history_lab_bootstrap import migrate_release_projections
+from .research_ledger import migrate_research
+
+DATABASES = {
+    "tester": ("tester_app", ("tester_platform", "tester_storage", "tester_lab")),
+    "tester_catalog": ("tester_catalog_app", ("tester_catalog",)),
+    "tester_research_release": ("tester_research_app", ("tester_research",)),
+}
+
+
+def database_identity(marker):
+    ports = marker.get("ports", {})
+    port = ports.get("postgres")
+    api = ports.get("api")
+    if (
+        type(port) is not int
+        or not 1024 <= port <= 65535
+        or port == 5432
+        or type(api) is not int
+        or not 1024 <= api <= 65535
+        or api in {5432, port}
+    ):
+        raise ValueError("Release requires separate explicit non-5432 loopback ports")
+    return dict(host="127.0.0.1", hostaddr="127.0.0.1", port=port)
+
+
+def runtime_configuration(root, marker, app_dsn, catalog_dsn):
+    database_identity(marker)
+    root = Path(root)
+    return dict(
+        database_url=app_dsn,
+        data_dir=str(root / "runtime"),
+        host="127.0.0.1",
+        port=marker["ports"]["api"],
+        frontend_dir=str(root / "releases" / marker["source_sha"] / "frontend"),
+        provider_factory="src.integration.reference_prices:create_reader",
+        handler_factory="src.integration.reference_prices:create_handler",
+        market_catalog_enabled=True,
+        market_catalog_database_url=catalog_dsn,
+    )
+
+
+def provision_release_databases(marker, owner_password):
+    """Called only inside the fresh, authenticated installer-owned PG cluster.
+
+    CREATE DATABASE/ROLE intentionally refuse existing names. Interrupted cluster
+    recovery belongs to the installer's creation journal, never blind SQL adoption.
+    Research schema is prepared but credentials remain operator-only; no synthetic
+    result, research credential or automatic Guardian action is published here.
+    """
+    endpoint = database_identity(marker)
+    owner = dict(**endpoint, user="tester_owner", password=owner_password)
+    passwords = {name: secrets.token_urlsafe(36) for name in DATABASES}
+    owner_dsns = {name: make_conninfo(**owner, dbname=name) for name in DATABASES}
+    with psycopg.connect(make_conninfo(**owner, dbname="postgres"), autocommit=True) as conn:
+        for name, (role, _) in DATABASES.items():
+            conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+            conn.execute(
+                sql.SQL(
+                    "CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION "
+                    "NOBYPASSRLS PASSWORD {}"
+                ).format(sql.Identifier(role), sql.Literal(passwords[name]))
+            )
+    migrate_platform(owner_dsns["tester"])
+    with psycopg.connect(owner_dsns["tester"]) as conn:
+        migrate_storage(conn)
+        migrate_release_projections(conn)
+    migrate_catalog(owner_dsns["tester_catalog"])
+    # The existing research validator deliberately pins its own hostaddr internally.
+    research_owner = {k: v for k, v in owner.items() if k != "hostaddr"}
+    migrate_research(make_conninfo(**research_owner, dbname="tester_research_release"))
+    runtime = {}
+    for name, (role, schemas) in DATABASES.items():
+        with psycopg.connect(owner_dsns[name]) as conn:
+            conn.execute(
+                sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(sql.Identifier(name))
+            )
+            conn.execute(
+                sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
+                    sql.Identifier(name), sql.Identifier(role)
+                )
+            )
+            conn.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
+            for schema in schemas:
+                for grant in (
+                    "GRANT USAGE ON SCHEMA {} TO {}",
+                    "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA {} TO {}",
+                    "GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA {} TO {}",
+                ):
+                    conn.execute(
+                        sql.SQL(grant).format(sql.Identifier(schema), sql.Identifier(role))
+                    )
+                migration = (
+                    "schema_migrations"
+                    if schema == "tester_storage"
+                    else ("release_migrations" if schema == "tester_lab" else "migrations")
+                )
+                conn.execute(
+                    sql.SQL("REVOKE INSERT,UPDATE,DELETE ON {}.{} FROM {}").format(
+                        sql.Identifier(schema), sql.Identifier(migration), sql.Identifier(role)
+                    )
+                )
+        role_endpoint = (
+            endpoint
+            if name != "tester_research_release"
+            else {k: v for k, v in endpoint.items() if k != "hostaddr"}
+        )
+        runtime[name] = make_conninfo(
+            **role_endpoint, dbname=name, user=role, password=passwords[name]
+        )
+    return runtime, owner_dsns
