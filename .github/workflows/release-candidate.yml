@@ -1,0 +1,46 @@
+name: TESTER release candidate
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tester-release-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-scm:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      GUARDIANS_ENABLED: 'false'
+      TESTER_REQUIRE_NATIVE_SCM: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+      - name: Install native fixture dependencies
+        run: python -m pip install pytest==8.4.2 pywin32==312
+      - name: Require elevated disposable runner
+        shell: pwsh
+        run: |
+          if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Native SCM gate requires elevated disposable Windows runner' }
+          New-Item -ItemType Directory -Force .scratch/release-evidence | Out-Null
+          git rev-parse HEAD | Set-Content .scratch/release-evidence/source-sha.txt
+      - name: Real native SCM recovery lifecycle
+        run: python -m pytest tests/platform/test_release_scm.py::test_real_native_scm_uuid_lifecycle_recovery -q -rs --basetemp=.scratch/release-scm
+      - name: Preserve native evidence
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force .scratch/release-evidence | Out-Null
+          Get-ChildItem .scratch/release-scm -Filter '*evidence*.json' -Recurse -ErrorAction SilentlyContinue | Copy-Item -Destination .scratch/release-evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-scm-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .scratch/release-evidence/
+          if-no-files-found: error
