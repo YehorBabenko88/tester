@@ -1,6 +1,7 @@
 """Destructive tests operate only on newly created pytest temporary installations."""
 
 import json
+import os
 import uuid
 from contextlib import contextmanager
 
@@ -9,6 +10,10 @@ import pytest
 from src.api import release_uninstall as removal
 from src.api.release_security import ReleaseSecurityError
 from tests.platform.test_release_security import signed_bundle, verify
+
+windows_only = pytest.mark.skipif(
+    os.name != "nt", reason="Native Windows handle/SCM/PowerShell acceptance requires Windows"
+)
 
 
 class Resources:
@@ -71,6 +76,7 @@ def run(tmp_path, values, resources=None, **kwargs):
     )
 
 
+@windows_only
 def test_full_owned_dummy_install_removal_and_idempotence(tmp_path):
     values = installation(tmp_path)
     foreign = tmp_path / "foreign-sentinel"
@@ -143,6 +149,7 @@ def test_refuses_adopting_foreign_files_in_ownership_writer(tmp_path):
         )
 
 
+@windows_only
 def test_locked_file_refuses_all_deletion_then_retry(tmp_path):
     values = installation(tmp_path)
     root = values[0]
@@ -155,6 +162,7 @@ def test_locked_file_refuses_all_deletion_then_retry(tmp_path):
     assert run(tmp_path, values)["status"] == "removed"
 
 
+@windows_only
 def test_directory_swap_attempt_during_destruction_is_blocked_by_handles(tmp_path):
     values = installation(tmp_path)
     root = values[0]
@@ -169,6 +177,7 @@ def test_directory_swap_attempt_during_destruction_is_blocked_by_handles(tmp_pat
     assert not (tmp_path / "stolen").exists()
 
 
+@windows_only
 def test_partial_deletion_has_durable_evidence_and_can_resume(tmp_path, monkeypatch):
     values = installation(tmp_path)
     original = removal._WindowsObject.delete
@@ -216,6 +225,7 @@ def test_symlink_foreign_targets_preserved(tmp_path, kind):
     assert (root / "app.txt").exists()
 
 
+@windows_only
 def test_foreign_file_created_after_lock_never_deleted(tmp_path):
     values = installation(tmp_path)
     root = values[0]
@@ -278,6 +288,7 @@ def test_ledger_cannot_be_swapped_between_digest_and_parse(tmp_path, monkeypatch
     assert (root / "foreign").read_text() == "KEEP"
 
 
+@windows_only
 def test_real_junction_is_rejected_without_touching_foreign_target(tmp_path):
     import _winapi
 
@@ -293,6 +304,7 @@ def test_real_junction_is_rejected_without_touching_foreign_target(tmp_path):
     assert (root / "app.txt").exists()
 
 
+@windows_only
 def test_evidence_preserves_previous_durable_events(tmp_path):
     values = installation(tmp_path)
     run(tmp_path, values)
@@ -336,6 +348,7 @@ def test_writer_boundary_policy_requires_unique_service_owner_and_exact_inherite
             removal._validate_writer_security(value, sid)
 
 
+@windows_only
 def test_os_owned_dynamic_file_with_foreign_creator_sid_is_refused(tmp_path):
     values = installation(tmp_path)
     root = values[0]
@@ -351,6 +364,7 @@ def test_os_owned_dynamic_file_with_foreign_creator_sid_is_refused(tmp_path):
     assert (root / "state" / "foreign-created").read_text() == "KEEP"
 
 
+@windows_only
 def test_explicit_external_shortcuts_removed_by_identity_without_foreign_desktop_deletion(tmp_path):
     bundle, key_pin = signed_bundle(tmp_path)
     release = verify(bundle, key_pin)
@@ -390,6 +404,7 @@ def test_explicit_external_shortcuts_removed_by_identity_without_foreign_desktop
     assert desktop.exists()
 
 
+@windows_only
 def test_powershell_bootstrap_lease_blocks_native_file_and_directory_swaps(tmp_path):
     import os
     import subprocess
@@ -434,6 +449,7 @@ foreach ($lease in $maintenanceLeases) { $lease.Dispose() }
     fixture.rename(tmp_path / "released")
 
 
+@windows_only
 def test_deferred_completion_does_not_report_full_product_removal(tmp_path):
     values = installation(tmp_path)
     result = run(tmp_path, values, defer_completion=True)
@@ -445,6 +461,7 @@ def test_deferred_completion_does_not_report_full_product_removal(tmp_path):
     )
 
 
+@windows_only
 def test_native_powershell_transient_cleanup_deletes_only_recorded_identities(tmp_path):
     import subprocess
     from pathlib import Path
@@ -558,3 +575,14 @@ def test_mapped_signed_payload_and_derived_maintenance_inventory_exclude_user_da
     assert "dependencies/venv/Lib/site-packages/derived.py" in record["maintenance_files"]
     assert "dependencies/python/python.exe" in record["maintenance_files"]
     assert not any(n.startswith("dependencies/postgres/") for n in record["maintenance_files"])
+
+
+@pytest.mark.skipif(
+    os.name == "nt", reason="Exercises explicit unsupported-platform refusal on Linux"
+)
+def test_nonwindows_destructive_backend_refuses_without_mutating_owned_data(tmp_path):
+    values = installation(tmp_path)
+    with pytest.raises(ReleaseSecurityError, match="supports Windows only"):
+        run(tmp_path, values)
+    assert (values[0] / "app.txt").read_bytes() == b"TESTER"
+    assert (values[0] / "state" / "candles").exists()
