@@ -1,0 +1,19 @@
+{
+  "schema": "tester-postgresql-supplier/v1",
+  "version": "18.7",
+  "supplier_page": "https://www.enterprisedb.com/download-postgresql-binaries?lang=en",
+  "package_url": "https://sbp.enterprisedb.com/getfile.jsp?fileid=1260725",
+  "package_sha256": "74f3740a2e7844118857f297c2067d226f8f2b0652de96022ce54bb27cd60a79",
+  "authenticode_status": "Valid",
+  "signer_subject": "CN=EnterpriseDB Corporation, O=EnterpriseDB Corporation, L=Wilmington, S=Delaware, C=US",
+  "signer_thumbprint": "7BEDD1269FCCF7A5D95F18274750B79893C06C70",
+  "release_notes": "https://www.postgresql.org/docs/18/release-18-7.html",
+  "archive_checksum_source": "Locally measured SHA256; vendor page reports checksum unavailable",
+  "staged_allowlist": [
+    "bin",
+    "lib",
+    "share",
+    "server_license.txt",
+    "commandlinetools_3rd_party_licenses.txt"
+  ]
+}

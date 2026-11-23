@@ -1,0 +1,11 @@
+# Consolidation and branch cleanup
+
+Run `python scripts/repository_inventory.py --repo . --pr-snapshot docs/release/pull-requests.json --output docs/release/repository-inventory.json` on the final integrated revision. The report enumerates every tracked path, static imports, text/installer/workflow/test consumers, broken local documentation links and branch tips. Dynamic dependencies remain REVIEW_REQUIRED; absence of a static reference never proves dead code.
+
+Classification vocabulary: KEEP retains active functionality and useful regression/evidence; MIGRATE requires a replacement and updated consumers; REPLACE marks obsolete entrypoints with a canonical replacement; DELETE requires proved consumers, equivalent replacement and post-removal regression evidence; REVIEW_REQUIRED records uncertainty. No file is automatically deleted by the audit.
+
+Legacy Preview installers are REPLACE candidates for the signed `Setup-Tester.ps1` route. They retain migration/physical-acceptance consumers and must not be removed solely because a newer filename exists. Old workflow and evidence files preserve accepted historical behavior until replacement coverage passes. No significant deletion has been performed in this release-engineering workstream.
+
+The branch report records each exact tip and commits not reachable from the candidate. A zero count proves ancestor history preservation, not necessarily that the branch's intended behavior remains accepted. A nonzero count requires `git log candidate..branch`, `git diff candidate...branch` and `git cherry candidate branch` inspection plus consumer/regression evidence before any deletion proposal. PR snapshots preserve number, state, base/head, exact head SHA, merge date and URL; a missing/limited snapshot cannot establish complete hosted history.
+
+After independent GO and merge to main: refresh all refs and PRs, regenerate inventory against final main, identify ancestor-only branches, review cherry-equivalent and unique histories, retain evidence/unfinished/unique functionality, list exact approved branch names and SHAs, then request owner approval for those exact remote deletions. Recheck tips immediately before action. Never force push, rewrite history, delete unique code or infer authorization from this plan.
