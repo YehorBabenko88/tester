@@ -3,6 +3,7 @@
 No HTTP, database, filesystem, process, or trading operations occur here.
 The caller supplies independently measured observations and monotonic time.
 """
+
 from __future__ import annotations
 
 import math
