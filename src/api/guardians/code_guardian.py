@@ -96,25 +96,34 @@ class CodeGuardian:
         if restarts_last_hour >= 2:
             return Result("ALERT", "restart_budget_exhausted")
         payload = json.dumps(
-            {"service": identity.service, "head": identity.head,
-             "evidence": sorted(p.evidence for p in probes)},
-            sort_keys=True, separators=(",", ":"),
+            {
+                "service": identity.service,
+                "head": identity.head,
+                "evidence": sorted(p.evidence for p in probes),
+            },
+            sort_keys=True,
+            separators=(",", ":"),
         )
         fingerprint = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         if fingerprint in self._seen:
             return Result("ALERT", "duplicate_incident", fingerprint)
         self._seen.add(fingerprint)
-        return Result("PROPOSE_OWNED_RESTART", "independent_failures", fingerprint, {
-            "schema_version": "guardian-event/v1",
-            "component": "code",
-            "signal": "service_unhealthy",
-            "environment": "tester_preview",
-            "scope": identity.service,
-            "evidence_ref": "sha256:" + fingerprint,
-            "ownership_verified": True,
-            "consecutive_failed_probes": 3,
-            "restarts_last_hour": restarts_last_hour,
-        })
+        return Result(
+            "PROPOSE_OWNED_RESTART",
+            "independent_failures",
+            fingerprint,
+            {
+                "schema_version": "guardian-event/v1",
+                "component": "code",
+                "signal": "service_unhealthy",
+                "environment": "tester_preview",
+                "scope": identity.service,
+                "evidence_ref": "sha256:" + fingerprint,
+                "ownership_verified": True,
+                "consecutive_failed_probes": 3,
+                "restarts_last_hour": restarts_last_hour,
+            },
+        )
 
     @staticmethod
     def verify(identity, probes, *, now, independent_verifier=False):
@@ -135,14 +144,22 @@ class CodeGuardian:
 
 def request_code_review(error_type, evidence_ref, head):
     """Never copy raw exception content or execute a suggested patch."""
-    if (not isinstance(error_type, str)
+    if (
+        not isinstance(error_type, str)
         or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,63}", error_type)
         or not isinstance(evidence_ref, str)
         or not DIGEST.fullmatch(evidence_ref)
         or not isinstance(head, str)
-        or not HEX40.fullmatch(head)):
+        or not HEX40.fullmatch(head)
+    ):
         return Result("ALERT", "untrusted_error")
-    return Result("REQUEST_CODE_REVIEW", "draft_pr_and_manual_gate", event={
-        "error_type": error_type, "evidence_ref": evidence_ref,
-        "source_head": head, "allowed": "isolated_tests_only",
-    })
+    return Result(
+        "REQUEST_CODE_REVIEW",
+        "draft_pr_and_manual_gate",
+        event={
+            "error_type": error_type,
+            "evidence_ref": evidence_ref,
+            "source_head": head,
+            "allowed": "isolated_tests_only",
+        },
+    )
