@@ -488,13 +488,16 @@ class ReleaseService(LabService):
     marker_reader = staticmethod(load_marker)
 
     def admit_start(self, root):
-        from .restart_budget import BudgetDenied, RestartBudget
+        from .restart_budget import BudgetDenied, DatabaseRestartBudget
 
         marker = load_marker(root)
         try:
-            RestartBudget(root / "runtime", marker["installation_id"], marker["source_sha"]).admit(
-                "host"
-            )
+            DatabaseRestartBudget.from_config(
+                root / "config.json",
+                root / "runtime",
+                marker["installation_id"],
+                marker["source_sha"],
+            ).admit("host")
         except BudgetDenied:
             return False
         return True

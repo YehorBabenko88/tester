@@ -310,8 +310,8 @@ def test_real_unicode_com_shortcut_roundtrip(tmp_path):
         (scripts / name).write_text("# signed release fixture")
     paths = create_shortcuts(root, marker)
     assert {__import__("pathlib").Path(path).name for path in paths} == {
-        "TESTER ‚Äî –ó–∞–ø—É—Å–∫.lnk",
-        "TESTER ‚Äî –£–¥–∞–ª–µ–Ω–∏–µ.lnk",
+        "TESTER ó «‡ÔÛÒÍ.lnk",
+        "TESTER ó ”‰‡ÎÂÌËÂ.lnk",
     }
     assert create_shortcuts(root, marker) == paths
     import win32com.client
@@ -604,8 +604,10 @@ def test_native_host_budget_denial_is_normal_stop_decision(monkeypatch, tmp_path
         pass
 
     class Budget:
-        def __init__(self, *args):
+        @classmethod
+        def from_config(cls,*args):
             calls.append(args)
+            return cls()
 
         def admit(self, role):
             calls.append(role)
@@ -614,10 +616,22 @@ def test_native_host_budget_denial_is_normal_stop_decision(monkeypatch, tmp_path
     monkeypatch.setitem(
         sys.modules,
         "src.api.restart_budget",
-        types.SimpleNamespace(RestartBudget=Budget, BudgetDenied=Denied),
+        types.SimpleNamespace(DatabaseRestartBudget=Budget, BudgetDenied=Denied),
     )
     marker = dict(installation_id=str(uuid.uuid4()), source_sha="a" * 40)
     monkeypatch.setattr(rs, "load_marker", lambda root: marker)
     service = object.__new__(rs.ReleaseService)
     assert service.admit_start(tmp_path) is False
     assert calls[-1] == "host"
+
+
+def test_native_process_image_exit_is_a_transition(tmp_path):
+    import os
+    import subprocess
+    import sys
+    import pytest
+    if os.name!='nt':pytest.skip('Native process image requires Windows')
+    from src.api.lab_scm import NativeSCM
+    child=subprocess.Popen([sys.executable,'-c','pass'])
+    child.wait(timeout=15)
+    with pytest.raises(ProcessLookupError):NativeSCM.process_image(child.pid)

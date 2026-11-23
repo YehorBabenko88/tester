@@ -301,14 +301,22 @@ class NativeSCM:
                 }
         except OSError as exc:
             raise LabViolation("Service has no fresh lab ownership parameters") from exc
+        exited = False
+        try:
+            executable = self.process_image(status["ProcessId"]) if status["ProcessId"] else None
+        except ProcessLookupError:
+            executable = None
+            exited = True
         return dict(
             image=c[3],
             account=c[7],
-            state={ws.SERVICE_STOPPED: "stopped", ws.SERVICE_RUNNING: "running"}.get(
+            state="pending"
+            if exited
+            else {ws.SERVICE_STOPPED: "stopped", ws.SERVICE_RUNNING: "running"}.get(
                 status["CurrentState"], "pending"
             ),
             pid=status["ProcessId"],
-            executable=self.process_image(status["ProcessId"]) if status["ProcessId"] else None,
+            executable=executable,
             installation_id=options["InstallationId"],
             root=options["Root"],
             source_sha=options["SourceSHA"],
@@ -331,11 +339,23 @@ class NativeSCM:
         ]
         handle = kernel.OpenProcess(0x1000, False, pid)
         if not handle:
+            if ctypes.get_last_error() == 87:
+                raise ProcessLookupError("Service process has exited")
             raise LabViolation("Cannot prove service executable identity")
         try:
             buffer = ctypes.create_unicode_buffer(32768)
             size = wintypes.DWORD(len(buffer))
             if not kernel.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size)):
+                kernel.GetExitCodeProcess.argtypes = [
+                    wintypes.HANDLE,
+                    ctypes.POINTER(wintypes.DWORD),
+                ]
+                exit_code = wintypes.DWORD()
+                if (
+                    kernel.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+                    and exit_code.value != 259
+                ):
+                    raise ProcessLookupError("Service process exited during image query")
                 raise LabViolation("Cannot query service executable identity")
             return buffer.value
         finally:

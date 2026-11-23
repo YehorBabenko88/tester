@@ -135,8 +135,8 @@ def create_shortcuts(root, marker):
     target = str(Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe")
     made = []
     for title, script in (
-        ("TESTER вЂ” Р—Р°РїСѓСЃРє", "Start-ReleaseTester.ps1"),
-        ("TESTER вЂ” РЈРґР°Р»РµРЅРёРµ", "Uninstall-ReleaseTester.ps1"),
+        ("TESTER — Запуск", "Start-ReleaseTester.ps1"),
+        ("TESTER — Удаление", "Uninstall-ReleaseTester.ps1"),
     ):
         link = plain(desktop / (title + ".lnk"))
         arguments = (
@@ -482,11 +482,7 @@ def install(
                     timeout=65,
                 )
             from .release_service import NativeController
-            from .restart_budget import RestartBudget
 
-            RestartBudget(
-                root / "runtime", marker["installation_id"], marker["source_sha"]
-            ).initialize()
             stage("registering-native-services")
             with NativeController(marker) as controller:
                 controller.apply("install")
