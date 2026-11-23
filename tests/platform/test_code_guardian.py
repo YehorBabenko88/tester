@@ -1,4 +1,5 @@
 """Negative acceptance for Code Guardian; no external resources required."""
+
 import hashlib
 import unittest
 from dataclasses import replace
@@ -20,67 +21,128 @@ def ident():
 
 def probes(healthy=False, now=100):
     return tuple(
-        Probe(s, "sample" + str(i), now - i, healthy,
-              "sha256:" + hashlib.sha256(s.encode()).hexdigest())
+        Probe(
+            s,
+            "sample" + str(i),
+            now - i,
+            healthy,
+            "sha256:" + hashlib.sha256(s.encode()).hexdigest(),
+        )
         for i, s in enumerate(("scm", "http_health", "worker_heartbeat"))
     )
 
 
 class TestCodeGuardian(unittest.TestCase):
     def test_disabled(self):
-        self.assertEqual(CodeGuardian().evaluate(ident(), probes(), now=100, restarts_last_hour=0).reason, "disabled")
+        self.assertEqual(
+            CodeGuardian().evaluate(ident(), probes(), now=100, restarts_last_hour=0).reason,
+            "disabled",
+        )
 
     def test_quorum_proposes_not_executes_and_deduplicates(self):
         g = CodeGuardian(enabled=True)
         result = g.evaluate(ident(), probes(), now=100, restarts_last_hour=0)
         self.assertEqual(result.action, "PROPOSE_OWNED_RESTART")
         self.assertEqual(result.event["consecutive_failed_probes"], 3)
-        self.assertEqual(g.evaluate(ident(), probes(), now=100, restarts_last_hour=0).reason, "duplicate_incident")
+        self.assertEqual(
+            g.evaluate(ident(), probes(), now=100, restarts_last_hour=0).reason,
+            "duplicate_incident",
+        )
 
     def test_ownership_fail_closed(self):
         for field in ("sid_verified", "image_verified", "config_verified", "lease_clear"):
-            self.assertEqual(CodeGuardian(enabled=True).evaluate(
-                replace(ident(), **{field: False}), probes(), now=100, restarts_last_hour=0).action, "ALERT")
+            self.assertEqual(
+                CodeGuardian(enabled=True)
+                .evaluate(
+                    replace(ident(), **{field: False}), probes(), now=100, restarts_last_hour=0
+                )
+                .action,
+                "ALERT",
+            )
 
     def test_wrong_process_and_head(self):
-        for value in (replace(ident(), service="UnrelatedService"),
-                      replace(ident(), head="b" * 40)):
-            self.assertEqual(CodeGuardian(enabled=True).evaluate(value, probes(), now=100, restarts_last_hour=0).action, "ALERT")
+        for value in (
+            replace(ident(), service="UnrelatedService"),
+            replace(ident(), head="b" * 40),
+        ):
+            self.assertEqual(
+                CodeGuardian(enabled=True)
+                .evaluate(value, probes(), now=100, restarts_last_hour=0)
+                .action,
+                "ALERT",
+            )
 
     def test_two_failures_or_one_healthy(self):
         g = CodeGuardian(enabled=True)
-        self.assertEqual(g.evaluate(ident(), probes()[:2], now=100, restarts_last_hour=0).action, "ALERT")
+        self.assertEqual(
+            g.evaluate(ident(), probes()[:2], now=100, restarts_last_hour=0).action, "ALERT"
+        )
         samples = list(probes())
         samples[2] = replace(samples[2], healthy=True)
-        self.assertEqual(g.evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).action, "ALERT")
+        self.assertEqual(
+            g.evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).action, "ALERT"
+        )
 
     def test_source_independence(self):
         samples = list(probes())
         samples[2] = replace(samples[2], source="scm")
-        self.assertEqual(CodeGuardian(enabled=True).evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).reason, "independence_unverified")
+        self.assertEqual(
+            CodeGuardian(enabled=True)
+            .evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0)
+            .reason,
+            "independence_unverified",
+        )
 
     def test_stale_probe_and_bad_evidence(self):
         samples = list(probes())
         samples[0] = replace(samples[0], timestamp=10)
-        self.assertEqual(CodeGuardian(enabled=True).evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).action, "ALERT")
+        self.assertEqual(
+            CodeGuardian(enabled=True)
+            .evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0)
+            .action,
+            "ALERT",
+        )
         samples[0] = replace(samples[0], timestamp=100, evidence="garbage")
-        self.assertEqual(CodeGuardian(enabled=True).evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0).action, "ALERT")
+        self.assertEqual(
+            CodeGuardian(enabled=True)
+            .evaluate(ident(), tuple(samples), now=100, restarts_last_hour=0)
+            .action,
+            "ALERT",
+        )
 
     def test_restart_budget_and_circuit(self):
         for budget in (2, 3, -1, True, "0"):
-            self.assertEqual(CodeGuardian(enabled=True).evaluate(ident(), probes(), now=100, restarts_last_hour=budget).action, "ALERT")
-        self.assertEqual(CodeGuardian(enabled=True).evaluate(ident(), probes(), now=100, restarts_last_hour=0, circuit_open=True).action, "ALERT")
+            self.assertEqual(
+                CodeGuardian(enabled=True)
+                .evaluate(ident(), probes(), now=100, restarts_last_hour=budget)
+                .action,
+                "ALERT",
+            )
+        self.assertEqual(
+            CodeGuardian(enabled=True)
+            .evaluate(ident(), probes(), now=100, restarts_last_hour=0, circuit_open=True)
+            .action,
+            "ALERT",
+        )
 
     def test_independent_after_check(self):
-        self.assertEqual(CodeGuardian.verify(ident(), probes(True), now=100, independent_verifier=True).action, "VERIFIED_RECOVERY")
-        self.assertEqual(CodeGuardian.verify(ident(), probes(), now=100, independent_verifier=True).action, "ALERT")
+        self.assertEqual(
+            CodeGuardian.verify(ident(), probes(True), now=100, independent_verifier=True).action,
+            "VERIFIED_RECOVERY",
+        )
+        self.assertEqual(
+            CodeGuardian.verify(ident(), probes(), now=100, independent_verifier=True).action,
+            "ALERT",
+        )
         self.assertEqual(CodeGuardian.verify(ident(), probes(True), now=100).action, "ALERT")
 
     def test_review_is_hash_only_and_draft(self):
         result = request_code_review("TimeoutError", "sha256:" + "c" * 64, HEAD)
         self.assertEqual(result.action, "REQUEST_CODE_REVIEW")
         self.assertNotIn("message", result.event)
-        self.assertEqual(request_code_review("cmd /c foo", "sha256:" + "c" * 64, HEAD).action, "ALERT")
+        self.assertEqual(
+            request_code_review("cmd /c foo", "sha256:" + "c" * 64, HEAD).action, "ALERT"
+        )
 
 
 class TestCodeGuardianFaultInjection(unittest.TestCase):
@@ -143,8 +205,7 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         guardian = CodeGuardian(enabled=True)
         first = guardian.evaluate(ident(), probes(), now=100, restarts_last_hour=0)
         rotated = tuple(
-            replace(sample, sample_id="rotated" + str(i))
-            for i, sample in enumerate(probes())
+            replace(sample, sample_id="rotated" + str(i)) for i, sample in enumerate(probes())
         )
         second = guardian.evaluate(ident(), rotated, now=100, restarts_last_hour=0)
         self.assertEqual(first.action, "PROPOSE_OWNED_RESTART")
@@ -154,17 +215,13 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
     def test_failed_after_check_never_verifies_recovery(self):
         samples = list(probes(healthy=True))
         samples[2] = replace(samples[2], healthy=False)
-        failed = CodeGuardian.verify(
-            ident(), tuple(samples), now=100, independent_verifier=True
-        )
+        failed = CodeGuardian.verify(ident(), tuple(samples), now=100, independent_verifier=True)
         self.assertEqual((failed.action, failed.reason), ("ALERT", "after_check_failed"))
 
     def test_after_check_rejects_wrong_identity_and_stale_evidence(self):
         samples = list(probes(healthy=True))
         samples[0] = replace(samples[0], timestamp=0)
-        stale = CodeGuardian.verify(
-            ident(), tuple(samples), now=100, independent_verifier=True
-        )
+        stale = CodeGuardian.verify(ident(), tuple(samples), now=100, independent_verifier=True)
         wrong_head = CodeGuardian.verify(
             replace(ident(), head="b" * 40),
             probes(healthy=True),
@@ -185,9 +242,7 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
     def test_after_check_rejects_reused_evidence_digest(self):
         samples = list(probes(healthy=True))
         samples[2] = replace(samples[2], evidence=samples[0].evidence)
-        decision = CodeGuardian.verify(
-            ident(), tuple(samples), now=100, independent_verifier=True
-        )
+        decision = CodeGuardian.verify(ident(), tuple(samples), now=100, independent_verifier=True)
         self.assertEqual(
             (decision.action, decision.reason),
             ("ALERT", "after_check_evidence_not_independent"),
@@ -203,7 +258,10 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         ):
             with self.subTest(now=now, budget=budget, circuit=circuit):
                 decision = CodeGuardian(enabled=True).evaluate(
-                    ident(), probes(), now=now, restarts_last_hour=budget,
+                    ident(),
+                    probes(),
+                    now=now,
+                    restarts_last_hour=budget,
                     circuit_open=circuit,
                 )
                 self.assertEqual(decision.action, "ALERT")
@@ -223,9 +281,7 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         self.assertEqual(accepted.action, "PROPOSE_OWNED_RESTART")
         samples = list(probes(healthy=True))
         samples[2] = replace(samples[2], source="scm")
-        rejected = CodeGuardian.verify(
-            ident(), tuple(samples), now=100, independent_verifier=True
-        )
+        rejected = CodeGuardian.verify(ident(), tuple(samples), now=100, independent_verifier=True)
         self.assertEqual(rejected.reason, "after_check_not_independent")
 
 
@@ -241,8 +297,9 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
                 decision = CodeGuardian(enabled=True).evaluate(
                     identity, probes(), now=100, restarts_last_hour=0
                 )
-                self.assertEqual((decision.action, decision.reason),
-                                 ("ALERT", "ownership_unverified"))
+                self.assertEqual(
+                    (decision.action, decision.reason), ("ALERT", "ownership_unverified")
+                )
 
     def test_matching_foreign_service_identity_never_proposes(self):
         """Forging both names is insufficient to restart non-TESTER services."""
@@ -252,8 +309,7 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
                 result = CodeGuardian(enabled=True).evaluate(
                     foreign, probes(), now=100, restarts_last_hour=0
                 )
-                self.assertEqual((result.action, result.reason),
-                                 ("ALERT", "ownership_unverified"))
+                self.assertEqual((result.action, result.reason), ("ALERT", "ownership_unverified"))
 
     def test_process_crash_and_repeated_failure_do_not_execute(self):
         """SCM crash is only a proposal; repetition cannot create a restart loop."""
@@ -261,15 +317,11 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         first = guardian.evaluate(ident(), probes(), now=100, restarts_last_hour=0)
         self.assertEqual(first.action, "PROPOSE_OWNED_RESTART")
         self.assertEqual(
-            guardian.evaluate(
-                ident(), probes(), now=101, restarts_last_hour=0
-            ).reason,
+            guardian.evaluate(ident(), probes(), now=101, restarts_last_hour=0).reason,
             "duplicate_incident",
         )
         self.assertEqual(
-            guardian.evaluate(
-                ident(), probes(), now=102, restarts_last_hour=2
-            ).reason,
+            guardian.evaluate(ident(), probes(), now=102, restarts_last_hour=2).reason,
             "restart_budget_exhausted",
         )
         self.assertFalse(hasattr(guardian, "restart"))
@@ -278,15 +330,10 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
     def test_start_refusal_never_becomes_verified_recovery(self):
         """A failed start yields an unhealthy after-check and no success claim."""
         guardian = CodeGuardian(enabled=True)
-        proposed = guardian.evaluate(
-            ident(), probes(), now=100, restarts_last_hour=0
-        )
+        proposed = guardian.evaluate(ident(), probes(), now=100, restarts_last_hour=0)
         self.assertEqual(proposed.action, "PROPOSE_OWNED_RESTART")
-        refused = CodeGuardian.verify(
-            ident(), probes(), now=100, independent_verifier=True
-        )
-        self.assertEqual((refused.action, refused.reason),
-                         ("ALERT", "after_check_failed"))
+        refused = CodeGuardian.verify(ident(), probes(), now=100, independent_verifier=True)
+        self.assertEqual((refused.action, refused.reason), ("ALERT", "after_check_failed"))
         self.assertIsNone(refused.event)
 
     def test_corrupt_journal_is_not_code_guardian_authority(self):
@@ -298,7 +345,9 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         # Even an apparently healthy after-check is only a pure observation,
         # not a durable execution receipt or an authorized restart.
         checked = CodeGuardian.verify(
-            ident(), probes(healthy=True), now=100,
+            ident(),
+            probes(healthy=True),
+            now=100,
             independent_verifier=True,
         )
         self.assertEqual(checked.action, "VERIFIED_RECOVERY")
@@ -314,11 +363,12 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         ):
             with self.subTest(changed=changed):
                 result = CodeGuardian(enabled=True).evaluate(
-                    replace(ident(), **changed), probes(),
-                    now=100, restarts_last_hour=0,
+                    replace(ident(), **changed),
+                    probes(),
+                    now=100,
+                    restarts_last_hour=0,
                 )
-                self.assertEqual((result.action, result.reason),
-                                 ("ALERT", "ownership_unverified"))
+                self.assertEqual((result.action, result.reason), ("ALERT", "ownership_unverified"))
         for changed in (
             {"source": "scm_unreachable"},
             {"timestamp": 60},
@@ -328,7 +378,10 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
                 samples = list(probes())
                 samples[0] = replace(samples[0], **changed)
                 result = CodeGuardian(enabled=True).evaluate(
-                    ident(), tuple(samples), now=100, restarts_last_hour=0,
+                    ident(),
+                    tuple(samples),
+                    now=100,
+                    restarts_last_hour=0,
                 )
                 self.assertEqual(result.action, "ALERT")
 
@@ -337,33 +390,33 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         guardian = CodeGuardian(enabled=True)
         for i in range(4):
             samples = tuple(
-                replace(p, evidence="sha256:" + hashlib.sha256(
-                    (p.source + str(i)).encode()
-                ).hexdigest())
+                replace(
+                    p, evidence="sha256:" + hashlib.sha256((p.source + str(i)).encode()).hexdigest()
+                )
                 for p in probes()
             )
             result = guardian.evaluate(
-                ident(), samples, now=100,
+                ident(),
+                samples,
+                now=100,
                 restarts_last_hour=min(i, 2),
             )
             if i < 2:
                 self.assertEqual(result.action, "PROPOSE_OWNED_RESTART")
             else:
-                self.assertEqual((result.action, result.reason),
-                                 ("ALERT", "restart_budget_exhausted"))
+                self.assertEqual(
+                    (result.action, result.reason), ("ALERT", "restart_budget_exhausted")
+                )
 
     def test_api_worker_fault_proposals_require_enabled_and_owner(self):
         """Both service roles are proposals only; disabled means no restart."""
         for service in ("TesterAPI", "TesterWorker"):
             with self.subTest(service=service):
-                identity = replace(
-                    ident(), service=service, expected_service=service
-                )
+                identity = replace(ident(), service=service, expected_service=service)
                 disabled = CodeGuardian().evaluate(
                     identity, probes(), now=100, restarts_last_hour=0
                 )
-                self.assertEqual((disabled.action, disabled.reason),
-                                 ("ALERT", "disabled"))
+                self.assertEqual((disabled.action, disabled.reason), ("ALERT", "disabled"))
                 enabled = CodeGuardian(enabled=True).evaluate(
                     identity, probes(), now=100, restarts_last_hour=0
                 )
@@ -374,14 +427,9 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         """Review request accepts only sanitized labels and hash evidence."""
         for kind in ("RuntimeError; Stop-Service", "../patch", "", "A" * 65):
             with self.subTest(kind=kind):
-                result = request_code_review(
-                    kind, "sha256:" + "c" * 64, HEAD
-                )
-                self.assertEqual((result.action, result.reason),
-                                 ("ALERT", "untrusted_error"))
-        review = request_code_review(
-            "TimeoutError", "sha256:" + "c" * 64, HEAD
-        )
+                result = request_code_review(kind, "sha256:" + "c" * 64, HEAD)
+                self.assertEqual((result.action, result.reason), ("ALERT", "untrusted_error"))
+        review = request_code_review("TimeoutError", "sha256:" + "c" * 64, HEAD)
         self.assertEqual(review.action, "REQUEST_CODE_REVIEW")
         self.assertEqual(review.event["allowed"], "isolated_tests_only")
 
@@ -409,11 +457,8 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         for enabled in (False, None, 0, "true"):
             with self.subTest(enabled=enabled):
                 guardian = CodeGuardian(enabled=enabled)
-                decision = guardian.evaluate(
-                    ident(), probes(), now=100, restarts_last_hour=0
-                )
-                self.assertEqual((decision.action, decision.reason),
-                                 ("ALERT", "disabled"))
+                decision = guardian.evaluate(ident(), probes(), now=100, restarts_last_hour=0)
+                self.assertEqual((decision.action, decision.reason), ("ALERT", "disabled"))
 
     def test_shared_policy_proposal_only_and_nontrusted_claims(self):
         """Code decision -> MASTER policy is never an execution permission."""
@@ -421,9 +466,7 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
             ident(), probes(), now=100, restarts_last_hour=0
         )
         self.assertEqual(result.action, "PROPOSE_OWNED_RESTART")
-        self.assertEqual(
-            guardian_policy.decide(result.event).action, "PROPOSE_OWNED_RESTART"
-        )
+        self.assertEqual(guardian_policy.decide(result.event).action, "PROPOSE_OWNED_RESTART")
         self.assertEqual(
             guardian_policy.decide({**result.event, "ownership_verified": False}).action,
             "ALERT",
@@ -439,11 +482,8 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
             ident(), probes(), now=100, restarts_last_hour=0
         )
         self.assertEqual(result.event["environment"], "tester_preview")
-        policy = guardian_policy.decide(
-            {**result.event, "environment": "tester_lab"}
-        )
-        self.assertEqual((policy.action, policy.reason),
-                         ("ALERT", "environment_out_of_scope"))
+        policy = guardian_policy.decide({**result.event, "environment": "tester_lab"})
+        self.assertEqual((policy.action, policy.reason), ("ALERT", "environment_out_of_scope"))
 
     def test_launcher_recovery_requires_independent_healthy_after_check(self):
         self.assertEqual(
@@ -455,16 +495,16 @@ class TestCodeGuardianFaultInjection(unittest.TestCase):
         self.assertEqual(
             CodeGuardian.verify(
                 replace(ident(), lease_clear=False),
-                probes(healthy=True), now=100, independent_verifier=True
+                probes(healthy=True),
+                now=100,
+                independent_verifier=True,
             ).reason,
             "ownership_unverified",
         )
         samples = list(probes(healthy=True))
         samples[0] = replace(samples[0], healthy=False)
         self.assertEqual(
-            CodeGuardian.verify(
-                ident(), tuple(samples), now=100, independent_verifier=True
-            ).reason,
+            CodeGuardian.verify(ident(), tuple(samples), now=100, independent_verifier=True).reason,
             "after_check_failed",
         )
 
