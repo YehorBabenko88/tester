@@ -3,9 +3,9 @@ import unittest
 from copy import deepcopy
 
 import pytest
-from src.api.guardian_supervisor import GuardianSupervisor
 
 from src.api.guardian_policy import decide
+from src.api.guardian_supervisor import GuardianSupervisor
 from src.api.guardians.data_guardian import (
     assess_data_removal_receipt,
     reconcile,
