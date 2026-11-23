@@ -43,7 +43,7 @@ MUE-X ideas used: role-specific typed evidence and verified incident fingerprint
 
 ## Reinstallation preparation gate — 2026-11-19 (NO-GO)
 
-This section is a **read-only preflight checklist**, not an installer and not authorization to stop services, copy live databases, delete temp files or overwrite existing data. MASTER #88 owns installer compatibility, migration, backup and rollback approvals. The Storage Guardian remains disabled and must never run during installation.
+This section is a **read-only preflight checklist**, not an installer and not authorization to stop services, copy live databases, delete temp files or overwrite existing data. MASTER #88 owns installer compatibility and any separately authorized migration/rollback planning. The current full-uninstall contract explicitly requires **no retained backups or archives** after a confirmed successful uninstall; pre-installation recovery planning must never override that destructive user choice. The Storage Guardian remains disabled and must never run during installation.
 
 ### Inventory evidence required before any installation approval
 
@@ -52,7 +52,7 @@ This section is a **read-only preflight checklist**, not an installer and not au
 - Identify dedicated PostgreSQL Preview instance and its port using read-only configuration/service inventory; verify the production PostgreSQL 5432 instance is excluded. No SQL writes or PostgreSQL maintenance.
 - Record free disk bytes, expected package/staging/backup sizes, and reserved rollback headroom. Do not infer database size from `tmp_direct_bytes`; independent volume-level inventory is required.
 - Verify backup provenance and successful independent restore into a disposable **isolated** environment before any installation GO. A backup file merely existing is insufficient.
-- Pin old executable/configuration version, database/schema compatibility and a rollback decision point. Require a human-approved rollback plan that preserves historical candles, WAL, backups and all original files.
+- Pin old executable/configuration version, database/schema compatibility and a rollback decision point. Require a human-approved **installation failure** rollback plan before any destructive operation; do not preserve candles, WAL or backups after the user explicitly confirms the separate full-uninstall contract.
 - Validate that no reparse/junction/symlink crosses candidate staging, runtime, data, backup or rollback roots. Use OS handle-based verification in any later effectful installer; pathname-only `lstat` is insufficient against TOCTOU.
 - Require Windows ADMINIT physical smoke, exact-head Python/Ruff/fault-injection CI, a signed artifact and MASTER-approved cross-Guardian integration. No change to active Preview, PG5432 or running services.
 
