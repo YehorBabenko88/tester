@@ -7,6 +7,7 @@ param(
     [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-f]{64}$')][string]$TrustedPublicKeySHA256,
     [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-f]{40}$')][string]$ExpectedSourceSHA,
     [ValidateSet('production','test')][string]$Mode='production',
+    [string]$TrustedPublisherSHA256='',
     [string]$Desktop=''
 )
 $ErrorActionPreference='Stop'
@@ -103,6 +104,16 @@ foreach ($File in $Files) {
     if ($Relative -match '(^/|\\|:|(^|/)\.\.?(/|$)|//)') {throw 'Unsafe artifact path.'}
     $Expected=$Envelope.manifest.files.PSObject.Properties[$Relative]
     if ($null -eq $Expected -or (Get-FileHash -LiteralPath $File.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Expected.Value) {throw 'Bundle artifact mismatch.'}
+}
+if ($Mode -eq 'production') {
+    if ($TrustedPublisherSHA256 -cnotmatch '^[0-9a-f]{64}$') {throw 'Production requires the independently approved publisher certificate SHA256.'}
+    foreach ($Script in @($PSCommandPath,(Join-Path $Bundle 'payload\scripts\windows\Start-ReleaseTester.ps1'),(Join-Path $Bundle 'payload\scripts\windows\Uninstall-ReleaseTester.ps1'))) {
+        $Signature=Microsoft.PowerShell.Security\Get-AuthenticodeSignature -LiteralPath $Script
+        if ($Signature.Status -ne 'Valid' -or $null -eq $Signature.SignerCertificate) {throw 'Production canonical scripts require trusted Authenticode signatures.'}
+        $Hasher=[Security.Cryptography.SHA256]::Create()
+        try {$CertificateSHA256=([BitConverter]::ToString($Hasher.ComputeHash($Signature.SignerCertificate.RawData))).Replace('-','').ToLowerInvariant()} finally {$Hasher.Dispose()}
+        if ($CertificateSHA256 -cne $TrustedPublisherSHA256) {throw 'Production publisher certificate differs from its independent trust pin.'}
+    }
 }
 # Inventory is externally authenticated before any ACL change. All files/dirs
 # remain leased through child exit; normalize only the verified installer media.

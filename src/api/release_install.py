@@ -15,6 +15,25 @@ SCHEMA = "tester-release-install/v1"
 CANONICAL_ROOT = Path(r"C:\TesterLab")
 
 
+def system_binary(relative):
+    """Resolve OS tools through kernel32, never PATH/SystemRoot environment text."""
+    import ctypes
+    from ctypes import wintypes
+    from pathlib import PureWindowsPath
+
+    name = PureWindowsPath(relative)
+    if name.is_absolute() or ".." in name.parts or not name.parts:
+        raise LabViolation("A relative system tool name is required")
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.GetSystemDirectoryW.argtypes = [wintypes.LPWSTR, wintypes.UINT]
+    kernel.GetSystemDirectoryW.restype = wintypes.UINT
+    buffer = ctypes.create_unicode_buffer(32768)
+    length = kernel.GetSystemDirectoryW(buffer, len(buffer))
+    if not length or length >= len(buffer):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return Path(buffer.value).joinpath(*name.parts)
+
+
 def validate_destination(root, *, mode, desktop):
     root = plain(root)
     if mode == "production":
@@ -143,18 +162,22 @@ def read_shortcut(path):
     )
 
 
-def create_shortcuts(root, marker):
+def create_shortcuts(root, marker, *, transaction=None):
     """Real COM links, including exact Unicode names; fake Desktop only in test mode."""
     import pythoncom
 
     desktop = (
-        Path(marker["test_desktop"])
-        if marker["mode"] == "test"
-        else Path(os.environ["USERPROFILE"]) / "Desktop"
+        Path(marker["desktop"])
+        if marker.get("desktop")
+        else (
+            Path(marker["test_desktop"])
+            if marker["mode"] == "test"
+            else Path(os.environ["USERPROFILE"]) / "Desktop"
+        )
     )
     desktop = plain(desktop)
     desktop.mkdir(exist_ok=True)
-    target = str(Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe")
+    target = str(system_binary("WindowsPowerShell/v1.0/powershell.exe"))
     made = []
     for title, script in (
         ("TESTER — Запуск", "Start-ReleaseTester.ps1"),
@@ -176,10 +199,18 @@ def create_shortcuts(root, marker):
                 + marker["trust_config"]
                 + '"'
             )
+        if marker["mode"] == "production":
+            arguments = arguments.replace(
+                "-NoProfile -File ", "-NoProfile -ExecutionPolicy AllSigned -File ", 1
+            )
         script_path = root / "releases" / marker["source_sha"] / "scripts/windows" / script
         if not plain(script_path).is_file():
             raise LabViolation("Shortcut target script is missing")
-        if link.exists():
+        existing = link.exists()
+        external_identity = None
+        if not existing and transaction is not None:
+            external_identity = transaction.prepare_external(link)
+        if existing:
             current = read_shortcut(link)
             if (
                 current["target"].casefold() != target.casefold()
@@ -209,6 +240,8 @@ def create_shortcuts(root, marker):
             or actual["working_directory"] != str(root)
         ):
             raise LabViolation("COM shortcut readback mismatch")
+        if external_identity is not None:
+            transaction.finalize_external(link, external_identity)
         made.append(str(link))
     return made
 
@@ -224,9 +257,6 @@ def install(
 
     from .release_security import verify_release
 
-    python_env = dict(
-        os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1", GUARDIANS_ENABLED="false"
-    )
     release = verify_release(
         Path(bundle),
         trusted_public_key_sha256=trusted_public_key_sha256,
@@ -240,12 +270,20 @@ def install(
     if shutil.disk_usage(root.parent).free < 5 * 1024**3:
         raise LabViolation("At least 5 GiB free space required")
     if root.exists() and any(root.iterdir()):
-        marker = load_marker(root)
-        if (
-            marker["source_sha"] != release.source_sha
-            or marker["release_manifest_sha256"] != release.manifest_sha256
-        ):
-            raise LabViolation("Existing installation differs; explicit update required")
+        from .release_provision import recover_or_validate_existing
+
+        marker = recover_or_validate_existing(
+            root, release, trusted_public_key_sha256=trusted_public_key_sha256, mode=mode
+        )
+        if marker is None:
+            return install(
+                bundle,
+                root,
+                trusted_public_key_sha256=trusted_public_key_sha256,
+                expected_source_sha=expected_source_sha,
+                mode=mode,
+                desktop=desktop,
+            )
         with lifecycle_lock(root):
             from .release_service import NativeController
 
@@ -265,313 +303,258 @@ def install(
     for relative in required:
         if not plain(Path(bundle) / relative).is_file():
             raise LabViolation("Incomplete offline release: " + relative)
-    root.mkdir(exist_ok=True)
-    with lifecycle_lock(root):
-        if any(root.iterdir()):
-            raise LabViolation("Fresh root changed before lifecycle lock")
-        subprocess.run(
-            [
-                "icacls.exe",
-                str(root),
-                "/inheritance:r",
-                "/grant:r",
-                "*S-1-5-18:(OI)(CI)F",
-                "*S-1-5-32-544:(OI)(CI)F",
-            ],
-            check=True,
-            capture_output=True,
-        )
-        for name in (
-            "state",
-            "runtime",
-            "dependencies",
-            "releases",
-            "private",
-            "backups",
-            "postgres-data",
-        ):
-            (root / name).mkdir()
-        ident = uuid.uuid4()
-        maintenance_parent = (
-            Path(os.environ["ProgramData"]) if mode == "production" else root.parent
-        )
-        maintenance = plain(maintenance_parent / ("TesterReleaseMaintenance_" + ident.hex))
-        maintenance.mkdir()
-        protect_external_bundle(maintenance)
-        (maintenance / "evidence").mkdir()
-        api_port, pg_port = free_port(), free_port()
-        while pg_port == api_port or pg_port == 5432:
-            pg_port = free_port()
-        marker = dict(
-            schema=SCHEMA,
-            root=str(root),
-            installation_id=str(ident),
-            source_sha=release.source_sha,
-            release_manifest_sha256=release.manifest_sha256,
-            mode=mode,
-            trust_config=str(maintenance / "trust.json"),
-            test_desktop=str(plain(desktop)) if desktop else None,
-            services={
-                "app": "TesterReleaseApp_" + ident.hex,
-                "postgres": "TesterReleasePG_" + ident.hex,
-            },
-            ports={"api": api_port, "postgres": pg_port},
-        )
-        write_json(root / MARKER, marker)
-        journal = root / "state/install.jsonl"
-        creation_receipt = root / "state/creation-receipts.jsonl"
-        creation_receipt.touch()
-        created = {}
-        sealed = False
+    from contextlib import nullcontext
 
-        def stage(name, **details):
-            with journal.open("a", encoding="utf-8") as stream:
-                stream.write(
-                    json.dumps(
+    from .lab_scm import NativeSCM, stage_service_runtime
+    from .release_provision import ProvisioningTransaction, provisioning_plan, run_actor
+    from .release_service import NativeController, plans
+    from .release_uninstall import rollback_provisioning, seal_provisioning_outputs, write_ownership
+
+    ident = uuid.uuid4()
+    maintenance_parent = Path(os.environ["ProgramData"]) if mode == "production" else root.parent
+    maintenance = plain(maintenance_parent / ("TesterReleaseMaintenance_" + ident.hex))
+    maintenance.mkdir()
+    protect_external_bundle(maintenance)
+    (maintenance / "evidence").mkdir()
+    protect_external_bundle(maintenance)
+    if mode == "test":
+        desktop_path = plain(desktop)
+    else:
+        from win32com.shell import shell, shellcon
+
+        desktop_path = plain(shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOPDIRECTORY, None, 0))
+    if not desktop_path.is_dir():
+        raise LabViolation("Desktop directory is unavailable")
+    api_port, pg_port = free_port(), free_port()
+    while pg_port == api_port or pg_port == 5432:
+        pg_port = free_port()
+    marker = dict(
+        schema=SCHEMA,
+        root=str(root),
+        installation_id=str(ident),
+        source_sha=release.source_sha,
+        release_manifest_sha256=release.manifest_sha256,
+        mode=mode,
+        test_desktop=str(desktop_path) if mode == "test" else None,
+        desktop=str(desktop_path),
+        trust_config=str(maintenance / "trust.json"),
+        services={
+            "app": "TesterReleaseApp_" + ident.hex,
+            "postgres": "TesterReleasePG_" + ident.hex,
+        },
+        ports={"api": api_port, "postgres": pg_port},
+    )
+    tx = ProvisioningTransaction(root, marker, release, maintenance)
+    exposed = False
+    try:
+        tx.root_created()
+        with lifecycle_lock(root):
+            for name in (
+                "state",
+                "runtime",
+                "dependencies",
+                "releases",
+                "private",
+                "backups",
+                "postgres-data",
+            ):
+                tx.mkdir(root / name)
+            tx.write_bytes(root / MARKER, json.dumps(marker, indent=2).encode("utf-8"))
+            journal = root / "state/install.jsonl"
+
+            def stage(name):
+                print("TESTER: " + name.replace("-", " "), flush=True)
+                tx.append(dict(event="phase", phase=name))
+                if journal.exists():
+                    with journal.open("a", encoding="utf-8") as stream:
+                        stream.write(
+                            json.dumps(
+                                dict(
+                                    installation_id=str(ident),
+                                    source_sha=release.source_sha,
+                                    phase=name,
+                                )
+                            )
+                            + "\n"
+                        )
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                if (
+                    mode == "test"
+                    and os.environ.get("TESTER_REQUIRE_FULL_INSTALLER") == "1"
+                    and os.environ.get("TESTER_INSTALL_TEST_PAUSE_PHASE") == name
+                ):
+                    import time
+
+                    write_json(
+                        maintenance / "test-pause.json",
                         dict(
-                            installation_id=str(ident),
+                            root=str(root),
+                            installation_id=marker["installation_id"],
                             source_sha=release.source_sha,
                             phase=name,
-                            **details,
-                        )
+                            pid=os.getpid(),
+                        ),
                     )
-                    + "\n"
-                )
-            if not sealed:
-                # Only invoked while the fresh root is builder-owned and services
-                # have never started. Never re-enroll a running/preexisting tree.
-                rows = []
-                for item in root.rglob("*"):
-                    item = plain(item)
-                    relative = item.relative_to(root).as_posix()
-                    info = item.stat()
-                    identity = [info.st_dev, info.st_ino]
-                    if created.get(relative) != identity:
-                        rows.append(dict(path=relative, identity=identity))
-                        created[relative] = identity
-                with creation_receipt.open("a", encoding="utf-8") as stream:
-                    stream.write(json.dumps(dict(builder_phase=name, created=rows)) + "\n")
+                    while True:
+                        time.sleep(0.2)
 
-        try:
             stage("copying-verified-payload")
             release_root = root / "releases" / release.source_sha
-            shutil.copytree(Path(bundle) / "payload", release_root)
-            write_json(root / "state/source-runtime.json", {"files": inventory(release_root)})
-            shutil.copytree(Path(bundle) / "runtimes/python", root / "dependencies/python")
-            shutil.copytree(Path(bundle) / "runtimes/postgres", root / "dependencies/postgres")
-            stage("installing-hash-locked-dependencies")
-            python = root / "dependencies/python/python.exe"
-            subprocess.run(
-                [str(python), "-I", "-B", "-m", "venv", str(root / "dependencies/venv")],
-                check=True,
-                timeout=120,
-                env=python_env,
+            tx.copytree(Path(bundle) / "payload", release_root)
+            tx.copytree(Path(bundle) / "runtimes/python", root / "dependencies/python")
+            tx.copytree(Path(bundle) / "runtimes/postgres", root / "dependencies/postgres")
+            tx.copytree(Path(bundle) / "wheelhouse", root / "dependencies/wheelhouse")
+            tx.write_bytes(
+                root / "state/source-runtime.json",
+                json.dumps({"files": inventory(release_root)}).encode("utf-8"),
             )
-            venv = root / "dependencies/venv/Scripts/python.exe"
-            subprocess.run(
-                [
-                    str(venv),
-                    "-I",
-                    "-B",
-                    "-m",
-                    "pip",
-                    "install",
-                    "--no-index",
-                    "--no-compile",
-                    "--require-hashes",
-                    "--only-binary=:all:",
-                    "--find-links",
-                    str(Path(bundle) / "wheelhouse"),
-                    "-r",
-                    str(release_root / "requirements-release-windows314.lock"),
-                ],
-                check=True,
-                timeout=300,
-                env=python_env,
-            )
-            subprocess.run(
-                [
-                    str(venv),
-                    "-B",
-                    "-c",
-                    "from pathlib import Path; from src.api.release_install import protect_external_bundle; import sys; protect_external_bundle(Path(sys.argv[1]))",
-                    str(plain(bundle)),
-                ],
-                cwd=release_root,
-                check=True,
-                timeout=180,
-                env=python_env,
-            )
-            # Stage using the same private runtime implementation as the verified lab.
-            code = 'from pathlib import Path; from src.api.lab_scm import stage_service_runtime; from src.api.release_install import load_marker; stage_service_runtime(Path(__import__("sys").argv[1]),marker_reader=load_marker,bootstrap="release_service_bootstrap.py")'
-            subprocess.run(
-                [str(venv), "-B", "-c", code, str(root)],
-                cwd=release_root,
-                check=True,
-                timeout=180,
-                env=python_env,
-            )
-            write_json(
+            tx.write_bytes(
                 root / "state/postgres-runtime.json",
-                {"files": inventory(root / "dependencies/postgres")},
+                json.dumps({"files": inventory(root / "dependencies/postgres")}).encode("utf-8"),
             )
-            stage("initializing-dedicated-postgres")
-            import secrets
-
-            password = secrets.token_urlsafe(36)
-            password_path = root / "private/initdb-password.txt"
-            password_path.write_text(password, encoding="utf-8")
-            pgbin = root / "dependencies/postgres/bin"
-            subprocess.run(
-                [
-                    str(pgbin / "initdb.exe"),
-                    "-D",
-                    str(root / "postgres-data"),
-                    "-U",
-                    "tester_owner",
-                    "--pwfile",
-                    str(password_path),
-                    "--auth-host=scram-sha-256",
-                    "--auth-local=scram-sha-256",
-                    "--encoding=UTF8",
-                ],
-                check=True,
-                timeout=120,
+            stage("staging-private-service-host")
+            stage_service_runtime(
+                root,
+                marker_reader=load_marker,
+                bootstrap="release_service_bootstrap.py",
+                site_override=root / "dependencies/python/Lib/site-packages",
+                transaction=tx,
+                precompile=False,
             )
-            password_path.unlink()
-            (root / "postgres-data/postgresql.conf").write_text(
-                "listen_addresses = '127.0.0.1'\nport = " + str(pg_port) + "\n", encoding="utf-8"
+            immutable = {
+                relative: inventory(root / relative)
+                for relative in (
+                    "releases/" + release.source_sha,
+                    "dependencies/python",
+                    "dependencies/postgres",
+                    "dependencies/service",
+                    "dependencies/wheelhouse",
+                )
+            }
+            tx.write_bytes(
+                root / "state/provisioning-authority.json",
+                json.dumps(dict(marker=marker, immutable=immutable)).encode("utf-8"),
             )
-            subprocess.run(
-                [
-                    str(pgbin / "pg_ctl.exe"),
-                    "-D",
-                    str(root / "postgres-data"),
-                    "-l",
-                    str(root / "runtime/postgres-bootstrap.log"),
-                    "-w",
-                    "start",
-                ],
-                check=True,
-                timeout=65,
+            stage("starting-authenticated-provisioning-actor")
+            tx.release_journal()
+            run_actor(root, marker, started=lambda: stage("provisioning-actor-running"))
+            # The helper proves unique creator SIDs and exact objects before their
+            # owners/ACLs change. This never enrolls an arbitrary Admin snapshot.
+            created = seal_provisioning_outputs(
+                root,
+                journal_path=tx.path,
+                trusted_public_key_sha256=trusted_public_key_sha256,
+                expected_source_sha=release.source_sha,
+                lifecycle_lock=lambda _: nullcontext(),
             )
+            stage("registering-runtime-services")
+            app, pg = plans(marker)
+            scm = NativeSCM(mutating=True)
             try:
-                stage("migrating")
-                subprocess.run(
-                    [
-                        str(venv),
-                        "-B",
-                        "-m",
-                        "src.api.release_install",
-                        "--provision-database",
-                        str(root),
-                    ],
-                    input=password,
-                    text=True,
-                    cwd=release_root,
-                    check=True,
-                    timeout=120,
-                    env=python_env,
-                )
-                control = subprocess.run(
-                    [str(pgbin / "pg_controldata.exe"), "-D", str(root / "postgres-data")],
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    env=dict(os.environ, LC_MESSAGES="C", LANG="C"),
-                )
-                match = re.search(r"Database system identifier:\s*(\d+)", control.stdout)
-                if not match:
-                    raise LabViolation("Cannot prove dedicated cluster identity")
-                write_json(
-                    root / "state/postgres-identity.json",
-                    dict(installation_id=str(ident), system_identifier=match[1]),
-                )
+                with scm.lease([(pg, pg["image"])]):
+                    if scm.inspect(pg["name"]) is not None:
+                        raise LabViolation("Fresh PostgreSQL service collision")
+                    scm.install(pg, pg["image"], None)
+                scm.promote(provisioning_plan(marker), app, subprocess.list2cmdline([app["host"]]))
             finally:
-                subprocess.run(
-                    [
-                        str(pgbin / "pg_ctl.exe"),
-                        "-D",
-                        str(root / "postgres-data"),
-                        "-w",
-                        "-m",
-                        "fast",
-                        "stop",
-                    ],
-                    check=True,
-                    timeout=65,
-                )
-            from .release_service import NativeController
+                scm.close()
+            stage("applying-runtime-acls")
+            apply_acls(root, marker)
+            links = create_shortcuts(root, marker, transaction=tx)
+            tx.write_bytes(
+                root / "state/shortcuts.json", json.dumps({"paths": links}).encode("utf-8")
+            )
+            mapping = {}
+            for relative, _ in release.files:
+                for prefix, installed in (
+                    ("payload/", "releases/" + release.source_sha + "/"),
+                    ("runtimes/python/", "dependencies/python/"),
+                    ("runtimes/postgres/", "dependencies/postgres/"),
+                    ("wheelhouse/", "dependencies/wheelhouse/"),
+                ):
+                    if relative.startswith(prefix):
+                        mapping[relative] = installed + relative.removeprefix(prefix)
+            from .release_service import service_sid
 
-            stage("registering-native-services")
+            boundaries = [
+                dict(
+                    path=relative,
+                    service_name=marker["services"][role],
+                    service_sid=service_sid(marker["services"][role]),
+                )
+                for role, relative in (("app", "runtime"), ("postgres", "postgres-data"))
+            ]
+            # All post-actor Admin files are explicit transaction creations.
+            owned_paths = set(created) | set(tx.identities)
+            expected_identities = {**tx.identities, **created}
+            ledger = maintenance / "ownership.json"
+            stage("sealing-ownership")
+            ledger_digest = write_ownership(
+                root,
+                marker,
+                release=release,
+                ledger_path=ledger,
+                owned_paths=tuple(owned_paths),
+                expected_identities=expected_identities,
+                expected_root_identity=tx.root_identity,
+                installed_files=mapping,
+                writer_boundaries=tuple(boundaries),
+                external_paths=tuple(links),
+                trust_config_path=maintenance / "trust.json",
+            )
+            trust = dict(
+                schema="tester-maintenance-trust/v1",
+                installation_id=str(ident),
+                root=str(root),
+                ledger=str(ledger),
+                trusted_ledger_sha256=ledger_digest,
+                trusted_public_key_sha256=trusted_public_key_sha256,
+                source_sha=release.source_sha,
+                manifest_sha256=release.manifest_sha256,
+                bundle=str(plain(bundle)),
+                module_source=str(plain(Path(bundle) / "payload")),
+                python=str(plain(Path(bundle) / "runtimes/python/python.exe")),
+                evidence_directory=str(maintenance / "evidence"),
+            )
+            write_json(maintenance / "trust.json", trust)
+            protect_external_bundle(maintenance)
+            tx.append(
+                dict(
+                    event="final_ledger_sealed",
+                    ledger_path=str(ledger),
+                    ledger_sha256=ledger_digest,
+                    trust_config_path=marker["trust_config"],
+                )
+            )
+            tx.append(dict(event="runtime_exposed"))
+            exposed = True
+            stage("waiting-for-api-worker-storage")
             with NativeController(marker) as controller:
-                controller.apply("install")
-                stage("applying-service-acls")
-                apply_acls(root, marker)
-                links = create_shortcuts(root, marker)
-                write_json(root / "state/shortcuts.json", {"paths": links})
-                stage("sealing-ownership")
-                import win32security
-
-                from .release_uninstall import write_ownership
-
-                boundaries = []
-                for role, relative in (("app", "runtime"), ("postgres", "postgres-data")):
-                    sid, _, _ = win32security.LookupAccountName(
-                        None, "NT SERVICE\\" + marker["services"][role]
-                    )
-                    boundaries.append(
-                        dict(
-                            path=relative,
-                            service_name=marker["services"][role],
-                            service_sid=win32security.ConvertSidToStringSid(sid),
-                        )
-                    )
-                mapping = {}
-                for relative, _ in release.files:
-                    for prefix, installed in (
-                        ("payload/", "releases/" + release.source_sha + "/"),
-                        ("runtimes/python/", "dependencies/python/"),
-                        ("runtimes/postgres/", "dependencies/postgres/"),
-                    ):
-                        if relative.startswith(prefix):
-                            mapping[relative] = installed + relative.removeprefix(prefix)
-                ledger = maintenance / "ownership.json"
-                ledger_digest = write_ownership(
-                    root,
-                    marker,
-                    release=release,
-                    ledger_path=ledger,
-                    owned_paths=tuple(created),
-                    installed_files=mapping,
-                    writer_boundaries=tuple(boundaries),
-                    external_paths=tuple(links),
-                    trust_config_path=maintenance / "trust.json",
-                )
-                sealed = True
-                trust = dict(
-                    schema="tester-maintenance-trust/v1",
-                    installation_id=str(ident),
-                    root=str(root),
-                    ledger=str(ledger),
-                    trusted_ledger_sha256=ledger_digest,
-                    trusted_public_key_sha256=trusted_public_key_sha256,
-                    source_sha=release.source_sha,
-                    manifest_sha256=release.manifest_sha256,
-                    bundle=str(plain(bundle)),
-                    module_source=str(plain(Path(bundle) / "payload")),
-                    python=str(plain(Path(bundle) / "runtimes/python/python.exe")),
-                    evidence_directory=str(maintenance / "evidence"),
-                )
-                write_json(maintenance / "trust.json", trust)
-                protect_external_bundle(maintenance)
-                stage("waiting-for-api-worker-storage")
                 controller.apply("start")
             stage("ready")
-        except BaseException as exc:
-            stage("interrupted", error_type=type(exc).__name__)
+            tx.append(dict(event="phase", phase="completed"))
+        return marker
+    except BaseException:
+        tx.append(dict(event="phase", phase="interrupted"))
+        tx.release_guards()
+        if exposed:
+            # A user may have submitted data as soon as the API became reachable.
+            # Preserve this installed root; reruns authenticate and resume it.
+            with NativeController(marker) as controller:
+                controller.apply("stop")
             raise
-    return marker
+        # Fresh-install transaction authority permits only proven construction
+        # resources. Unknown files make rollback refuse before deleting anything.
+        rollback_provisioning(
+            root,
+            journal_path=tx.path,
+            trusted_public_key_sha256=trusted_public_key_sha256,
+            expected_source_sha=release.source_sha,
+        )
+        raise
+    finally:
+        tx.close()
 
 
 def protect_external_bundle(bundle):
@@ -613,7 +596,7 @@ def apply_acls(root, marker):
 
     def acl(path, grants):
         subprocess.run(
-            ["icacls.exe", str(path), "/inheritance:r", "/grant:r", *grants],
+            [str(system_binary("icacls.exe")), str(path), "/inheritance:r", "/grant:r", *grants],
             check=True,
             capture_output=True,
         )
@@ -621,7 +604,9 @@ def apply_acls(root, marker):
     # Normalize only this newly created, exclusively builder-owned tree before
     # exposing it to service writers; PostgreSQL initdb may create explicit ACLs.
     subprocess.run(
-        ["icacls.exe", str(root / "*"), "/reset", "/T", "/Q"], check=True, capture_output=True
+        [str(system_binary("icacls.exe")), str(root / "*"), "/reset", "/T", "/Q"],
+        check=True,
+        capture_output=True,
     )
     read = administrators + [sid + ":(OI)(CI)RX" for sid in sids.values()]
     acl(root, read)
@@ -632,16 +617,43 @@ def apply_acls(root, marker):
     acl(root / "private", administrators)
     acl(root / "backups", administrators)
     subprocess.run(
-        ["icacls.exe", str(root), "/setowner", "*S-1-5-32-544", "/Q"],
+        [str(system_binary("icacls.exe")), str(root), "/setowner", "*S-1-5-32-544", "/Q"],
         check=True,
         capture_output=True,
     )
-    for name in ("releases", "dependencies"):
+    for name in ("releases", "dependencies", "state", "private", "backups"):
         subprocess.run(
-            ["icacls.exe", str(root / name), "/setowner", "*S-1-5-32-544", "/T", "/Q"],
+            [
+                str(system_binary("icacls.exe")),
+                str(root / name),
+                "/setowner",
+                "*S-1-5-32-544",
+                "/T",
+                "/Q",
+            ],
             check=True,
             capture_output=True,
         )
+    for path in (root / "config.json", root / MARKER):
+        subprocess.run(
+            [str(system_binary("icacls.exe")), str(path), "/setowner", "*S-1-5-32-544", "/Q"],
+            check=True,
+            capture_output=True,
+        )
+    # The provisioning App account must lose implicit owner WRITE_DAC on every
+    # PostgreSQL object before the protected SQL authority starts accepting work.
+    subprocess.run(
+        [
+            str(system_binary("icacls.exe")),
+            str(root / "postgres-data"),
+            "/setowner",
+            sids["postgres"],
+            "/T",
+            "/Q",
+        ],
+        check=True,
+        capture_output=True,
+    )
     acl(root / "config.json", ["*S-1-5-18:F", "*S-1-5-32-544:F", sids["app"] + ":R"])
 
 

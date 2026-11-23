@@ -121,6 +121,10 @@ def owned(current, plan, image):
         or current.get("account", "").casefold() != plan.get("account", ACCOUNT).casefold()
         or ("source_sha" in plan and current.get("source_sha") != plan["source_sha"])
         or (
+            plan.get("enforce_python_class")
+            and current.get("python_class") != plan.get("python_class")
+        )
+        or (
             plan.get("executable")
             and current.get("state") == "running"
             and str(current.get("executable", "")).casefold() != str(plan["executable"]).casefold()
@@ -301,14 +305,24 @@ class NativeSCM:
                 }
         except OSError as exc:
             raise LabViolation("Service has no fresh lab ownership parameters") from exc
+        python_class = None
+        try:
+            with winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                "SYSTEM\\CurrentControlSet\\Services\\" + name + "\\PythonClass",
+            ) as key:
+                python_class = winreg.QueryValueEx(key, None)[0]
+        except FileNotFoundError:
+            pass
         exited = False
         try:
             executable = self.process_image(status["ProcessId"]) if status["ProcessId"] else None
         except ProcessLookupError:
             executable = None
-            exited = True
+            exited = True  # SCM status snapshot raced an authenticated process exit.
         return dict(
             image=c[3],
+            python_class=python_class,
             account=c[7],
             state="pending"
             if exited
@@ -379,6 +393,7 @@ class NativeSCM:
                             plan["name"],
                             self.ws.SERVICE_QUERY_CONFIG
                             | self.ws.SERVICE_QUERY_STATUS
+                            | self.ws.SERVICE_CHANGE_CONFIG
                             | self.ws.SERVICE_START
                             | self.ws.SERVICE_STOP
                             | 0x10000,
@@ -410,7 +425,12 @@ class NativeSCM:
             plan["name"],
             ws.SERVICE_CHANGE_CONFIG
             | (
-                (ws.SERVICE_QUERY_CONFIG | ws.SERVICE_QUERY_STATUS | ws.SERVICE_STOP)
+                (
+                    ws.SERVICE_QUERY_CONFIG
+                    | ws.SERVICE_QUERY_STATUS
+                    | ws.SERVICE_STOP
+                    | ws.SERVICE_START
+                )
                 if getattr(self, "_bound", None) is not None
                 else 0
             )
@@ -430,6 +450,10 @@ class NativeSCM:
             if plan.get("service_sid", False):
                 ws.ChangeServiceConfig2(
                     h, ws.SERVICE_CONFIG_SERVICE_SID_INFO, ws.SERVICE_SID_TYPE_UNRESTRICTED
+                )
+            if "failure_on_non_crash" in plan:
+                ws.ChangeServiceConfig2(
+                    h, ws.SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, plan["failure_on_non_crash"]
                 )
             if plan.get("recovery_delays_ms"):
                 delays = plan["recovery_delays_ms"]
@@ -457,7 +481,7 @@ class NativeSCM:
                     "SourceSHA": plan.get("source_sha", ""),
                 }.items():
                     winreg.SetValueEx(key, k, 0, winreg.REG_SZ, v)
-            if dependency:
+            if plan.get("python_class"):
                 with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\PythonClass") as key:
                     winreg.SetValueEx(key, None, 0, winreg.REG_SZ, plan["python_class"])
                 with winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, base + "\\PythonPath") as key:
@@ -487,6 +511,65 @@ class NativeSCM:
         finally:
             if getattr(self, "_bound", None) is None or self._bound.get(plan["name"]) is not h:
                 ws.CloseServiceHandle(h)
+
+    def promote(self, initial, final, image):
+        """Change the same stopped provisioning service into the runtime service."""
+        import winreg
+
+        ws = self.ws
+        with self.lease([(initial, image)]):
+            handle = self._bound[initial["name"]]
+            if (
+                handle is None
+                or self._inspect_handle(initial["name"], handle)["state"] != "stopped"
+            ):
+                raise LabViolation("Stop the exact provisioning service before promotion")
+            self._call(
+                initial["name"],
+                ws.SERVICE_CHANGE_CONFIG,
+                lambda h: ws.ChangeServiceConfig(
+                    h,
+                    ws.SERVICE_NO_CHANGE,
+                    ws.SERVICE_AUTO_START,
+                    ws.SERVICE_NO_CHANGE,
+                    None,
+                    None,
+                    0,
+                    [final["dependency"]],
+                    None,
+                    None,
+                    None,
+                ),
+            )
+            ws.ChangeServiceConfig2(
+                handle,
+                ws.SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
+                final.get("failure_on_non_crash", False),
+            )
+            delays = final["recovery_delays_ms"]
+            ws.ChangeServiceConfig2(
+                handle,
+                ws.SERVICE_CONFIG_FAILURE_ACTIONS,
+                dict(
+                    ResetPeriod=86400,
+                    RebootMsg="",
+                    Command="",
+                    Actions=[
+                        (ws.SC_ACTION_RESTART, delays[0]),
+                        (ws.SC_ACTION_RESTART, delays[1]),
+                        (ws.SC_ACTION_NONE, 0),
+                    ],
+                ),
+            )
+            with winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                "SYSTEM\\CurrentControlSet\\Services\\" + initial["name"] + "\\PythonClass",
+                0,
+                winreg.KEY_SET_VALUE,
+            ) as key:
+                winreg.SetValueEx(key, None, 0, winreg.REG_SZ, final["python_class"])
+            self._bound_plans[initial["name"]] = (final, image)
+            owned(self._inspect_handle(initial["name"], handle), final, image)
 
     def _call(self, name, access, fn):
         if getattr(self, "_bound", None) is not None and self._bound.get(name) is not None:
@@ -526,7 +609,15 @@ class NativeSCM:
         raise LabViolation("SCM transition timed out")
 
 
-def stage_service_runtime(root, *, marker_reader=check, bootstrap="lab_service_bootstrap.py"):
+def stage_service_runtime(
+    root,
+    *,
+    marker_reader=check,
+    bootstrap="lab_service_bootstrap.py",
+    site_override=None,
+    transaction=None,
+    precompile=True,
+):
     """Stage a private SCM host from already locked bootstrap dependencies, never user Python.
 
     The resulting byte inventory is an integrity receipt. Bootstrap must independently
@@ -540,7 +631,9 @@ def stage_service_runtime(root, *, marker_reader=check, bootstrap="lab_service_b
     root = plain(root)
     marker = marker_reader(root)
     base = plain(root / "dependencies/python")
-    site = plain(root / "dependencies/venv/Lib/site-packages")
+    site = plain(
+        root / "dependencies/venv/Lib/site-packages" if site_override is None else site_override
+    )
     destination = plain(root / "dependencies/service")
     if destination.exists() or (root / "state/service-runtime.json").exists():
         raise LabViolation("Private service runtime already exists; never overwrite")
@@ -559,13 +652,13 @@ def stage_service_runtime(root, *, marker_reader=check, bootstrap="lab_service_b
         raise LabViolation(
             "Pinned compatible pywin32 host, service manager and native types DLL required"
         )
-    shutil.copytree(
-        base, destination, ignore=shutil.ignore_patterns("site-packages", "__pycache__")
-    )
-    shutil.copy2(host, destination / "pythonservice.exe")
-    shutil.copy2(types, destination / types.name)
+    copytree = shutil.copytree if transaction is None else transaction.copytree
+    copyfile = shutil.copy2 if transaction is None else transaction.copyfile
+    copytree(base, destination, ignore=shutil.ignore_patterns("site-packages", "__pycache__"))
+    copyfile(host, destination / "pythonservice.exe")
+    copyfile(types, destination / types.name)
     # pythonservice imports this before the service-specific PythonPath is available.
-    shutil.copy2(manager, destination / manager.name)
+    copyfile(manager, destination / manager.name)
     # Native pywin32 does not read the service-specific PythonPath registry key.
     # Plain .pth paths are processed by CPython before loading PythonClass.
     paths = [
@@ -576,27 +669,39 @@ def stage_service_runtime(root, *, marker_reader=check, bootstrap="lab_service_b
         site / "win32/lib",
     ]
     packages = destination / "Lib/site-packages"
-    packages.mkdir(exist_ok=True)
-    (packages / "tester-lab.pth").write_text(
-        "".join(str(path) + "\n" for path in paths), encoding="utf-8"
-    )
+    if transaction is None:
+        packages.mkdir(exist_ok=True)
+        (packages / "tester-lab.pth").write_text(
+            "".join(str(path) + "\n" for path in paths), encoding="utf-8"
+        )
+    else:
+        transaction.mkdir(packages)
+        transaction.write_bytes(
+            packages / "tester-lab.pth", "".join(str(path) + "\n" for path in paths).encode("utf-8")
+        )
     startup = Path(__file__).with_name("lab_sitecustomize.py")
-    shutil.copy2(startup, destination / "Lib/sitecustomize.py")
-    shutil.copy2(
+    copyfile(startup, destination / "Lib/sitecustomize.py")
+    copyfile(
         Path(__file__).with_name(bootstrap),
         destination / bootstrap,
     )
     # Cache both startup modules: disabling bytecode during execution can still
     # cache the disabling module itself. Bootstrap Python must match private Python.
-    if not compileall.compile_dir(str(destination / "Lib"), quiet=2):
+    if precompile and not compileall.compile_dir(str(destination / "Lib"), quiet=2):
         raise LabViolation("Private service standard library precompilation failed")
-    py_compile.compile(str(destination / bootstrap), doraise=True)
+    if precompile:
+        py_compile.compile(str(destination / bootstrap), doraise=True)
     files = {
         p.relative_to(destination).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
         for p in destination.rglob("*")
         if p.is_file()
     }
     manifest = dict(schema_version="tester-lab-service-runtime/v1", files=files)
-    with (root / "state/service-runtime.json").open("x", encoding="utf-8") as stream:
-        json.dump(manifest, stream, indent=2)
+    if transaction is None:
+        with (root / "state/service-runtime.json").open("x", encoding="utf-8") as stream:
+            json.dump(manifest, stream, indent=2)
+    else:
+        transaction.write_bytes(
+            root / "state/service-runtime.json", json.dumps(manifest, indent=2).encode("utf-8")
+        )
     return manifest

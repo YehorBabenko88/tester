@@ -616,7 +616,11 @@ def test_native_host_budget_denial_is_normal_stop_decision(monkeypatch, tmp_path
     monkeypatch.setitem(
         sys.modules,
         "src.api.restart_budget",
-        types.SimpleNamespace(DatabaseRestartBudget=Budget, BudgetDenied=Denied),
+        types.SimpleNamespace(
+            DatabaseRestartBudget=Budget,
+            BudgetDenied=Denied,
+            BudgetUnavailable=type("Unavailable", (Denied,), {}),
+        ),
     )
     marker = dict(installation_id=str(uuid.uuid4()), source_sha="a" * 40)
     monkeypatch.setattr(rs, "load_marker", lambda root: marker)
@@ -707,3 +711,104 @@ if (-not $blocked) {
         timeout=30,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_actor_registration_writes_class_without_dependency_and_keeps_start_right(
+    monkeypatch, tmp_path
+):
+    import sys
+    import types
+
+    from src.api.lab_scm import NativeSCM
+
+    calls = {}
+
+    class Key:
+        def __init__(self, path):
+            self.path = path
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    registry = types.SimpleNamespace(
+        HKEY_LOCAL_MACHINE="HKLM",
+        REG_SZ=1,
+        CreateKey=lambda hive, path: Key(path),
+        SetValueEx=lambda key, name, reserved, kind, value: calls.__setitem__(
+            (key.path, name), value
+        ),
+    )
+    monkeypatch.setitem(sys.modules, "winreg", registry)
+
+    class API:
+        SERVICE_CHANGE_CONFIG = 2
+        SERVICE_QUERY_CONFIG = 1
+        SERVICE_QUERY_STATUS = 4
+        SERVICE_START = 16
+        SERVICE_STOP = 32
+        SERVICE_WIN32_OWN_PROCESS = 16
+        SERVICE_AUTO_START = 2
+        SERVICE_DEMAND_START = 3
+        SERVICE_ERROR_NORMAL = 1
+
+        def CreateService(self, *args):
+            calls["access"] = args[3]
+            return "retained"
+
+        def CloseServiceHandle(self, h):
+            calls["closed"] = h
+
+        def DeleteService(self, h):
+            raise AssertionError("successful install must not rollback")
+
+    ident = uuid.uuid4()
+    plan = dict(
+        name="TesterReleaseApp_" + ident.hex,
+        root=str(tmp_path),
+        release=str(tmp_path / "source"),
+        installation_id=str(ident),
+        source_sha="a" * 40,
+        auto_start=False,
+        recovery_delays_ms=[],
+        python_class="signed.ReleaseProvisionService",
+    )
+    scm = object.__new__(NativeSCM)
+    scm.ws = API()
+    scm.manager = "manager"
+    scm._bound = {plan["name"]: None}
+    scm._bound_plans = {plan["name"]: (plan, "private.exe")}
+    scm.install(plan, "private.exe", None)
+    assert calls["access"] & scm.ws.SERVICE_START
+    assert calls["access"] & scm.ws.SERVICE_CHANGE_CONFIG
+    assert any(
+        isinstance(key, tuple) and key[0].endswith("PythonClass") and value == plan["python_class"]
+        for key, value in calls.items()
+    )
+    assert scm._bound[plan["name"]] == "retained" and "closed" not in calls
+
+
+def test_shortcut_target_ignores_spoofed_systemroot_and_path(tmp_path, monkeypatch):
+    import os
+
+    import pytest
+
+    if os.name != "nt":
+        pytest.skip("Native system directory API requires Windows")
+    from src.api.release_install import create_shortcuts, read_shortcut, system_binary
+
+    expected = system_binary("WindowsPowerShell/v1.0/powershell.exe")
+    root = tmp_path / "fixture"
+    scripts = root / "releases" / ("a" * 40) / "scripts/windows"
+    scripts.mkdir(parents=True)
+    for name in ("Start-ReleaseTester.ps1", "Uninstall-ReleaseTester.ps1"):
+        (scripts / name).write_text("# fixture")
+    desktop = tmp_path / "Desktop_fixture"
+    desktop.mkdir()
+    monkeypatch.setenv("SystemRoot", str(tmp_path / "foreign-windows"))
+    monkeypatch.setenv("PATH", str(tmp_path / "foreign-bin"))
+    marker = dict(mode="test", test_desktop=str(desktop), source_sha="a" * 40)
+    for path in create_shortcuts(root, marker):
+        assert read_shortcut(path)["target"].casefold() == str(expected).casefold()

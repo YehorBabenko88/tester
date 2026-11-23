@@ -52,6 +52,12 @@ class LabService(_Framework):
 
         return preflight(root)
 
+    def ready_without_http(self, root, marker, instance):
+        return False
+
+    def accepts_child_exit(self, exit_code):
+        return False
+
     def admit_start(self, root):
         return True
 
@@ -169,7 +175,11 @@ class LabService(_Framework):
                     self.record_phase("startup-interrupted")
                     return
                 if win32event.WaitForSingleObject(process, 0) == win32event.WAIT_OBJECT_0:
+                    if self.accepts_child_exit(win32process.GetExitCodeProcess(process)):
+                        return
                     raise LabViolation("Unexpected supervisor exit during startup")
+                if self.ready_without_http(root, marker, instance):
+                    break
                 try:
                     connection = HTTPConnection("127.0.0.1", self.health_port(marker), timeout=1)
                     try:
@@ -212,7 +222,7 @@ class LabService(_Framework):
                     raise LabViolation("Graceful shutdown timed out")
                 if win32process.GetExitCodeProcess(process) != 0:
                     raise LabViolation("Supervisor shutdown failed")
-            else:
+            elif not self.accepts_child_exit(win32process.GetExitCodeProcess(process)):
                 raise LabViolation("Unexpected supervisor exit")
         finally:
             if process is not None and not assigned:

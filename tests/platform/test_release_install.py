@@ -216,6 +216,106 @@ def test_full_native_installer_lifecycle(tmp_path):
 
     before = system_pg()
     try:
+        # First run is interrupted by killing only its authenticated private
+        # bootstrap Python while the real same-account provisioning service runs.
+        paused_env = dict(env, TESTER_INSTALL_TEST_PAUSE_PHASE="provisioning-actor-running")
+        bootstrap_log = tmp_path / "interrupted-bootstrap.log"
+        with bootstrap_log.open("w", encoding="utf-8") as output:
+            process = subprocess.Popen(
+                [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-File",
+                    str(media / "Setup-Tester.ps1"),
+                    "-Bundle",
+                    str(media),
+                    "-Root",
+                    str(root),
+                    "-Mode",
+                    "test",
+                    "-Desktop",
+                    str(desktop),
+                    "-ManifestSHA256",
+                    manifest_pin,
+                    "-TrustedPublicKeySHA256",
+                    key_pin,
+                    "-ExpectedSourceSHA",
+                    source_sha,
+                ],
+                stdout=output,
+                stderr=subprocess.STDOUT,
+                env=paused_env,
+            )
+            deadline = time.monotonic() + 600
+            pause = None
+            old_marker = None
+            while time.monotonic() < deadline:
+                if process.poll() is not None:
+                    pytest.fail(
+                        "Interrupted-install bootstrap exited before its test checkpoint: "
+                        + bootstrap_log.read_text()[-5000:]
+                    )
+                try:
+                    old_marker = ri.load_marker(root)
+                    pause_path = Path(old_marker["trust_config"]).parent / "test-pause.json"
+                    pause = json.loads(pause_path.read_text())
+                    if (
+                        pause.get("phase") == "provisioning-actor-running"
+                        and (root / "dependencies/venv").is_dir()
+                    ):
+                        break
+                except (OSError, ValueError, KeyError):
+                    pass
+                time.sleep(0.2)
+            else:
+                pytest.fail("Real provisioning service interruption checkpoint was not reached")
+            from src.api.release_uninstall import _security_record, _WindowsObject
+
+            obj = _WindowsObject(root / "dependencies/venv", lock=False)
+            try:
+                assert _security_record(obj)["owner"] == service_sid(old_marker["services"]["app"])
+            finally:
+                obj.close()
+            if (
+                pause.get("root") != str(root)
+                or pause.get("source_sha") != source_sha
+                or pause.get("installation_id") != old_marker["installation_id"]
+            ):
+                pytest.fail("Fault checkpoint identity mismatch")
+            pid = int(pause["pid"])
+            actual_parent = json.loads(
+                powershell(
+                    [
+                        "-Command",
+                        "Get-CimInstance Win32_Process -Filter 'ProcessId="
+                        + str(pid)
+                        + "' | Select-Object ParentProcessId | ConvertTo-Json -Compress",
+                    ]
+                ).stdout
+            )
+            if actual_parent["ParentProcessId"] != process.pid:
+                pytest.fail("Fault target is outside the created installer process")
+            from src.api.lab_scm import NativeSCM
+
+            if (
+                NativeSCM.process_image(pid).casefold()
+                != str(media / "runtimes/python/python.exe").casefold()
+            ):
+                pytest.fail("Fault target is not the verified private installer interpreter")
+            handle = win32api.OpenProcess(
+                win32con.PROCESS_TERMINATE | 0x100000 | 0x1000, False, pid
+            )
+            try:
+                win32api.TerminateProcess(handle, 9)
+            finally:
+                handle.Close()
+            assert process.wait(timeout=30) != 0
+        evidence["checks"].append(
+            dict(
+                phase="real-install-driver-interrupted",
+                installation_id=old_marker["installation_id"],
+            )
+        )
         powershell(
             [
                 "-File",
@@ -239,6 +339,15 @@ def test_full_native_installer_lifecycle(tmp_path):
         )
         marker = ri.load_marker(root)
         native = ready()
+        assert marker["installation_id"] != old_marker["installation_id"]
+        old_scm = NativeSCM()
+        try:
+            assert all(old_scm.inspect(name) is None for name in old_marker["services"].values())
+        finally:
+            old_scm.close()
+        evidence["checks"].append(
+            dict(phase="authenticated-interruption-rollback-and-clean-reinstall")
+        )
         assert len(marker["services"]) == 2 and marker["ports"]["postgres"] != 5432
         evidence["checks"].append(
             dict(
@@ -390,8 +499,10 @@ def test_full_native_installer_lifecycle(tmp_path):
                 pytest.fail("Unrelated PostgreSQL service/listener snapshot changed")
             if marker is not None and root.exists():
                 try:
-                    with NativeController(marker) as controller:
-                        controller.apply("remove")
+                    from src.api import release_provision
+
+                    release_provision.stop_and_prove_exit(marker)
+                    release_provision.remove_resources(marker)
                     evidence["failure_cleanup"] = (
                         "owned services removed; installation files preserved for diagnosis"
                     )
@@ -401,3 +512,28 @@ def test_full_native_installer_lifecycle(tmp_path):
             (tmp_path / "full-native-installer-evidence.json").write_text(
                 json.dumps(evidence, indent=2, default=str), encoding="utf-8"
             )
+
+
+def test_provisioning_plan_reuses_app_account_without_automatic_retries(tmp_path):
+    from src.api.release_provision import provisioning_plan
+    from src.api.release_service import plans
+
+    ident = uuid.uuid4()
+    marker = dict(
+        root=str(tmp_path),
+        installation_id=str(ident),
+        source_sha="a" * 40,
+        services={
+            "app": "TesterReleaseApp_" + ident.hex,
+            "postgres": "TesterReleasePG_" + ident.hex,
+        },
+        ports={"api": 18767, "postgres": 55471},
+    )
+    actor = provisioning_plan(marker)
+    app, _ = plans(marker)
+    assert actor["name"] == app["name"] and actor["account"] == app["account"]
+    assert actor["host"] == app["host"]
+    assert actor["auto_start"] is False
+    assert actor["recovery_delays_ms"] == []
+    assert actor["dependency"] is None
+    assert actor["python_class"].endswith(".ReleaseProvisionService")

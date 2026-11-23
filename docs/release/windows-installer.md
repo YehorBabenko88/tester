@@ -58,3 +58,34 @@ Host reboot and existing ADMINIT installation remain owner-authorized VM gates.
 A trusted production signature, fully staged offline runtime package, full installer
 and uninstaller lifecycle on a disposable Windows VM, post-reboot autostart, native writer-boundary provenance and independent review are required before production GO.
 A passing contract test is not production installation evidence.
+
+## Interrupted construction and runtime exposure
+
+The same App service first runs demand-only provisioning under its unique virtual
+account; it has no SCM automatic recovery during construction. Its existing native
+Job Object contains venv, pip, initdb and migration subprocesses. The installer then
+stops that actor, proves creator SIDs and native object identities, and promotes the
+same service registration to the runtime class and PostgreSQL dependency. There is
+no third service or second supervisor.
+
+An administrator token with SeRestorePrivilege assigns the unique App SID at the
+native creation operation. External protected JSONL plans are fsynced before files
+or directories are created; native IDs are fsynced before contents are written.
+Unknown Admin/user-created files are never enrolled. A pre-exposure interrupted
+attempt is cleaned only through the authenticated native-handle rollback helper,
+and rerunning the same signed package starts a fresh installation. A durable
+`runtime_exposed` event is fsynced before the first runtime API service start. From
+that point failures preserve data and reruns validate the final ledger and resume;
+removal requires normal typed confirmations.
+
+Before runtime starts, every PostgreSQL object changes to its dedicated PG owner;
+code, configuration, state and owner credentials become Administrators-owned.
+The App account cannot regain PostgreSQL or owner credentials through implicit
+owner WRITE_DAC. Runtime restart reservations use the existing protected SQL
+budget authority; no mutable local file resets these reservations.
+
+Production Desktop links specify `-ExecutionPolicy AllSigned`. The canonical
+bootstrap additionally requires valid Authenticode signatures and the independently
+approved certificate SHA-256 through `-TrustedPublisherSHA256`. Test-mode fixture
+signatures do not satisfy or claim this production gate. No certificate is added
+to a host trust store by the installer.

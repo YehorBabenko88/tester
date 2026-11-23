@@ -17,6 +17,7 @@ def plans(marker):
         auto_start=True,
         service_sid=True,
         recovery_delays_ms=[1000, 5000, 0],
+        failure_on_non_crash=True,
     )
     app = dict(
         common,
@@ -25,6 +26,7 @@ def plans(marker):
         dependency=marker["services"]["postgres"],
         host=str(root / "dependencies/service/pythonservice.exe"),
         executable=str(root / "dependencies/service/pythonservice.exe"),
+        enforce_python_class=True,
         python_class=str(root / "dependencies/service/release_service_bootstrap")
         + ".ReleaseService",
         release=str(root / "releases" / marker["source_sha"]),
@@ -188,13 +190,13 @@ def _process_parents():
 class NativeStopProof:
     """Stable handles for authenticated service roots, PG descendants and app job."""
 
-    def __init__(self, marker):
+    def __init__(self, marker, *, validator=validate_resources, pg_descendants=True):
         import win32job
 
         self.handles = []
         self.job = None
         try:
-            states = validate_resources(marker)
+            states = validator(marker)
             root = Path(marker["root"])
             pg_roots = set()
             for role, state, plan in zip(("app", "postgres"), states, plans(marker), strict=True):
@@ -214,7 +216,7 @@ class NativeStopProof:
             if self.job is not None:
                 _validate_job_owner(self.job, marker)
             pidfile = root / "postgres-data/postmaster.pid"
-            if pidfile.exists():
+            if pg_descendants and pidfile.exists():
                 from .lab_install import plain
 
                 lines = plain(pidfile).read_text().splitlines()
@@ -225,6 +227,8 @@ class NativeStopProof:
                 ):
                     raise ValueError("Dedicated PostgreSQL PID receipt scope mismatch")
                 pg_roots.add(int(lines[0]))
+            if not pg_descendants:
+                pg_roots.clear()
             parents = _process_parents()
             descendants = set(pg_roots)
             while True:
@@ -488,7 +492,7 @@ class ReleaseService(LabService):
     marker_reader = staticmethod(load_marker)
 
     def admit_start(self, root):
-        from .restart_budget import BudgetDenied, DatabaseRestartBudget
+        from .restart_budget import BudgetDenied, BudgetUnavailable, DatabaseRestartBudget
 
         marker = load_marker(root)
         try:
@@ -498,6 +502,8 @@ class ReleaseService(LabService):
                 marker["installation_id"],
                 marker["source_sha"],
             ).admit("host")
+        except BudgetUnavailable:
+            raise
         except BudgetDenied:
             return False
         return True
