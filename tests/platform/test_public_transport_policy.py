@@ -250,12 +250,13 @@ def test_failed_halt_write_closes_http_response_without_clearing_pending():
     store = ReservationFixture()
     store.finish = Mock(side_effect=RuntimeError("DB unavailable"))
     value = response(403)
-    value.close = Mock()
+    original_close = Mock()
+    value.close = original_close
     session = Mock()
     session.request.return_value = value
     with pytest.raises(RuntimeError):
         Transport(session=session, policy_store=store).get(URL, stream=True)
-    value.close.assert_called_once()
+    original_close.assert_called_once()
     assert store.state == "PENDING"
 
 
@@ -601,3 +602,30 @@ def test_actual_pg_inflight_close_tls_with_real_database_outage(durable_policy):
             )
 
     close_inflight_after_clean_reader(policy, outage=availability)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("status", [302, 429, 503])
+def test_actual_pg_error_stream_close_tls_with_database_outage(durable_policy, status):
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    from src.api.db import connect
+    from tests.platform.test_public_transport_edges import assert_error_stream_close_pending
+
+    policy, owner, scope = durable_policy
+    database = conninfo_to_dict(owner.dsn)["dbname"]
+    admin = make_conninfo(owner.dsn, dbname="postgres")
+
+    def availability(enabled):
+        with connect(admin) as conn:
+            conn.execute(
+                sql.SQL(
+                    "ALTER DATABASE {} ALLOW_CONNECTIONS " + ("true" if enabled else "false")
+                ).format(sql.Identifier(database))
+            )
+
+    try:
+        assert_error_stream_close_pending(policy, status, availability)
+    finally:
+        availability(True)

@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import requests
+from requests.sessions import Session as RequestsSession
 
 from src.api.guardians.exchange_guardian import (
     ExchangeGuardian,
@@ -30,6 +31,14 @@ class SystemTrustAdapter(requests.adapters.HTTPAdapter):
     def init_poolmanager(self, *args, **kwargs):
         kwargs["ssl_context"] = ssl.create_default_context()
         return super().init_poolmanager(*args, **kwargs)
+
+
+class UnsafePublicSession(ValueError):
+    """A configured HTTP session would add unapproved network behavior."""
+
+
+class PublicEndpointHalted(ValueError):
+    """A queued request was refused before sending any bytes."""
 
 
 class Transport:
@@ -57,6 +66,7 @@ class Transport:
         self.local = threading.local()
         self.attempts, self.rate, self.sleep = attempts, rate, sleep
         self.lock = threading.Lock()
+        self.dispatch_lock = threading.Lock()
         self.next_request = 0
         self.halted = set()
         self.policy_store = policy_store
@@ -169,6 +179,8 @@ class Transport:
                 and not lease.get("active_readers", 0)
                 and not lease.get("active_closers", 0)
                 and not lease.get("close_failed", False)
+                and not lease.get("reader_close_failed", False)
+                and (not lease.get("stream_guarded", False) or lease.get("close_complete", False))
             ):
                 self.policy_store.finish(key, lease["token"], lease["outcome"])
                 lease["token"] = None
@@ -179,33 +191,55 @@ class Transport:
         # scope when the reservation has already been released or replaced.
         with lease["lock"]:
             lease["outcome"] = reason
-            if self.policy_store is None:
-                with self.lock:
-                    self.halted.add(key)
-            elif not lease.get("security_reported", False):
+            with self.lock:
+                self.halted.add(key)
+            if self.policy_store is not None and not lease.get("security_reported", False):
                 self.policy_store.finish(key, lease["security_token"], reason)
                 lease["security_reported"] = True
                 lease["token"] = None
 
-    def _guard_stream(self, response, key, lease, started):
+    def _guard_stream(self, response, key, lease, started, cancel=None):
         original_iter, original_close = response.iter_content, response.close
+        lease["stream_guarded"] = True
 
         def consume(*args, **kwargs):
             with lease["lock"]:
                 if lease.get("closing", False):
                     raise ValueError("Public response already closed")
                 lease["active_readers"] = lease.get("active_readers", 0) + 1
+            iterator = None
             try:
-                yield from original_iter(*args, **kwargs)
+                self._wait(0, cancel)
+                iterator = iter(original_iter(*args, **kwargs))
+                for block in iterator:
+                    self._wait(0, cancel)
+                    yield block
+                    self._wait(0, cancel)
+            except InterruptedError:
+                close()
+                raise
             except requests.exceptions.SSLError:
                 self._security_fault(key, lease, "tls_failure")
                 self._observe(key, started, "tls_failure")
                 raise
             finally:
-                with lease["lock"]:
-                    lease["active_readers"] -= 1
-                    if lease.get("closing", False):
-                        self._finish_policy(key, lease)
+                try:
+                    closer = getattr(iterator, "close", None)
+                    if callable(closer):
+                        try:
+                            closer()
+                        except BaseException as exc:
+                            with lease["lock"]:
+                                lease["reader_close_failed"] = True
+                            if isinstance(exc, requests.exceptions.SSLError):
+                                self._security_fault(key, lease, "tls_failure")
+                                self._observe(key, started, "tls_failure")
+                            raise
+                finally:
+                    with lease["lock"]:
+                        lease["active_readers"] -= 1
+                        if lease.get("closing", False):
+                            self._finish_policy(key, lease)
 
         def close():
             with lease["lock"]:
@@ -227,6 +261,7 @@ class Transport:
                     # Any unconfirmed underlying close leaves its reservation
                     # pending. A successful TLS halt write already consumed it.
                     lease["close_failed"] = not succeeded
+                    lease["close_complete"] = succeeded
                     self._finish_policy(key, lease)
 
         response.iter_content, response.close = consume, close
@@ -265,6 +300,80 @@ class Transport:
         if cancel and cancel():
             raise InterruptedError("Public request cancelled")
 
+    @staticmethod
+    def _validate_session(session):
+        # Opaque request protocols are trusted test/integration seams, not a
+        # sandbox. The native HttpMeter exposes its underlying real Session.
+        candidate = session
+        if not isinstance(candidate, RequestsSession):
+            candidate = getattr(session, "__dict__", {}).get("session")
+        if not isinstance(candidate, RequestsSession):
+            return
+        safe_headers = {"accept", "accept-encoding", "user-agent", "connection"}
+        if (
+            candidate.trust_env is not False
+            or candidate.verify is not True
+            and not (isinstance(candidate.verify, str) and candidate.verify)
+            or candidate.auth is not None
+            or candidate.cookies
+            or candidate.proxies
+            or candidate.params
+            or candidate.cert
+            or any(candidate.hooks.values())
+            or any(str(name).lower() not in safe_headers for name in candidate.headers)
+        ):
+            raise UnsafePublicSession("Unsafe public requests session configuration")
+        for adapter in candidate.adapters.values():
+            if type(adapter) not in {requests.adapters.HTTPAdapter, SystemTrustAdapter}:
+                raise UnsafePublicSession("Unapproved public requests session adapter")
+            if adapter.max_retries.total != 0:
+                raise UnsafePublicSession("Hidden public requests session retries")
+            context = adapter.poolmanager.connection_pool_kw.get("ssl_context")
+            if context is not None and (
+                context.verify_mode != ssl.CERT_REQUIRED or not context.check_hostname
+            ):
+                raise UnsafePublicSession("Unsafe public requests session TLS context")
+
+    def _request(self, session, url, key, timeout, cancel, kwargs):
+        # Reserve the actual send slot after durable admission. Keep this sole
+        # dispatch gate until headers/body arrive, so delayed callers cannot
+        # send a burst and a 429 publishes cooldown before the next send.
+        while not self.dispatch_lock.acquire(timeout=0.25):
+            self._wait(0, cancel)
+        try:
+            while True:
+                self._wait(0, cancel)
+                with self.lock:
+                    deadline = max(time.monotonic(), self.next_request)
+                self._wait(max(0, deadline - time.monotonic()), cancel)
+                with self.lock:
+                    if self.next_request > deadline:
+                        continue
+                    self.next_request = max(deadline, time.monotonic()) + 1 / self.rate
+                break
+            self._validate_session(session)
+            with self.lock:
+                if key in self.halted or len(self.halted) >= 128:
+                    raise PublicEndpointHalted("Public endpoint halted; manual review required")
+            try:
+                response = session.request(
+                    "GET", url, timeout=timeout, allow_redirects=False, **kwargs
+                )
+            except requests.exceptions.SSLError:
+                with self.lock:
+                    self.halted.add(key)
+                raise
+            if response.status_code == 403:
+                with self.lock:
+                    self.halted.add(key)
+            if response.status_code == 429:
+                after = retry_after_seconds(response.headers.get("Retry-After"), datetime.now(UTC))
+                if after is not None:
+                    self.defer(after)
+            return response
+        finally:
+            self.dispatch_lock.release()
+
     def get(self, url, *, cancel=None, **kwargs):
         cancel = cancel if cancel is not None else self.cancel_callback
         key = public_endpoint_key(url)
@@ -289,19 +398,18 @@ class Transport:
             )
         ):
             raise ValueError("Invalid bounded timeout")
+        if self.session is None and not hasattr(self.local, "session"):
+            self.local.session = requests.Session()
+            self.local.session.mount("https://", SystemTrustAdapter())
+            self.local.session.trust_env = False
+        session = self.session if self.session is not None else self.local.session
+        self._validate_session(session)
         with self.operation():
             while self.local.remaining:
                 with self.lock:
-                    if self.policy_store is None and (
-                        key in self.halted or len(self.halted) >= 128
-                    ):
+                    if key in self.halted or len(self.halted) >= 128:
                         raise ValueError("Public endpoint halted; manual review required")
                 self._wait(0, cancel)
-                with self.lock:
-                    now = time.monotonic()
-                    wait = max(0, self.next_request - now)
-                    self.next_request = max(now, self.next_request) + 1 / self.rate
-                self._wait(wait, cancel)
                 lease = self._reserve_policy(key, cancel)
                 try:
                     self._wait(0, cancel)
@@ -312,18 +420,12 @@ class Transport:
                 response = None
                 started = time.monotonic()
                 try:
-                    if self.session is None and not hasattr(self.local, "session"):
-                        self.local.session = requests.Session()
-                        self.local.session.mount("https://", SystemTrustAdapter())
-                        # Never inherit .netrc credentials, environment proxies or auth.
-                        self.local.session.trust_env = False
-                    session = self.session if self.session is not None else self.local.session
-                    response = session.request(
-                        "GET", url, timeout=timeout, allow_redirects=False, **kwargs
-                    )
+                    response = self._request(session, url, key, timeout, cancel, kwargs)
+                    if kwargs.get("stream"):
+                        self._guard_stream(response, key, lease, started, cancel)
                     if response.status_code == 403:
                         self._security_fault(key, lease, "http_403")
-                    elif not kwargs.get("stream") or response.status_code >= 300:
+                    elif not kwargs.get("stream"):
                         self._finish_policy(key, lease)
                     try:
                         self._observe(
@@ -336,15 +438,12 @@ class Transport:
                     except Exception:
                         response.close()
                         raise
+                    self._wait(0, cancel)
                     if 300 <= response.status_code < 400:
                         response.close()
                         raise ValueError("Unexpected redirect")
                     response.raise_for_status()
-                    return (
-                        self._guard_stream(response, key, lease, started)
-                        if kwargs.get("stream")
-                        else response
-                    )
+                    return response
                 except requests.RequestException as exc:
                     if isinstance(exc, requests.exceptions.SSLError):
                         self._security_fault(key, lease, "tls_failure")
@@ -380,7 +479,11 @@ class Transport:
                     if not transient or not self.local.remaining:
                         raise
                     self.defer(delay)
-                except Exception:
+                except Exception as exc:
+                    if isinstance(
+                        exc, (InterruptedError, UnsafePublicSession, PublicEndpointHalted)
+                    ):
+                        self._finish_policy(key, lease)
                     if response is not None:
                         response.close()
                     raise
