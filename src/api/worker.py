@@ -1,3 +1,4 @@
+import os
 import signal
 import threading
 from uuid import uuid4
@@ -94,6 +95,7 @@ def run():
     if hasattr(signal, "SIGBREAK"):
         signal.signal(signal.SIGBREAK, lambda *_: stop.set())
     worker_id = uuid4()
+    service_instance = os.environ.get("TESTER_SERVICE_INSTANCE")
 
     def heartbeat():
         while not stop.is_set():
@@ -101,7 +103,7 @@ def run():
                 stop.set()
                 break
             try:
-                queue.heartbeat(worker_id)
+                queue.heartbeat(worker_id, service_instance)
             except Exception as exc:
                 logger.error("heartbeat_failed", extra={"error_type": type(exc).__name__})
             stop.wait(5)

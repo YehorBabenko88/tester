@@ -56,6 +56,7 @@ def error(status, code, message):
 
 def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
     settings = settings or load_settings()
+    service_instance = os.environ.get("TESTER_SERVICE_INSTANCE")
     reader = provider or load_factory(settings.provider_factory, UnavailableReader())
     cursor_codec = CursorCodec()
     queue = (
@@ -230,8 +231,12 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
                 with connect(settings.dsn) as conn:
                     conn.execute("SELECT version FROM tester_platform.migrations LIMIT 1")
                     database = "ok"
-                    alive = conn.execute("""SELECT EXISTS(SELECT 1 FROM tester_platform.workers
-                        WHERE heartbeat_at > now()-interval '30 seconds')""").fetchone()[0]
+                    alive = conn.execute(
+                        """SELECT EXISTS(SELECT 1 FROM tester_platform.workers
+                        WHERE heartbeat_at > now()-interval '30 seconds'
+                        AND (%s::text IS NULL OR service_instance=%s))""",
+                        (service_instance, service_instance),
+                    ).fetchone()[0]
                     worker = "ok" if alive else "unavailable"
             except psycopg.Error:
                 pass
@@ -244,7 +249,7 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
                 database=database,
                 worker=worker,
                 provider=provider_status,
-                instance_id=os.environ.get("TESTER_SERVICE_INSTANCE"),
+                instance_id=service_instance,
                 **storage,
             )
         )

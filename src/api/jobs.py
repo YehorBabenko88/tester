@@ -198,10 +198,11 @@ class JobQueue:
                 (id, token),
             )
 
-    def heartbeat(self, worker_id):
+    def heartbeat(self, worker_id, service_instance=None):
         with connect(self.dsn) as conn:
             conn.execute(
-                """INSERT INTO tester_platform.workers(id) VALUES(%s)
-                ON CONFLICT(id) DO UPDATE SET heartbeat_at=now()""",
-                (worker_id,),
+                """INSERT INTO tester_platform.workers(id,service_instance) VALUES(%s,%s)
+                ON CONFLICT(id) DO UPDATE SET heartbeat_at=now(),
+                service_instance=excluded.service_instance""",
+                (worker_id, service_instance),
             )
