@@ -393,6 +393,16 @@ persisted deadline; the existing scheduler owns later retries. This is not a
 strict five-second wall-clock bound: connection/statement timeout bounds also
 apply. Cancellation is checked through catalog streams/rate waits and final
 network attempts, including single-attempt timeouts; TLS and 403 security faults
-retain priority. A crashed sender or uncertain dispatch completion leaves durable
-PENDING without expiry. Only explicit whole-scope database-owner review clears
-that dispatch state; endpoint-only reset cannot abandon another sender.
+retain priority. A sender crash before completion, or a completion write that did
+not commit, leaves the global dispatch token PENDING without expiry. Only explicit
+whole-scope database-owner review can abandon that pending dispatch; endpoint-only
+reset cannot abandon another sender.
+
+An acknowledgement loss after a successful completion COMMIT is different: the
+global token may already be cleared and the durable 0.5-second/Retry-After
+cooldown committed, while the old endpoint remains fenced by its retained lease.
+Other endpoints may be admitted after that persisted cooldown under the same
+fixed rate. The caller does not blindly retry an uncertain completion or clear
+the old endpoint. An uncertain acknowledgement alone is therefore not proof that
+the global token remains PENDING; owner review must inspect the actual durable
+state before selecting endpoint-only or whole-scope recovery.
