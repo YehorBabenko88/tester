@@ -893,3 +893,51 @@ def test_stop_proof_foreign_token_diagnostic_is_fail_closed():
     assert "token_user=S-" in message and "image=" in message
     assert "expected_token_user=S-1-5-80-1-2-3-4-5" in message
     assert not proof.handles
+
+
+def test_postgres_console_requires_physical_os_binary_and_parent_order(tmp_path, monkeypatch):
+    import os
+
+    import pytest
+
+    if os.name != "nt":
+        pytest.skip("Windows file identity and process times required")
+    import datetime
+    import shutil
+    import sys
+
+    import win32process
+
+    from src.api.release_install import system_binary
+
+    console = system_binary("conhost.exe")
+    assert rs._same_executable_file(console, console)
+    copy = tmp_path / "conhost.exe"
+    shutil.copyfile(console, copy)
+    assert not rs._same_executable_file(console, copy)
+    assert not rs._same_executable_file(sys.executable, console)
+    seen = []
+
+    def same(actual, expected):
+        seen.append((str(actual), str(expected)))
+        return str(actual) == str(expected)
+
+    monkeypatch.setattr(rs, "_same_executable_file", same)
+    times = {1: 10, 2: 20}
+    monkeypatch.setattr(
+        win32process,
+        "GetProcessTimes",
+        lambda handle: {
+            "CreationTime": datetime.datetime.fromtimestamp(times[handle], datetime.UTC)
+        },
+    )
+    parent = dict(handle=1, image="private-postgres.exe")
+    assert rs._owned_postgres_console(2, str(console), parent, "private-postgres.exe", 30)
+    assert seen == [(str(console), str(console)), ("private-postgres.exe", "private-postgres.exe")]
+    assert not rs._owned_postgres_console(2, str(copy), parent, "private-postgres.exe", 30)
+    assert not rs._owned_postgres_console(2, str(console), parent, "other.exe", 30)
+    times[1] = 25  # Historical PPID from an older process, now reused.
+    assert not rs._owned_postgres_console(2, str(console), parent, "private-postgres.exe", 30)
+    times[1] = 10
+    times[2] = 40  # Candidate PID was replaced after the ancestry snapshot.
+    assert not rs._owned_postgres_console(2, str(console), parent, "private-postgres.exe", 30)

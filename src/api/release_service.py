@@ -187,6 +187,49 @@ def _process_parents():
     return result
 
 
+def _same_executable_file(actual, expected):
+    """Compare physical Windows file identity, including legitimate OS aliases."""
+    import win32file
+
+    handles = []
+    try:
+        for path in (actual, expected):
+            handles.append(
+                win32file.CreateFile(
+                    str(path),
+                    0x80,
+                    1 | 2 | 4,
+                    None,
+                    3,
+                    0x00200000,
+                    None,
+                )
+            )
+        info = [win32file.GetFileInformationByHandle(handle) for handle in handles]
+        if any(row[0] & 0x400 for row in info):
+            return False  # Never follow reparse points as executable authority.
+        return (info[0][4], info[0][8], info[0][9]) == (info[1][4], info[1][8], info[1][9])
+    finally:
+        for handle in handles:
+            handle.Close()
+
+
+def _owned_postgres_console(handle, image, parent, postgres_image, snapshot_started):
+    import win32process
+
+    from .release_install import system_binary
+
+    if not _same_executable_file(image, system_binary("conhost.exe")):
+        return False
+    if not _same_executable_file(parent["image"], postgres_image):
+        return False
+    child_created = win32process.GetProcessTimes(handle)["CreationTime"].timestamp()
+    parent_created = win32process.GetProcessTimes(parent["handle"])["CreationTime"].timestamp()
+    # PPID is historical: reject a child predating its currently held parent.
+    # A post-snapshot child could be a reused PID, so it is never adopted here.
+    return parent_created <= child_created <= snapshot_started
+
+
 class NativeStopProof:
     """Stable handles for authenticated service roots, PG descendants and app job."""
 
@@ -194,6 +237,7 @@ class NativeStopProof:
         import win32job
 
         self.handles = []
+        self.processes = {}
         self.job = None
         try:
             states = validator(marker)
@@ -229,6 +273,9 @@ class NativeStopProof:
                 pg_roots.add(int(lines[0]))
             if not pg_descendants:
                 pg_roots.clear()
+            import time
+
+            snapshot_started = time.time()
             parents = _process_parents()
             descendants = set(pg_roots)
             while True:
@@ -240,20 +287,38 @@ class NativeStopProof:
                 str(root / "dependencies/postgres/bin/postgres.exe"),
                 str(root / "dependencies/postgres/bin/pg_ctl.exe"),
             }
-            for pid in descendants:
-                try:
-                    self._capture(pid, service_sid(marker["services"]["postgres"]), allowed)
-                except ValueError as exc:
-                    ancestry = {child: parents.get(child) for child in sorted(descendants)}
-                    raise ValueError(
-                        f"PostgreSQL stop-proof rejected: roots={sorted(pg_roots)}; "
-                        f"ancestry={ancestry}; {exc}"
-                    ) from exc
+            # Authenticate parents before considering their console children.
+            pending = set(descendants)
+            while pending:
+                ready = {
+                    pid for pid in pending if pid in pg_roots or parents.get(pid) not in pending
+                }
+                if not ready:
+                    raise ValueError("Cyclic PostgreSQL ancestry snapshot")
+                for pid in ready:
+                    try:
+                        self._capture(
+                            pid,
+                            service_sid(marker["services"]["postgres"]),
+                            allowed,
+                            console_parent=self.processes.get(parents.get(pid)),
+                            postgres_image=root / "dependencies/postgres/bin/postgres.exe",
+                            snapshot_started=snapshot_started,
+                        )
+                    except ValueError as exc:
+                        ancestry = {child: parents.get(child) for child in sorted(descendants)}
+                        raise ValueError(
+                            f"PostgreSQL stop-proof rejected: roots={sorted(pg_roots)}; "
+                            f"ancestry={ancestry}; {exc}"
+                        ) from exc
+                pending.difference_update(ready)
         except BaseException:
             self.close()
             raise
 
-    def _capture(self, pid, sid, allowed):
+    def _capture(
+        self, pid, sid, allowed, *, console_parent=None, postgres_image=None, snapshot_started=None
+    ):
         import ctypes
         from ctypes import wintypes
 
@@ -284,15 +349,21 @@ class NativeStopProof:
             size = wintypes.DWORD(len(buffer))
             if not kernel.QueryFullProcessImageNameW(int(handle), 0, buffer, ctypes.byref(size)):
                 raise ctypes.WinError(ctypes.get_last_error())
-            if actual != sid or buffer.value.casefold() not in {
-                path.casefold() for path in allowed
-            }:
+            executable_allowed = buffer.value.casefold() in {path.casefold() for path in allowed}
+            if actual == sid and not executable_allowed and console_parent is not None:
+                executable_allowed = _owned_postgres_console(
+                    handle, buffer.value, console_parent, postgres_image, snapshot_started
+                )
+            if actual != sid or not executable_allowed:
                 raise ValueError(
                     "Foreign executable/token in owned service ancestry: "
                     f"pid={pid}; image={buffer.value!r}; token_user={actual}; "
                     f"expected_token_user={sid}; allowed_images={sorted(allowed)!r}"
                 )
             self.handles.append(handle)
+            if not hasattr(self, "processes"):
+                self.processes = {}
+            self.processes[pid] = dict(handle=handle, image=buffer.value, sid=actual)
             handle = None
         finally:
             if token is not None:
