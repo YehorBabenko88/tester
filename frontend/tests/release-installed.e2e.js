@@ -15,7 +15,7 @@ test("installed SCM terminal serves the attested release and ready worker", asyn
   });
   const health = await request.get("/api/health");
   expect([200, 503]).toContain(health.status());
-  expect(await health.json()).toMatchObject({
+  expect((await health.json()).data).toMatchObject({
     instance_id: process.env.TESTER_INSTALLED_INSTANCE,
     database: "ok", worker: "ok", storage: "ok",
   });
@@ -31,7 +31,7 @@ test("installed SCM terminal serves the attested release and ready worker", asyn
   await page.getByRole("link", { name: "Terminal", exact: true }).click();
   await expect(page.locator("#terminal")).toBeVisible();
   const final = await request.get("/api/health");
-  expect(await final.json()).toMatchObject({
+  expect((await final.json()).data).toMatchObject({
     instance_id: process.env.TESTER_INSTALLED_INSTANCE,
     database: "ok", worker: "ok", storage: "ok",
   });
