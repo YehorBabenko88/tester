@@ -127,7 +127,7 @@ Each run has manifest/source pins, raw results, PostgreSQL logs, existing-test l
 crash recovery evidence, cleanup status and public response samples with SHA-256.
 
 A separate candidate-only compatibility run used staged production CPython 3.14.10
-and PostgreSQL 18.7 with the same pinned candidate. All 34 existing PostgreSQL tests,
+and PostgreSQL 18.7 with the same pinned candidate. All 34 selected acceptance tests with PostgreSQL enabled,
 workload checks, crash recovery and public probes passed. This is ABI compatibility
 evidence, not a performance comparison across interpreter/database versions.
 Its evidence root is `work/release-production-compatibility/run-20261123T234246-4cce4d49`.
@@ -236,7 +236,7 @@ An immutable same-interpreter comparison pinned baseline
 `e64e30d8369626197403b3962f91bb350656e4c9` and candidate
 `cc74009a89889b7753832b236cf6cc21a5aa6f53` on CPython 3.12.10 / PostgreSQL 18.1.
 Both completed the requested 600-second synthetic queue/read/HTTP workload and
-passed 34 existing PostgreSQL tests, crash recovery, row digest/checkpoint
+passed the 34-test selected suite with PostgreSQL enabled, crash recovery, row digest/checkpoint
 preservation and old-lease fencing. Both clusters were stopped.
 
 | Sustained observation | Baseline | Candidate |
@@ -263,7 +263,7 @@ does not test native SCM or the later opt-in projection/host-restart-budget prof
 Evidence: `work/release-runtime-soak600/run-20261123T235018-462f2e2c`.
 
 Candidate-only CPython 3.14.10 / PostgreSQL 18.7 compatibility was repeated at
-published `64591cc91f5cf0f9c36d0dd81e4c838afd94ca28`: 34 PostgreSQL tests,
+published `64591cc91f5cf0f9c36d0dd81e4c838afd94ca28`: 34 selected tests with PostgreSQL enabled,
 runtime/HTTP checks, crash recovery and public probes passed. This is separate
 from the same-interpreter performance comparison and predates projection wiring.
 Evidence: `work/release-production-compatibility-latest/run-20261124T001326-359b97eb`.
@@ -326,8 +326,9 @@ Committed native policy/readiness replay at
 `8b41d277e9a40b7f7eaaf87fa0fb36e9c38b14ca` used CPython 3.14.10 and PostgreSQL
 18.7 on disposable ports 55824/55828 with SCRAM mutual authentication. The actual
 release initializer seeded the shared transport authority: no manual policy
-seed/grant or configuration override was used. All 47 PostgreSQL regressions
-passed; the authenticated native API/worker/browser flow passed (4.3 seconds).
+seed/grant or configuration override was used. All 47 selected acceptance tests
+passed (19 PostgreSQL-backed cases and 28 cases without PostgreSQL); the
+authenticated native API/worker/browser flow passed (4.3 seconds).
 An actual CatalogHandler download completed three public BTCUSDT minute candles
 with authentic declared provenance through the existing fenced queue and Store,
 without a legacy TLS manifest. This is a bounded window, not historical coverage.
@@ -340,3 +341,38 @@ NULL semantics. Evidence is in
 `native-research-projection/run-20261124T011701-08381ad2` within the sanitized
 runtime evidence bundle. API/worker and disposable PostgreSQL were stopped after
 the replay; no SCM install or 24-hour soak is claimed.
+
+## Public response ownership and cooperative cancellation
+
+The sole Transport admits a durable reservation before allocating the actual
+send slot. Concurrent sends share its dispatch gate; valid Retry-After cooldown
+is recorded even when the current operation has exhausted its attempts. Real
+Requests sessions, including the native HttpMeter's wrapped session, must have
+verified TLS, no inherited environment authentication/proxies, no credentials,
+cookies, hidden query parameters, response hooks or hidden adapter retries.
+Opaque injected request protocols remain a trusted integration/test seam, not
+a sandbox for arbitrary Python code.
+
+Every response retains admission until its owned cleanup completes. A normal
+non-streaming response caches its body and closes its network resources before
+being returned; JSON and content remain readable from that cache. Streaming
+responses retain PENDING through active readers and closers. TLS failures in
+body reads, iterator finalizers and response close cannot release the reservation
+as an ordinary success; an unavailable policy database leaves PENDING.
+
+REST API and Backfill propagate cancellation into Transport. Waits check it at
+most every 250 ms; stream readers check before/after each completed chunk and
+Backfill checks before publishing a newly returned result. A socket read already
+in progress is cooperative: the configured connect/read-inactivity timeouts are
+capped at 15/60 seconds. This is not an unconditional wall-clock cancellation
+deadline for a slow-delivery peer. Once cancellation is observed, no later GET
+or body chunk is published. An inactive read failing after cancellation is
+reported as a pause; TLS faults still retain their security outcome. Native
+service stop additionally owns the existing process JobObject lifecycle.
+
+Acceptance counters are suite totals unless explicitly classified. For example,
+the later 94-case runtime suite contains 28 PostgreSQL-backed cases and 66 cases
+without PostgreSQL. The paired 703 performance selection contains 29
+PostgreSQL-backed cases plus five pure cases per revision. Exact node IDs and
+source hashes accompany the sanitized runtime evidence; direct HTTP/worker and
+browser flows are reported separately from pytest counts.

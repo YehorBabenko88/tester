@@ -180,7 +180,7 @@ class Transport:
                 and not lease.get("active_closers", 0)
                 and not lease.get("close_failed", False)
                 and not lease.get("reader_close_failed", False)
-                and (not lease.get("stream_guarded", False) or lease.get("close_complete", False))
+                and (not lease.get("response_guarded", False) or lease.get("close_complete", False))
             ):
                 self.policy_store.finish(key, lease["token"], lease["outcome"])
                 lease["token"] = None
@@ -198,9 +198,9 @@ class Transport:
                 lease["security_reported"] = True
                 lease["token"] = None
 
-    def _guard_stream(self, response, key, lease, started, cancel=None):
+    def _guard_response(self, response, key, lease, started, *, streaming, cancel=None):
         original_iter, original_close = response.iter_content, response.close
-        lease["stream_guarded"] = True
+        lease["response_guarded"] = True
 
         def consume(*args, **kwargs):
             with lease["lock"]:
@@ -221,6 +221,11 @@ class Transport:
             except requests.exceptions.SSLError:
                 self._security_fault(key, lease, "tls_failure")
                 self._observe(key, started, "tls_failure")
+                raise
+            except requests.RequestException as exc:
+                if cancel and cancel():
+                    close()
+                    raise InterruptedError("Public request cancelled") from exc
                 raise
             finally:
                 try:
@@ -264,7 +269,9 @@ class Transport:
                     lease["close_complete"] = succeeded
                     self._finish_policy(key, lease)
 
-        response.iter_content, response.close = consume, close
+        if streaming:
+            response.iter_content = consume
+        response.close = close
         return response
 
     @contextmanager
@@ -421,12 +428,17 @@ class Transport:
                 started = time.monotonic()
                 try:
                     response = self._request(session, url, key, timeout, cancel, kwargs)
-                    if kwargs.get("stream"):
-                        self._guard_stream(response, key, lease, started, cancel)
+                    streaming = bool(kwargs.get("stream"))
+                    self._guard_response(
+                        response, key, lease, started, streaming=streaming, cancel=cancel
+                    )
+                    if not streaming:
+                        # Non-streaming Requests responses are already cached.
+                        # Finish their owned cleanup before releasing admission;
+                        # JSON/content remain readable from the cached bytes.
+                        _ = response.content
                     if response.status_code == 403:
                         self._security_fault(key, lease, "http_403")
-                    elif not kwargs.get("stream"):
-                        self._finish_policy(key, lease)
                     try:
                         self._observe(
                             key,
@@ -443,6 +455,8 @@ class Transport:
                         response.close()
                         raise ValueError("Unexpected redirect")
                     response.raise_for_status()
+                    if not streaming:
+                        response.close()
                     return response
                 except requests.RequestException as exc:
                     if isinstance(exc, requests.exceptions.SSLError):

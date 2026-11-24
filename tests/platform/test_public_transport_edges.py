@@ -82,12 +82,13 @@ def test_unsafe_injected_requests_session_fails_before_network(setting):
     session.request.assert_not_called()
 
 
-@pytest.mark.parametrize("status", [302, 429, 503])
-def test_error_stream_close_tls_write_outage_cannot_release_pending(status):
-    assert_error_stream_close_pending(ReservationFixture(), status)
+@pytest.mark.parametrize("status", [200, 302, 429, 503])
+@pytest.mark.parametrize("streaming", [False, True])
+def test_error_stream_close_tls_write_outage_cannot_release_pending(status, streaming):
+    assert_error_stream_close_pending(ReservationFixture(), status, streaming=streaming)
 
 
-def assert_error_stream_close_pending(store, status, availability=None):
+def assert_error_stream_close_pending(store, status, availability=None, streaming=True):
     original = store.finish
 
     def finish(key, token, outcome):
@@ -109,7 +110,11 @@ def assert_error_stream_close_pending(store, status, availability=None):
     session.request.return_value = value
     try:
         with pytest.raises(RuntimeError):
-            Transport(session=session, policy_store=store, attempts=1).get(URL, stream=True)
+            result = Transport(session=session, policy_store=store, attempts=1).get(
+                URL, stream=streaming
+            )
+            if streaming and status == 200:
+                result.close()
     finally:
         if availability:
             availability(True)
@@ -287,3 +292,23 @@ def test_cancelled_reader_finalizer_tls_outage_keeps_pending():
     with pytest.raises(RuntimeError, match="halt write unavailable"):
         next(reader)
     assert store.state == "PENDING"
+
+
+def test_cancelled_blocked_read_timeout_is_reported_as_pause():
+    cancelled = False
+    value = response()
+
+    def chunks(*args, **kwargs):
+        nonlocal cancelled
+        yield b"prefix"
+        cancelled = True
+        raise requests.ConnectionError("bounded read inactivity timeout")
+
+    value.iter_content = chunks
+    session = Mock()
+    session.request.return_value = value
+    stream = Transport(session=session).get(URL, stream=True, cancel=lambda: cancelled)
+    reader = stream.iter_content(10)
+    assert next(reader) == b"prefix"
+    with pytest.raises(InterruptedError):
+        next(reader)

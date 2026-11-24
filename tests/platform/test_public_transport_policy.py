@@ -605,8 +605,9 @@ def test_actual_pg_inflight_close_tls_with_real_database_outage(durable_policy):
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("status", [302, 429, 503])
-def test_actual_pg_error_stream_close_tls_with_database_outage(durable_policy, status):
+@pytest.mark.parametrize("status", [200, 302, 429, 503])
+@pytest.mark.parametrize("streaming", [False, True])
+def test_actual_pg_error_stream_close_tls_with_database_outage(durable_policy, status, streaming):
     from psycopg import sql
     from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
@@ -626,6 +627,6 @@ def test_actual_pg_error_stream_close_tls_with_database_outage(durable_policy, s
             )
 
     try:
-        assert_error_stream_close_pending(policy, status, availability)
+        assert_error_stream_close_pending(policy, status, availability, streaming)
     finally:
         availability(True)
