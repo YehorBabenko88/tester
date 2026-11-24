@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 from typing import Literal
+from uuid import UUID
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,10 +26,22 @@ class Settings(BaseSettings):
     market_catalog_database_url: SecretStr | None = None
     research_projection_enabled: bool = False
     research_database_url: SecretStr | None = None
+    public_transport_policy_enabled: bool = False
+    public_transport_installation_id: UUID | None = None
 
     @model_validator(mode="after")
     def validate_paths(self):
         self.data_dir = self.data_dir.resolve()
+        if self.public_transport_policy_enabled:
+            if not self.database_url or not self.public_transport_installation_id:
+                raise ValueError(
+                    "Enabled public transport policy requires application database and installation id"
+                )
+            from .transport_policy import PostgresTransportPolicy
+
+            PostgresTransportPolicy(
+                self.database_url.get_secret_value(), self.public_transport_installation_id
+            )
         if self.market_catalog_enabled and not self.market_catalog_database_url:
             raise ValueError("Enabled catalog requires explicit market_catalog_database_url")
         if self.market_catalog_database_url:

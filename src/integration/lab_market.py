@@ -316,10 +316,10 @@ class LabHandler:
 
     def run(self, request, checkpoint, report, stop, commit):
         self.validator(request)
+        from src.api.transport_policy import configured_public_transport, native_public_session
         from src.ingest.journal import Journal
         from src.ingest.metadata import acquire_instruments
         from src.ingest.rest import API, Backfill
-        from src.ingest.transport import Transport
 
         directory = self.settings.data_dir / "acquisitions" / uuid.uuid4().hex
         directory.mkdir(parents=True)
@@ -329,13 +329,18 @@ class LabHandler:
             prior = copy.deepcopy(checkpoint.get("telemetry", {}))
             prior = prior if prior.get("schema_version") == 1 else {}
             session = HttpMeter(
-                verified_session(self.settings.data_dir.parent), evidence_dir=directory
+                native_public_session()
+                if self.settings.public_transport_policy_enabled
+                else verified_session(self.settings.data_dir.parent),
+                evidence_dir=directory,
             )
             api = API(
-                Transport(
+                configured_public_transport(
+                    self.settings,
                     session=session,
                     attempts=2,
                     rate=2,
+                    cancel=stop.is_set,
                     sleep=lambda delay: source_wait(stop, deadline, delay),
                 )
             )

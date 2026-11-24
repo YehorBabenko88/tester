@@ -277,3 +277,46 @@ contract, and published/replayed through Store with declared-run provenance.
 All three records, checkpoint and read digest survived a PostgreSQL immediate
 crash/restart. This proves the bounded window only; global coverage is UNKNOWN.
 Evidence: `work/real-history-production/run-20261123T235832-89d01c56`.
+
+## Durable native public-network policy
+
+Canonical native configuration pairs `public_transport_policy_enabled=true` with
+the installer UUID in `public_transport_installation_id` and the existing main
+application DSN. The policy adapter uses the existing `api.db.connect` boundary;
+there is no second PostgreSQL client, transport, supervisor or retry executor.
+Its DSN must explicitly require `scram-sha-256` authentication, pin loopback and a
+dedicated non-5432 database. Pure CLI transports without this configuration remain
+transient and are not evidence of native durable acceptance.
+
+Owner migration `004_transport_policy.sql` creates the installation scope and
+bounded request state. The installer owner seeds the scope, revokes all App-role
+table access, and grants only read/reserve/finish functions. API catalog and worker
+history use that same scope. Each actual GET reserves a durable PENDING token
+before transmission. HTTP 403 and TLS failures latch HALTED; streamed responses
+retain their reservation until context close, including TLS failure during body
+iteration. Successful responses or explicit ordinary close clear only their own
+PENDING token. App callers cannot clear HALTED state, delete rows or substitute a
+boolean for database-owner authorization.
+
+No state is expired or evicted automatically. At 128 records further network
+admission fails closed. Unknown scopes, malformed state, missing schema, failed
+authentication or unavailable PostgreSQL deny network access. Normal concurrent
+requests to one endpoint wait within the sole Transport's bounded admission
+window. A late security outcome after its token was revoked globally halts the
+scope rather than forgetting the fault.
+
+Only the installer database owner may call
+`tester_platform.reset_public_transport(installation_uuid, endpoint_key)` after
+review. A NULL endpoint explicitly reviews/resets the whole scope, including a
+global halt. No public HTTP reset route exists. Corrupt schema/state requires
+owner repair. A process crash or failed state write can leave PENDING even if no
+403/TLS was observed; this deliberately requires manual review rather than
+guessing that retry is safe. This availability tradeoff must not be represented
+as unconditional automatic network recovery.
+
+Canonical native history now uses the existing verified OS-trust adapter with
+environment credentials/proxies disabled before the existing HttpMeter wrapper.
+It does not depend on legacy `state/tls.json`. The opt-in legacy lab path retains
+its pinned bundle/hash checks. Certificate and hostname verification remain on.
+The hard network policy is independent of disabled Guardian effectors;
+`GUARDIANS_ENABLED=false` is unchanged.

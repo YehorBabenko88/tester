@@ -68,9 +68,11 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
         from .catalog_store import CatalogStore
         from .market_catalog import BybitCatalogSource
         from .persistent_market_catalog import PersistentCatalogService
+        from .transport_policy import configured_public_transport
 
         catalog = PersistentCatalogService(
-            BybitCatalogSource(), CatalogStore(settings.market_catalog_dsn)
+            BybitCatalogSource(transport=configured_public_transport(settings, attempts=1)),
+            CatalogStore(settings.market_catalog_dsn),
         )
 
     @asynccontextmanager

@@ -50,11 +50,11 @@ class AcquisitionError(ValueError):
 class BybitCatalogSource:
     """One bounded public HTTP attempt; scheduler owns retries, not browsers."""
 
-    def __init__(self, *, verify=True):
+    def __init__(self, *, verify=True, transport=None):
         if verify is not True and (not isinstance(verify, str) or not verify):
             raise ValueError("TLS verification must use system trust or an explicit CA bundle")
         self.verify = verify
-        self.transport = Transport(attempts=1)
+        self.transport = transport if transport is not None else Transport(attempts=1)
 
     def call(self, endpoint, params):
         if endpoint not in {"/instruments-info", "/tickers"}:

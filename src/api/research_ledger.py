@@ -35,6 +35,7 @@ def validate_research_dsn(dsn: str):
         or values.get("service")
         or values.get("hostaddr")
         or values.get("options")
+        or values.get("require_auth") not in (None, "scram-sha-256")
     ):
         raise ValueError("explicit isolated non-5432 loopback tester_research_* database required")
     return values

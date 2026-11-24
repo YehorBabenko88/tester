@@ -34,7 +34,16 @@ class SystemTrustAdapter(requests.adapters.HTTPAdapter):
 
 class Transport:
     def __init__(
-        self, session=None, attempts=3, rate=3, sleep=time.sleep, *, guardian=None, event_sink=None
+        self,
+        session=None,
+        attempts=3,
+        rate=3,
+        sleep=time.sleep,
+        *,
+        guardian=None,
+        event_sink=None,
+        policy_store=None,
+        cancel=None,
     ):
         if (
             type(attempts) is not int
@@ -50,6 +59,10 @@ class Transport:
         self.lock = threading.Lock()
         self.next_request = 0
         self.halted = set()
+        self.policy_store = policy_store
+        if cancel is not None and not callable(cancel):
+            raise ValueError("Callable cancellation required")
+        self.cancel_callback = cancel
         if guardian is not None and not isinstance(guardian, ExchangeGuardian):
             raise ValueError("Existing Exchange Guardian required")
         if event_sink is not None and not callable(event_sink):
@@ -112,9 +125,68 @@ class Transport:
         key = public_endpoint_key(url)
         if manual_authorized is not True:
             raise ValueError("Manual review required")
+        if self.policy_store is not None:
+            self.policy_store.reset(
+                key
+            )  # Database owner authorization cannot be replaced by a bool.
         with self.lock:
             self.halted.discard(key)
             self.guardian.reset_tls_halt(url, manual_authorized=True)
+
+    def _reserve_policy(self, key, cancel):
+        if self.policy_store is None:
+            return {"token": None, "outcome": "allow"}
+        deadline = time.monotonic() + 5
+        for _ in range(20):
+            self._wait(0, cancel)
+            state, token = self.policy_store.reserve(key)
+            if state == "GRANTED":
+                from uuid import UUID
+
+                return {"token": str(UUID(str(token))), "outcome": "allow"}
+            if state not in {"PENDING", "HALTED", "CAPACITY"} or token is not None:
+                raise RuntimeError("Public transport policy invalid; manual review required")
+            if state != "PENDING" or time.monotonic() >= deadline:
+                break
+            self._wait(0.25, cancel)
+        raise RuntimeError("Public endpoint unavailable; manual review required")
+
+    def _finish_policy(self, key, lease):
+        if self.policy_store is not None and lease["token"] is not None:
+            self.policy_store.finish(key, lease["token"], lease["outcome"])
+            lease["token"] = None
+
+    def _security_fault(self, key, lease, reason):
+        # Security outcomes can never be downgraded by subsequent context cleanup.
+        lease["outcome"] = reason
+        if self.policy_store is None:
+            with self.lock:
+                self.halted.add(key)
+        self._finish_policy(key, lease)
+
+    def _guard_stream(self, response, key, lease, started):
+        original_iter, original_close = response.iter_content, response.close
+
+        def consume(*args, **kwargs):
+            try:
+                yield from original_iter(*args, **kwargs)
+            except requests.exceptions.SSLError:
+                self._security_fault(key, lease, "tls_failure")
+                self._observe(key, started, "tls_failure")
+                raise
+
+        def close():
+            try:
+                original_close()
+            except requests.exceptions.SSLError:
+                self._security_fault(key, lease, "tls_failure")
+                self._observe(key, started, "tls_failure")
+                raise
+            finally:
+                self._finish_policy(key, lease)
+
+        response.iter_content, response.close = consume, close
+        return response
 
     @contextmanager
     def operation(self):
@@ -150,6 +222,7 @@ class Transport:
             raise InterruptedError("Public request cancelled")
 
     def get(self, url, *, cancel=None, **kwargs):
+        cancel = cancel if cancel is not None else self.cancel_callback
         key = public_endpoint_key(url)
         if set(kwargs) - {"headers", "stream", "timeout"}:
             raise ValueError("Unsupported public request options")
@@ -175,7 +248,9 @@ class Transport:
         with self.operation():
             while self.local.remaining:
                 with self.lock:
-                    if key in self.halted or len(self.halted) >= 128:
+                    if self.policy_store is None and (
+                        key in self.halted or len(self.halted) >= 128
+                    ):
                         raise ValueError("Public endpoint halted; manual review required")
                 self._wait(0, cancel)
                 with self.lock:
@@ -183,6 +258,12 @@ class Transport:
                     wait = max(0, self.next_request - now)
                     self.next_request = max(now, self.next_request) + 1 / self.rate
                 self._wait(wait, cancel)
+                lease = self._reserve_policy(key, cancel)
+                try:
+                    self._wait(0, cancel)
+                except InterruptedError:
+                    self._finish_policy(key, lease)
+                    raise
                 self.local.remaining -= 1
                 response = None
                 started = time.monotonic()
@@ -197,8 +278,9 @@ class Transport:
                         "GET", url, timeout=timeout, allow_redirects=False, **kwargs
                     )
                     if response.status_code == 403:
-                        with self.lock:
-                            self.halted.add(key)
+                        self._security_fault(key, lease, "http_403")
+                    elif not kwargs.get("stream") or response.status_code >= 300:
+                        self._finish_policy(key, lease)
                     try:
                         self._observe(
                             key,
@@ -214,11 +296,16 @@ class Transport:
                         response.close()
                         raise ValueError("Unexpected redirect")
                     response.raise_for_status()
-                    return response
+                    return (
+                        self._guard_stream(response, key, lease, started)
+                        if kwargs.get("stream")
+                        else response
+                    )
                 except requests.RequestException as exc:
                     if isinstance(exc, requests.exceptions.SSLError):
-                        with self.lock:
-                            self.halted.add(key)
+                        self._security_fault(key, lease, "tls_failure")
+                    else:
+                        self._finish_policy(key, lease)
                     if response is None:
                         kind = (
                             "tls_failure"
@@ -245,10 +332,12 @@ class Transport:
                     if response is not None:
                         response.close()
                     if isinstance(exc, requests.exceptions.SSLError) or status == 403:
-                        with self.lock:
-                            self.halted.add(key)
                         raise
                     if not transient or not self.local.remaining:
                         raise
                     self.defer(delay)
+                except Exception:
+                    if response is not None:
+                        response.close()
+                    raise
             raise RuntimeError("Public request retry budget exhausted")
