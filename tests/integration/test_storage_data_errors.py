@@ -7,7 +7,7 @@ from src.api.config import Settings
 from src.api.main import create_app
 from src.api.providers import ProviderDataUnavailable,ProviderUnavailable
 from src.integration.storage_reader import StorageTradeReader
-import test_storage_trade_reader as fixtures
+import tests.unit.test_storage_trade_reader as fixtures
 
 
 class StorageDataErrorTests(unittest.TestCase):
