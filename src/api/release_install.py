@@ -53,13 +53,11 @@ def validate_destination(root, *, mode, desktop):
     return root
 
 
-@contextlib.contextmanager
-def lifecycle_lock(root):
-    """OS lock survives crashes safely; all install/start/remove writers share it."""
-    root = plain(root)
+def lifecycle_lock_path(root):
     import hashlib
 
-    lock = plain(
+    root = plain(root)
+    return plain(
         root.parent
         / (
             ".tester-lifecycle-"
@@ -67,6 +65,39 @@ def lifecycle_lock(root):
             + ".lock"
         )
     )
+
+
+def remove_lifecycle_lock(root):
+    """Delete this root's empty lock file after removal, only if nobody has it open.
+
+    The native handle refuses reparse points/hardlinks and requests DELETE with
+    read-only sharing, so it cannot be acquired while any lifecycle operation
+    holds the lock file. POSIX hosts keep the file (unlink would break flock).
+    """
+    if os.name != "nt":
+        return False
+    path = lifecycle_lock_path(root)
+    if not path.exists():
+        return False
+    from .release_uninstall import _WindowsObject
+
+    try:
+        handle = _WindowsObject(path, delete=True)
+    except PermissionError:
+        return False  # Held by a concurrent lifecycle operation.
+    try:
+        if handle.is_dir or handle.size > 1:
+            raise LabViolation("Lifecycle lock path is not an empty lock file")
+        handle.delete()
+    finally:
+        handle.close()
+    return True
+
+
+@contextlib.contextmanager
+def lifecycle_lock(root):
+    """OS lock survives crashes safely; all install/start/remove writers share it."""
+    lock = lifecycle_lock_path(root)
     stream = lock.open("a+b")
     try:
         stream.seek(0)
@@ -178,6 +209,10 @@ def create_shortcuts(root, marker, *, transaction=None):
     desktop = plain(desktop)
     desktop.mkdir(exist_ok=True)
     target = str(system_binary("WindowsPowerShell/v1.0/powershell.exe"))
+    # Never the installation root: a process whose current directory is inside
+    # the root holds a handle that makes the final root deletion fail.
+    working_directory = str(Path(target).parent)
+    accepted_directories = {working_directory.casefold(), str(root).casefold()}  # legacy links
     made = []
     for title, script in (
         ("TESTER — Запуск", "Start-ReleaseTester.ps1"),
@@ -215,14 +250,14 @@ def create_shortcuts(root, marker, *, transaction=None):
             if (
                 current["target"].casefold() != target.casefold()
                 or current["arguments"] != arguments
-                or current["working_directory"] != str(root)
+                or current["working_directory"].casefold() not in accepted_directories
             ):
                 raise LabViolation("Foreign shortcut collision")
         else:
             shortcut = _shell_link()
             shortcut.SetPath(target)
             shortcut.SetArguments(arguments)
-            shortcut.SetWorkingDirectory(str(root))
+            shortcut.SetWorkingDirectory(working_directory)
             shortcut.QueryInterface(pythoncom.IID_IPersistFile).Save(str(link), 0)
             # MS-SHLLINK LinkFlags at 0x14; explicit user activation prompts UAC.
             data = bytearray(link.read_bytes())
@@ -237,7 +272,8 @@ def create_shortcuts(root, marker, *, transaction=None):
         if (
             actual["target"].casefold() != target.casefold()
             or actual["arguments"] != arguments
-            or actual["working_directory"] != str(root)
+            or actual["working_directory"].casefold()
+            != (current["working_directory"] if existing else working_directory).casefold()
         ):
             raise LabViolation("COM shortcut readback mismatch")
         if external_identity is not None:
@@ -249,11 +285,14 @@ def create_shortcuts(root, marker, *, transaction=None):
 def install(
     bundle, root, *, trusted_public_key_sha256, expected_source_sha, mode="production", desktop=None
 ):
-    """Only a cryptographically verified self-contained release may reach host mutation."""
+    """Only a cryptographically verified self-contained release may reach host mutation.
+
+    Recovery, rollback, fresh provisioning and metadata cleanup all run under the
+    single per-root lifecycle lock, so no other lifecycle writer interleaves.
+    """
     import ctypes
     import platform
     import shutil
-    import subprocess
 
     from .release_security import verify_release
 
@@ -269,28 +308,148 @@ def install(
         raise LabViolation("Open setup as Administrator")
     if shutil.disk_usage(root.parent).free < 5 * 1024**3:
         raise LabViolation("At least 5 GiB free space required")
-    if root.exists() and any(root.iterdir()):
-        from .release_provision import recover_or_validate_existing
-
-        marker = recover_or_validate_existing(
-            root, release, trusted_public_key_sha256=trusted_public_key_sha256, mode=mode
-        )
-        if marker is None:
-            return install(
+    try:
+        with lifecycle_lock(root):
+            return _install_locked(
                 bundle,
                 root,
+                release,
                 trusted_public_key_sha256=trusted_public_key_sha256,
-                expected_source_sha=expected_source_sha,
                 mode=mode,
                 desktop=desktop,
             )
-        with lifecycle_lock(root):
+    finally:
+        if not root.exists():
+            with contextlib.suppress(OSError, ValueError):
+                remove_lifecycle_lock(root)
+
+
+def _held_lock(_root):
+    return contextlib.nullcontext()
+
+
+def maintenance_parent(root, mode):
+    return Path(os.environ["ProgramData"]) if mode == "production" else plain(root).parent
+
+
+# Time SCM grants each service to drain on PRESHUTDOWN (agent A: clean stop record).
+PRESHUTDOWN_TIMEOUT_MS = {"app": 60000, "postgres": 90000}
+
+
+def _with_preshutdown(app, pg):
+    return (
+        dict(app, preshutdown_timeout_ms=PRESHUTDOWN_TIMEOUT_MS["app"]),
+        dict(pg, preshutdown_timeout_ms=PRESHUTDOWN_TIMEOUT_MS["postgres"]),
+    )
+
+
+def enable_automatic_start(marker):
+    """Idempotent post-commit switch of both exact owned services to AUTO_START."""
+    import subprocess
+
+    from .lab_scm import NativeSCM
+    from .release_service import plans
+
+    scm = NativeSCM(mutating=True)
+    try:
+        scm.set_start_type(
+            [
+                (plan, plan.get("image", subprocess.list2cmdline([plan.get("host", "")])))
+                for plan in _with_preshutdown(*plans(marker))
+            ],
+            automatic=True,
+        )
+    finally:
+        scm.close()
+
+
+def _services_absent(marker):
+    from .lab_scm import NativeSCM
+
+    scm = NativeSCM()
+    try:
+        return all(scm.inspect(name) is None for name in marker["services"].values())
+    finally:
+        scm.close()
+
+
+def _cleanup_metadata(directory, installation_id):
+    """Best effort: a refused cleanup is reported, never turned into data loss."""
+    from .release_uninstall import remove_maintenance_directory
+
+    try:
+        remove_maintenance_directory(directory, installation_id=installation_id)
+    except (OSError, ValueError) as exc:
+        print(
+            "TESTER: retained maintenance metadata "
+            + str(directory)
+            + " ("
+            + type(exc).__name__
+            + ")",
+            flush=True,
+        )
+
+
+def _finish_owned(root, marker, *, trusted_public_key_sha256, mode):
+    """Shortcuts, their pinned identities and stale metadata of earlier attempts."""
+    from .release_uninstall import reenroll_external_shortcuts
+
+    create_shortcuts(root, marker)
+    reenroll_external_shortcuts(
+        root,
+        marker,
+        trusted_public_key_sha256=trusted_public_key_sha256,
+        expected_source_sha=marker["source_sha"],
+        protect=_protect_admin_object,
+    )
+    _sweep_metadata(root, marker, mode)
+
+
+def _sweep_metadata(root, marker, mode):
+    from .release_uninstall import sweep_orphan_maintenance
+
+    try:
+        swept = sweep_orphan_maintenance(
+            root,
+            maintenance_parent(root, mode),
+            keep_installation_id=marker["installation_id"],
+            services_absent=_services_absent,
+        )
+    except (OSError, ValueError) as exc:
+        print("TESTER: maintenance metadata sweep skipped (" + type(exc).__name__ + ")")
+        return
+    for directory in swept["kept"]:
+        print("TESTER: retained unproven maintenance metadata " + directory, flush=True)
+
+
+def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, desktop):
+    adopt_empty_root = False
+    if root.exists():
+        from .release_provision import recover_or_validate_existing
+
+        marker = recover_or_validate_existing(
+            root,
+            release,
+            trusted_public_key_sha256=trusted_public_key_sha256,
+            mode=mode,
+            lifecycle_lock=_held_lock,
+        )
+        if marker is not None:
             from .release_service import NativeController
 
             with NativeController(marker) as controller:
                 controller.apply("start")
-            create_shortcuts(root, marker)
-        return marker
+            # Crash-safe: a commit interrupted before this switch is completed here.
+            enable_automatic_start(marker)
+            _finish_owned(
+                root, marker, trusted_public_key_sha256=trusted_public_key_sha256, mode=mode
+            )
+            return marker
+        # Either an authenticated interrupted attempt was rolled back (root gone)
+        # or an empty unowned root remains to be adopted by a fresh transaction.
+        adopt_empty_root = root.exists()
+    import subprocess
+
     # A bundle must contain all pinned runtimes, wheelhouse, built frontend and source.
     required = (
         "payload/src/api/supervisor.py",
@@ -311,12 +470,6 @@ def install(
     from .release_uninstall import rollback_provisioning, seal_provisioning_outputs, write_ownership
 
     ident = uuid.uuid4()
-    maintenance_parent = Path(os.environ["ProgramData"]) if mode == "production" else root.parent
-    maintenance = plain(maintenance_parent / ("TesterReleaseMaintenance_" + ident.hex))
-    maintenance.mkdir()
-    protect_external_bundle(maintenance)
-    (maintenance / "evidence").mkdir()
-    protect_external_bundle(maintenance)
     if mode == "test":
         desktop_path = plain(desktop)
     else:
@@ -325,6 +478,8 @@ def install(
         desktop_path = plain(shell.SHGetFolderPath(0, shellcon.CSIDL_DESKTOPDIRECTORY, None, 0))
     if not desktop_path.is_dir():
         raise LabViolation("Desktop directory is unavailable")
+    maintenance = plain(maintenance_parent(root, mode) / ("TesterReleaseMaintenance_" + ident.hex))
+    maintenance.mkdir()
     api_port, pg_port = free_port(), free_port()
     while pg_port == api_port or pg_port == 5432:
         pg_port = free_port()
@@ -344,196 +499,214 @@ def install(
         },
         ports={"api": api_port, "postgres": pg_port},
     )
-    tx = ProvisioningTransaction(root, marker, release, maintenance)
+    try:
+        protect_external_bundle(maintenance)
+        (maintenance / "evidence").mkdir()
+        protect_external_bundle(maintenance)
+        tx = ProvisioningTransaction(root, marker, release, maintenance)
+    except BaseException:
+        # Nothing but this attempt's own empty directories exists yet.
+        if not (maintenance / "provisioning.jsonl").exists():
+            with contextlib.suppress(OSError):
+                (maintenance / "evidence").rmdir()
+            with contextlib.suppress(OSError):
+                maintenance.rmdir()
+        raise
     exposed = False
     try:
-        tx.root_created()
-        with lifecycle_lock(root):
-            for name in (
-                "state",
-                "runtime",
-                "dependencies",
-                "releases",
-                "private",
-                "backups",
-                "postgres-data",
-            ):
-                tx.mkdir(root / name)
-            tx.write_bytes(root / MARKER, json.dumps(marker, indent=2).encode("utf-8"))
-            journal = root / "state/install.jsonl"
+        tx.root_created(adopt_empty=adopt_empty_root)
+        for name in (
+            "state",
+            "runtime",
+            "dependencies",
+            "releases",
+            "private",
+            "backups",
+            "postgres-data",
+        ):
+            tx.mkdir(root / name)
+        tx.write_bytes(root / MARKER, json.dumps(marker, indent=2).encode("utf-8"))
+        journal = root / "state/install.jsonl"
 
-            def stage(name):
-                print("TESTER: " + name.replace("-", " "), flush=True)
-                tx.append(dict(event="phase", phase=name))
-                if journal.exists():
-                    with journal.open("a", encoding="utf-8") as stream:
-                        stream.write(
-                            json.dumps(
-                                dict(
-                                    installation_id=str(ident),
-                                    source_sha=release.source_sha,
-                                    phase=name,
-                                )
+        def stage(name):
+            print("TESTER: " + name.replace("-", " "), flush=True)
+            tx.append(dict(event="phase", phase=name))
+            if journal.exists():
+                with journal.open("a", encoding="utf-8") as stream:
+                    stream.write(
+                        json.dumps(
+                            dict(
+                                installation_id=str(ident),
+                                source_sha=release.source_sha,
+                                phase=name,
                             )
-                            + "\n"
                         )
-                        stream.flush()
-                        os.fsync(stream.fileno())
-                if (
-                    mode == "test"
-                    and os.environ.get("TESTER_REQUIRE_FULL_INSTALLER") == "1"
-                    and os.environ.get("TESTER_INSTALL_TEST_PAUSE_PHASE") == name
-                ):
-                    import time
-
-                    write_json(
-                        maintenance / "test-pause.json",
-                        dict(
-                            root=str(root),
-                            installation_id=marker["installation_id"],
-                            source_sha=release.source_sha,
-                            phase=name,
-                            pid=os.getpid(),
-                        ),
+                        + "\n"
                     )
-                    while True:
-                        time.sleep(0.2)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+            if (
+                mode == "test"
+                and os.environ.get("TESTER_REQUIRE_FULL_INSTALLER") == "1"
+                and os.environ.get("TESTER_INSTALL_TEST_PAUSE_PHASE") == name
+            ):
+                import time
 
-            stage("copying-verified-payload")
-            release_root = root / "releases" / release.source_sha
-            tx.copytree(Path(bundle) / "payload", release_root)
-            tx.copytree(Path(bundle) / "runtimes/python", root / "dependencies/python")
-            tx.copytree(Path(bundle) / "runtimes/postgres", root / "dependencies/postgres")
-            tx.copytree(Path(bundle) / "wheelhouse", root / "dependencies/wheelhouse")
-            tx.write_bytes(
-                root / "state/source-runtime.json",
-                json.dumps({"files": inventory(release_root)}).encode("utf-8"),
-            )
-            tx.write_bytes(
-                root / "state/postgres-runtime.json",
-                json.dumps({"files": inventory(root / "dependencies/postgres")}).encode("utf-8"),
-            )
-            stage("staging-private-service-host")
-            stage_service_runtime(
-                root,
-                marker_reader=load_marker,
-                bootstrap="release_service_bootstrap.py",
-                site_override=root / "dependencies/python/Lib/site-packages",
-                transaction=tx,
-                precompile=False,
-            )
-            immutable = {
-                relative: inventory(root / relative)
-                for relative in (
-                    "releases/" + release.source_sha,
-                    "dependencies/python",
-                    "dependencies/postgres",
-                    "dependencies/service",
-                    "dependencies/wheelhouse",
+                write_json(
+                    maintenance / "test-pause.json",
+                    dict(
+                        root=str(root),
+                        installation_id=marker["installation_id"],
+                        source_sha=release.source_sha,
+                        phase=name,
+                        pid=os.getpid(),
+                    ),
                 )
-            }
-            tx.write_bytes(
-                root / "state/provisioning-authority.json",
-                json.dumps(dict(marker=marker, immutable=immutable)).encode("utf-8"),
-            )
-            stage("starting-authenticated-provisioning-actor")
-            tx.release_journal()
-            run_actor(root, marker, started=lambda: stage("provisioning-actor-running"))
-            # The helper proves unique creator SIDs and exact objects before their
-            # owners/ACLs change. This never enrolls an arbitrary Admin snapshot.
-            created = seal_provisioning_outputs(
-                root,
-                journal_path=tx.path,
-                trusted_public_key_sha256=trusted_public_key_sha256,
-                expected_source_sha=release.source_sha,
-                lifecycle_lock=lambda _: nullcontext(),
-            )
-            stage("registering-runtime-services")
-            app, pg = plans(marker)
-            scm = NativeSCM(mutating=True)
-            try:
-                with scm.lease([(pg, pg["image"])]):
-                    if scm.inspect(pg["name"]) is not None:
-                        raise LabViolation("Fresh PostgreSQL service collision")
-                    scm.install(pg, pg["image"], None)
-                scm.promote(provisioning_plan(marker), app, subprocess.list2cmdline([app["host"]]))
-            finally:
-                scm.close()
-            stage("applying-runtime-acls")
-            apply_acls(root, marker)
-            links = create_shortcuts(root, marker, transaction=tx)
-            tx.write_bytes(
-                root / "state/shortcuts.json", json.dumps({"paths": links}).encode("utf-8")
-            )
-            mapping = {}
-            for relative, _ in release.files:
-                for prefix, installed in (
-                    ("payload/", "releases/" + release.source_sha + "/"),
-                    ("runtimes/python/", "dependencies/python/"),
-                    ("runtimes/postgres/", "dependencies/postgres/"),
-                    ("wheelhouse/", "dependencies/wheelhouse/"),
-                ):
-                    if relative.startswith(prefix):
-                        mapping[relative] = installed + relative.removeprefix(prefix)
-            from .release_service import service_sid
+                while True:
+                    time.sleep(0.2)
 
-            boundaries = [
-                dict(
-                    path=relative,
-                    service_name=marker["services"][role],
-                    service_sid=service_sid(marker["services"][role]),
-                )
-                for role, relative in (("app", "runtime"), ("postgres", "postgres-data"))
-            ]
-            # All post-actor Admin files are explicit transaction creations.
-            owned_paths = set(created) | set(tx.identities)
-            expected_identities = {**tx.identities, **created}
-            ledger = maintenance / "ownership.json"
-            stage("sealing-ownership")
-            ledger_digest = write_ownership(
-                root,
-                marker,
-                release=release,
-                ledger_path=ledger,
-                owned_paths=tuple(owned_paths),
-                expected_identities=expected_identities,
-                expected_root_identity=tx.root_identity,
-                installed_files=mapping,
-                writer_boundaries=tuple(boundaries),
-                external_paths=tuple(links),
-                trust_config_path=maintenance / "trust.json",
+        stage("copying-verified-payload")
+        release_root = root / "releases" / release.source_sha
+        tx.copytree(Path(bundle) / "payload", release_root)
+        tx.copytree(Path(bundle) / "runtimes/python", root / "dependencies/python")
+        tx.copytree(Path(bundle) / "runtimes/postgres", root / "dependencies/postgres")
+        tx.copytree(Path(bundle) / "wheelhouse", root / "dependencies/wheelhouse")
+        tx.write_bytes(
+            root / "state/source-runtime.json",
+            json.dumps({"files": inventory(release_root)}).encode("utf-8"),
+        )
+        tx.write_bytes(
+            root / "state/postgres-runtime.json",
+            json.dumps({"files": inventory(root / "dependencies/postgres")}).encode("utf-8"),
+        )
+        stage("staging-private-service-host")
+        stage_service_runtime(
+            root,
+            marker_reader=load_marker,
+            bootstrap="release_service_bootstrap.py",
+            site_override=root / "dependencies/python/Lib/site-packages",
+            transaction=tx,
+            precompile=False,
+        )
+        immutable = {
+            relative: inventory(root / relative)
+            for relative in (
+                "releases/" + release.source_sha,
+                "dependencies/python",
+                "dependencies/postgres",
+                "dependencies/service",
+                "dependencies/wheelhouse",
             )
-            trust = dict(
-                schema="tester-maintenance-trust/v1",
-                installation_id=str(ident),
-                root=str(root),
-                ledger=str(ledger),
-                trusted_ledger_sha256=ledger_digest,
-                trusted_public_key_sha256=trusted_public_key_sha256,
-                source_sha=release.source_sha,
-                manifest_sha256=release.manifest_sha256,
-                bundle=str(plain(bundle)),
-                module_source=str(plain(Path(bundle) / "payload")),
-                python=str(plain(Path(bundle) / "runtimes/python/python.exe")),
-                evidence_directory=str(maintenance / "evidence"),
+        }
+        tx.write_bytes(
+            root / "state/provisioning-authority.json",
+            json.dumps(dict(marker=marker, immutable=immutable)).encode("utf-8"),
+        )
+        stage("starting-authenticated-provisioning-actor")
+        tx.release_journal()
+        run_actor(root, marker, started=lambda: stage("provisioning-actor-running"))
+        # The helper proves unique creator SIDs and exact objects before their
+        # owners/ACLs change. This never enrolls an arbitrary Admin snapshot.
+        created = seal_provisioning_outputs(
+            root,
+            journal_path=tx.path,
+            trusted_public_key_sha256=trusted_public_key_sha256,
+            expected_source_sha=release.source_sha,
+            lifecycle_lock=lambda _: nullcontext(),
+        )
+        stage("registering-runtime-services")
+        app, pg = _with_preshutdown(*plans(marker))
+        scm = NativeSCM(mutating=True)
+        try:
+            # DEMAND_START until the commit point: an interrupted installation
+            # must never be started by SCM at boot (it would create service-
+            # owned objects inside a root that only rollback may remove).
+            with scm.lease([(pg, pg["image"])]):
+                if scm.inspect(pg["name"]) is not None:
+                    raise LabViolation("Fresh PostgreSQL service collision")
+                scm.install(dict(pg, auto_start=False), pg["image"], None)
+            scm.promote(
+                provisioning_plan(marker),
+                dict(app, auto_start=False),
+                subprocess.list2cmdline([app["host"]]),
             )
-            write_json(maintenance / "trust.json", trust)
-            protect_external_bundle(maintenance)
-            tx.append(
-                dict(
-                    event="final_ledger_sealed",
-                    ledger_path=str(ledger),
-                    ledger_sha256=ledger_digest,
-                    trust_config_path=marker["trust_config"],
-                )
+        finally:
+            scm.close()
+        stage("applying-runtime-acls")
+        apply_acls(root, marker)
+        links = create_shortcuts(root, marker, transaction=tx)
+        tx.write_bytes(root / "state/shortcuts.json", json.dumps({"paths": links}).encode("utf-8"))
+        mapping = {}
+        for relative, _ in release.files:
+            for prefix, installed in (
+                ("payload/", "releases/" + release.source_sha + "/"),
+                ("runtimes/python/", "dependencies/python/"),
+                ("runtimes/postgres/", "dependencies/postgres/"),
+                ("wheelhouse/", "dependencies/wheelhouse/"),
+            ):
+                if relative.startswith(prefix):
+                    mapping[relative] = installed + relative.removeprefix(prefix)
+        from .release_service import service_sid
+
+        boundaries = [
+            dict(
+                path=relative,
+                service_name=marker["services"][role],
+                service_sid=service_sid(marker["services"][role]),
             )
-            tx.append(dict(event="runtime_exposed"))
-            exposed = True
-            stage("waiting-for-api-worker-storage")
-            with NativeController(marker) as controller:
-                controller.apply("start")
-            stage("ready")
-            tx.append(dict(event="phase", phase="completed"))
+            for role, relative in (("app", "runtime"), ("postgres", "postgres-data"))
+        ]
+        # All post-actor Admin files are explicit transaction creations.
+        owned_paths = set(created) | set(tx.identities)
+        expected_identities = {**tx.identities, **created}
+        ledger = maintenance / "ownership.json"
+        stage("sealing-ownership")
+        ledger_digest = write_ownership(
+            root,
+            marker,
+            release=release,
+            ledger_path=ledger,
+            owned_paths=tuple(owned_paths),
+            expected_identities=expected_identities,
+            expected_root_identity=tx.root_identity,
+            installed_files=mapping,
+            writer_boundaries=tuple(boundaries),
+            external_paths=tuple(links),
+            trust_config_path=maintenance / "trust.json",
+        )
+        trust = dict(
+            schema="tester-maintenance-trust/v1",
+            installation_id=str(ident),
+            root=str(root),
+            ledger=str(ledger),
+            trusted_ledger_sha256=ledger_digest,
+            trusted_public_key_sha256=trusted_public_key_sha256,
+            source_sha=release.source_sha,
+            manifest_sha256=release.manifest_sha256,
+            bundle=str(plain(bundle)),
+            module_source=str(plain(Path(bundle) / "payload")),
+            python=str(plain(Path(bundle) / "runtimes/python/python.exe")),
+            evidence_directory=str(maintenance / "evidence"),
+        )
+        write_json(maintenance / "trust.json", trust)
+        protect_external_bundle(maintenance)
+        tx.append(
+            dict(
+                event="final_ledger_sealed",
+                ledger_path=str(ledger),
+                ledger_sha256=ledger_digest,
+                trust_config_path=marker["trust_config"],
+            )
+        )
+        tx.append(dict(event="runtime_exposed"))
+        exposed = True
+        enable_automatic_start(marker)
+        stage("waiting-for-api-worker-storage")
+        with NativeController(marker) as controller:
+            controller.apply("start")
+        stage("ready")
+        tx.append(dict(event="phase", phase="completed"))
+        _sweep_metadata(root, marker, mode)  # Never raises: the install is committed.
         return marker
     except BaseException:
         tx.append(dict(event="phase", phase="interrupted"))
@@ -551,7 +724,10 @@ def install(
             journal_path=tx.path,
             trusted_public_key_sha256=trusted_public_key_sha256,
             expected_source_sha=release.source_sha,
+            lifecycle_lock=_held_lock,
         )
+        tx.close()
+        _cleanup_metadata(maintenance, marker["installation_id"])
         raise
     finally:
         tx.close()
@@ -559,27 +735,32 @@ def install(
 
 def protect_external_bundle(bundle):
     """Original signed maintenance media: immutable admin-owned code, never user data."""
+    for item in (bundle, *bundle.rglob("*")):
+        _protect_admin_object(item)
+
+
+def _protect_admin_object(item):
+    """Protected SYSTEM/Administrators-only descriptor on exactly one object."""
     import win32security
 
     admin = win32security.ConvertStringSidToSid("S-1-5-32-544")
     system = win32security.ConvertStringSidToSid("S-1-5-18")
-    for item in (bundle, *bundle.rglob("*")):
-        item = plain(item)
-        acl = win32security.ACL()
-        flags = 3 if item.is_dir() else 0
-        for sid in (system, admin):
-            acl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, 0x1F01FF, sid)
-        win32security.SetNamedSecurityInfo(
-            str(item),
-            win32security.SE_FILE_OBJECT,
-            win32security.OWNER_SECURITY_INFORMATION
-            | win32security.DACL_SECURITY_INFORMATION
-            | win32security.PROTECTED_DACL_SECURITY_INFORMATION,
-            admin,
-            None,
-            acl,
-            None,
-        )
+    item = plain(item)
+    acl = win32security.ACL()
+    flags = 3 if item.is_dir() else 0
+    for sid in (system, admin):
+        acl.AddAccessAllowedAceEx(win32security.ACL_REVISION_DS, flags, 0x1F01FF, sid)
+    win32security.SetNamedSecurityInfo(
+        str(item),
+        win32security.SE_FILE_OBJECT,
+        win32security.OWNER_SECURITY_INFORMATION
+        | win32security.DACL_SECURITY_INFORMATION
+        | win32security.PROTECTED_DACL_SECURITY_INFORMATION,
+        admin,
+        None,
+        acl,
+        None,
+    )
 
 
 def apply_acls(root, marker):

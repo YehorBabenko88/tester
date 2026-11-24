@@ -122,6 +122,7 @@ def test_full_native_installer_lifecycle(tmp_path):
     import win32con
     import win32security
 
+    from src.api.lab_scm import NativeSCM
     from src.api.release_security import verify_release
     from src.api.release_service import NativeController, service_sid, validate_resources
 
@@ -147,7 +148,7 @@ def test_full_native_installer_lifecycle(tmp_path):
     marker = None
     failure = None
 
-    def powershell(args, *, input_text=None, timeout=120):
+    def powershell(args, *, input_text=None, timeout=120, cwd=None):
         result = subprocess.run(
             ["powershell.exe", "-NoProfile", *map(str, args)],
             input=input_text,
@@ -155,6 +156,7 @@ def test_full_native_installer_lifecycle(tmp_path):
             capture_output=True,
             timeout=timeout,
             env=env,
+            cwd=cwd,
         )
         if result.returncode:
             raise AssertionError(
@@ -246,21 +248,86 @@ def test_full_native_installer_lifecycle(tmp_path):
         leaves = [r for r in own if r["ProcessId"] not in parents]
         return leaves
 
-    before = system_pg()
-    try:
-        # First run is interrupted by killing only its authenticated private
-        # bootstrap Python while the real same-account provisioning service runs.
-        paused_env = dict(env, TESTER_INSTALL_TEST_PAUSE_PHASE="provisioning-actor-running")
-        bootstrap_log = tmp_path / "interrupted-bootstrap.log"
+    def start_types(names):
+        import win32service
+
+        from src.api.lab_scm import NativeSCM
+
+        scm = NativeSCM()
+        try:
+            result = {}
+            for name in names:
+                handle = win32service.OpenService(
+                    scm.manager, name, win32service.SERVICE_QUERY_CONFIG
+                )
+                try:
+                    result[name] = {
+                        win32service.SERVICE_AUTO_START: "auto",
+                        win32service.SERVICE_DEMAND_START: "demand",
+                    }.get(win32service.QueryServiceConfig(handle)[1], "other")
+                finally:
+                    win32service.CloseServiceHandle(handle)
+            return result
+        finally:
+            scm.close()
+
+    def preshutdown(names):
+        import win32service
+
+        scm = NativeSCM()
+        try:
+            result = []
+            for name in names:
+                handle = win32service.OpenService(
+                    scm.manager, name, win32service.SERVICE_QUERY_CONFIG
+                )
+                try:
+                    result.append(win32service.QueryServiceConfig2(handle, 7))
+                finally:
+                    win32service.CloseServiceHandle(handle)
+            return result
+        finally:
+            scm.close()
+
+    def assert_no_leftovers(markers):
+        import winreg
+
+        assert not root.exists()
+        assert not list(desktop.glob("*.lnk"))
+        assert not list(tmp_path.glob("TesterReleaseMaintenance_*")), "maintenance metadata left"
+        assert not ri.lifecycle_lock_path(root).exists(), "lifecycle lock file left"
+        names = [name for item in markers for name in item["services"].values()]
+        deadline = time.monotonic() + 30
+        while True:
+            present = []
+            for name in names:
+                try:
+                    winreg.OpenKey(
+                        winreg.HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Services\\" + name
+                    ).Close()
+                    present.append(name)
+                except FileNotFoundError:
+                    pass
+            if not present:
+                break
+            if time.monotonic() > deadline:
+                pytest.fail("Service registry keys remain: " + ", ".join(present))
+            time.sleep(0.5)
+
+    def interrupted_setup(setup_media, phase, log_name, checkpoint=lambda: True):
+        """Kill only the authenticated private installer Python at a test checkpoint."""
+        nonlocal marker
+        paused_env = dict(env, TESTER_INSTALL_TEST_PAUSE_PHASE=phase)
+        bootstrap_log = tmp_path / log_name
         with bootstrap_log.open("w", encoding="utf-8") as output:
             process = subprocess.Popen(
                 [
                     "powershell.exe",
                     "-NoProfile",
                     "-File",
-                    str(media / "Setup-Tester.ps1"),
+                    str(setup_media / "Setup-Tester.ps1"),
                     "-Bundle",
-                    str(media),
+                    str(setup_media),
                     "-Root",
                     str(root),
                     "-Mode",
@@ -292,23 +359,13 @@ def test_full_native_installer_lifecycle(tmp_path):
                     marker = old_marker
                     pause_path = Path(old_marker["trust_config"]).parent / "test-pause.json"
                     pause = json.loads(pause_path.read_text())
-                    if (
-                        pause.get("phase") == "provisioning-actor-running"
-                        and (root / "dependencies/venv").is_dir()
-                    ):
+                    if pause.get("phase") == phase and checkpoint():
                         break
                 except (OSError, ValueError, KeyError):
                     pass
                 time.sleep(0.2)
             else:
                 pytest.fail("Real provisioning service interruption checkpoint was not reached")
-            from src.api.release_uninstall import _security_record, _WindowsObject
-
-            obj = _WindowsObject(root / "dependencies/venv", lock=False)
-            try:
-                assert _security_record(obj)["owner"] == service_sid(old_marker["services"]["app"])
-            finally:
-                obj.close()
             if (
                 pause.get("root") != str(root)
                 or pause.get("source_sha") != source_sha
@@ -328,11 +385,9 @@ def test_full_native_installer_lifecycle(tmp_path):
             )
             if actual_parent["ParentProcessId"] != process.pid:
                 pytest.fail("Fault target is outside the created installer process")
-            from src.api.lab_scm import NativeSCM
-
             if (
                 NativeSCM.process_image(pid).casefold()
-                != str(media / "runtimes/python/python.exe").casefold()
+                != str(setup_media / "runtimes/python/python.exe").casefold()
             ):
                 pytest.fail("Fault target is not the verified private installer interpreter")
             handle = win32api.OpenProcess(
@@ -343,18 +398,15 @@ def test_full_native_installer_lifecycle(tmp_path):
             finally:
                 handle.Close()
             assert process.wait(timeout=30) != 0
-        evidence["checks"].append(
-            dict(
-                phase="real-install-driver-interrupted",
-                installation_id=old_marker["installation_id"],
-            )
-        )
-        powershell(
+        return old_marker
+
+    def setup(setup_media, *, timeout=1200):
+        return powershell(
             [
                 "-File",
-                media / "Setup-Tester.ps1",
+                setup_media / "Setup-Tester.ps1",
                 "-Bundle",
-                media,
+                setup_media,
                 "-Root",
                 root,
                 "-Mode",
@@ -368,11 +420,45 @@ def test_full_native_installer_lifecycle(tmp_path):
                 "-ExpectedSourceSHA",
                 source_sha,
             ],
-            timeout=1200,
+            timeout=timeout,
         )
+
+    before = system_pg()
+    try:
+        # #111: an existing EMPTY root is adopted, never refused forever.
+        root.mkdir()
+        # First run is interrupted by killing only its authenticated private
+        # bootstrap Python while the real same-account provisioning service runs.
+        old_marker = interrupted_setup(
+            media,
+            "provisioning-actor-running",
+            "interrupted-bootstrap.log",
+            checkpoint=lambda: (root / "dependencies/venv").is_dir(),
+        )
+        from src.api.release_uninstall import _security_record, _WindowsObject
+
+        obj = _WindowsObject(root / "dependencies/venv", lock=False)
+        try:
+            assert _security_record(obj)["owner"] == service_sid(old_marker["services"]["app"])
+        finally:
+            obj.close()
+        evidence["checks"].append(dict(phase="empty-precreated-root-adopted"))
+        evidence["checks"].append(
+            dict(
+                phase="real-install-driver-interrupted",
+                installation_id=old_marker["installation_id"],
+            )
+        )
+        setup(media)
         marker = ri.load_marker(root)
         native = ready()
         assert marker["installation_id"] != old_marker["installation_id"]
+        assert set(start_types(marker["services"].values()).values()) == {"auto"}
+        assert preshutdown([marker["services"]["app"], marker["services"]["postgres"]]) == [
+            ri.PRESHUTDOWN_TIMEOUT_MS["app"],
+            ri.PRESHUTDOWN_TIMEOUT_MS["postgres"],
+        ]
+        assert not Path(old_marker["trust_config"]).parent.exists(), "rolled-back metadata left"
         old_scm = NativeSCM()
         try:
             assert all(old_scm.inspect(name) is None for name in old_marker["services"].values())
@@ -519,74 +605,76 @@ def test_full_native_installer_lifecycle(tmp_path):
                 == "durable-" + ident
             )
         evidence["checks"].append(dict(phase="database-durability-after-recovery"))
+        # #108B: the user deletes the uninstall shortcut and re-runs Setup.
+        uninstall_link = desktop / "TESTER — Удаление.lnk"
+        uninstall_link.unlink()
+        trust_path = Path(marker["trust_config"])
+        ledger_before = json.loads(trust_path.read_text(encoding="utf-8"))["ledger"]
         # A successful repeated setup must not create additional services/processes.
+        setup(media, timeout=180)
+        assert ready()["supervisor_pid"] == native["supervisor_pid"]
+        assert uninstall_link.is_file()
+        ledger_after = json.loads(trust_path.read_text(encoding="utf-8"))["ledger"]
+        assert ledger_after != ledger_before and not Path(ledger_before).exists()
+        evidence["checks"].append(dict(phase="recreated-shortcut-reenrolled"))
+        # #108A: documented administrator kill switch, created as documented.
+        kill_switch = root / "runtime" / "restart.disabled"
         powershell(
             [
-                "-File",
-                media / "Setup-Tester.ps1",
-                "-Bundle",
-                media,
-                "-Root",
-                root,
-                "-Mode",
-                "test",
-                "-Desktop",
-                desktop,
-                "-ManifestSHA256",
-                manifest_pin,
-                "-TrustedPublicKeySHA256",
-                key_pin,
-                "-ExpectedSourceSHA",
-                source_sha,
-            ],
-            timeout=180,
+                "-Command",
+                "New-Item -ItemType File -Path '"
+                + str(kill_switch)
+                + "' | Out-Null; icacls '"
+                + str(kill_switch)
+                + "' /setowner '*S-1-5-32-544' | Out-Null",
+            ]
         )
-        assert ready()["supervisor_pid"] == native["supervisor_pid"]
+        assert kill_switch.is_file()
         # Original installation media is unavailable during transient uninstallation.
         renamed = tmp_path / ("UnavailableOriginalMedia_" + ident)
         assert media.parent == renamed.parent == tmp_path
         os.replace(media, renamed)
         uninstall = root / "releases" / source_sha / "scripts/windows/Uninstall-ReleaseTester.ps1"
+        # R1: the uninstaller may be started with its current directory inside the root.
         result = powershell(
             ["-File", uninstall, "-TrustConfig", marker["trust_config"]],
             input_text="DELETE TESTER\nYES\n",
             timeout=600,
+            cwd=root,
         )
         evidence["checks"].append(
             dict(phase="transient-uninstalled-without-original-media", output=result.stdout[-3000:])
         )
-        assert not root.exists()
-        assert not list(desktop.glob("*.lnk"))
         assert all(state is None for state in validate_resources(marker))
-        maintenance = Path(marker["trust_config"]).parent
-        assert not list(maintenance.glob("maintenance-*"))
-        evidence["checks"].append(dict(phase="absence-verified"))
+        assert_no_leftovers([old_marker, marker])
+        evidence["checks"].append(dict(phase="absence-verified-no-leftovers"))
         first_installation = marker["installation_id"]
         media2 = tmp_path / ("SecondCleanInstallerMedia_" + ident)
         shutil.copytree(Path(os.environ["TESTER_RELEASE_BUNDLE"]), media2)
-        powershell(
-            [
-                "-File",
-                media2 / "Setup-Tester.ps1",
-                "-Bundle",
-                media2,
-                "-Root",
-                root,
-                "-Mode",
-                "test",
-                "-Desktop",
-                desktop,
-                "-ManifestSHA256",
-                manifest_pin,
-                "-TrustedPublicKeySHA256",
-                key_pin,
-                "-ExpectedSourceSHA",
-                source_sha,
-            ],
-            timeout=1200,
-        )
+        # #107: interrupt after services are registered but before the commit.
+        first_marker = marker
+        sealed = interrupted_setup(media2, "sealing-ownership", "interrupted-sealing.log")
+        assert set(start_types(sealed["services"].values()).values()) == {"demand"}
+        # Even if an operator (or a stale boot) starts PostgreSQL, it creates
+        # PostgreSQL-SID objects that rollback must still authenticate and remove.
+        from src.api.lab_scm import NativeSCM
+
+        pg_scm = NativeSCM(mutating=True)
+        try:
+            pg_scm.start(sealed["services"]["postgres"])
+            pg_scm.wait(sealed["services"]["postgres"], "running")
+        finally:
+            pg_scm.close()
+        evidence["checks"].append(dict(phase="uncommitted-services-demand-start"))
+        setup(media2)
         marker = ri.load_marker(root)
-        assert marker["installation_id"] != first_installation
+        assert marker["installation_id"] not in (
+            first_installation,
+            sealed["installation_id"],
+        )
+        assert all(state is None for state in validate_resources(sealed))
+        assert not Path(sealed["trust_config"]).parent.exists()
+        evidence["checks"].append(dict(phase="uncommitted-postgres-objects-rolled-back"))
         second_native = ready()
         evidence["checks"].append(
             dict(
@@ -644,8 +732,8 @@ def test_full_native_installer_lifecycle(tmp_path):
             input_text="DELETE TESTER\nYES\n",
             timeout=600,
         )
-        assert not root.exists() and not list(desktop.glob("*.lnk"))
         assert all(state is None for state in validate_resources(marker))
+        assert_no_leftovers([old_marker, first_marker, sealed, marker])
         evidence["checks"].append(dict(phase="second-clean-install-cleanup-complete"))
 
     except BaseException as exc:

@@ -326,7 +326,7 @@ def test_real_unicode_com_shortcut_roundtrip(tmp_path):
     uninstall = read_shortcut(paths[1])
     assert '-TrustConfig "' + marker["trust_config"] + '"' in uninstall["arguments"]
     assert " -Root " not in uninstall["arguments"]
-    assert uninstall["working_directory"] == str(root)
+    assert uninstall["working_directory"].casefold() != str(root).casefold()
 
 
 def test_startup_interruption_receipt_retains_exact_instance(tmp_path):

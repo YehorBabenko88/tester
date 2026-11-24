@@ -16,7 +16,20 @@ The canonical destination is `C:\TesterLab`. Do not install over the existing AD
 
 Two desktop shortcuts are intended: **TESTER — Запуск** starts owned services and opens the ready terminal; **TESTER — Удаление** invokes the owned uninstaller. Repeated launch must retain a single service process. Service lifecycle helpers live in the installed release's `scripts/windows` directory. Read the installed helper's PowerShell parameters rather than inventing service names; names and paths are installation-UUID-bound.
 
-Removal displays the owned resources and requires exact `DELETE TESTER` followed by `YES`. It irreversibly removes the owned cluster, results, market history, configuration, logs and shortcuts. Unknown ownership, altered service identity, links or foreign contents must cause refusal. There is no retained uninstall backup. Exercise removal only on a dedicated temporary installation during acceptance.
+Removal displays the owned resources and requires exact `DELETE TESTER` followed by `YES`. It irreversibly removes the owned cluster, results, market history, configuration, logs and shortcuts, both native services (including their registry keys), the external maintenance directory `C:\ProgramData\TesterReleaseMaintenance_<installation-uuid>` (ledger, journals, evidence, trust config) and the lifecycle lock file `C:\.tester-lifecycle-<sha256>.lock`. Nothing is kept as an archive; the final `removed` status is printed to the console. TESTER creates no firewall rules, scheduled tasks or Start-menu entries. Unknown ownership, altered service identity, links or foreign contents must cause refusal. There is no retained uninstall backup. Exercise removal only on a dedicated temporary installation during acceptance.
+
+If removal is interrupted, run **TESTER — Удаление** again; it resumes and finishes the cleanup. If only metadata remains after the trust config was already deleted, the next successful Setup for the same folder removes it. Failed or rolled-back installation attempts do not leave maintenance folders behind once their rollback is proven.
+
+Emergency restart kill switch: from an elevated PowerShell console create the documented file and give it to Administrators:
+
+```powershell
+New-Item -ItemType File -Path 'C:\TesterLab\runtime\restart.disabled' | Out-Null
+icacls 'C:\TesterLab\runtime\restart.disabled' /setowner '*S-1-5-32-544'
+```
+
+Removal accepts exactly this file (regular file up to 4 KiB, owner Administrators, SYSTEM or the TESTER App service, inherited folder permissions unchanged) and deletes it with the installation. Do not change its permissions and do not put other files into the installation folder; unknown objects still make removal refuse.
+
+Re-running Setup on an installed TESTER revalidates it, starts it and recreates a missing desktop shortcut; the recreated shortcut is re-registered so removal still works. A shortcut with a different target or arguments is refused as foreign. An interrupted first installation (for example power loss) is never started automatically at boot: services are switched to automatic start only after the installation is committed. Re-run Setup to roll back the interrupted attempt and install cleanly. An empty, pre-created installation folder is accepted by Setup.
 
 For diagnosis preserve source SHA, envelope digest, installation UUID, service status, installation journal and API/worker readiness. Keep credentials and database passwords out of published evidence. Recovery must verify owned service executable and cluster identity before restarting. System PostgreSQL port 5432 and unrelated files must remain unchanged.
 
