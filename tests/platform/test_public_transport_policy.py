@@ -30,6 +30,13 @@ class ReservationFixture:
         assert token == self.token
         self.state = "CLEAR" if outcome == "allow" else "HALTED"
 
+    def reserve_dispatch(self):
+        # Protocol-only fixture: scope timing/durability is tested separately.
+        return "GRANTED", str(uuid4()), 0
+
+    def finish_dispatch(self, token, cooldown_seconds=0):
+        pass
+
     def reset(self, key):
         raise PermissionError("owner role required")
 

@@ -41,6 +41,10 @@ class PublicEndpointHalted(ValueError):
     """A queued request was refused before sending any bytes."""
 
 
+class PublicDispatchUnavailable(RuntimeError):
+    """No network bytes were sent while waiting for scope admission."""
+
+
 class Transport:
     def __init__(
         self,
@@ -180,6 +184,7 @@ class Transport:
                 and not lease.get("active_closers", 0)
                 and not lease.get("close_failed", False)
                 and not lease.get("reader_close_failed", False)
+                and not lease.get("dispatch_uncertain", False)
                 and (not lease.get("response_guarded", False) or lease.get("close_complete", False))
             ):
                 self.policy_store.finish(key, lease["token"], lease["outcome"])
@@ -197,6 +202,17 @@ class Transport:
                 self.policy_store.finish(key, lease["security_token"], reason)
                 lease["security_reported"] = True
                 lease["token"] = None
+
+    def _report_tls_fault(self, key, lease, started):
+        # Observability is never an authority: latch first, record even if the
+        # durable write fails, and avoid duplicate reports from nested cleanup.
+        with lease["lock"]:
+            try:
+                self._security_fault(key, lease, "tls_failure")
+            finally:
+                if not lease.get("tls_observed", False):
+                    lease["tls_observed"] = True
+                    self._observe(key, started, "tls_failure")
 
     def _guard_response(self, response, key, lease, started, *, streaming, cancel=None):
         original_iter, original_close = response.iter_content, response.close
@@ -219,8 +235,7 @@ class Transport:
                 close()
                 raise
             except requests.exceptions.SSLError:
-                self._security_fault(key, lease, "tls_failure")
-                self._observe(key, started, "tls_failure")
+                self._report_tls_fault(key, lease, started)
                 raise
             except requests.RequestException as exc:
                 if cancel and cancel():
@@ -237,8 +252,7 @@ class Transport:
                             with lease["lock"]:
                                 lease["reader_close_failed"] = True
                             if isinstance(exc, requests.exceptions.SSLError):
-                                self._security_fault(key, lease, "tls_failure")
-                                self._observe(key, started, "tls_failure")
+                                self._report_tls_fault(key, lease, started)
                             raise
                 finally:
                     with lease["lock"]:
@@ -257,8 +271,7 @@ class Transport:
                 original_close()
                 succeeded = True
             except requests.exceptions.SSLError:
-                self._security_fault(key, lease, "tls_failure")
-                self._observe(key, started, "tls_failure")
+                self._report_tls_fault(key, lease, started)
                 raise
             finally:
                 with lease["lock"]:
@@ -341,12 +354,69 @@ class Transport:
             ):
                 raise UnsafePublicSession("Unsafe public requests session TLS context")
 
-    def _request(self, session, url, key, timeout, cancel, kwargs):
-        # Reserve the actual send slot after durable admission. Keep this sole
-        # dispatch gate until headers/body arrive, so delayed callers cannot
-        # send a burst and a 429 publishes cooldown before the next send.
+    def _reserve_dispatch(self, cancel):
+        if self.policy_store is None:
+            return None
+        deadline = time.monotonic() + 5
+        for _ in range(20):
+            self._wait(0, cancel)
+            try:
+                state, token, delay = self.policy_store.reserve_dispatch()
+            except Exception as exc:
+                raise PublicDispatchUnavailable("Public dispatch authority unavailable") from exc
+            if (
+                type(delay) not in (int, float)
+                or not math.isfinite(delay)
+                or not 0 <= delay <= 3600
+            ):
+                raise PublicDispatchUnavailable("Public dispatch authority invalid")
+            if state == "GRANTED":
+                from uuid import UUID
+
+                try:
+                    if delay != 0 or token is None:
+                        raise ValueError
+                    return str(UUID(str(token)))
+                except (TypeError, ValueError):
+                    raise PublicDispatchUnavailable("Public dispatch authority invalid") from None
+            if (
+                token is not None
+                or (state != "WAIT" and delay != 0)
+                or (state == "WAIT" and delay <= 0)
+            ):
+                raise PublicDispatchUnavailable("Public dispatch authority invalid")
+            if state == "HALTED":
+                raise PublicDispatchUnavailable("Public dispatch halted; owner review required")
+            remaining = deadline - time.monotonic()
+            if state == "WAIT":
+                if delay > remaining:
+                    raise PublicDispatchUnavailable("Public dispatch cooldown active")
+                self._wait(delay, cancel)
+            elif state == "PENDING" and remaining > 0:
+                self._wait(min(0.25, remaining), cancel)
+            else:
+                break
+        raise PublicDispatchUnavailable("Public dispatch pending; owner review required")
+
+    def _request(self, session, url, key, timeout, cancel, kwargs, lease, started):
+        # Endpoint admission and the local gate precede the shared PG send lease.
+        # The latter remains held through the actual network call/headers, never
+        # as an open SQL transaction. Streaming response ownership stays separate.
         while not self.dispatch_lock.acquire(timeout=0.25):
             self._wait(0, cancel)
+        token = None
+
+        def finish_dispatch(cooldown=0):
+            nonlocal token
+            if token is not None:
+                owned, token = token, None  # Never retry an uncertain SQL completion.
+                try:
+                    self.policy_store.finish_dispatch(owned, cooldown)
+                except BaseException:
+                    with lease["lock"]:
+                        lease["dispatch_uncertain"] = True
+                    raise
+
         try:
             while True:
                 self._wait(0, cancel)
@@ -362,22 +432,70 @@ class Transport:
             with self.lock:
                 if key in self.halted or len(self.halted) >= 128:
                     raise PublicEndpointHalted("Public endpoint halted; manual review required")
+            token = self._reserve_dispatch(cancel)
             try:
+                self._wait(0, cancel)
                 response = session.request(
                     "GET", url, timeout=timeout, allow_redirects=False, **kwargs
                 )
-            except requests.exceptions.SSLError:
-                with self.lock:
-                    self.halted.add(key)
+            except BaseException as exc:
+                if isinstance(exc, requests.exceptions.SSLError):
+                    with self.lock:
+                        self.halted.add(key)
+                try:
+                    finish_dispatch()
+                except BaseException:
+                    if isinstance(exc, requests.exceptions.SSLError):
+                        raise exc  # Preserve the security outcome for get()'s halt path.
+                    raise
                 raise
-            if response.status_code == 403:
-                with self.lock:
-                    self.halted.add(key)
-            if response.status_code == 429:
-                after = retry_after_seconds(response.headers.get("Retry-After"), datetime.now(UTC))
-                if after is not None:
-                    self.defer(after)
-            return response
+            # Own the response before any subsequent SQL completion can fail.
+            self._guard_response(
+                response, key, lease, started, streaming=bool(kwargs.get("stream")), cancel=cancel
+            )
+            try:
+                after = None
+                if response.status_code == 429:
+                    after = retry_after_seconds(
+                        response.headers.get("Retry-After"), datetime.now(UTC)
+                    )
+                    if after is not None:
+                        self.defer(after)
+                if response.status_code == 403:
+                    try:
+                        self._security_fault(key, lease, "http_403")
+                    finally:
+                        self._observe(
+                            key,
+                            started,
+                            "http",
+                            status_code=403,
+                            retry_after=response.headers.get("Retry-After"),
+                        )
+                else:
+                    self._observe(
+                        key,
+                        started,
+                        "http",
+                        status_code=response.status_code,
+                        retry_after=response.headers.get("Retry-After"),
+                    )
+                finish_dispatch(after if after is not None else 0)
+                return response
+            except BaseException as exc:
+                # A completed network call still releases scope admission if an
+                # observer fails. Never retry a completion already attempted.
+                try:
+                    finish_dispatch(after if after is not None else 0)
+                except BaseException:
+                    response.close()
+                    if isinstance(exc, requests.exceptions.SSLError):
+                        raise exc
+                    raise
+                # Successful close cannot release an endpoint whose scope write
+                # was uncertain; a close TLS fault still records its own halt.
+                response.close()
+                raise
         finally:
             self.dispatch_lock.release()
 
@@ -427,11 +545,10 @@ class Transport:
                 response = None
                 started = time.monotonic()
                 try:
-                    response = self._request(session, url, key, timeout, cancel, kwargs)
-                    streaming = bool(kwargs.get("stream"))
-                    self._guard_response(
-                        response, key, lease, started, streaming=streaming, cancel=cancel
+                    response = self._request(
+                        session, url, key, timeout, cancel, kwargs, lease, started
                     )
+                    streaming = bool(kwargs.get("stream"))
                     if not streaming:
                         # Non-streaming Requests responses are already cached.
                         # Finish their owned cleanup before releasing admission;
@@ -439,17 +556,6 @@ class Transport:
                         _ = response.content
                     if response.status_code == 403:
                         self._security_fault(key, lease, "http_403")
-                    try:
-                        self._observe(
-                            key,
-                            started,
-                            "http",
-                            status_code=response.status_code,
-                            retry_after=response.headers.get("Retry-After"),
-                        )
-                    except Exception:
-                        response.close()
-                        raise
                     self._wait(0, cancel)
                     if 300 <= response.status_code < 400:
                         response.close()
@@ -460,10 +566,10 @@ class Transport:
                     return response
                 except requests.RequestException as exc:
                     if isinstance(exc, requests.exceptions.SSLError):
-                        self._security_fault(key, lease, "tls_failure")
+                        self._report_tls_fault(key, lease, started)
                     else:
                         self._finish_policy(key, lease)
-                    if response is None:
+                    if response is None and not isinstance(exc, requests.exceptions.SSLError):
                         kind = (
                             "tls_failure"
                             if isinstance(exc, requests.exceptions.SSLError)
@@ -499,7 +605,13 @@ class Transport:
                     self.defer(delay)
                 except Exception as exc:
                     if isinstance(
-                        exc, (InterruptedError, UnsafePublicSession, PublicEndpointHalted)
+                        exc,
+                        (
+                            InterruptedError,
+                            UnsafePublicSession,
+                            PublicEndpointHalted,
+                            PublicDispatchUnavailable,
+                        ),
                     ):
                         self._finish_policy(key, lease)
                     if response is not None:

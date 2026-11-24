@@ -376,3 +376,23 @@ without PostgreSQL. The paired 703 performance selection contains 29
 PostgreSQL-backed cases plus five pure cases per revision. Exact node IDs and
 source hashes accompany the sanitized runtime evidence; direct HTTP/worker and
 browser flows are reported separately from pytest counts.
+
+
+The native public transport additionally shares installation-wide dispatch
+authority in platform migration 006. API catalog, worker history, newly created
+Transport objects and restarted processes use the same existing PostgreSQL
+adapter and installation scope. A durable token spans the actual request until
+headers/network return; its release imposes at least a 0.5-second gap (at most
+two requests per second), and a valid 429 Retry-After extends the shared cooldown.
+No SQL transaction spans network I/O. No second retry executor or database client
+is introduced.
+
+Admission cooperatively waits for at most five seconds between SQL calls. A
+longer ordinary cooldown returns unavailable without sending or clearing the
+persisted deadline; the existing scheduler owns later retries. This is not a
+strict five-second wall-clock bound: connection/statement timeout bounds also
+apply. Cancellation is checked through catalog streams/rate waits and final
+network attempts, including single-attempt timeouts; TLS and 403 security faults
+retain priority. A crashed sender or uncertain dispatch completion leaves durable
+PENDING without expiry. Only explicit whole-scope database-owner review clears
+that dispatch state; endpoint-only reset cannot abandon another sender.

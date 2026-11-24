@@ -222,7 +222,7 @@ def test_concurrent_durable_waiters_dispatch_at_distinct_rate_slots(monkeypatch)
     session.request.side_effect = request
     transport = Transport(session=session, rate=2, sleep=clock.sleep)
 
-    class DelayedPolicy:
+    class DelayedPolicy(ReservationFixture):
         def reserve(self, key):
             barrier.wait(timeout=3)
             with state_lock:
