@@ -135,7 +135,12 @@ class Transport:
 
     def _reserve_policy(self, key, cancel):
         if self.policy_store is None:
-            return {"token": None, "outcome": "allow"}
+            return {
+                "token": None,
+                "security_token": None,
+                "outcome": "allow",
+                "lock": threading.RLock(),
+            }
         deadline = time.monotonic() + 5
         for _ in range(20):
             self._wait(0, cancel)
@@ -143,7 +148,12 @@ class Transport:
             if state == "GRANTED":
                 from uuid import UUID
 
-                return {"token": str(UUID(str(token))), "outcome": "allow"}
+                return {
+                    "token": str(UUID(str(token))),
+                    "security_token": str(UUID(str(token))),
+                    "outcome": "allow",
+                    "lock": threading.RLock(),
+                }
             if state not in {"PENDING", "HALTED", "CAPACITY"} or token is not None:
                 raise RuntimeError("Public transport policy invalid; manual review required")
             if state != "PENDING" or time.monotonic() >= deadline:
@@ -152,17 +162,24 @@ class Transport:
         raise RuntimeError("Public endpoint unavailable; manual review required")
 
     def _finish_policy(self, key, lease):
-        if self.policy_store is not None and lease["token"] is not None:
-            self.policy_store.finish(key, lease["token"], lease["outcome"])
-            lease["token"] = None
+        with lease["lock"]:
+            if self.policy_store is not None and lease["token"] is not None:
+                self.policy_store.finish(key, lease["token"], lease["outcome"])
+                lease["token"] = None
 
     def _security_fault(self, key, lease, reason):
-        # Security outcomes can never be downgraded by subsequent context cleanup.
-        lease["outcome"] = reason
-        if self.policy_store is None:
-            with self.lock:
-                self.halted.add(key)
-        self._finish_policy(key, lease)
+        # Keep the original identity even after another thread completed ordinary
+        # close. PostgreSQL fences a late fault with that identity and halts the
+        # scope when the reservation has already been released or replaced.
+        with lease["lock"]:
+            lease["outcome"] = reason
+            if self.policy_store is None:
+                with self.lock:
+                    self.halted.add(key)
+            elif not lease.get("security_reported", False):
+                self.policy_store.finish(key, lease["security_token"], reason)
+                lease["security_reported"] = True
+                lease["token"] = None
 
     def _guard_stream(self, response, key, lease, started):
         original_iter, original_close = response.iter_content, response.close

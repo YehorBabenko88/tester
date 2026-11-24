@@ -80,6 +80,53 @@ def test_stream_tls_latches_before_context_cleanup_and_fresh_instance():
     fresh.request.assert_not_called()
 
 
+def close_before_delayed_tls(store):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    reading, resume = Event(), Event()
+    value = response()
+
+    def delayed(*args, **kwargs):
+        yield b"prefix"
+        reading.set()
+        assert resume.wait(5), "reader release timed out"
+        raise requests.exceptions.SSLError("delayed stream TLS failure")
+
+    value.iter_content = delayed
+    session = Mock()
+    session.request.return_value = value
+    stream = Transport(session=session, policy_store=store).get(URL, stream=True)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(lambda: list(stream.iter_content(10)))
+        try:
+            assert reading.wait(5), "reader never entered stream"
+            stream.close()
+            stream.close()  # ordinary cleanup is idempotent
+        finally:
+            resume.set()
+        with pytest.raises(requests.exceptions.SSLError):
+            future.result(timeout=5)
+    stream.close()  # cleanup must never downgrade the late TLS outcome
+    fresh = Mock()
+    fresh.request.return_value = response()
+    with pytest.raises(RuntimeError, match="manual review"):
+        Transport(session=fresh, policy_store=store).get(URL)
+    fresh.request.assert_not_called()
+
+
+def test_stream_close_cannot_discard_later_reader_tls_identity():
+    store = ReservationFixture()
+    close_before_delayed_tls(store)
+    assert store.state == "HALTED"
+
+
+def test_actual_pg_stream_close_then_delayed_tls_halts_whole_scope(durable_policy):
+    policy, owner, scope = durable_policy
+    close_before_delayed_tls(policy)
+    assert policy.read("api.bybit.com/v5/market/kline") == "HALTED"
+
+
 def test_stream_pending_until_close_and_explicit_abort_releases_clean_request():
     store = ReservationFixture()
     session = Mock()
