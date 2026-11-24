@@ -138,3 +138,60 @@ def test_service_ticker_cancel_reaches_stream_and_cannot_publish_snapshot():
     assert consumed == []
     assert "linear" not in service._snapshots
     assert session.request.call_count == 6
+
+
+@pytest.mark.parametrize("stream", [False, True])
+@pytest.mark.parametrize("persistent", [False, True])
+def test_403_security_error_wins_over_simultaneous_cancel(stream, persistent):
+    from tests.platform.test_public_transport_policy import ReservationFixture
+
+    stopped = threading.Event()
+    store = ReservationFixture() if persistent else None
+    session = Mock()
+    value = reply(status=403)
+
+    def request(*a, **k):
+        stopped.set()
+        return value
+
+    session.request.side_effect = request
+    transport = Transport(session=session, policy_store=store, attempts=1)
+    with pytest.raises(requests.HTTPError) as error:
+        transport.get(URL, stream=stream, cancel=stopped.is_set)
+    assert error.value.response.status_code == 403
+    assert session.request.call_count == 1
+    assert URL.removeprefix("https://") in transport.halted
+    if store is not None:
+        assert store.state == "HALTED"
+    fresh = Mock()
+    retry = Transport(session=fresh, policy_store=store) if store is not None else transport
+    with pytest.raises((RuntimeError, ValueError)):
+        retry.get(URL)
+    assert session.request.call_count == 1
+    fresh.request.assert_not_called()
+
+
+@pytest.mark.parametrize("stream", [False, True])
+@pytest.mark.parametrize("persistent", [False, True])
+def test_cancelled_403_cleanup_tls_still_has_security_priority(stream, persistent):
+    from tests.platform.test_public_transport_policy import ReservationFixture
+
+    stopped = threading.Event()
+    store = ReservationFixture() if persistent else None
+    value = reply(status=403)
+    closed = Mock(side_effect=requests.exceptions.SSLError("close TLS"))
+    value.close = closed
+    session = Mock()
+
+    def request(*a, **k):
+        stopped.set()
+        return value
+
+    session.request.side_effect = request
+    transport = Transport(session=session, policy_store=store, attempts=1)
+    with pytest.raises(requests.exceptions.SSLError):
+        transport.get(URL, stream=stream, cancel=stopped.is_set)
+    assert session.request.call_count == 1
+    closed.assert_called_once()
+    if store is not None:
+        assert store.state == "HALTED"

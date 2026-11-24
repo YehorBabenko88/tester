@@ -557,6 +557,7 @@ class Transport:
                         _ = response.content
                     if response.status_code == 403:
                         self._security_fault(key, lease, "http_403")
+                        response.raise_for_status()
                     self._wait(0, cancel)
                     if 300 <= response.status_code < 400:
                         response.close()
