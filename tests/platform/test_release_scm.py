@@ -812,3 +812,60 @@ def test_shortcut_target_ignores_spoofed_systemroot_and_path(tmp_path, monkeypat
     marker = dict(mode="test", test_desktop=str(desktop), source_sha="a" * 40)
     for path in create_shortcuts(root, marker):
         assert read_shortcut(path)["target"].casefold() == str(expected).casefold()
+
+
+def test_app_service_preflight_keeps_pg_data_private(tmp_path):
+    import hashlib
+    import json
+
+    import pytest
+
+    from src.api.release_install import MARKER, SCHEMA
+
+    ident = uuid.uuid4()
+    root = tmp_path / ("TesterReleaseTest_" + ident.hex)
+    root.mkdir()
+    marker = dict(
+        schema=SCHEMA,
+        root=str(root),
+        installation_id=str(ident),
+        source_sha="a" * 40,
+        release_manifest_sha256="b" * 64,
+        mode="test",
+        test_desktop=str(tmp_path / ("Desktop_" + ident.hex)),
+        services={
+            "app": "TesterReleaseApp_" + ident.hex,
+            "postgres": "TesterReleasePG_" + ident.hex,
+        },
+        ports={"api": 18767, "postgres": 55471},
+    )
+    (root / MARKER).write_text(json.dumps(marker))
+    (root / "state").mkdir()
+    for name in ("service", "postgres"):
+        directory = root / "dependencies" / name
+        directory.mkdir(parents=True)
+        (directory / "fixed.bin").write_bytes(b"verified")
+        (root / "state" / (name + "-runtime.json")).write_text(
+            json.dumps({"files": {"fixed.bin": hashlib.sha256(b"verified").hexdigest()}})
+        )
+    source = root / "releases" / ("a" * 40)
+    source.mkdir(parents=True)
+    (source / "fixed.py").write_bytes(b"pass\n")
+    (root / "state/source-runtime.json").write_text(
+        json.dumps({"files": {"fixed.py": hashlib.sha256(b"pass\n").hexdigest()}})
+    )
+    config = dict(
+        host="127.0.0.1",
+        port=18767,
+        data_dir=str(root / "runtime"),
+        frontend_dir=str(source / "frontend"),
+        database_url="host=127.0.0.1 port=55471 dbname=tester user=tester_app",
+    )
+    (root / "config.json").write_text(json.dumps(config))
+    service = object.__new__(rs.ReleaseService)
+    assert service.service_preflight(root) == marker
+    with pytest.raises(FileNotFoundError):
+        rs.preflight(root)
+    (root / "dependencies/service/fixed.bin").write_bytes(b"tampered")
+    with pytest.raises(ValueError):
+        service.service_preflight(root)

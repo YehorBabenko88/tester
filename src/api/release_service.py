@@ -416,7 +416,7 @@ def validate_config(marker, config):
         raise ValueError("Dedicated release API/database/storage scope required")
 
 
-def preflight(root):
+def preflight(root, *, physical_postgres=True):
     marker = load_marker(root)
     import json
 
@@ -427,21 +427,23 @@ def preflight(root):
     from .lab_install import plain
     from .lab_scm import validate_pg_config
 
-    validate_pg_config(
-        plain(root / "postgres-data/postgresql.conf").read_text(),
-        expected_port=marker["ports"]["postgres"],
-    )
-    auto = plain(root / "postgres-data/postgresql.auto.conf")
-    if auto.exists() and any(
-        line.split("#", 1)[0].strip() for line in auto.read_text().splitlines()
-    ):
-        raise ValueError("PostgreSQL ALTER SYSTEM overrides are forbidden")
+    if physical_postgres:
+        validate_pg_config(
+            plain(root / "postgres-data/postgresql.conf").read_text(),
+            expected_port=marker["ports"]["postgres"],
+        )
+        auto = plain(root / "postgres-data/postgresql.auto.conf")
+        if auto.exists() and any(
+            line.split("#", 1)[0].strip() for line in auto.read_text().splitlines()
+        ):
+            raise ValueError("PostgreSQL ALTER SYSTEM overrides are forbidden")
     for name in ("service", "postgres"):
         receipt = json.loads((root / "state" / f"{name}-runtime.json").read_text())
         verify_tree(root / "dependencies" / name, receipt["files"])
     receipt = json.loads((root / "state/source-runtime.json").read_text())
     verify_tree(root / "releases" / marker["source_sha"], receipt["files"])
-    validate_cluster_identity(marker)
+    if physical_postgres:
+        validate_cluster_identity(marker)
     return marker
 
 
@@ -534,7 +536,10 @@ class ReleaseService(LabService):
             )
 
     def service_preflight(self, root):
-        return preflight(root)
+        # The App account must never read PostgreSQL raw files. The privileged
+        # controller checks physical cluster identity; the service validates code,
+        # dedicated DSNs and the protected SQL admission authority before launch.
+        return preflight(root, physical_postgres=False)
 
     def health_port(self, marker):
         return marker["ports"]["api"]
