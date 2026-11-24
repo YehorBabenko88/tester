@@ -22,3 +22,4 @@ form.addEventListener("submit", async (event) => {
     submit.disabled = false;
   }
 });
+document.querySelector("#research-submit").disabled = false;
