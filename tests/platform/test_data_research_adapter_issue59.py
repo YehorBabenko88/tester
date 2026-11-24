@@ -1,4 +1,5 @@
 """RESEARCH against versioned DATA #72 public execution events, no live orders."""
+
 import base64
 import hashlib
 import importlib
@@ -27,6 +28,7 @@ START = 1704067200000
 END = START + 60000
 OBSERVED_MS = 1794560000000
 
+
 def _constraint_definitions(rows):
     """Extract pg_constraint names from psycopg dict_row or tuple_row safely."""
     definitions = {}
@@ -35,23 +37,38 @@ def _constraint_definitions(rows):
             name, clause = row["conname"], row["definition"]
         else:
             name, clause = row
-        if (not isinstance(name, str) or not isinstance(clause, str)
-                or not name or not clause or name in definitions):
+        if (
+            not isinstance(name, str)
+            or not isinstance(clause, str)
+            or not name
+            or not clause
+            or name in definitions
+        ):
             raise ValueError("invalid_or_duplicate_pg_constraint_row")
         definitions[name] = clause
     return definitions
 
 
-@pytest.mark.parametrize("rows", [
+@pytest.mark.parametrize(
+    "rows",
     [
-        {"conname": "raw_records_check2", "definition": "CHECK (price > 0 AND side IN ('Buy', 'Sell', 'Unknown'))"},
-        {"conname": "trade_side_required", "definition": "CHECK (side IN ('Buy', 'Sell', 'Unknown'))"},
+        [
+            {
+                "conname": "raw_records_check2",
+                "definition": "CHECK (price > 0 AND side IN ('Buy', 'Sell', 'Unknown'))",
+            },
+            {
+                "conname": "trade_side_required",
+                "definition": "CHECK (side IN ('Buy', 'Sell', 'Unknown'))",
+            },
+        ],
+        [
+            ("raw_records_check2", "CHECK (price > 0 AND side IN ('Buy', 'Sell', 'Unknown'))"),
+            ("trade_side_required", "CHECK (side IN ('Buy', 'Sell', 'Unknown'))"),
+        ],
     ],
-    [
-        ("raw_records_check2", "CHECK (price > 0 AND side IN ('Buy', 'Sell', 'Unknown'))"),
-        ("trade_side_required", "CHECK (side IN ('Buy', 'Sell', 'Unknown'))"),
-    ],
-], ids=("dict_row", "tuple_row"))
+    ids=("dict_row", "tuple_row"),
+)
 def test_pg_constraint_result_rows_keep_names_and_definitions(rows):
     constraints = _constraint_definitions(rows)
     assert set(constraints) == {"raw_records_check2", "trade_side_required"}
@@ -59,51 +76,72 @@ def test_pg_constraint_result_rows_keep_names_and_definitions(rows):
     assert "price > 0" in constraints["raw_records_check2"]
 
 
-@pytest.mark.parametrize("rows", [
-    [{"conname": "raw_records_check2", "definition": "CHECK (x > 0)"},
-     {"conname": "raw_records_check2", "definition": "CHECK (x > 0)"}],
-    [("raw_records_check2", "CHECK (x > 0)"),
-     ("raw_records_check2", "CHECK (x > 0)")],
-], ids=("duplicate_dict_row", "duplicate_tuple_row"))
+@pytest.mark.parametrize(
+    "rows",
+    [
+        [
+            {"conname": "raw_records_check2", "definition": "CHECK (x > 0)"},
+            {"conname": "raw_records_check2", "definition": "CHECK (x > 0)"},
+        ],
+        [("raw_records_check2", "CHECK (x > 0)"), ("raw_records_check2", "CHECK (x > 0)")],
+    ],
+    ids=("duplicate_dict_row", "duplicate_tuple_row"),
+)
 def test_pg_constraint_duplicate_rows_fail_closed(rows):
     with pytest.raises(ValueError, match="invalid_or_duplicate_pg_constraint_row"):
         _constraint_definitions(rows)
 
 
-
-def event(trade_id="a", *, price="100", quantity="2", side="Buy",
-          event_ms=START + 1000):
+def event(trade_id="a", *, price="100", quantity="2", side="Buy", event_ms=START + 1000):
     return {
         "contract_version": DATA_CONTRACT_VERSION,
-        "venue": "bybit", "category": "linear", "symbol": "BTCUSDT",
-        "exec_id": trade_id, "taker_side": side,
-        "price": price, "quantity": quantity,
+        "venue": "bybit",
+        "category": "linear",
+        "symbol": "BTCUSDT",
+        "exec_id": trade_id,
+        "taker_side": side,
+        "price": price,
+        "quantity": quantity,
         "quantity_unit": "source_native_linear_size",
-        "event_ms": event_ms, "observed_ms": OBSERVED_MS,
+        "event_ms": event_ms,
+        "observed_ms": OBSERVED_MS,
         "publication_ms": None,
         "utc_interval": {"start_ms": START, "end_ms": END},
         "source_coverage": {"status": "UNKNOWN", "start_ms": START, "end_ms": END},
         "availability": {"status": "UNVERIFIED", "reason": "Public recent executions only"},
-        "provenance": [{
-            "source_kind": "bybit_rest",
-            "source_ref": "https://api.bybit.com/v5/market/recent-trade",
-            "source_hash": "c" * 64, "ingestion_run": "source-run",
-            "timestamp_precision": "ms", "source_timestamp": str(event_ms),
-            "parent_refs": ["evidence-1", "b" * 64, "a" * 64],
-            "method_version": DATA_CONTRACT_VERSION,
-        }],
-        "source_receipts": [{
-            "evidence_id": "evidence-1", "page_ref": "f" * 64,
-            "http_sha256": "a" * 64, "page_sha256": "b" * 64,
-            "row_sha256": "c" * 64,
-        }],
+        "provenance": [
+            {
+                "source_kind": "bybit_rest",
+                "source_ref": "https://api.bybit.com/v5/market/recent-trade",
+                "source_hash": "c" * 64,
+                "ingestion_run": "source-run",
+                "timestamp_precision": "ms",
+                "source_timestamp": str(event_ms),
+                "parent_refs": ["evidence-1", "b" * 64, "a" * 64],
+                "method_version": DATA_CONTRACT_VERSION,
+            }
+        ],
+        "source_receipts": [
+            {
+                "evidence_id": "evidence-1",
+                "page_ref": "f" * 64,
+                "http_sha256": "a" * 64,
+                "page_sha256": "b" * 64,
+                "row_sha256": "c" * 64,
+            }
+        ],
     }
 
 
 def preview(rows):
     return project_events(
-        rows, category="linear", symbol="BTCUSDT",
-        start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+        rows,
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=START,
+        end_ms=END,
+        interval_ms=60000,
+        tick_size="0.5",
     )
 
 
@@ -139,23 +177,50 @@ def test_reordered_events_produce_identical_metrics():
     assert preview([a, b])["metrics"] == preview([b, a])["metrics"]
 
 
-@pytest.mark.parametrize("edit,reason", [
-    (lambda e: e.__setitem__("contract_version", "other"), "unknown_data_execution_contract"),
-    (lambda e: e.__setitem__("quantity_unit", "source_native_inverse_contract"), "market_or_quantity_unit_mismatch"),
-    (lambda e: e.__setitem__("symbol", "ETHUSDT"), "market_or_quantity_unit_mismatch"),
-    (lambda e: e.__setitem__("publication_ms", START), "publication_time_not_proven"),
-    (lambda e: e.pop("publication_ms"), "publication_time_not_proven"),
-    (lambda e: e["source_coverage"].__setitem__("status", "COMPLETE"), "historical_scope_or_coverage_mismatch"),
-    (lambda e: e["utc_interval"].__setitem__("end_ms", END + 1), "historical_scope_or_coverage_mismatch"),
-    (lambda e: e["availability"].__setitem__("status", "AVAILABLE"), "source_availability_not_proven"),
-    (lambda e: e.__setitem__("taker_side", "bid"), "invalid_or_inferred_taker_side"),
-    (lambda e: e["source_receipts"].clear(), "original_http_page_row_receipts_required"),
-    (lambda e: e["source_receipts"][0].__setitem__("page_sha256", "not-a-sha"), "unqualified_source_sha256"),
-    (lambda e: e["provenance"][0]["parent_refs"].clear(), "source_receipt_provenance_mismatch"),
-    (lambda e: e["source_receipts"][0].__setitem__("row_sha256", "d" * 64), "source_receipt_provenance_mismatch"),
-    (lambda e: e["source_receipts"].append(dict(e["source_receipts"][0])), "duplicate_source_receipt"),
-    (lambda e: e.__setitem__("event_ms", float(START + 1)), "invalid_event_or_observation_time"),
-])
+@pytest.mark.parametrize(
+    "edit,reason",
+    [
+        (lambda e: e.__setitem__("contract_version", "other"), "unknown_data_execution_contract"),
+        (
+            lambda e: e.__setitem__("quantity_unit", "source_native_inverse_contract"),
+            "market_or_quantity_unit_mismatch",
+        ),
+        (lambda e: e.__setitem__("symbol", "ETHUSDT"), "market_or_quantity_unit_mismatch"),
+        (lambda e: e.__setitem__("publication_ms", START), "publication_time_not_proven"),
+        (lambda e: e.pop("publication_ms"), "publication_time_not_proven"),
+        (
+            lambda e: e["source_coverage"].__setitem__("status", "COMPLETE"),
+            "historical_scope_or_coverage_mismatch",
+        ),
+        (
+            lambda e: e["utc_interval"].__setitem__("end_ms", END + 1),
+            "historical_scope_or_coverage_mismatch",
+        ),
+        (
+            lambda e: e["availability"].__setitem__("status", "AVAILABLE"),
+            "source_availability_not_proven",
+        ),
+        (lambda e: e.__setitem__("taker_side", "bid"), "invalid_or_inferred_taker_side"),
+        (lambda e: e["source_receipts"].clear(), "original_http_page_row_receipts_required"),
+        (
+            lambda e: e["source_receipts"][0].__setitem__("page_sha256", "not-a-sha"),
+            "unqualified_source_sha256",
+        ),
+        (lambda e: e["provenance"][0]["parent_refs"].clear(), "source_receipt_provenance_mismatch"),
+        (
+            lambda e: e["source_receipts"][0].__setitem__("row_sha256", "d" * 64),
+            "source_receipt_provenance_mismatch",
+        ),
+        (
+            lambda e: e["source_receipts"].append(dict(e["source_receipts"][0])),
+            "duplicate_source_receipt",
+        ),
+        (
+            lambda e: e.__setitem__("event_ms", float(START + 1)),
+            "invalid_event_or_observation_time",
+        ),
+    ],
+)
 def test_unqualified_event_refused(edit, reason):
     row = event()
     edit(row)
@@ -176,9 +241,14 @@ def test_duplicate_identity_refused_even_if_economics_differ():
 def test_late_observation_as_of_fails_closed():
     with pytest.raises(ValueError, match="late_source_knowledge"):
         project_events(
-            [event()], category="linear", symbol="BTCUSDT",
-            start_ms=START, end_ms=END, interval_ms=60000,
-            tick_size="0.5", as_of_ms=START + 60000
+            [event()],
+            category="linear",
+            symbol="BTCUSDT",
+            start_ms=START,
+            end_ms=END,
+            interval_ms=60000,
+            tick_size="0.5",
+            as_of_ms=START + 60000,
         )
 
 
@@ -186,8 +256,13 @@ def test_inverse_rejected_before_any_data_read():
     store = Mock()
     with pytest.raises(ValueError, match="inverse_quantity_unit_not_comparable"):
         read_data_metrics(
-            store, category="inverse", symbol="BTCUSDT",
-            start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+            store,
+            category="inverse",
+            symbol="BTCUSDT",
+            start_ms=START,
+            end_ms=END,
+            interval_ms=60000,
+            tick_size="0.5",
         )
     store.read.assert_not_called()
 
@@ -218,9 +293,14 @@ def test_actual_data72_versioned_event_projection_on_composed_branch():
     store = Mock()
     store.read.return_value = [fixture(side="Unknown")]
     outcome = read_data_metrics(
-        store, category="linear", symbol="BTCUSDT",
-        start_ms=window, end_ms=window + 60000,
-        interval_ms=60000, tick_size="0.5", limit=10
+        store,
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=window,
+        end_ms=window + 60000,
+        interval_ms=60000,
+        tick_size="0.5",
+        limit=10,
     )
     assert outcome["source_verification"] == "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
     assert outcome["metrics"]["bars"][0]["unknown_side_volume"] == "0.125"
@@ -233,8 +313,15 @@ def test_actual_data72_versioned_event_projection_on_composed_branch():
     assert ui["g_e_execution"] == "NOT_AUTHORIZED"
     assert ui["http_route"] is None
     store.read.assert_called_once_with(
-        "trades", "bybit", "linear", "BTCUSDT", window, window + 60000, "",
-        limit=10, compact_provenance=False
+        "trades",
+        "bybit",
+        "linear",
+        "BTCUSDT",
+        window,
+        window + 60000,
+        "",
+        limit=10,
+        compact_provenance=False,
     )
     store.ingest.assert_not_called()
 
@@ -259,9 +346,12 @@ def test_disposable_postgres_actual_data72_source_to_research():
     with psycopg.connect(dsn) as connection:
         migrate(connection)
     original = {
-        "symbol": "BTCUSDT", "execId": "research-data72-pg-v1",
-        "time": "1600000000000", "price": "10234.56000",
-        "size": "0.125000", "side": "Buy",
+        "symbol": "BTCUSDT",
+        "execId": "research-data72-pg-v1",
+        "time": "1600000000000",
+        "price": "10234.56000",
+        "size": "0.125000",
+        "side": "Buy",
     }
     result = {"list": [original]}
     url = "https://api.bybit.com/v5/market/recent-trade?" + urlencode(
@@ -273,7 +363,9 @@ def test_disposable_postgres_actual_data72_source_to_research():
     class SourceReplay:
         def __init__(self):
             self.last_response = {
-                "url": url, "status_code": 200, "hash_scope": "original_http_body",
+                "url": url,
+                "status_code": 200,
+                "hash_scope": "original_http_body",
                 "sha256": sha,
                 "bytes_base64": base64.b64encode(original_http).decode(),
             }
@@ -286,18 +378,27 @@ def test_disposable_postgres_actual_data72_source_to_research():
     store = Store(dsn)
     for _ in range(2):
         fetch_and_ingest(
-            store, SourceReplay(), kind="trades", category="linear",
-            symbol="BTCUSDT", run_id="research-data72-pg-run-v1",
+            store,
+            SourceReplay(),
+            kind="trades",
+            category="linear",
+            symbol="BTCUSDT",
+            run_id="research-data72-pg-run-v1",
             job_key="research-data72-pg-job-v1",
-            observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC)
+            observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC),
         )
     reopened = Store(dsn)
     stamp = 1600000000000
     start = stamp // 60000 * 60000
     outcome = read_data_metrics(
-        reopened, category="linear", symbol="BTCUSDT",
-        start_ms=start, end_ms=start + 60000, interval_ms=60000,
-        tick_size="0.5", limit=10
+        reopened,
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=start,
+        end_ms=start + 60000,
+        interval_ms=60000,
+        tick_size="0.5",
+        limit=10,
     )
     assert outcome["metrics"]["bars"][0]["vwap"] == "10234.56"
     assert outcome["metrics"]["bars"][0]["delta_known"] == "0.125"
@@ -322,8 +423,13 @@ def test_missing_data72_module_fails_closed(monkeypatch):
     store = Mock()
     with pytest.raises(ValueError, match="data72_versioned_contract_not_composed"):
         read_data_metrics(
-            store, category="linear", symbol="BTCUSDT",
-            start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+            store,
+            category="linear",
+            symbol="BTCUSDT",
+            start_ms=START,
+            end_ms=END,
+            interval_ms=60000,
+            tick_size="0.5",
         )
     store.read.assert_not_called()
 
@@ -333,21 +439,43 @@ def test_data72_version_skew_refused_before_read(monkeypatch):
 
     import src.integration.data_research_adapter as adapter
 
-    monkeypatch.setattr(adapter.importlib, "import_module",
-                        lambda name: SimpleNamespace(VERSION="tester-public-execution/2"))
+    monkeypatch.setattr(
+        adapter.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(VERSION="tester-public-execution/2"),
+    )
     store = Mock()
     with pytest.raises(ValueError, match="data_execution_contract_version_skew"):
         read_data_metrics(
-            store, category="linear", symbol="BTCUSDT",
-            start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+            store,
+            category="linear",
+            symbol="BTCUSDT",
+            start_ms=START,
+            end_ms=END,
+            interval_ms=60000,
+            tick_size="0.5",
         )
     store.read.assert_not_called()
 
 
-@pytest.mark.parametrize("interval", [
-    "1", "3", "5", "15", "30", "60", "120", "240", "360",
-    "720", "D", "W", "M",
-])
+@pytest.mark.parametrize(
+    "interval",
+    [
+        "1",
+        "3",
+        "5",
+        "15",
+        "30",
+        "60",
+        "120",
+        "240",
+        "360",
+        "720",
+        "D",
+        "W",
+        "M",
+    ],
+)
 def test_all_thirteen_utc_exchange_interval_boundaries(interval):
     """Timeframe boundary contract only; NOT chart/browser acceptance."""
     from src.analytics.core import interval_bounds
@@ -367,15 +495,25 @@ def test_full_source_page_never_claims_complete_sample(monkeypatch):
 
     import src.integration.data_research_adapter as adapter
 
-    monkeypatch.setattr(adapter.importlib, "import_module", lambda name: SimpleNamespace(
-        VERSION=DATA_CONTRACT_VERSION,
-        read_execution_events=lambda *args, **kwargs: [event()],
-        to_research_trade=lambda e: None,
-    ))
+    monkeypatch.setattr(
+        adapter.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(
+            VERSION=DATA_CONTRACT_VERSION,
+            read_execution_events=lambda *args, **kwargs: [event()],
+            to_research_trade=lambda e: None,
+        ),
+    )
     with pytest.raises(ValueError, match="data_event_page_limit_requires_pagination"):
         read_data_metrics(
-            Mock(), category="linear", symbol="BTCUSDT", start_ms=START,
-            end_ms=END, interval_ms=60000, tick_size="0.5", limit=1
+            Mock(),
+            category="linear",
+            symbol="BTCUSDT",
+            start_ms=START,
+            end_ms=END,
+            interval_ms=60000,
+            tick_size="0.5",
+            limit=1,
         )
 
 
@@ -384,14 +522,24 @@ def test_empty_data_read_does_not_claim_proof(monkeypatch):
 
     import src.integration.data_research_adapter as adapter
 
-    monkeypatch.setattr(adapter.importlib, "import_module", lambda name: SimpleNamespace(
-        VERSION=DATA_CONTRACT_VERSION,
-        read_execution_events=lambda *args, **kwargs: [],
-        to_research_trade=lambda e: None,
-    ))
+    monkeypatch.setattr(
+        adapter.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(
+            VERSION=DATA_CONTRACT_VERSION,
+            read_execution_events=lambda *args, **kwargs: [],
+            to_research_trade=lambda e: None,
+        ),
+    )
     result = read_data_metrics(
-        Mock(), category="linear", symbol="BTCUSDT", start_ms=START,
-        end_ms=END, interval_ms=60000, tick_size="0.5", limit=10
+        Mock(),
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=START,
+        end_ms=END,
+        interval_ms=60000,
+        tick_size="0.5",
+        limit=10,
     )
     assert result["status"] == "NO_DATA"
     assert result["source_verification"] == "NO_EXECUTION_EVIDENCE"
@@ -400,8 +548,13 @@ def test_empty_data_read_does_not_claim_proof(monkeypatch):
 
 def test_strategy_lab_f_denies_unverified_real_samples():
     preview = project_events(
-        [event()], category="linear", symbol="BTCUSDT",
-        start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+        [event()],
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=START,
+        end_ms=END,
+        interval_ms=60000,
+        tick_size="0.5",
     )
     with pytest.raises(ValueError, match="real_historical_visibility_unknown_f_denied"):
         require_strategy_lab_f_input(preview)
@@ -411,8 +564,13 @@ def test_strategy_lab_f_denies_unverified_real_samples():
 
 def test_strategy_lab_f_rejects_forged_complete_coverage():
     preview = project_events(
-        [event()], category="linear", symbol="BTCUSDT",
-        start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+        [event()],
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=START,
+        end_ms=END,
+        interval_ms=60000,
+        tick_size="0.5",
     )
     preview["coverage"] = "COMPLETE"
     with pytest.raises(ValueError, match="research_preview_claims_unreviewed_f_admission"):
@@ -445,10 +603,22 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
         migrate(connection)
     ms = 1600000060000
     original = [
-        {"symbol": "BTCUSDT", "execId": "research-pg-side-buy-v2",
-         "time": str(ms), "price": "100", "size": "0.5", "side": "Buy"},
-        {"symbol": "BTCUSDT", "execId": "research-pg-side-unknown-v2",
-         "time": str(ms + 1), "price": "101", "size": "0.25", "side": "Unknown"},
+        {
+            "symbol": "BTCUSDT",
+            "execId": "research-pg-side-buy-v2",
+            "time": str(ms),
+            "price": "100",
+            "size": "0.5",
+            "side": "Buy",
+        },
+        {
+            "symbol": "BTCUSDT",
+            "execId": "research-pg-side-unknown-v2",
+            "time": str(ms + 1),
+            "price": "101",
+            "size": "0.25",
+            "side": "Unknown",
+        },
     ]
     result = {"list": original}
     params = {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
@@ -459,7 +629,9 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     class HttpProof:
         def __init__(self, *, tampered=False):
             self.last_response = {
-                "url": url, "status_code": 200, "hash_scope": "original_http_body",
+                "url": url,
+                "status_code": 200,
+                "hash_scope": "original_http_body",
                 "sha256": "0" * 64 if tampered else sha,
                 "bytes_base64": base64.b64encode(body).decode(),
             }
@@ -469,7 +641,9 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
             return result, url
 
     kwargs = dict(
-        kind="trades", category="linear", symbol="BTCUSDT",
+        kind="trades",
+        category="linear",
+        symbol="BTCUSDT",
         run_id="research-data72-pg-run-v2",
         job_key="research-data72-pg-job-v2",
         observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC),
@@ -483,9 +657,14 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     start = ms // 60000 * 60000
     with pytest.raises(ValueError, match="data_event_page_limit_requires_pagination"):
         read_data_metrics(
-            reopened, category="linear", symbol="BTCUSDT",
-            start_ms=start, end_ms=start + 60000,
-            interval_ms=60000, tick_size="0.5", limit=2,
+            reopened,
+            category="linear",
+            symbol="BTCUSDT",
+            start_ms=start,
+            end_ms=start + 60000,
+            interval_ms=60000,
+            tick_size="0.5",
+            limit=2,
         )
     # Inspect the actual migrated database, not just the Python normalizer.
     # Existing legacy price/size/exchange-ID checks must still be enforced.
@@ -532,12 +711,21 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
         # Copy all other validated columns from an authentic row, supplying
         # a distinct key/trade_id to avoid unrelated uniqueness violations.
         negative_rows = (
-            ("invalid_side", "jsonb_set(payload, '{side}', to_jsonb('Other'::text))",
-             "research-negative-invalid-side"),
-            ("zero_size", "jsonb_set(payload, '{size}', to_jsonb('0'::text))",
-             "research-negative-zero-size"),
-            ("zero_price", "jsonb_set(payload, '{price}', to_jsonb('0'::text))",
-             "research-negative-zero-price"),
+            (
+                "invalid_side",
+                "jsonb_set(payload, '{side}', to_jsonb('Other'::text))",
+                "research-negative-invalid-side",
+            ),
+            (
+                "zero_size",
+                "jsonb_set(payload, '{size}', to_jsonb('0'::text))",
+                "research-negative-zero-size",
+            ),
+            (
+                "zero_price",
+                "jsonb_set(payload, '{price}', to_jsonb('0'::text))",
+                "research-negative-zero-price",
+            ),
             ("missing_trade_id", "payload", None),
         )
         for label, payload_expression, trade_identity in negative_rows:
@@ -554,7 +742,7 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
                 "timestamp_precision, %s, id_origin, "
                 + payload_expression
                 + ", content_hash FROM tester_storage.raw_records "
-                  "WHERE trade_id = 'research-pg-side-unknown-v2'"
+                "WHERE trade_id = 'research-pg-side-unknown-v2'"
             )
             with pytest.raises(psycopg.errors.CheckViolation):
                 with connection.transaction():
@@ -573,25 +761,40 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
         assert str(original["size"]) == "0.25"
         assert original["trade_id"] == "research-pg-side-unknown-v2"
     actual = read_data_metrics(
-        reopened, category="linear", symbol="BTCUSDT",
-        start_ms=start, end_ms=start + 60000,
-        interval_ms=60000, tick_size="0.5", limit=3,
+        reopened,
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=start,
+        end_ms=start + 60000,
+        interval_ms=60000,
+        tick_size="0.5",
+        limit=3,
     )
     bar = actual["metrics"]["bars"][0]
     assert actual["observed_window"]["observed_unique_trades"] == 2
     ui = project_source_observation(actual)
     verified_ui = read_verified_ui_observation(
-        reopened, category="linear", symbol="BTCUSDT",
-        start_ms=start, end_ms=start + 60000,
-        interval_ms=60000, tick_size="0.5", limit=3,
+        reopened,
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=start,
+        end_ms=start + 60000,
+        interval_ms=60000,
+        tick_size="0.5",
+        limit=3,
     )
     assert ui == verified_ui
     # Original event visibility cannot be moved backwards to permit lookahead.
     with pytest.raises(ValueError, match="late_source_knowledge"):
         read_verified_ui_observation(
-            reopened, category="linear", symbol="BTCUSDT",
-            start_ms=start, end_ms=start + 60000,
-            interval_ms=60000, tick_size="0.5", limit=3,
+            reopened,
+            category="linear",
+            symbol="BTCUSDT",
+            start_ms=start,
+            end_ms=start + 60000,
+            interval_ms=60000,
+            tick_size="0.5",
+            limit=3,
             as_of_ms=start + 60000,
         )
     assert ui["bars"][0]["unknown_side_volume"] == "0.25"
@@ -615,16 +818,32 @@ def test_disposable_pg_duplicate_replay_unknown_side_capped_and_http_tamper():
     assert actual["persisted_dataset_revision"] is None
     with pytest.raises(ValueError, match="real_historical_visibility_unknown_f_denied"):
         require_strategy_lab_f_input(actual)
-    assert len(reopened.read(
-        "trades", "bybit", "linear", "BTCUSDT",
-        start, start + 60000, "", limit=10,
-    )) == 2
+    assert (
+        len(
+            reopened.read(
+                "trades",
+                "bybit",
+                "linear",
+                "BTCUSDT",
+                start,
+                start + 60000,
+                "",
+                limit=10,
+            )
+        )
+        == 2
+    )
 
 
 def test_strategy_lab_f_rejects_malformed_window_without_attribute_error():
     preview = project_events(
-        [event()], category="linear", symbol="BTCUSDT",
-        start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+        [event()],
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=START,
+        end_ms=END,
+        interval_ms=60000,
+        tick_size="0.5",
     )
     preview["observed_window"] = None
     with pytest.raises(ValueError, match="research_history_completeness_not_demonstrated"):
@@ -653,10 +872,22 @@ def test_disposable_pg_gapped_observation_window_stays_unknown():
         migrate(connection)
     start = 1600000200000 // 60000 * 60000
     rows = [
-        {"symbol": "BTCUSDT", "execId": "research-gap-first-v3",
-         "time": str(start + 1000), "price": "100", "size": "1", "side": "Buy"},
-        {"symbol": "BTCUSDT", "execId": "research-gap-third-v3",
-         "time": str(start + 121000), "price": "102", "size": "1", "side": "Sell"},
+        {
+            "symbol": "BTCUSDT",
+            "execId": "research-gap-first-v3",
+            "time": str(start + 1000),
+            "price": "100",
+            "size": "1",
+            "side": "Buy",
+        },
+        {
+            "symbol": "BTCUSDT",
+            "execId": "research-gap-third-v3",
+            "time": str(start + 121000),
+            "price": "102",
+            "size": "1",
+            "side": "Sell",
+        },
     ]
     result = {"list": rows}
     params = {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
@@ -665,7 +896,9 @@ def test_disposable_pg_gapped_observation_window_stays_unknown():
 
     class Replay:
         last_response = {
-            "url": url, "status_code": 200, "hash_scope": "original_http_body",
+            "url": url,
+            "status_code": 200,
+            "hash_scope": "original_http_body",
             "sha256": hashlib.sha256(raw).hexdigest(),
             "bytes_base64": base64.b64encode(raw).decode(),
         }
@@ -676,15 +909,25 @@ def test_disposable_pg_gapped_observation_window_stays_unknown():
 
     store = Store(dsn)
     fetch_and_ingest(
-        store, Replay(), kind="trades", category="linear", symbol="BTCUSDT",
-        run_id="research-gap-v3-run", job_key="research-gap-v3-job",
-        observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC)
+        store,
+        Replay(),
+        kind="trades",
+        category="linear",
+        symbol="BTCUSDT",
+        run_id="research-gap-v3-run",
+        job_key="research-gap-v3-job",
+        observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC),
     )
     reopened = Store(dsn)
     preview = read_data_metrics(
-        reopened, category="linear", symbol="BTCUSDT",
-        start_ms=start, end_ms=start + 180000,
-        interval_ms=60000, tick_size="0.5", limit=3
+        reopened,
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=start,
+        end_ms=start + 180000,
+        interval_ms=60000,
+        tick_size="0.5",
+        limit=3,
     )
     assert preview["status"] == "OBSERVED_UNVERIFIED"
     bars = preview["metrics"]["bars"]
@@ -699,7 +942,6 @@ def test_disposable_pg_gapped_observation_window_stays_unknown():
         require_strategy_lab_f_input(preview)
 
 
-
 @pytest.mark.parametrize("dataset", ["open_interest", "funding", "candles", "mark", "index"])
 def test_non_execution_dataset_cannot_be_projected(dataset):
     """Only verified public trade events are eligible for these statistics."""
@@ -711,11 +953,13 @@ def test_non_execution_dataset_cannot_be_projected(dataset):
 
 def _research_ui_contract_fixture():
     """Synthetic shape-only fixture; cannot certify actual DATA provenance."""
-    source = preview([
-        event("ui-buy", price="100", quantity="2", side="Buy"),
-        event("ui-sell", price="102", quantity="1", side="Sell"),
-        event("ui-unknown", price="100", quantity="0.25", side="Unknown"),
-    ])
+    source = preview(
+        [
+            event("ui-buy", price="100", quantity="2", side="Buy"),
+            event("ui-sell", price="102", quantity="1", side="Sell"),
+            event("ui-unknown", price="100", quantity="0.25", side="Unknown"),
+        ]
+    )
     source["source_verification"] = "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
     source["persisted_dataset_revision"] = None
     source["historical_known_at_ms"] = None
@@ -758,15 +1002,18 @@ def test_research_ui_refuses_unattested_or_missing_persisted_source():
         project_source_observation(source)
 
 
-@pytest.mark.parametrize("key,value", [
-    ("coverage", "COMPLETE"),
-    ("admitted_to_f", True),
-    ("f_input", {"forged": True}),
-    ("g_e_result", {"forged": True}),
-    ("publication_time", "KNOWN"),
-    ("persisted_dataset_revision", "fabricated"),
-    ("historical_known_at_ms", START + 1000),
-])
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("coverage", "COMPLETE"),
+        ("admitted_to_f", True),
+        ("f_input", {"forged": True}),
+        ("g_e_result", {"forged": True}),
+        ("publication_time", "KNOWN"),
+        ("persisted_dataset_revision", "fabricated"),
+        ("historical_known_at_ms", START + 1000),
+    ],
+)
 def test_research_ui_never_promotes_unknown_to_historical_authority(key, value):
     source = _research_ui_contract_fixture()
     source[key] = value
@@ -784,11 +1031,14 @@ def test_research_ui_rejects_mutated_metrics_with_valid_fingerprint():
         project_source_observation(source)
 
 
-@pytest.mark.parametrize("field,value,reason", [
-    ("cvd_known", "999", "research_ui_cvd_anchor_mismatch"),
-    ("poc", "102", "research_ui_poc_mismatch"),
-    ("vwap", "-1", "research_ui_negative_volume"),
-])
+@pytest.mark.parametrize(
+    "field,value,reason",
+    [
+        ("cvd_known", "999", "research_ui_cvd_anchor_mismatch"),
+        ("poc", "102", "research_ui_poc_mismatch"),
+        ("vwap", "-1", "research_ui_negative_volume"),
+    ],
+)
 def test_research_ui_cannot_be_forged_by_rehashing_wrong_math(field, value, reason):
     source = _research_ui_contract_fixture()
     source["metrics"]["bars"][0][field] = value
@@ -832,9 +1082,14 @@ def test_research_ui_verified_entrypoint_reads_composed_data_only():
     store = Mock()
     store.read.return_value = [fixture(side="Unknown")]
     observation = read_verified_ui_observation(
-        store, category="linear", symbol="BTCUSDT",
-        start_ms=start, end_ms=start + 60000,
-        interval_ms=60000, tick_size="0.5", limit=10,
+        store,
+        category="linear",
+        symbol="BTCUSDT",
+        start_ms=start,
+        end_ms=start + 60000,
+        interval_ms=60000,
+        tick_size="0.5",
+        limit=10,
     )
     assert observation["bars"][0]["unknown_side_volume"] == "0.125"
     assert observation["f_admission"] == "DENIED_UNKNOWN_COVERAGE"

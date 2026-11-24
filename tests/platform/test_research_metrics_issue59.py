@@ -1,4 +1,5 @@
 """Deterministic arithmetic and fail-closed research metrics."""
+
 from decimal import Decimal, localcontext
 from fractions import Fraction
 
@@ -10,26 +11,33 @@ from src.analytics.research_metrics import calculate
 
 def trade(ts, price, qty, side, trade_id):
     source = {
-        "source_kind": "bybit_rest", "source_ref": "fixture-rest",
-        "source_hash": None, "ingestion_run": "test-run",
-        "timestamp_precision": "ms", "source_timestamp": str(ts),
+        "source_kind": "bybit_rest",
+        "source_ref": "fixture-rest",
+        "source_hash": None,
+        "ingestion_run": "test-run",
+        "timestamp_precision": "ms",
+        "source_timestamp": str(ts),
     }
     return normalize_trade(
-        {"time": str(ts), "price": price, "size": qty,
-         "side": side, "execId": trade_id},
-        category="linear", symbol="BTCUSDT", source_ref=source,
+        {"time": str(ts), "price": price, "size": qty, "side": side, "execId": trade_id},
+        category="linear",
+        symbol="BTCUSDT",
+        source_ref=source,
     )
 
 
 def run(rows):
-    return calculate(rows, start_ms=0, end_ms=120000,
-                     interval_ms=60000, tick_size="0.5")
+    return calculate(rows, start_ms=0, end_ms=120000, interval_ms=60000, tick_size="0.5")
 
 
 def test_exact_vwap_delta_cvd_and_poc_tie():
-    a = run([trade(1, "100", "0.1", "Buy", "a"),
-             trade(2, "101", "0.2", "Sell", "b"),
-             trade(60001, "100", "0.3", "Buy", "c")])
+    a = run(
+        [
+            trade(1, "100", "0.1", "Buy", "a"),
+            trade(2, "101", "0.2", "Sell", "b"),
+            trade(60001, "100", "0.3", "Buy", "c"),
+        ]
+    )
     x, y = a["bars"]
     with localcontext() as context:
         context.prec = 50
@@ -75,13 +83,11 @@ def test_bounds_and_float_rejected():
     with pytest.raises(ValueError):
         run([trade(120000, "100", "1", "Buy", "b")])
     with pytest.raises(ValueError):
-        calculate([a], start_ms=0, end_ms=120000,
-                  interval_ms=60000, tick_size=0.5)
+        calculate([a], start_ms=0, end_ms=120000, interval_ms=60000, tick_size=0.5)
 
 
 def test_poc_lower_price_on_equal_volume():
-    x = run([trade(1, "101", "1", "Buy", "a"),
-             trade(2, "100", "1", "Sell", "b")])["bars"][0]
+    x = run([trade(1, "101", "1", "Buy", "a"), trade(2, "100", "1", "Sell", "b")])["bars"][0]
     assert x["poc"] == "100"
 
 
@@ -100,8 +106,7 @@ def test_known_side_sample_does_not_certify_complete_delta():
 
 def test_bounded_bar_window():
     with pytest.raises(ValueError, match="bar limit exceeded"):
-        calculate([], start_ms=0, end_ms=1001 * 60000,
-                  interval_ms=60000, tick_size="0.5")
+        calculate([], start_ms=0, end_ms=1001 * 60000, interval_ms=60000, tick_size="0.5")
 
 
 def test_unverified_source_hash_is_disclosed():
@@ -109,6 +114,7 @@ def test_unverified_source_hash_is_disclosed():
     assert "source_content_hash_missing" in bar["reasons"]
     assert bar["vwap_volume_coverage_certified"] is False
     assert bar["poc_volume_coverage_certified"] is False
+
 
 def test_observed_sample_counts_are_not_completeness_proofs():
     a = run([trade(1, "100", "1", "Unknown", "a")])

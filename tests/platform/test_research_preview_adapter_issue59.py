@@ -1,4 +1,5 @@
 """Exercise the real B one-page snapshot adapter without inventing coverage."""
+
 import pytest
 
 from src.analytics.core import normalize_trade
@@ -28,8 +29,11 @@ def page():
         "next_cursor": None,
         "rows": [{"start_ms": 0, "close": "100"}],
         "coverage": {
-            "complete": True, "state": "COMPLETE",
-            "proof_refs": ["receipt"], "start_ms": 0, "end_ms": 60000,
+            "complete": True,
+            "state": "COMPLETE",
+            "proof_refs": ["receipt"],
+            "start_ms": 0,
+            "end_ms": 60000,
         },
         "knowledge_time": {"status": "UNAVAILABLE"},
     }
@@ -69,14 +73,18 @@ def test_incomplete_page_is_not_accepted():
 
 def test_actual_execution_math_binds_original_input_and_snapshot():
     source = {
-        "source_kind": "bybit_rest", "source_ref": "read-only-fixture",
-        "source_hash": None, "ingestion_run": "fixture-run",
-        "timestamp_precision": "ms", "source_timestamp": "1",
+        "source_kind": "bybit_rest",
+        "source_ref": "read-only-fixture",
+        "source_hash": None,
+        "ingestion_run": "fixture-run",
+        "timestamp_precision": "ms",
+        "source_timestamp": "1",
     }
     trade = normalize_trade(
-        {"time": "1", "price": "100", "size": "2",
-         "side": "Buy", "execId": "trade-1"},
-        category="linear", symbol="BTCUSDT", source_ref=source,
+        {"time": "1", "price": "100", "size": "2", "side": "Buy", "execId": "trade-1"},
+        category="linear",
+        symbol="BTCUSDT",
+        source_ref=source,
     )
     result = research_preview(Store(page()), request(), [trade], tick_size="0.5")
     assert result["metrics"]["bars"][0]["vwap"] == "100"

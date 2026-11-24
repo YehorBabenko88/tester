@@ -56,9 +56,18 @@ jobs:
           tests/platform/test_research_preview_adapter_issue59.py
           tests/platform/test_research_composed_negative_issue59.py
           tests/platform/test_data_research_adapter_issue59.py
-      - name: PostgreSQL DATA roundtrip and composed RESEARCH read
-        run: >-
-          python -m pytest -q -rs
-          tests/test_public_auxiliary_postgres.py
-          tests/test_execution_contract_postgres.py
-          tests/test_composed_data_research_postgres.py
+      - name: PostgreSQL DATA roundtrip (dedicated database)
+        run: |
+          psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_roundtrip"
+          TESTER_AUX_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_aux_roundtrip" \
+            python -m pytest -q -rs tests/test_public_auxiliary_postgres.py tests/test_execution_contract_postgres.py
+      - name: Composed DATA to RESEARCH read (dedicated database)
+        run: |
+          psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_composed"
+          TESTER_AUX_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_aux_composed" \
+            python -m pytest -q -rs tests/test_composed_data_research_postgres.py
+      - name: RESEARCH adapter against real PostgreSQL (dedicated database)
+        run: |
+          psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
+          TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
+            python -m pytest -q -rs tests/platform/test_data_research_adapter_issue59.py

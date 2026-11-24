@@ -4,6 +4,7 @@ Pure negative reads use authentic DATA contract fixture rows. The integration
 case reads real immutable PostgreSQL data; hostile projections are made only
 on read-only copies. Never disables append-only triggers or promotes REAL F.
 """
+
 import base64
 import copy
 import hashlib
@@ -18,7 +19,6 @@ from unittest.mock import Mock
 from urllib.parse import urlencode
 
 import pytest
-from tests.test_execution_contract_bridge import MS, fixture
 
 from src.analytics.exact import decimal
 from src.integration.data_research_adapter import (
@@ -30,12 +30,17 @@ from src.integration.research_ui_projection import (
     read_verified_ui_observation,
 )
 from src.storage.models import digest
+from tests.test_execution_contract_bridge import MS, fixture
 
 WINDOW = MS // 60000 * 60000
 SCOPE = {
-    "category": "linear", "symbol": "BTCUSDT",
-    "start_ms": WINDOW, "end_ms": WINDOW + 60000,
-    "interval_ms": 60000, "tick_size": "0.5", "limit": 10,
+    "category": "linear",
+    "symbol": "BTCUSDT",
+    "start_ms": WINDOW,
+    "end_ms": WINDOW + 60000,
+    "interval_ms": 60000,
+    "tick_size": "0.5",
+    "limit": 10,
 }
 
 
@@ -49,12 +54,23 @@ def _verified_sample():
     return read_data_metrics(_fixture_read(), **SCOPE)
 
 
-@pytest.mark.parametrize("mutation", (
-    "missing_provenance", "forged_http_hash", "missing_http_body",
-    "corrupt_http_bytes", "forged_page_hash", "forged_row_hash",
-    "missing_evidence_id", "missing_row_source", "missing_parent_refs",
-    "tampered_original_price", "forged_complete_coverage",
-), ids=lambda value: value)
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "missing_provenance",
+        "forged_http_hash",
+        "missing_http_body",
+        "corrupt_http_bytes",
+        "forged_page_hash",
+        "forged_row_hash",
+        "missing_evidence_id",
+        "missing_row_source",
+        "missing_parent_refs",
+        "tampered_original_price",
+        "forged_complete_coverage",
+    ),
+    ids=lambda value: value,
+)
 def test_negative_data_http_receipts_or_provenance_refuse_ui_read(mutation):
     from src.ingest.execution_contract import ExecutionContractError
 
@@ -84,14 +100,18 @@ def test_negative_data_http_receipts_or_provenance_refuse_ui_read(mutation):
     store.ingest.assert_not_called()
 
 
-@pytest.mark.parametrize("key,value", (
-    ("persisted_dataset_revision", "forged-revision"),
-    ("historical_known_at_ms", WINDOW + 1),
-    ("coverage", "COMPLETE"),
-    ("admitted_to_f", True),
-    ("f_input", {"run_id": "fabricated"}),
-    ("g_e_result", {"ack": True}),
-), ids=lambda pair: str(pair))
+@pytest.mark.parametrize(
+    "key,value",
+    (
+        ("persisted_dataset_revision", "forged-revision"),
+        ("historical_known_at_ms", WINDOW + 1),
+        ("coverage", "COMPLETE"),
+        ("admitted_to_f", True),
+        ("f_input", {"run_id": "fabricated"}),
+        ("g_e_result", {"ack": True}),
+    ),
+    ids=lambda pair: str(pair),
+)
 def test_observed_sample_fingerprint_cannot_be_promoted_to_revision(key, value):
     source = _verified_sample()
     assert source["persisted_dataset_revision"] is None
@@ -134,11 +154,18 @@ def test_lookahead_is_refused_before_projection():
         read_verified_ui_observation(store, **SCOPE, as_of_ms=MS + 1000)
 
 
-@pytest.mark.parametrize("field,value", (
-    ("delta_known", "100"), ("cvd_known", "99"),
-    ("volume", "NaN"), ("vwap", "-1"), ("poc", "NaN"),
-    ("unknown_side_volume", "0"), ("buy_volume", "0.01"),
-))
+@pytest.mark.parametrize(
+    "field,value",
+    (
+        ("delta_known", "100"),
+        ("cvd_known", "99"),
+        ("volume", "NaN"),
+        ("vwap", "-1"),
+        ("poc", "NaN"),
+        ("unknown_side_volume", "0"),
+        ("buy_volume", "0.01"),
+    ),
+)
 def test_forged_math_and_nonfinite_decimal_refused_even_after_rehash(field, value):
     source = _verified_sample()
     source["metrics"]["bars"][0][field] = value
@@ -154,10 +181,13 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
     if not dsn:
         pytest.skip("disposable DATA PostgreSQL not configured")
     from psycopg.conninfo import conninfo_to_dict
+
     endpoint = conninfo_to_dict(dsn)
-    if (endpoint.get("host") != "127.0.0.1"
-            or endpoint.get("port") != "55476"
-            or endpoint.get("dbname") != "tester_research_data_disposable"):
+    if (
+        endpoint.get("host") != "127.0.0.1"
+        or endpoint.get("port") != "55476"
+        or endpoint.get("dbname") != "tester_research_data_disposable"
+    ):
         raise ValueError("refusing non-disposable receipt test database")
 
     import psycopg
@@ -173,12 +203,22 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
     stamp = 1600000680000
     symbol = "ADAUSDT"
     original_rows = [
-        {"symbol": symbol, "execId": "research-negative-pg-unknown-v1",
-         "time": str(stamp), "price": "1.23456789", "size": "0.00000013",
-         "side": "Unknown"},
-        {"symbol": symbol, "execId": "research-negative-pg-buy-v1",
-         "time": str(stamp + 1), "price": "1.23456890", "size": "0.00000017",
-         "side": "Buy"},
+        {
+            "symbol": symbol,
+            "execId": "research-negative-pg-unknown-v1",
+            "time": str(stamp),
+            "price": "1.23456789",
+            "size": "0.00000013",
+            "side": "Unknown",
+        },
+        {
+            "symbol": symbol,
+            "execId": "research-negative-pg-buy-v1",
+            "time": str(stamp + 1),
+            "price": "1.23456890",
+            "size": "0.00000017",
+            "side": "Buy",
+        },
     ]
     result = {"list": original_rows}
     params = {"category": "linear", "symbol": symbol, "limit": 1000}
@@ -187,7 +227,8 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
 
     class RecordedHttp:
         last_response = {
-            "url": url, "status_code": 200,
+            "url": url,
+            "status_code": 200,
             "hash_scope": "original_http_body",
             "sha256": hashlib.sha256(body).hexdigest(),
             "bytes_base64": base64.b64encode(body).decode(),
@@ -199,16 +240,26 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
 
     stored = Store(dsn)
     fetch_and_ingest(
-        stored, RecordedHttp(), kind="trades", category="linear", symbol=symbol,
+        stored,
+        RecordedHttp(),
+        kind="trades",
+        category="linear",
+        symbol=symbol,
         run_id="research-negative-pg-run-v1",
         job_key="research-negative-pg-job-v1",
         observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC),
     )
     reopened = Store(dsn)
     start = stamp // 60000 * 60000
-    scope = dict(category="linear", symbol=symbol, start_ms=start,
-                 end_ms=start + 60000, interval_ms=60000,
-                 tick_size="0.00000001", limit=10)
+    scope = dict(
+        category="linear",
+        symbol=symbol,
+        start_ms=start,
+        end_ms=start + 60000,
+        interval_ms=60000,
+        tick_size="0.00000001",
+        limit=10,
+    )
     actual = read_data_metrics(reopened, **scope)
     ui = read_verified_ui_observation(reopened, **scope)
     bar = ui["bars"][0]
@@ -246,9 +297,7 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
         lambda row: row["provenance"]["observations"][0]["evidence"].__setitem__(
             "http_sha256", "0" * 64
         ),
-        lambda row: row["provenance"]["observations"][0]["evidence"].pop(
-            "http_bytes_base64"
-        ),
+        lambda row: row["provenance"]["observations"][0]["evidence"].pop("http_bytes_base64"),
         lambda row: row["provenance"]["observations"][0].__setitem__(
             "source_run_status", "mismatched"
         ),
@@ -265,7 +314,6 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
         project_source_observation(forged)
     with pytest.raises(ValueError, match="late_source_knowledge"):
         read_verified_ui_observation(reopened, **scope, as_of_ms=stamp + 60000)
-
 
 
 @pytest.mark.integration
@@ -321,8 +369,7 @@ def test_actual_postgres_client_hostaddr_is_pinned_despite_libpq_environment(
     for explicit in ("127.0.0.2", "172.18.0.2", "127.0.0.1"):
         with pytest.raises(ValueError, match="explicit isolated"):
             validate_research_dsn(
-                "host=127.0.0.1 hostaddr=" + explicit
-                + " port=55472 dbname=tester_research_test"
+                "host=127.0.0.1 hostaddr=" + explicit + " port=55472 dbname=tester_research_test"
             )
 
 
@@ -338,6 +385,7 @@ def test_exact_five_new_research_allowlist_blobs_are_pending_not_approved():
         pytest.skip("Source Git allowlist review checked by pinned composed CI")
     if not re.fullmatch(r"[a-f0-9]{40}", head):
         raise ValueError("unqualified_research_head")
+
     def get(*args):
         return subprocess.check_output(("git", *args), timeout=15)
 
@@ -350,7 +398,7 @@ def test_exact_five_new_research_allowlist_blobs_are_pending_not_approved():
     assert content.count(start) == content.count(end) == 1
     embedded = content.split(start, 1)[1].split(end, 1)[0].strip()
     assert embedded.startswith("```json\n") and embedded.endswith("```")
-    snapshot = json.loads(embedded[len("```json\n"):-3].strip())
+    snapshot = json.loads(embedded[len("```json\n") : -3].strip())
     original = "e76b08dbb2b45121c577c84414c56a7218994d0c"
     master = "298d610771d962ee7b796eac1834d74138768fac"
     assert snapshot["schema"] == "research-pr71-allowlist-review/1"
@@ -390,14 +438,11 @@ def test_exact_five_new_research_allowlist_blobs_are_pending_not_approved():
         assert ("- `" + p + "`").encode() in master_review
         row = get("ls-tree", original, "--", p).decode("utf-8").strip()
         mode, kind, observed_sha, observed_path = row.split(None, 3)
-        assert (mode, kind, observed_sha, observed_path) == (
-            "100644", "blob", sha, p
-        )
+        assert (mode, kind, observed_sha, observed_path) == ("100644", "blob", sha, p)
         raw = get("show", f"{original}:{p}")
-        git_hash = hashlib.sha1(
-            b"blob " + str(len(raw)).encode() + b"\x00" + raw
-        ).hexdigest()
+        git_hash = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\x00" + raw).hexdigest()
         assert git_hash == sha
         assert get("show", f"{head}:{p}") == raw, (
-            "Five reviewed files changed; a new immutable review is required", p
+            "Five reviewed files changed; a new immutable review is required",
+            p,
         )
