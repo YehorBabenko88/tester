@@ -63,7 +63,10 @@ DEPENDENCIES = {
     },
     "public_auxiliary": {
         "contract_version": "experimental-unpublished",
-        "producer": "src.ingest.public_auxiliary.fetch_and_ingest",
+        # Single canonical funding/OI writer (issue #105); public_auxiliary is
+        # restricted to anonymous recent-trade executions.
+        "producer": "src.ingest.rest.Backfill.run",
+        "storage_handoff": "src.ingest.handoff.storage_record",
         "sources": {
             "open_interest": "/v5/market/open-interest",
             "funding": "/v5/market/funding/history",

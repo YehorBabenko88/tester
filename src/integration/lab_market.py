@@ -95,7 +95,8 @@ def source_wait(stop, deadline, seconds):
 
 
 def verified_session(root):
-    import requests
+    """Legacy lab CA-bundle pinning built by the canonical public session factory."""
+    from src.ingest.transport import public_session
 
     try:
         state = plain(root / "state")
@@ -105,9 +106,7 @@ def verified_session(root):
         bundle = plain(state / record["bundle"])
         if hashlib.sha256(bundle.read_bytes()).hexdigest() != record["sha256"]:
             raise ValueError("Trust bundle changed")
-        session = requests.Session()
-        session.verify = str(bundle)
-        return session
+        return public_session(verify=str(bundle))
     except (OSError, KeyError, ValueError) as exc:
         raise ProviderUnavailable("Verified lab trust bundle unavailable") from exc
 

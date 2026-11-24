@@ -286,6 +286,16 @@ def test_release_runtime_grants_cannot_mint_research_authority_or_mutate_project
     for table in ("acknowledgments", "audit"):
         assert privileges(table, "tester_research", "tester_research_app") == {"SELECT", "INSERT"}
     assert privileges("projections", "tester_lab", "tester_app") == {"SELECT", "INSERT"}
+    # Issue #114: no DELETE/TRUNCATE on durable jobs/checkpoints; UPDATE only
+    # where runtime writes (claims, ON CONFLICT DO UPDATE checkpoint upserts).
+    for table, schema in (
+        ("jobs", "tester_platform"),
+        ("download_jobs", "tester_storage"),
+        ("ingestion_checkpoints", "tester_storage"),
+    ):
+        assert privileges(table, schema, "tester_app") == {"SELECT", "INSERT", "UPDATE"}, table
+    for table in ("raw_records", "record_sources", "pagination_evidence"):
+        assert privileges(table, "tester_storage", "tester_app") == {"SELECT", "INSERT"}, table
 
 
 def _assert_runtime_least_privileges(runtime, owners):

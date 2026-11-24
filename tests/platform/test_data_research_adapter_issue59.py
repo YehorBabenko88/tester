@@ -264,7 +264,7 @@ def test_inverse_rejected_before_any_data_read():
             interval_ms=60000,
             tick_size="0.5",
         )
-    store.read.assert_not_called()
+    store.read_bounded.assert_not_called()
 
 
 def test_bounded_100_event_window_and_no_data():
@@ -287,11 +287,10 @@ def test_actual_data72_versioned_event_projection_on_composed_branch():
     data = _composed_data()
     if data.VERSION != DATA_CONTRACT_VERSION:
         pytest.fail("DATA #72 version skew")
-    from tests.test_execution_contract_bridge import MS, fixture
+    from tests.test_execution_contract_bridge import MS, compact_store, fixture
 
     window = (MS // 60000) * 60000
-    store = Mock()
-    store.read.return_value = [fixture(side="Unknown")]
+    store = compact_store([fixture(side="Unknown")])
     outcome = read_data_metrics(
         store,
         category="linear",
@@ -312,7 +311,7 @@ def test_actual_data72_versioned_event_projection_on_composed_branch():
     assert ui["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
     assert ui["g_e_execution"] == "NOT_AUTHORIZED"
     assert ui["http_route"] is None
-    store.read.assert_called_once_with(
+    store.read_bounded.assert_called_once_with(
         "trades",
         "bybit",
         "linear",
@@ -321,7 +320,7 @@ def test_actual_data72_versioned_event_projection_on_composed_branch():
         window + 60000,
         "",
         limit=10,
-        compact_provenance=False,
+        budget=data.READ_BUDGET,
     )
     store.ingest.assert_not_called()
 
@@ -431,7 +430,7 @@ def test_missing_data72_module_fails_closed(monkeypatch):
             interval_ms=60000,
             tick_size="0.5",
         )
-    store.read.assert_not_called()
+    store.read_bounded.assert_not_called()
 
 
 def test_data72_version_skew_refused_before_read(monkeypatch):
@@ -455,7 +454,7 @@ def test_data72_version_skew_refused_before_read(monkeypatch):
             interval_ms=60000,
             tick_size="0.5",
         )
-    store.read.assert_not_called()
+    store.read_bounded.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -1076,11 +1075,10 @@ def test_research_ui_refuses_invalid_receipt_fingerprint():
 
 def test_research_ui_verified_entrypoint_reads_composed_data_only():
     _composed_data()
-    from tests.test_execution_contract_bridge import MS, fixture
+    from tests.test_execution_contract_bridge import MS, compact_store, fixture
 
     start = MS // 60000 * 60000
-    store = Mock()
-    store.read.return_value = [fixture(side="Unknown")]
+    store = compact_store([fixture(side="Unknown")])
     observation = read_verified_ui_observation(
         store,
         category="linear",
@@ -1095,5 +1093,5 @@ def test_research_ui_verified_entrypoint_reads_composed_data_only():
     assert observation["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
     assert observation["g_e_execution"] == "NOT_AUTHORIZED"
     assert observation["http_route"] is None
-    store.read.assert_called_once()
+    store.read_bounded.assert_called_once()
     store.ingest.assert_not_called()

@@ -29,6 +29,54 @@ def test_private_tls_bundle_is_hash_checked_and_never_disables_verification(tmp_
         verified_session(tmp_path)
 
 
+def test_issue109_lab_session_passes_real_transport_validation(tmp_path):
+    """The default (policy disabled) lab path must not be rejected as unsafe."""
+    import hashlib
+    import json
+
+    from src.ingest.transport import Transport
+    from src.integration.lab_market import verified_session
+    from src.integration.lab_telemetry import HttpMeter
+
+    state = tmp_path / "state"
+    state.mkdir()
+    bundle = state / "windows-ca.pem"
+    bundle.write_text("fixture-public-ca")
+    (state / "tls.json").write_text(
+        json.dumps(
+            {"bundle": "windows-ca.pem", "sha256": hashlib.sha256(bundle.read_bytes()).hexdigest()}
+        )
+    )
+    session = verified_session(tmp_path)
+    try:
+        # Before #109: trust_env=True -> UnsafePublicSession on every lab download.
+        assert session.trust_env is False
+        assert session.verify == str(bundle)
+        Transport._validate_session(session)
+        Transport._validate_session(HttpMeter(session))
+    finally:
+        session.close()
+
+
+def test_issue109_all_public_sessions_come_from_one_factory():
+    import requests
+
+    from src.api.transport_policy import native_public_session
+    from src.ingest.transport import SystemTrustAdapter, Transport, public_session
+
+    native = native_public_session()
+    assert native.trust_env is False and native.verify is True
+    assert type(native.get_adapter("https://api.bybit.com")) is SystemTrustAdapter
+    Transport._validate_session(native)
+    pinned = public_session(verify="/fixture/ca.pem")
+    # An explicit bundle pins trust to that bundle (no system store merge).
+    assert type(pinned.get_adapter("https://api.bybit.com")) is requests.adapters.HTTPAdapter
+    Transport._validate_session(pinned)
+    for bad in (False, "", None, 0):
+        with pytest.raises(ValueError):
+            public_session(verify=bad)
+
+
 def test_public_source_backoff_is_bounded_and_cancelable():
     import threading
     import time

@@ -2,40 +2,65 @@
 import base64
 import hashlib
 import json
-from urllib.parse import urlencode
 import unittest
 from datetime import datetime, timezone, timedelta
-from decimal import Decimal
 from unittest.mock import Mock
+from urllib.parse import urlencode
+from uuid import uuid4
 
-from src.ingest.public_auxiliary import decode, fetch_and_ingest, fetch_open_interest_pages, fetch_funding_pages, ingest_page, request
+import requests
+
+from src.ingest import public_auxiliary
+from src.ingest.public_access import public_endpoint_key
+from src.ingest.public_auxiliary import decode, fetch_and_ingest, request
+from src.ingest.rest import API
+from src.ingest.transport import Transport
 
 NOW = datetime(2026, 11, 13, 12, tzinfo=timezone.utc)
 BASE = dict(fetched_at=NOW, url="https://api.bybit.com/v5/market/recent-trade",
             ingestion_run="run-test", evidence_ref="page-test")
+ROW = {"symbol": "BTCUSDT", "execId": "trade-123", "time": "1794560000000",
+       "price": "80000.01", "size": "0.001", "side": "Buy"}
 
 
 def response(row):
     return {"retCode": 0, "result": {"list": [row]}}
 
 
+def recorded_api(result, params):
+    api = Mock()
+    url = "https://api.bybit.com/v5/market/recent-trade?" + urlencode(params)
+    original = json.dumps({"retCode": 0, "result": result}).encode()
+    api.call.return_value = (result, url)
+    api.last_response = {"hash_scope": "original_http_body", "url": url,
+                         "status_code": 200,
+                         "sha256": hashlib.sha256(original).hexdigest(),
+                         "bytes_base64": base64.b64encode(original).decode()}
+    return api
+
+
+class PolicyRecorder:
+    """Durable-policy protocol double; PostgreSQL semantics are tested elsewhere."""
+
+    def __init__(self):
+        self.reserved, self.dispatched, self.finished = [], 0, []
+
+    def reserve(self, key):
+        self.reserved.append(key)
+        return "GRANTED", str(uuid4())
+
+    def finish(self, key, token, outcome):
+        self.finished.append((key, outcome))
+
+    def reserve_dispatch(self):
+        self.dispatched += 1
+        return "GRANTED", str(uuid4()), 0
+
+    def finish_dispatch(self, token, cooldown_seconds=0):
+        pass
+
+
 class PublicAuxiliaryTests(unittest.TestCase):
-    def test_funding_exact_negative_and_original_event_time(self):
-        rows = decode("funding", "linear", "BTCUSDT",
-                      response({"symbol": "BTCUSDT", "fundingRate": "-0.0000123400",
-                                "fundingRateTimestamp": "1794560000000"}), **BASE)
-        self.assertEqual(rows[0]["payload"]["value"], "-0.00001234")
-        self.assertEqual(Decimal(rows[0]["payload"]["value"]), Decimal("-0.0000123400"))
-        self.assertEqual(rows[0]["timestamp_ms"], 1794560000000)
-        self.assertIsNone(rows[0]["payload"]["publication_timestamp_ms"])
-
-    def test_oi_exact_decimal_and_observation_time(self):
-        rows = decode("open_interest", "linear", "BTCUSDT",
-                      response({"openInterest": "123456789.000001",
-                                "timestamp": "1794560000000"}), interval="5min", **BASE)
-        self.assertEqual(rows[0]["payload"]["value"], "123456789.000001")
-        self.assertEqual(rows[0]["payload"]["observation_timestamp_ms"], 1794560000000)
-
     def test_anonymous_trades_exchange_id_and_taker_side(self):
         row = {"symbol": "BTCUSDT", "execId": "trade-123", "time": "1794560000000",
                "price": "80000.00000001", "size": "0.00000001", "side": "Sell"}
@@ -47,11 +72,8 @@ class PublicAuxiliaryTests(unittest.TestCase):
         self.assertEqual(a["payload"]["price"], "80000.00000001")
 
     def test_replay_content_identity_independent_of_fetch_clock(self):
-        row = {"symbol": "BTCUSDT", "execId": "trade-123",
-               "time": "1794560000000", "price": "80000.01",
-               "size": "0.001", "side": "Buy"}
-        first = decode("trades", "linear", "BTCUSDT", response(row), **BASE)[0]
-        later = decode("trades", "linear", "BTCUSDT", response(row),
+        first = decode("trades", "linear", "BTCUSDT", response(ROW), **BASE)[0]
+        later = decode("trades", "linear", "BTCUSDT", response(ROW),
                        **{**BASE, "fetched_at": NOW + timedelta(minutes=5)})[0]
         self.assertEqual(first["content_hash"], later["content_hash"])
         self.assertEqual(first["record_key"], later["record_key"])
@@ -68,145 +90,53 @@ class PublicAuxiliaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             decode("trades", "linear", "BTCUSDT", response(row), **BASE)
 
-    def test_reject_private_or_unbounded_history(self):
+    def test_issue105_funding_and_oi_are_not_a_second_writer(self):
+        # The canonical funding/OI writer is rest.Backfill -> handoff; this
+        # module previously wrote a different payload for the same record_key.
+        self.assertEqual(set(public_auxiliary.PATHS), {"trades"})
+        for name in ("fetch_funding_pages", "fetch_open_interest_pages", "ingest_page"):
+            self.assertFalse(hasattr(public_auxiliary, name), name)
+        for kind in ("funding", "open_interest"):
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                request(kind, "linear", "BTCUSDT")
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                decode(kind, "linear", "BTCUSDT", response(ROW), **BASE)
+        store, api = Mock(), Mock()
         with self.assertRaises(ValueError):
-            request("trades", "linear", "BTCUSDT", start_ms=1, end_ms=2)
-        with self.assertRaises(ValueError):
-            request("open_interest", "linear", "BTCUSDT", interval="1m")
-        self.assertEqual(request("open_interest", "linear", "BTCUSDT", interval="5min")[0],
-                         "/open-interest")
+            fetch_and_ingest(store, api, kind="funding", category="linear",
+                             symbol="BTCUSDT", run_id="r", job_key="j")
+        api.call.assert_not_called()
+        store.ingest.assert_not_called()
 
-    def test_atomic_store_contract_unknown_coverage(self):
-        store = Mock()
-        store.ingest.return_value = {"written": 1}
-        row = {"symbol": "BTCUSDT", "fundingRate": "0.0001",
-               "fundingRateTimestamp": "1794560000000"}
-        result = ingest_page(store, kind="funding", category="linear", symbol="BTCUSDT",
-                             response=response(row), fetched_at=NOW,
-                             url=BASE["url"], run_id="run-test", job_key="job-test",
-                             evidence_ref="page-test", start_ms=1794559999999,
-                             end_ms=1794560000001, request_params={"limit": 200})
-        self.assertEqual(result, {"written": 1})
-        records, evidence, key = store.ingest.call_args.args
-        self.assertEqual(key, "job-test")
-        self.assertEqual(len(records), 1)
-        self.assertEqual(evidence["coverage_status"], "UNKNOWN")
-        self.assertEqual(evidence["status"], "UNVERIFIED")
-        self.assertEqual(store.ingest.call_args.kwargs["run_id"], "run-test")
+    def test_reject_private_or_unbounded_history(self):
+        with self.assertRaises(TypeError):
+            request("trades", "linear", "BTCUSDT", start_ms=1, end_ms=2)
+        for limit in (0, 1001, True):
+            with self.subTest(limit=limit), self.assertRaises(ValueError):
+                request("trades", "linear", "BTCUSDT", limit=limit)
+        self.assertEqual(request("trades", "linear", "BTCUSDT"),
+                         ("/recent-trade", {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}))
 
     def test_verified_http_body_and_atomic_publication(self):
         store = Mock()
         store.ingest.return_value = {"written": 1}
-        api = Mock()
-        api.call.return_value = ({"list": [{"symbol": "BTCUSDT",
-                                            "fundingRate": "0.00001",
-                                            "fundingRateTimestamp": "1794560000000"}]},
-                                 "https://api.bybit.com/v5/market/funding/history?" + urlencode({"category": "linear", "symbol": "BTCUSDT", "limit": 200, "startTime": 1794559999999, "endTime": 1794560000000}))
-        original = json.dumps({"retCode": 0, "result": api.call.return_value[0]}).encode()
-        api.last_response = {"hash_scope": "original_http_body",
-                             "url": api.call.return_value[1], "status_code": 200,
-                             "sha256": hashlib.sha256(original).hexdigest(),
-                             "bytes_base64": base64.b64encode(original).decode()}
-        fetch_and_ingest(store, api, kind="funding", category="linear",
-                         symbol="BTCUSDT", run_id="run-test", job_key="funding-job",
-                         start_ms=1794559999999, end_ms=1794560000001,
+        params = {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
+        api = recorded_api({"list": [ROW]}, params)
+        fetch_and_ingest(store, api, kind="trades", category="linear",
+                         symbol="BTCUSDT", run_id="run-test", job_key="trade-job",
                          observed_at=NOW)
         records, evidence, key = store.ingest.call_args.args
+        self.assertEqual(key, "trade-job")
         self.assertEqual(len(records), 1)
-        self.assertEqual(evidence["http_sha256"], hashlib.sha256(original).hexdigest())
         self.assertEqual(evidence["coverage_status"], "UNKNOWN")
+        self.assertEqual(evidence["status"], "UNVERIFIED")
+        self.assertEqual((evidence["start_ms"], evidence["end_ms"]), (1794560000000, 1794560000001))
+        self.assertEqual(store.ingest.call_args.kwargs["run_id"], "run-test")
         api.last_response["sha256"] = "0" * 64
         with self.assertRaises(ValueError):
-            fetch_and_ingest(store, api, kind="funding", category="linear",
+            fetch_and_ingest(store, api, kind="trades", category="linear",
                              symbol="BTCUSDT", run_id="run-test", job_key="bad-job",
-                             start_ms=1794559999999, end_ms=1794560000001,
                              observed_at=NOW)
-
-    def test_bounded_oi_cursor_pages_preserve_unknown(self):
-        store = Mock()
-        store.ingest.return_value = {"verified": False}
-        api = Mock()
-        pages = [
-            {"list": [{"symbol": "BTCUSDT", "openInterest": "12.50",
-                       "timestamp": "1794560000000"}], "nextPageCursor": "next"},
-            {"list": [{"symbol": "BTCUSDT", "openInterest": "12.00",
-                       "timestamp": "1794559700000"}]},
-        ]
-        def call(path, params):
-            result = pages[1 if params.get("cursor") == "next" else 0]
-            url = "https://api.bybit.com/v5/market/open-interest?" + urlencode(params)
-            original = json.dumps({"retCode": 0, "result": result}).encode()
-            api.last_response = {
-                "hash_scope": "original_http_body", "url": url,
-                "status_code": 200, "sha256": hashlib.sha256(original).hexdigest(),
-                "bytes_base64": base64.b64encode(original).decode(),
-            }
-            return result, url
-        api.call.side_effect = call
-        result = fetch_open_interest_pages(
-            store, api, category="linear", symbol="BTCUSDT",
-            run_id="run-test", job_prefix="oi-pages",
-            start_ms=1794559600000, end_ms=1794560000001,
-            max_pages=2,
-        )
-        self.assertEqual(result["status"], "OBSERVED")
-        self.assertEqual(result["coverage"], "UNKNOWN")
-        self.assertEqual(len(result["pages"]), 2)
-        self.assertEqual(store.ingest.call_count, 2)
-        self.assertEqual(api.call.call_args.args[1]["cursor"], "next")
-        first_evidence = store.ingest.call_args_list[0].args[1]
-        second_evidence = store.ingest.call_args_list[1].args[1]
-        self.assertEqual(first_evidence["status"], "PARTIAL")
-        self.assertEqual(second_evidence["cursor_in"], "next")
-        self.assertEqual(second_evidence["coverage_status"], "UNKNOWN")
-
-    def test_funding_reverse_time_uses_exclusive_window(self):
-        path, params = request("funding", "linear", "BTCUSDT",
-                               start_ms=100, end_ms=201)
-        self.assertEqual(params["endTime"], 200)
-        store = Mock()
-        store.ingest.return_value = {"verified": False}
-        api = Mock()
-        timestamps = [1794560000000, 1794559999999]
-        def call(path, params):
-            index = 0 if params["endTime"] >= timestamps[0] else 1
-            result = {"list": [{"symbol": "BTCUSDT", "fundingRate": "0.0001",
-                                "fundingRateTimestamp": str(timestamps[index])}]}
-            url = "https://api.bybit.com/v5/market/funding/history?" + urlencode(params)
-            original = json.dumps({"retCode": 0, "result": result}).encode()
-            api.last_response = {"url": url, "status_code": 200,
-                                 "hash_scope": "original_http_body",
-                                 "sha256": hashlib.sha256(original).hexdigest(),
-                                 "bytes_base64": base64.b64encode(original).decode()}
-            return result, url
-        api.call.side_effect = call
-        result = fetch_funding_pages(
-            store, api, category="linear", symbol="BTCUSDT",
-            run_id="funding-run", job_prefix="funding-pages",
-            start_ms=1794559999998, end_ms=1794560000001,
-            limit=1, max_pages=2,
-        )
-        self.assertEqual(result["status"], "PAGE_BUDGET_EXHAUSTED")
-        self.assertEqual(result["coverage"], "UNKNOWN")
-        self.assertEqual(store.ingest.call_count, 2)
-        self.assertEqual(api.call.call_args_list[1].args[1]["endTime"],
-                         timestamps[0] - 1)
-
-    def test_metric_window_over_budget_refused(self):
-        for kind, interval in (("funding", None), ("open_interest", "5min")):
-            with self.subTest(kind=kind), self.assertRaises(ValueError):
-                request(kind, "linear", "BTCUSDT", start_ms=1000,
-                        end_ms=1000 + 8 * 86400000, interval=interval)
-
-    def test_metric_without_bounds_never_calls_network(self):
-        store, api = Mock(), Mock()
-        for kind in ("funding", "open_interest"):
-            with self.subTest(kind=kind), self.assertRaises(ValueError):
-                fetch_and_ingest(store, api, kind=kind, category="linear",
-                                 symbol="BTCUSDT", run_id="test-run", job_key="test-job",
-                                 interval="5min" if kind == "open_interest" else None)
-        api.call.assert_not_called()
-        store.ingest.assert_not_called()
 
     def test_reject_wrong_source_url_before_storage(self):
         store, api = Mock(), Mock()
@@ -218,68 +148,103 @@ class PublicAuxiliaryTests(unittest.TestCase):
         store.ingest.assert_not_called()
 
     def test_refuse_unbounded_http_receipt_before_publication(self):
-        store, api = Mock(), Mock()
-        result = {"list": [{"symbol": "BTCUSDT", "fundingRate": "0.01",
-                            "fundingRateTimestamp": "1794560000000"}]}
-        url = "https://api.bybit.com/v5/market/funding/history?" + urlencode(
-            {"category": "linear", "symbol": "BTCUSDT", "limit": 200,
-             "startTime": 1794559999999, "endTime": 1794560000000})
-        api.call.return_value = (result, url)
-        api.last_response = {"url": url, "status_code": 200,
-                             "hash_scope": "original_http_body",
-                             "sha256": "0" * 64,
-                             "bytes_base64": "A" * (4 * 1024 * 1024 + 1)}
+        store = Mock()
+        params = {"category": "linear", "symbol": "BTCUSDT", "limit": 1000}
+        api = recorded_api({"list": [ROW]}, params)
+        api.last_response["bytes_base64"] = "A" * (4 * 1024 * 1024 + 1)
         with self.assertRaises(ValueError):
-            fetch_and_ingest(store, api, kind="funding", category="linear",
+            fetch_and_ingest(store, api, kind="trades", category="linear",
                              symbol="BTCUSDT", run_id="run-test", job_key="large",
-                             start_ms=1794559999999, end_ms=1794560000001,
                              observed_at=NOW)
         store.ingest.assert_not_called()
 
-    def test_single_page_rejects_unproven_cursor_chain(self):
+    def test_reject_source_page_above_limit_or_cursor_before_storage(self):
         store = Mock()
+        params = {"category": "linear", "symbol": "BTCUSDT", "limit": 1}
+        api = recorded_api({"list": [ROW, {**ROW, "execId": "trade-124"}]}, params)
         with self.assertRaises(ValueError):
-            ingest_page(store, kind="open_interest", category="linear",
-                        symbol="BTCUSDT", response={"retCode": 0, "result": {"list": []}},
-                        fetched_at=NOW, url="https://api.bybit.com/v5/market/open-interest",
-                        run_id="run-test", job_key="bad-cursor", evidence_ref="ref",
-                        start_ms=100, end_ms=200, request_params={"intervalTime": "5min"},
-                        cursor_in="unproven")
-        store.ingest.assert_not_called()
-
-    def test_reject_source_page_above_limit_before_storage(self):
-        store = Mock()
-        api = Mock()
-        result = {"list": [
-            {"symbol": "BTCUSDT", "fundingRate": "0.01",
-             "fundingRateTimestamp": "1794560000000"},
-            {"symbol": "BTCUSDT", "fundingRate": "0.02",
-             "fundingRateTimestamp": "1794559999999"},
-        ]}
-        url = "https://api.bybit.com/v5/market/funding/history?" + urlencode({"category": "linear", "symbol": "BTCUSDT", "limit": 1, "startTime": 1794559999998, "endTime": 1794560000000})
-        original = json.dumps({"retCode": 0, "result": result}).encode()
-        api.call.return_value = (result, url)
-        api.last_response = {"url": url, "status_code": 200,
-                             "hash_scope": "original_http_body",
-                             "sha256": hashlib.sha256(original).hexdigest(),
-                             "bytes_base64": base64.b64encode(original).decode()}
-        with self.assertRaises(ValueError):
-            fetch_and_ingest(store, api, kind="funding", category="linear",
+            fetch_and_ingest(store, api, kind="trades", category="linear",
                              symbol="BTCUSDT", run_id="run-test", job_key="oversize",
-                             start_ms=1794559999998, end_ms=1794560000001,
                              limit=1, observed_at=NOW)
+        api = recorded_api({"list": [ROW], "nextPageCursor": "unproven"}, {**params, "limit": 1000})
+        with self.assertRaises(ValueError):
+            fetch_and_ingest(store, api, kind="trades", category="linear",
+                             symbol="BTCUSDT", run_id="run-test", job_key="cursor",
+                             observed_at=NOW)
         store.ingest.assert_not_called()
 
-    def test_reject_out_of_window_before_pg(self):
+
+class SingleFundingOpenInterestWriterTests(unittest.TestCase):
+    """Issue #105(c): exactly one module requests funding/OI from Bybit REST."""
+
+    def test_only_canonical_rest_backfill_requests_funding_and_open_interest(self):
+        import re
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[1] / "src"
+        pattern = re.compile(r"[\"'](?:/v5/market)?/(?:funding/history|open-interest)[\"']")
+        allowed = {
+            "ingest/rest.py",  # canonical writer: Backfill -> journal/handoff -> Store
+            "ingest/public_access.py",  # transport allowlist, not a writer
+            "api/capability_source_contracts.py",  # descriptive metadata only
+        }
+        found = {
+            path.relative_to(root).as_posix()
+            for path in root.rglob("*.py")
+            if pattern.search(path.read_text(encoding="utf-8"))
+        }
+        self.assertEqual(found - allowed, set())
+        self.assertIn("ingest/rest.py", found)
+
+
+class RecentTradeAllowlistTests(unittest.TestCase):
+    """Issue #105(a): recent-trade passes the real policy, with an exact query."""
+
+    URL = "https://api.bybit.com/v5/market/recent-trade?category=linear&symbol=BTCUSDT&limit=1000"
+
+    def test_public_endpoint_key_accepts_exact_recent_trade_request(self):
+        # Before the fix this raised ValueError("unapproved_endpoint").
+        self.assertEqual(public_endpoint_key(self.URL), "api.bybit.com/v5/market/recent-trade")
+        self.assertEqual(public_endpoint_key("https://api.bybit.com/v5/market/recent-trade"),
+                         "api.bybit.com/v5/market/recent-trade")
+
+    def test_recent_trade_query_is_narrowed(self):
+        base = "https://api.bybit.com/v5/market/recent-trade?"
+        for query in ("category=linear&symbol=BTCUSDT&limit=1001",
+                      "category=spot&symbol=BTCUSDT&limit=61",
+                      "category=linear&symbol=BTCUSDT&limit=0",
+                      "category=linear&symbol=BTCUSDT&limit=01",
+                      "category=linear&symbol=BTCUSDT&startTime=1",
+                      "category=linear&symbol=BTCUSDT&cursor=x",
+                      "category=option&symbol=BTC",
+                      "category=linear",
+                      "symbol=BTCUSDT",
+                      "category=linear&symbol=btc-usdt"):
+            with self.subTest(query=query), self.assertRaises(ValueError):
+                public_endpoint_key(base + query)
+        public_endpoint_key(base + "category=spot&symbol=BTCUSDT&limit=60")
+        public_endpoint_key(base + "category=inverse&symbol=BTCUSD")
+
+    def test_trades_fetch_through_real_api_transport_and_policy(self):
+        result = {"category": "linear", "list": [ROW]}
+        body = json.dumps({"retCode": 0, "retMsg": "OK", "result": result}).encode()
+        reply = requests.Response()
+        reply.status_code, reply._content, reply._content_consumed = 200, body, True
+        session = Mock()
+        session.request.return_value = reply
+        policy = PolicyRecorder()
+        api = API(Transport(session=session, policy_store=policy, sleep=lambda _: None))
         store = Mock()
-        with self.assertRaises(ValueError):
-            ingest_page(store, kind="funding", category="linear", symbol="BTCUSDT",
-                        response=response({"symbol": "BTCUSDT", "fundingRate": "0.1",
-                                           "fundingRateTimestamp": "1794560000000"}),
-                        fetched_at=NOW, url=BASE["url"], run_id="run-test",
-                        job_key="job-test", evidence_ref="page-test",
-                        start_ms=1, end_ms=100, request_params={})
-        store.ingest.assert_not_called()
+        store.ingest.return_value = {"written": 1}
+        fetch_and_ingest(store, api, kind="trades", category="linear", symbol="BTCUSDT",
+                         run_id="run-real", job_key="job-real", observed_at=NOW)
+        self.assertEqual(session.request.call_args.args[1], self.URL)
+        self.assertEqual(policy.reserved, ["api.bybit.com/v5/market/recent-trade"])
+        self.assertEqual(policy.dispatched, 1)
+        self.assertEqual(policy.finished, [("api.bybit.com/v5/market/recent-trade", "allow")])
+        records, evidence, _ = store.ingest.call_args.args
+        self.assertEqual(evidence["http_sha256"], hashlib.sha256(body).hexdigest())
+        self.assertEqual(records[0]["trade_id"], "trade-123")
 
 
 if __name__ == "__main__":
