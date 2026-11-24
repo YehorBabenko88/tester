@@ -14,6 +14,19 @@ from decimal import Decimal, InvalidOperation
 from .capability_source_contracts import DATA_EXECUTION_VERSION
 
 _MAX_EVENTS = 100
+# /api/capabilities runs this probe per request (issue #104). DATA enforces this
+# resource budget with SQL aggregates before any payload, source or evidence
+# document is transferred (records, bytes, observation fan-out, wall time); an
+# exceeded budget is an observable UNVERIFIED reason, never HTTP 500/OOM.
+_PROBE_BUDGET = {
+    "max_row_bytes": 256 * 1024,
+    "max_source_bytes": 256 * 1024,
+    "max_observations_per_record": 4,
+    "max_observations": 200,
+    "max_evidence_documents": 20,
+    "max_evidence_bytes": 2 * 1024 * 1024,
+    "timeout_ms": 2000,
+}
 _MAX_WINDOW_MS = 7 * 86400000
 _SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 _REQUIRED_RECEIPTS = ("evidence_id", "page_ref", "http_sha256", "page_sha256", "row_sha256")
@@ -61,8 +74,16 @@ def observed_execution_evidence(reader, query, *, read_events=None):
             start_ms=query.start_ms,
             end_ms=query.end_ms,
             limit=_MAX_EVENTS,
+            budget=dict(_PROBE_BUDGET),
         )
-    except (ValueError, KeyError, TypeError, AttributeError):
+    except ValueError as error:
+        if getattr(error, "reason", None) == "read_budget_exceeded":
+            return {
+                **_unverified("data72_read_budget_exceeded"),
+                "budget": str(getattr(error, "budget", "unknown")),
+            }
+        return _unverified("data72_source_readback_unverified")
+    except (KeyError, TypeError, AttributeError):
         return _unverified("data72_source_readback_unverified")
     except Exception:
         return _unverified("data72_source_readback_unavailable")

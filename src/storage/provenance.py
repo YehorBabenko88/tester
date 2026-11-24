@@ -50,3 +50,4 @@ def resolve(conn,record_keys,*,include_documents=True):
         item['authentic']=bool(item['observations'] and not item['unlinked_sources'] and
                                all(o['authentic_run'] and o['source_kind']!='unknown' for o in item['observations']))
     return result
+

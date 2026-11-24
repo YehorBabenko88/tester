@@ -20,6 +20,15 @@ DATABASES = {
     "tester_research_release": ("tester_research_app", ("tester_research",)),
 }
 
+# Tables whose rows the runtime role legitimately UPDATEs (including
+# SELECT ... FOR UPDATE and INSERT ... ON CONFLICT DO UPDATE). "*" means every
+# platform table; migration/authority tables are revoked separately below.
+# No table in these schemas is granted DELETE or TRUNCATE to the runtime role.
+RUNTIME_UPDATE_TABLES = {
+    "tester_platform": ("*",),
+    "tester_storage": ("download_jobs", "ingestion_checkpoints"),
+}
+
 
 def database_identity(marker):
     ports = marker.get("ports", {})
@@ -114,9 +123,13 @@ def provision_release_databases(marker, owner_password):
             for schema in schemas:
                 # Research capabilities and published chart inputs are owner-issued.
                 # Projection evidence is append-only; runtime has no rewrite/delete authority.
+                # Least privilege (#114): the App never deletes durable platform
+                # or storage rows; UPDATE is re-granted only where runtime writes.
                 table_privileges = (
                     "SELECT"
                     if schema in {"tester_research", "tester_lab"}
+                    else "SELECT,INSERT"
+                    if schema in RUNTIME_UPDATE_TABLES
                     else "SELECT,INSERT,UPDATE,DELETE"
                 )
                 for grant in (
@@ -126,6 +139,15 @@ def provision_release_databases(marker, owner_password):
                 ):
                     conn.execute(
                         sql.SQL(grant).format(sql.Identifier(schema), sql.Identifier(role))
+                    )
+                for table in RUNTIME_UPDATE_TABLES.get(schema, ()):
+                    conn.execute(
+                        sql.SQL("GRANT UPDATE ON {} TO {}").format(
+                            sql.SQL("ALL TABLES IN SCHEMA {}").format(sql.Identifier(schema))
+                            if table == "*"
+                            else sql.Identifier(schema, table),
+                            sql.Identifier(role),
+                        )
                     )
                 migration = (
                     "schema_migrations"

@@ -7,9 +7,11 @@ import unittest
 from unittest.mock import Mock
 
 from src.ingest.execution_contract import (
-    ExecutionContractError, VERSION, _canonical, project_storage_execution,
-    read_execution_events, read_research_trades, to_research_trade,
+    READ_BUDGET, ExecutionContractError, ReadBudgetExceeded, VERSION, _canonical,
+    project_storage_execution, read_execution_events, read_research_trades,
+    to_research_trade,
 )
+from src.storage.bounded_read import ReadBudgetExceeded as StorageBudgetExceeded
 
 MS=1794560000000
 START=MS-1
@@ -49,6 +51,34 @@ def fixture(side='Buy',category='linear'):
     r['record_key']=sha(_canonical(['bybit',category,'BTCUSDT','trades','fixture-1']))
     r['content_hash']=sha(_canonical({**{k:r.get(k) for k in ('schema_version','timestamp_ms','timestamp_ns','timestamp_precision','payload','trade_id','id_origin')},'timestamp_us':None}))
     return r
+
+
+def compact_store(rows):
+    """Store double mirroring Store.read_bounded: budgets are checked over the
+    whole page (bytes, fan-out, distinct evidence) before rows are returned,
+    and each distinct evidence document is attached once."""
+    rows = copy.deepcopy(rows)
+    store = Mock(spec=['read_bounded', 'ingest'])
+
+    def read_bounded(dataset, venue, category, symbol, start_ms, end_ms, interval='', *, limit, budget):
+        page = rows[:limit]
+        observations = [o for r in page for o in r['provenance']['observations']]
+        documents = {o['evidence_id']: o['evidence'] for o in observations}
+        usage = {
+            'max_row_bytes': sum(len(json.dumps(r['payload'])) for r in page),
+            'max_source_bytes': sum(len(json.dumps(o['source'])) for o in observations),
+            'max_observations_per_record': max((len(r['provenance']['observations']) for r in page), default=0),
+            'max_observations': len(observations),
+            'max_evidence_documents': len(documents),
+            'max_evidence_bytes': sum(len(json.dumps(d)) for d in documents.values()),
+        }
+        for key, used in usage.items():
+            if used > budget[key]:
+                raise StorageBudgetExceeded(key)
+        return copy.deepcopy(page)
+
+    store.read_bounded.side_effect = read_bounded
+    return store
 
 
 class ContractTests(unittest.TestCase):
@@ -156,28 +186,55 @@ class ContractTests(unittest.TestCase):
                     )
 
     def test_bounded_read_only_store_and_duplicates(self):
-        store=Mock();store.read.return_value=[fixture()]
+        store=compact_store([fixture()])
         events=read_execution_events(store,category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2)
         self.assertEqual(len(events),1)
-        store.read.assert_called_once_with('trades','bybit','linear','BTCUSDT',START,END,'',limit=2,compact_provenance=False)
+        store.read_bounded.assert_called_once_with('trades','bybit','linear','BTCUSDT',START,END,'',limit=2,budget=READ_BUDGET)
         store.ingest.assert_not_called()
-        store.read.return_value=[fixture(),fixture()]
+        store=compact_store([fixture(),fixture()])
         with self.assertRaises(ExecutionContractError):
             read_execution_events(store,category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2)
-        store.read.return_value=[fixture()]
+        store=compact_store([fixture()])
         with self.assertRaises(ExecutionContractError):
             read_execution_events(store,category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=101)
-        store.read.assert_called()
+        store.read_bounded.assert_not_called()
+
+    def test_issue104_unbounded_legacy_read_is_refused(self):
+        # Before #104 the read used Store.read(compact_provenance=False): every
+        # raw envelope and base64 HTTP body per row, with no byte/fan-out cap.
+        legacy=Mock(spec=['read'])
+        legacy.read.return_value=[fixture()]
+        with self.assertRaisesRegex(ExecutionContractError,'resource-bounded'):
+            read_execution_events(legacy,category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2)
+        legacy.read.assert_not_called()
+
+    def test_issue104_budget_fails_closed_with_named_limit(self):
+        many=fixture()
+        many['provenance']['observations']*=READ_BUDGET['max_observations_per_record']+1
+        for rows,budget,name in (
+            ([fixture()],{'max_evidence_bytes':64},'max_evidence_bytes'),
+            ([many],None,'max_observations_per_record'),
+            ([fixture()],{'max_row_bytes':8},'max_row_bytes'),
+        ):
+            with self.subTest(name=name), self.assertRaises(ReadBudgetExceeded) as caught:
+                read_execution_events(compact_store(rows),category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2,budget=budget)
+            self.assertEqual((caught.exception.reason,caught.exception.budget),('read_budget_exceeded',name))
+        store=compact_store([fixture()])
+        for bad in ({'max_evidence_bytes':0},{'max_evidence_bytes':True},
+                    {'max_evidence_bytes':READ_BUDGET['max_evidence_bytes']+1},{'unknown':1},[]):
+            with self.subTest(bad=bad), self.assertRaises(ExecutionContractError):
+                read_execution_events(store,category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2,budget=bad)
+        store.read_bounded.assert_not_called()
 
     def test_full_page_research_read_refuses_unproven_next_page(self):
-        store = Mock()
-        store.read.return_value = [fixture()]
+        store = compact_store([fixture()])
         # The event itself is authenticated, but exactly reaching the
         # requested limit cannot establish that the next page is empty.
         self.assertEqual(len(read_execution_events(
             store, category="linear", symbol="BTCUSDT",
             start_ms=START, end_ms=END, limit=1,
         )), 1)
+        store = compact_store([fixture()])
         with self.assertRaisesRegex(ExecutionContractError, "pagination"):
             read_research_trades(
                 store, category="linear", symbol="BTCUSDT",
@@ -187,7 +244,7 @@ class ContractTests(unittest.TestCase):
 
     def test_duplicate_execid_conflicting_economics(self):
         r=fixture();second=fixture();second['payload']['size']='0.25'
-        store=Mock();store.read.return_value=[r,second]
+        store=compact_store([r,second])
         with self.assertRaises(ExecutionContractError):
             read_execution_events(store,category='linear',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2)
 

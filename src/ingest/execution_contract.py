@@ -16,6 +16,18 @@ VERSION = "tester-public-execution/1"
 MAX_ROWS = 100
 MAX_WINDOW_MS = 7 * 86_400_000
 MAX_HTTP_BYTES = 3 * 1024 * 1024
+# Resource budget of one bounded execution read (issue #104). Enforced by SQL
+# aggregates before any payload/source/evidence document is transferred; each
+# distinct page proof is loaded once (not per row). Callers may only tighten it.
+READ_BUDGET = {
+    "max_row_bytes": 1024 * 1024,
+    "max_source_bytes": 1024 * 1024,
+    "max_observations_per_record": 8,
+    "max_observations": 400,
+    "max_evidence_documents": MAX_ROWS,
+    "max_evidence_bytes": 8 * 1024 * 1024,
+    "timeout_ms": 5000,
+}
 EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 HEX = re.compile(r"[0-9a-f]{64}\Z")
 SYMBOL = re.compile(r"[A-Z0-9]{2,40}\Z")
@@ -23,6 +35,18 @@ SYMBOL = re.compile(r"[A-Z0-9]{2,40}\Z")
 
 class ExecutionContractError(ValueError):
     """Incomplete or contradictory source proof; refuse projection."""
+
+    reason = "execution_contract_unverified"
+
+
+class ReadBudgetExceeded(ExecutionContractError):
+    """The bounded read refused before transferring documents; .budget names the limit."""
+
+    reason = "read_budget_exceeded"
+
+    def __init__(self, budget):
+        super().__init__("execution read budget exceeded: " + budget)
+        self.budget = budget
 
 
 def _fail(reason):
@@ -232,11 +256,32 @@ def to_research_trade(event):
                           "evidence_refs": sorted({r["evidence_id"] for r in event["source_receipts"]})})
 
 
-def read_execution_events(store, *, category, symbol, start_ms, end_ms, limit=MAX_ROWS):
+def _budget(overrides):
+    budget = dict(READ_BUDGET)
+    if overrides is not None:
+        if not isinstance(overrides, dict) or set(overrides) - set(READ_BUDGET):
+            _fail("invalid execution read budget")
+        for key, value in overrides.items():
+            if type(value) is not int or not 1 <= value <= READ_BUDGET[key]:
+                _fail("execution read budget may only be tightened")
+            budget[key] = value
+    return budget
+
+
+def read_execution_events(store, *, category, symbol, start_ms, end_ms, limit=MAX_ROWS,
+                          budget=None):
     """Bounded SELECT-only PostgreSQL adapter; caller supplies Store(dsn)."""
     _bounded_scope(category, symbol, start_ms, end_ms, limit)
-    rows = store.read("trades", "bybit", category, symbol, start_ms, end_ms, "",
-                      limit=limit, compact_provenance=False)
+    budget = _budget(budget)
+    read = getattr(store, "read_bounded", None)
+    if not callable(read):
+        _fail("store cannot provide a resource-bounded read")
+    from src.storage.bounded_read import ReadBudgetExceeded as StorageBudget
+    try:
+        rows = read("trades", "bybit", category, symbol, start_ms, end_ms, "",
+                    limit=limit, budget=budget)
+    except StorageBudget as exc:
+        raise ReadBudgetExceeded(exc.budget) from None
     if not isinstance(rows, list) or len(rows) > limit:
         _fail("source read violates row budget")
     seen = {}

@@ -33,6 +33,25 @@ class SystemTrustAdapter(requests.adapters.HTTPAdapter):
         return super().init_poolmanager(*args, **kwargs)
 
 
+def public_session(verify=True):
+    """The single factory for public Bybit HTTP sessions.
+
+    Every production and lab path builds its requests.Session here so that the
+    result always satisfies Transport._validate_session: environment proxies,
+    netrc and REQUESTS_CA_BUNDLE are ignored (trust_env=False) and retries stay
+    owned by Transport. verify=True uses native OS trust (SystemTrustAdapter);
+    an explicit CA bundle path pins verification to that bundle only.
+    """
+    if verify is not True and (type(verify) is not str or not verify):
+        raise ValueError("TLS verification required")
+    session = requests.Session()
+    session.trust_env = False
+    session.verify = verify
+    if verify is True:
+        session.mount("https://", SystemTrustAdapter())
+    return session
+
+
 class UnsafePublicSession(ValueError):
     """A configured HTTP session would add unapproved network behavior."""
 
@@ -525,9 +544,7 @@ class Transport:
         ):
             raise ValueError("Invalid bounded timeout")
         if self.session is None and not hasattr(self.local, "session"):
-            self.local.session = requests.Session()
-            self.local.session.mount("https://", SystemTrustAdapter())
-            self.local.session.trust_env = False
+            self.local.session = public_session()
         session = self.session if self.session is not None else self.local.session
         self._validate_session(session)
         with self.operation():
