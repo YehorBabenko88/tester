@@ -427,7 +427,25 @@ python -m src.api.release_security manifest --bundle $BuildA --source-sha $Sourc
 python -m src.api.release_security manifest --bundle $BuildB --source-sha $SourceSha --output D:\Release\clean-b.post-authenticode.json
 python -m src.api.release_security sign --bundle $BuildA --private-key D:\OwnerKeys\tester-release.pk8.pem --source-sha $SourceSha --manifest-input D:\Release\clean-a.post-authenticode.json
 python -m src.api.release_security sign --bundle $BuildB --private-key D:\OwnerKeys\tester-release.pk8.pem --source-sha $SourceSha --manifest-input D:\Release\clean-b.post-authenticode.json
-python -c "from scripts.build_release import archive; print(archive(r'D:\Release\clean-a',r'D:\Release\clean-a.zip')); print(archive(r'D:\Release\clean-b',r'D:\Release\clean-b.zip'))"
+$env:TESTER_ARCHIVE_SOURCE_SHA = $SourceSha
+$env:TESTER_ARCHIVE_OWNER_ED25519_SHA256 = '<INDEPENDENT_OWNER_KEY_SHA256>'
+$env:TESTER_ARCHIVE_OWNER_ENVELOPE_SHA256 = '<INDEPENDENT_APPROVED_FINAL_ENVELOPE_SHA256>'
+@"
+import os
+from scripts.build_release import archive
+from src.api.release_security import verify_release
+for label in ('a', 'b'):
+    bundle = r'D:\Release\clean-' + label
+    verified = verify_release(bundle,
+        trusted_public_key_sha256=os.environ['TESTER_ARCHIVE_OWNER_ED25519_SHA256'],
+        expected_source_sha=os.environ['TESTER_ARCHIVE_SOURCE_SHA'])
+    expected_envelope = os.environ['TESTER_ARCHIVE_OWNER_ENVELOPE_SHA256']
+    if verified.manifest_sha256 != expected_envelope:
+        raise ValueError('Final envelope differs from independent owner approval')
+    approved = dict(verified.files)
+    approved['release-manifest.json'] = expected_envelope
+    print(archive(bundle, bundle + '.zip', expected_inventory=approved))
+"@ | python -
 if ((Get-FileHash D:\Release\clean-a.zip -Algorithm SHA256).Hash -cne (Get-FileHash D:\Release\clean-b.zip -Algorithm SHA256).Hash) { throw 'Final signed archives are not byte-identical' }
 ```
 
@@ -440,3 +458,5 @@ claim independently timestamped Authenticode operations are reproducible.
 The owner certificate/key are absent here, so production AllSigned/signature
 and this production reproducibility gate remain **NOT RUN**. Fixture-signature
 archive comparisons do not satisfy that gate.
+
+The archive helper is not a signer or trust authority. Signed archive calls require the complete externally verified file map, including the independently pinned final envelope digest. Changes, missing/extra files, digest mismatches and destinations inside the bundle are refused. Private owned partial assembly is validated before atomic no-overwrite publication; failure does not delete a foreign destination or issue a successful receipt. Unsigned snapshots do not establish production trust.
