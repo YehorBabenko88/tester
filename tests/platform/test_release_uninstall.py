@@ -22,6 +22,7 @@ class Resources:
 
     def validate_resources(self, marker):
         self.events.append("validate")
+        return [None, None]
 
     def stop_and_prove_exit(self, marker):
         self.events.append("stop")
@@ -1390,3 +1391,63 @@ def test_torn_partial_rollback_receipt_is_preserved_and_retry_gets_fresh_evidenc
     assert result["status"] == "rolled_back"
     assert old.read_bytes() == original
     assert removal.read_evidence(result["evidence_path"])["status"] == "rolled_back"
+
+
+@windows_only
+@pytest.mark.parametrize("resurrected", ["service", "shortcut", "trust_config"])
+def test_prior_success_does_not_certify_resurrected_external_resources(
+    tmp_path, monkeypatch, resurrected
+):
+    values = installation(tmp_path)
+    run(tmp_path, values)
+    original_receipt = (tmp_path / "removal.json").read_bytes()
+    ledger = removal._load_ledger(*values[:2], values[2], values[3], "a" * 40)
+    resource = Resources()
+    sentinel = tmp_path / "resurrected-foreign"
+    if resurrected == "service":
+        resource.validate_resources = lambda marker: [dict(image="FOREIGN"), None]
+    else:
+        sentinel.write_text("KEEP")
+        if resurrected == "shortcut":
+            ledger["external_entries"] = {str(sentinel): {}}
+        else:
+            ledger["trust_config"] = {"path": str(sentinel)}
+    monkeypatch.setattr(removal, "_load_ledger", lambda *a: ledger)
+    with pytest.raises(ReleaseSecurityError, match="absence|reappeared"):
+        run(tmp_path, values, resource)
+    assert (tmp_path / "removal.json").read_bytes() == original_receipt
+    assert "remove" not in resource.events and "stop" not in resource.events
+    if sentinel.exists():
+        assert sentinel.read_text() == "KEEP"
+
+
+@windows_only
+def test_trust_directory_swap_between_identity_check_and_lease_is_rejected(tmp_path, monkeypatch):
+    values = installation(tmp_path)
+    root, ledger_path, pin, key = values
+    ledger = removal._load_ledger(root, ledger_path, pin, key, "a" * 40)
+    maintenance = tmp_path / "maintenance"
+    maintenance.mkdir()
+    ledger["trust_config"] = {
+        "path": str(maintenance / "absent-trust.json"),
+        "parent_identity": removal._identity(maintenance),
+    }
+    original = removal._WindowsObject
+    substituted = False
+
+    def different_lease_identity(path, **kwargs):
+        nonlocal substituted
+        handle = original(path, **kwargs)
+        if Path(path) == maintenance and kwargs.get("lock", True):
+            substituted = True
+            handle.identity = [handle.identity[0], handle.identity[1] + 1]
+        return handle
+
+    from pathlib import Path
+
+    monkeypatch.setattr(removal, "_WindowsObject", different_lease_identity)
+    monkeypatch.setattr(removal, "_validate_admin_security", lambda record: None)
+    with pytest.raises(ReleaseSecurityError, match="trust directory swapped"):
+        with removal._locked_tree(root, ledger, ledger["entries"]):
+            pass
+    assert substituted and (root / "app.txt").read_bytes() == b"TESTER"

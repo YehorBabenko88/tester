@@ -659,6 +659,8 @@ def _locked_tree(root, ledger, entries, *, defer_completion=False, delete=True):
                 ancestors.append(_WindowsObject(parent))
             parent_handle = _WindowsObject(path.parent)
             ancestors.append(parent_handle)
+            if parent_handle.identity != config_plan["parent_identity"]:
+                raise ReleaseSecurityError("Maintenance trust directory swapped before lease")
             _validate_admin_security(_security_record(parent_handle))
             if path.exists():
                 handle = _WindowsObject(path, delete=delete)
@@ -734,13 +736,28 @@ def uninstall(
             and previous.get("ledger_sha256") == trusted_ledger_sha256
             and previous.get("root") == str(root)
         ):
-            _load_ledger(
-                root,
-                ledger_path,
-                trusted_ledger_sha256,
-                trusted_public_key_sha256,
-                expected_source_sha,
-            )
+            with lifecycle_lock(root):
+                ledger = _load_ledger(
+                    root,
+                    ledger_path,
+                    trusted_ledger_sha256,
+                    trusted_public_key_sha256,
+                    expected_source_sha,
+                )
+                # A historical success is evidence of a past operation, not proof
+                # that names outside the deleted root are still absent today.
+                current = resources.validate_resources(ledger["marker"])
+                if (
+                    not isinstance(current, (list, tuple))
+                    or not current
+                    or any(item is not None for item in current)
+                ):
+                    raise ReleaseSecurityError("Current service absence not proven")
+                external_paths = list(ledger.get("external_entries", {}))
+                if ledger.get("trust_config") is not None:
+                    external_paths.append(ledger["trust_config"]["path"])
+                if root.exists() or any(os.path.lexists(path) for path in external_paths):
+                    raise ReleaseSecurityError("External resource reappeared after prior removal")
             return {**previous, "status": "already_removed"}
         raise ReleaseSecurityError("Evidence path exists; use a new unique receipt for recovery")
     with evidence_path.open("xb") as stream:
