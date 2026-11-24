@@ -513,10 +513,16 @@ class NativeSCM:
                 ws.CloseServiceHandle(h)
 
     def promote(self, initial, final, image):
-        """Change the same stopped provisioning service into the runtime service."""
+        """Change the same stopped provisioning service into the runtime service.
+
+        The start type follows ``final["auto_start"]``. The installer promotes to
+        DEMAND_START and enables AUTO_START only after the install commit point, so
+        an interrupted installation can never be started by SCM at boot.
+        """
         import winreg
 
         ws = self.ws
+        start_type = ws.SERVICE_AUTO_START if final.get("auto_start") else ws.SERVICE_DEMAND_START
         with self.lease([(initial, image)]):
             handle = self._bound[initial["name"]]
             if (
@@ -530,7 +536,7 @@ class NativeSCM:
                 lambda h: ws.ChangeServiceConfig(
                     h,
                     ws.SERVICE_NO_CHANGE,
-                    ws.SERVICE_AUTO_START,
+                    start_type,
                     ws.SERVICE_NO_CHANGE,
                     None,
                     None,
@@ -570,6 +576,36 @@ class NativeSCM:
                 winreg.SetValueEx(key, None, 0, winreg.REG_SZ, final["python_class"])
             self._bound_plans[initial["name"]] = (final, image)
             owned(self._inspect_handle(initial["name"], handle), final, image)
+
+    def set_start_type(self, registrations, *, automatic):
+        """Idempotently switch exact owned registrations between AUTO and DEMAND start.
+
+        Every service is pinned and ownership-validated through the lease before its
+        configuration changes; a missing or foreign registration changes nothing.
+        """
+        ws = self.ws
+        start_type = ws.SERVICE_AUTO_START if automatic else ws.SERVICE_DEMAND_START
+        with self.lease(registrations):
+            if any(self._bound.get(plan["name"]) is None for plan, _ in registrations):
+                raise LabViolation("Both owned registrations required to change start type")
+            for plan, _ in registrations:
+                self._call(
+                    plan["name"],
+                    ws.SERVICE_CHANGE_CONFIG,
+                    lambda h: ws.ChangeServiceConfig(
+                        h,
+                        ws.SERVICE_NO_CHANGE,
+                        start_type,
+                        ws.SERVICE_NO_CHANGE,
+                        None,
+                        None,
+                        0,
+                        None,
+                        None,
+                        None,
+                        None,
+                    ),
+                )
 
     def _call(self, name, access, fn):
         if getattr(self, "_bound", None) is not None and self._bound.get(name) is not None:
