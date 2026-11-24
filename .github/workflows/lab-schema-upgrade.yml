@@ -51,3 +51,9 @@ jobs:
           TESTER_LAB_UPGRADE_ADMIN_DSN: host=127.0.0.1 port=55432 user=lab_upgrade_owner dbname=lab_upgrade_owner connect_timeout=5
           TESTER_LAB_UPGRADE_PG_BIN: /usr/lib/postgresql/${{ matrix.postgres }}/bin
         run: python -m pytest -q -rs tests/platform/test_lab_schema_upgrade_postgres.py tests/platform/test_lab_upgrade_contract.py
+      - name: Canonical storage regressions cited by the legacy equivalence matrix (#113)
+        env:
+          TESTER_TEST_ADMIN_DSN: host=127.0.0.1 port=55432 user=lab_upgrade_owner dbname=lab_upgrade_owner connect_timeout=5
+        run: |
+          python -m unittest discover -s tests/storage -v
+          python -m pytest -q -rs tests/platform/test_legacy_root_equivalence_issue113.py tests/ingest/test_pipeline.py

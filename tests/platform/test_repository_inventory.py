@@ -98,3 +98,20 @@ def test_cleanup_proof_matches_tree_issue113():
         for path in re.findall(r"(?:scripts|src|tests)/[\w./-]+\.(?:py|ps1|json)", claim):
             assert (root / path).exists(), path
     assert "archive/branches-20261124" in proof["compatibility"]
+
+
+def test_equivalence_matrix_cites_existing_tests_issue113():
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    doc = (root / "docs/release/consolidation.md").read_text(encoding="utf-8")
+    matrix = doc[doc.index("## Functional equivalence of the removed root modules") :]
+    cited = set(re.findall(r"`(test_\w+)(?![\w.])", matrix))
+    assert len(cited) >= 30
+    defined = set()
+    for path in (root / "tests").rglob("test_*.py"):
+        defined |= set(re.findall(r"def (test_\w+)", path.read_text(encoding="utf-8")))
+    assert not cited - defined, sorted(cited - defined)
+    for gap in ("GAP-1", "GAP-2", "GAP-3", "GAP-4", "GAP-5", "GAP-6"):
+        assert matrix.count(gap) >= 2, gap

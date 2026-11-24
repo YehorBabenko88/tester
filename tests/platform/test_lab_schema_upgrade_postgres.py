@@ -65,6 +65,7 @@ FROM (VALUES
  ('linear','BTCUSDT','funding','',1700006400000,NULL,'{"value":"-0.000125"}'),
  ('linear','BTCUSDT','ratio','5min',1700000100000,NULL,'{"value":"0.55"}')
 ) v(c,s,d,i,t,tid,p);
+INSERT INTO tester_storage.record_sources VALUES(repeat('b',64),(SELECT record_key FROM tester_storage.raw_records WHERE trade_id='t1'),'BTCUSDT','{"source_kind":"archive"}','{"raw":1}',now());
 INSERT INTO tester_storage.download_jobs(job_key,scope_key,symbol,request,state) VALUES('job-1','scope-1','BTCUSDT','{"dataset":"trades"}','committed');
 INSERT INTO tester_storage.ingestion_checkpoints(job_key,checkpoint,commit_hash) VALUES('job-1','{"cursor":"c-9","end_ms":1700000060000}',repeat('a',64));
 INSERT INTO tester_platform.jobs(id,request,state,progress,checkpoint,attempts) VALUES('00000000-0000-4000-8000-000000000001','{"symbol":"BTCUSDT"}','completed',1,'{"page":3}',1),('00000000-0000-4000-8000-000000000002','{"symbol":"ETHUSDT"}','paused',0.25,'{"page":1}',2);

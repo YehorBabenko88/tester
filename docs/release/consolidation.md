@@ -22,8 +22,60 @@ PR #102 fast-forwarded main to the green release candidate (`d6059af`) and then 
 - The MASTER pinned-wave workflows and scripts (`master-current-runtime-candidate`, `master-disposable-compose`, `master-pending-blob-review`). These only re-verified historical integration waves.
 - Historical evidence trees: `docs/coordination`, `docs/adminit-acceptance`, `docs/physical-test`, `docs/evidence` and `docs/superpowers`.
 
-At `d6059af` this document and `scripts/repository_inventory.py` classified `bybit.py` and `bybit_history.py` as MIGRATE. That classification required equivalence evidence between `raw_market`/`ingest_ranges` and the `src/ingest`/`tester_storage` pipeline. **That equivalence evidence was not produced.** The files were removed because nothing in the shipped product consumed them. Any data in an external `raw_market`/`ingest_ranges` database is not migrated by TESTER. The deletion rows and blob hashes are in cleanup-proof.json (`removed_in_pr102`).
+At `d6059af` this document and `scripts/repository_inventory.py` classified `bybit.py` and `bybit_history.py` as MIGRATE. That classification required equivalence evidence between `raw_market`/`ingest_ranges` and the `src/ingest`/`tester_storage` pipeline. PR #102 itself did not produce that equivalence evidence; the files were removed because nothing in the shipped product consumed them. The behaviour matrix below was produced afterwards (issue #113). It maps every behaviour to the canonical code and lists the behaviours that have no equivalent. The deletion rows and blob hashes are in cleanup-proof.json (`removed_in_pr102`).
 
 The PR #102 body and the message of `07187ab` say the removed history is kept in `archive/*` tags. That is incorrect: no such tags exist. The former branch tips are retained on the single branch **`archive/branches-20261124`** (its `ARCHIVE.md` lists every former tip). Some commits are reachable only from that branch, for example `998c5bc` (pinned in `src/integration/F_SOURCE_PIN.json`) and `e76b08d` (referenced by `tests/platform/test_research_composed_negative_issue59.py`). The branch must be protected and must not be deleted. Removed files remain readable from Git history, for example `git show d6059af:docs/adminit-acceptance/DEPENDENCIES.md`.
 
 The committed `repository-inventory.json` is a historical snapshot from before PR #102. It still lists the removed paths. It must be regenerated once, on the final integrated revision, with the command at the top of this document.
+
+## Functional equivalence of the removed root modules (issue #113)
+
+Source of the behaviours: `git show d6059af:<file>` for `bybit.py`, `engine.py`, `db.py`, `bybit_history.py`, `test_core.py`, `test_ingest_integrity.py`, `test_postgres_integration.py`, `test_screener.py` and `tests/platform/reference/legacy_screener.py`. Unless another file is named, regressions are in `tests/platform/test_legacy_root_equivalence_issue113.py` (abbreviated `EQ`). Every row was executed against the canonical code on the PR head. PostgreSQL rows cite `tests/storage/test_postgres.py`, which `lab-schema-upgrade.yml` now also runs on PG14/18.
+
+| # | Removed behaviour (origin) | Canonical implementation | Evidence | Verdict |
+|---|---|---|---|---|
+| 1 | Open candle never stored: `closed_before` (bybit.py; test_core closed_minute) | `src/ingest/rest.py` `Backfill` drops a row while `next_time(ts) > server_ms` (exchange time, not local clock) | EQ `test_open_minute_candle_is_not_published_closed_before` | Equivalent |
+| 2 | Monday-anchored UTC weeks (test_core week_utc_monday) | `rest.expected_times(…,'W')`, `analytics.core.interval_bounds` | EQ `test_week_buckets_are_monday_utc` | Equivalent |
+| 3 | Calendar month incl. leap February (test_core month_leap; engine month continuity) | `rest.next_time/expected_times('M')`, `interval_bounds` | EQ `test_month_bucket_leap_year`; tests/ingest `test_calendar_month_spacing` | Equivalent |
+| 4 | Unsafe symbol rejection (`safe_symbol`) | `ingest.archive.archive_url`, `analytics.core.validate_trade` symbol pattern | EQ `test_unsafe_symbols_rejected` | Equivalent |
+| 5 | 1m series not truncated by the 1000-row limit (`candle_slices`) | `Backfill` cursor-end pagination, limit ≤ 1000 | EQ `test_busy_one_minute_series_never_truncated_by_1000_row_limit` (2880 rows) | Equivalent |
+| 6 | Archive timestamp eras s/ms/µs/ns (`timestamp_ns`) | `ingest.archive.timestamp_fields` (also keeps precision) | EQ `test_trade_archive_timestamp_eras` | Equivalent (superset) |
+| 7 | Only `/v5/market/*` endpoints (Bybit.api) | `rest.API.call` fixed market base, rejects `..`/relative paths before I/O | EQ `test_only_public_market_endpoints_are_reachable` | Equivalent |
+| 8 | Missing internal/trailing minute → `gaps` (test_core IntegrityTests) | `Backfill` `missing_count`, status `unverified` | EQ `test_missing_minute_is_a_gap_not_complete[internal/trailing]` | Equivalent |
+| 9 | OHLC/volume/turnover validation (engine.download_candles) | `src/storage/models.normalize` | EQ `test_invalid_ohlc_volume_turnover_rejected` (6 cases) | Equivalent |
+| 10 | Spot only trade klines; premium only linear (`candle_kind`) | `Backfill.run` dataset/category rules (before network) | EQ `test_premium_and_spot_dataset_rules` | Equivalent |
+| 11 | Sparse OI/ratio history is retryable (`gaps`) | `Backfill` grid repair + `unverified` | EQ `test_sparse_regular_observations_stay_unverified` | Equivalent |
+| 12 | Full regular history accepted | `Backfill` status `observed`; coverage stays `PARTIAL` (never certified) | EQ `test_full_regular_observation_history_is_observed` | Equivalent (stricter) |
+| 13 | Invalid OI/ratio values never saved | `models.normalize` (finite, OI ≥ 0, ratio ≤ 1) | EQ `test_invalid_observation_values_rejected` | Equivalent |
+| 14 | Funding schedule never "complete" | `Backfill` coverage `PARTIAL`; storage requires explicit funding inventory | EQ `test_funding_is_never_promoted_to_complete`; tests/storage `test_complete_periodic_observations_and_funding_inventory` | Equivalent |
+| 15 | Previously "complete" windows rechecked | `Backfill` reuses only `observed` tasks with evidence refs | EQ `test_previous_unproven_window_is_requeried` | Equivalent |
+| 16 | Off-grid observation timestamp rejected | Alone: window stays `unverified`. Next to a full grid it is accepted | EQ `test_off_grid_observation_does_not_satisfy_the_sampling_grid`; strict-xfail `test_gap_off_grid_observation_with_full_grid_is_rejected` | **GAP-1** |
+| 17 | Duplicate candle timestamp rejected | `Backfill` keys rows by timestamp; a conflicting duplicate in one response is collapsed. Storage detects conflicts only across ingests | strict-xfail `test_gap_conflicting_duplicate_candle_timestamp_is_rejected`; tests/storage `test_conflicting_replay_preserves_record_and_finding` | **GAP-2** |
+| 18 | Corrupt/bad-CRC archive publishes nothing | `ingest.archive.validate` (whole file before any record) | EQ `test_corrupt_gzip_publishes_no_record`; tests/ingest `test_corrupt_remote_archive_never_published` | Equivalent |
+| 19 | Non-finite/non-positive trades rejected | `models.normalize`, `analytics.core.validate_trade` | EQ `test_nonfinite_or_nonpositive_trade_rejected` | Equivalent |
+| 20 | Trade ID required | `iter_trade_records` (composite only by explicit opt-in) | EQ `test_missing_trade_id_requires_explicit_composite_opt_in` | Equivalent |
+| 21 | Changed payload for an existing trade ID fails closed | `analytics.core.deduplicate`; storage `DataConflict` + finding | EQ `test_changed_payload_for_same_trade_id_fails_closed`; tests/storage `test_conflicting_replay_preserves_record_and_finding` | Equivalent |
+| 22 | Trade outside the archive's UTC date rejected | Not checked by `iter_trade_records` | strict-xfail `test_gap_archive_trade_outside_file_utc_date_is_rejected` | **GAP-3** |
+| 23 | Taker side only Buy/Sell | Intentionally changed: `Unknown` admitted (storage 008), never counted in delta | tests/platform `test_research_metrics_issue59.py` Unknown-side tests | Intentional change |
+| 24 | Atomic publication, rollback of every batch, retry idempotence, lock/one transaction (engine archive, test_postgres_integration) | `src/storage/store.Store.ingest` single transaction, checkpoint only with data | tests/storage `test_atomic_replay_precise_read_and_provenance`, `test_failed_stream_rolls_back_all_and_checkpoint`, `test_bad_scope_range_or_count_rolls_back` | Equivalent (PostgreSQL) |
+| 25 | Exact numerics (numeric/Decimal) | `models.normalize` keeps decimal strings; analytics uses `Fraction` | EQ `test_decimal_exactness_preserved` | Equivalent |
+| 26 | Footprint/cluster buy/sell volume per price and delta per bucket (`build_clusters`, `db.footprint`, `db.cluster_totals`) | `analytics.research_metrics` footprint (tick-grouped), `analytics.core.footprint` | EQ `test_footprint_clusters_match_legacy_exact_price_delta` | Equivalent. Legacy aggregated only complete archive days; canonical never certifies coverage |
+| 27 | Instrument pagination with repeated-cursor guard | `ingest.catalog.instruments`, `ingest.metadata.acquire_instruments` | EQ `test_instrument_pagination_rejects_repeated_cursor`; tests/ingest `test_instrument_cursor_pagination` | Equivalent |
+| 28 | Retry on 429/5xx and rate limit 10006, request pacing | `ingest.transport.Transport` (shared throttling, halt on 403) + `rest.API` retry | tests/ingest `test_bybit_application_rate_limit_retries`, `test_retry_network_and_rate_limit` | Equivalent (stricter) |
+| 29 | Archive directory listing (`archive_days`) | `ingest.archive.discover` | tests/ingest `test_discovery_rejects_external_links_and_extracts_dates` | Equivalent |
+| 30 | `bybit_history.py` backwards download of kline/mark/index/premium/OI/funding | `Backfill` for the same datasets plus account ratio | rows 1–17 | Equivalent, except GAP-1/GAP-2 |
+| 31 | Hourly high-low range % screener (`one_hour_range`, test_screener) | No canonical metric. `ingest.catalog.volatility` is realized volatility, not range | — | **GAP-4** |
+| 32 | 1m trade-volume vs kline reconciliation (`reconcile_minute_volume`) | No canonical equivalent | — | **GAP-5** |
+| 33 | Data in legacy `raw_market`/`ingest_ranges` and engine `candles/observations/trades/trade_files/coverage/clusters` tables | No importer into `tester_storage` | — | **GAP-6** |
+
+### De-scope proposals (owner approval required)
+
+None of these is claimed as equivalent. Each stays open until the owner either approves the de-scope or asks for an implementation. GAP-1 to GAP-3 belong to the `src/ingest` owner; the strict-xfail tests turn into failures as soon as the behaviour is implemented.
+
+- **GAP-1** Off-grid OI/ratio observations next to a full grid are accepted. Proposal: reject them in `Backfill` or in storage normalisation.
+- **GAP-2** A conflicting duplicate candle timestamp in one response is silently collapsed. Proposal: fail the window, as the legacy code did.
+- **GAP-3** Archive trades are not checked against the file's UTC date. Proposal: bind them to the date in the file name.
+- **GAP-4** The hourly range % screener metric of the removed Streamlit UI. Proposal: de-scope, because the shipped terminal uses verified volatility/turnover metrics.
+- **GAP-5** Minute-volume reconciliation of ticks against klines. Proposal: de-scope, or re-implement as an analytics quality check.
+- **GAP-6** Data in an external legacy prototype database is not imported. Proposal: de-scope; TESTER never adopts foreign databases. A one-off importer would need its own reviewed proposal.
+

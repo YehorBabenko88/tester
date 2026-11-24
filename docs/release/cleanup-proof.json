@@ -71,7 +71,7 @@
       "canonical_installer_usage": false,
       "dynamic_consumer_review": "Removed in PR #102 together with all of its root consumers; not part of the release payload",
       "replacement_coverage": "src/ingest public historical ingestion (python -m src.ingest) with src/storage; root regressions test_core.py/test_ingest_integrity.py/test_postgres_integration.py were deleted with it, not ported",
-      "equivalence_evidence": "NOT PRODUCED: no data/functionality equivalence evidence (raw_market/ingest_ranges vs src/ingest + src/storage) was generated before removal in PR #102 (commit 07187ab). The MIGRATE classification recorded at d6059af was not satisfied; the files were removed as not shipped in the release payload."
+      "equivalence_evidence": "Not produced before removal in PR #102 (07187ab). Produced afterwards for issue #113: behaviour matrix in docs/release/consolidation.md, regressions in tests/platform/test_legacy_root_equivalence_issue113.py. Not fully equivalent: GAP-1..GAP-6 (off-grid observations, conflicting duplicate candles, archive UTC-date binding, hourly range screener, minute-volume reconciliation, legacy database import) are open de-scope proposals requiring owner approval."
     },
     {
       "path": "bybit_history.py",
@@ -86,7 +86,7 @@
       "canonical_installer_usage": false,
       "dynamic_consumer_review": "Removed in PR #102; no in-repo consumer remained",
       "replacement_coverage": "src/ingest + src/storage (tester_storage schema); different schema, no migration of existing raw_market data is provided",
-      "equivalence_evidence": "NOT PRODUCED: no data/functionality equivalence evidence (raw_market/ingest_ranges vs src/ingest + src/storage) was generated before removal in PR #102 (commit 07187ab). The MIGRATE classification recorded at d6059af was not satisfied; the files were removed as not shipped in the release payload."
+      "equivalence_evidence": "Not produced before removal in PR #102 (07187ab). Produced afterwards for issue #113: behaviour matrix in docs/release/consolidation.md, regressions in tests/platform/test_legacy_root_equivalence_issue113.py. Not fully equivalent: GAP-1..GAP-6 (off-grid observations, conflicting duplicate candles, archive UTC-date binding, hourly range screener, minute-volume reconciliation, legacy database import) are open de-scope proposals requiring owner approval."
     },
     {
       "path": "engine.py",
@@ -101,7 +101,7 @@
       "canonical_installer_usage": false,
       "dynamic_consumer_review": "Removed in PR #102 together with root consumers",
       "replacement_coverage": "src/ingest and src/storage; root regressions deleted with it",
-      "equivalence_evidence": "NOT PRODUCED: no data/functionality equivalence evidence (raw_market/ingest_ranges vs src/ingest + src/storage) was generated before removal in PR #102 (commit 07187ab). The MIGRATE classification recorded at d6059af was not satisfied; the files were removed as not shipped in the release payload."
+      "equivalence_evidence": "Not produced before removal in PR #102 (07187ab). Produced afterwards for issue #113: behaviour matrix in docs/release/consolidation.md, regressions in tests/platform/test_legacy_root_equivalence_issue113.py. Not fully equivalent: GAP-1..GAP-6 (off-grid observations, conflicting duplicate candles, archive UTC-date binding, hourly range screener, minute-volume reconciliation, legacy database import) are open de-scope proposals requiring owner approval."
     },
     {
       "path": "db.py",
@@ -116,7 +116,7 @@
       "canonical_installer_usage": false,
       "dynamic_consumer_review": "Removed in PR #102 together with root consumers",
       "replacement_coverage": "src/storage migrations/store and src/api/db (platform); root regressions deleted with it",
-      "equivalence_evidence": "NOT PRODUCED: no data/functionality equivalence evidence (raw_market/ingest_ranges vs src/ingest + src/storage) was generated before removal in PR #102 (commit 07187ab). The MIGRATE classification recorded at d6059af was not satisfied; the files were removed as not shipped in the release payload."
+      "equivalence_evidence": "Not produced before removal in PR #102 (07187ab). Produced afterwards for issue #113: behaviour matrix in docs/release/consolidation.md, regressions in tests/platform/test_legacy_root_equivalence_issue113.py. Not fully equivalent: GAP-1..GAP-6 (off-grid observations, conflicting duplicate candles, archive UTC-date binding, hourly range screener, minute-volume reconciliation, legacy database import) are open de-scope proposals requiring owner approval."
     },
     {
       "path": "requirements-release-windows312.lock",
