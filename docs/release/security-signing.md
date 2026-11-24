@@ -474,9 +474,20 @@ headers or a network failure returns, and sets the next opportunity at least
 across processes and fresh per-job instances, with network latency reducing it.
 
 No database transaction remains open during network I/O. A durable UUID token,
-not a timeout, excludes other dispatchers. Process death, failed commit, unavailable
-database, corrupt/nonfinite deadline or uncertain completion refuses further sends.
-No TTL automatically clears uncertainty. Endpoint PENDING/HALTED records continue
+not a timeout, excludes other dispatchers. Process death before completion, a
+completion write rolled back before commit, an unavailable database, or a
+corrupt/nonfinite deadline refuses further sends. No TTL clears a pending token.
+
+A completion COMMIT may succeed even when its acknowledgment is lost. The caller
+cannot determine this from an exception: it attempts completion only once and
+retains its endpoint PENDING ownership guard for owner review. PostgreSQL may
+already have cleared the global dispatch token and committed the next-send deadline.
+In that case a fresh caller for a different endpoint can proceed after the fixed
+500 ms spacing or the longer committed 429 cooldown; it cannot bypass that SQL
+deadline. A fresh caller for the original endpoint still sends nothing. Therefore
+an exception alone does not prove that global dispatch remains pending. The durable
+SQL state is authoritative; the local uncertainty guard preserves endpoint safety.
+Endpoint PENDING/HALTED records continue
 to protect response body/close TLS outcomes independently of this send gate.
 Only an authenticated owner calling whole-scope `reset(None)` after reviewing and
 stopping uncertain writers may clear the dispatch token and cooldown. Endpoint-only
@@ -488,3 +499,22 @@ installing the migration alone does not impose a network gate. Disposable tests
 exercise concurrent/fresh-process reservations, cooldown persistence, stale tokens,
 owner-only reset and denied direct runtime DDL/DML. These are distinct from live
 exchange performance and production signing acceptance.
+
+
+### Existing platform database upgrades
+
+An authorized owner runs the existing `src.api.db.migrate(owner_dsn)` path before
+starting updated runtime processes. Migration `007_public_dispatch_grants.sql`
+adds EXECUTE on only the two dispatch functions to distinct runtime LOGIN roles
+already enrolled in owner-protected transport scopes. It validates the scope-table
+and function owners and refuses foreign, missing, owner-equivalent or privileged
+runtime enrollment. It grants no PUBLIC access, reset function, table DML, or role
+creation. Fresh installation keeps its explicit initializer grants because its
+transport scopes are seeded after the platform migrations.
+
+Migration files 004, 005 and 006 are unchanged; their existing checksum records
+remain authoritative. The narrow upgrade fixture retains existing platform job
+rows and checkpoints, transport scope fields, and HALTED/PENDING endpoint rows
+exactly while applying 006/007 and repeating normal migration idempotently. This
+validates that specific platform upgrade, not a complete production storage,
+backup, release-source, or installed Windows service upgrade.
