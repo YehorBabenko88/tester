@@ -1,0 +1,81 @@
+{
+  "schema": "tester-release-engineering-validation/v1",
+  "code_sha": "a40e0b775501f399b0bafa57e2d26505703970f2",
+  "scope": "D isolated release-engineering worktree; not final installed-host or independent acceptance",
+  "checks": [
+    {
+      "name": "compileall scoped builder/inventory/tests",
+      "result": "PASS"
+    },
+    {
+      "name": "Ruff check scoped builder/inventory/tests",
+      "result": "PASS"
+    },
+    {
+      "name": "Ruff format --check scoped builder/inventory/tests",
+      "result": "PASS"
+    },
+    {
+      "name": "pytest release build and repository inventory",
+      "result": "PASS",
+      "passed": 7
+    },
+    {
+      "name": "CPython312 constrained Windows wheelhash offline install and pip check",
+      "result": "PASS",
+      "wheels": 38
+    },
+    {
+      "name": "CPython314 private venv creation, offline hashlocked installation and pip check",
+      "result": "PASS",
+      "wheels": 38
+    },
+    {
+      "name": "CPython314 isolated full bootstrap imports native pywin32, psycopg, cryptography, venv",
+      "result": "PASS"
+    },
+    {
+      "name": "NuGet Python31410 repository signature verification",
+      "result": "PASS",
+      "repository_owners": [
+        "CPython",
+        "steve.dower"
+      ]
+    },
+    {
+      "name": "Python31410 executable Authenticode",
+      "result": "PASS",
+      "subject": "Python Software Foundation"
+    },
+    {
+      "name": "PostgreSQL187 executable Authenticode",
+      "result": "PASS",
+      "subject": "EnterpriseDB Corporation"
+    },
+    {
+      "name": "Real elevated Windows SCM on local host",
+      "result": "NOT_RUN",
+      "reason": "Local token not elevated; required hosted native gates explicitly fail without elevation"
+    },
+    {
+      "name": "Full packaged install/uninstall/reboot/browser lifecycle",
+      "result": "PENDING_INTEGRATED_SOURCE_AND_ISOLATED_ACCEPTANCE"
+    },
+    {
+      "name": "Production signing",
+      "result": "BLOCKED_OWNER_TRUST_KEY_REQUIRED"
+    }
+  ],
+  "production_components": {
+    "python": "3.14.10",
+    "openssl": "3.5.9",
+    "postgresql": "18.7",
+    "component_files": 4702,
+    "python_package_sha256": "f54ba67c9951c3d773ea47d2bb095150c037c399f0423a968bcda22809241784",
+    "postgresql_archive_sha256": "74f3740a2e7844118857f297c2067d226f8f2b0652de96022ce54bb27cd60a79"
+  },
+  "destructive_operations": [],
+  "file_deletions": [],
+  "remote_branch_deletions": [],
+  "guardians_enabled": false
+}

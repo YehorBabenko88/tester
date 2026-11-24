@@ -1,0 +1,209 @@
+{
+  "archive_url": "https://public.bybit.com/trading/XRPUSDT/XRPUSDT2023-01-01.csv.gz",
+  "official_url": "https://api.bybit.com/v5/market/kline?category=linear&symbol=XRPUSDT&interval=1&start=1672531200000&end=1672534799999&limit=1000",
+  "start_ms": 1672531200000,
+  "end_ms": 1672534800000,
+  "evidence_kind": "live_official_sources_observational",
+  "verified_complete": false,
+  "reason": "C does not independently certify B source coverage or archive taker-side semantics",
+  "archive_sha256": "9270eb6758065a9bd6a5ca1cae825195c3d298e9249b4930e99b8ccc9c0929e9",
+  "archive_row_count": 43210,
+  "selected_trade_count": 2938,
+  "calculated_candle_count": 60,
+  "gated_statuses": [
+    "NOT_COMPARABLE"
+  ],
+  "official_candle_count": 60,
+  "observed_numerical_differences": [
+    {
+      "start_ms": 1672531200000,
+      "field": "open",
+      "calculated": "0.3391",
+      "official": "0.339",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672531260000,
+      "field": "open",
+      "calculated": "0.3392",
+      "official": "0.3393",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672531380000,
+      "field": "open",
+      "calculated": "0.3389",
+      "official": "0.339",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672531620000,
+      "field": "open",
+      "calculated": "0.3383",
+      "official": "0.3384",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672531860000,
+      "field": "open",
+      "calculated": "0.3385",
+      "official": "0.3386",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672532040000,
+      "field": "open",
+      "calculated": "0.3386",
+      "official": "0.3385",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672532580000,
+      "field": "open",
+      "calculated": "0.3387",
+      "official": "0.3388",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672532760000,
+      "field": "open",
+      "calculated": "0.3388",
+      "official": "0.3387",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672532880000,
+      "field": "open",
+      "calculated": "0.339",
+      "official": "0.3389",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672532940000,
+      "field": "open",
+      "calculated": "0.3389",
+      "official": "0.339",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672533000000,
+      "field": "open",
+      "calculated": "0.3391",
+      "official": "0.339",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672533300000,
+      "field": "open",
+      "calculated": "0.339",
+      "official": "0.3389",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672533360000,
+      "field": "open",
+      "calculated": "0.3385",
+      "official": "0.3386",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672533360000,
+      "field": "high",
+      "calculated": "0.3385",
+      "official": "0.3386",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672533420000,
+      "field": "open",
+      "calculated": "0.3383",
+      "official": "0.3384",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672533540000,
+      "field": "open",
+      "calculated": "0.3383",
+      "official": "0.3382",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672533540000,
+      "field": "low",
+      "calculated": "0.3383",
+      "official": "0.3382",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672533660000,
+      "field": "open",
+      "calculated": "0.3383",
+      "official": "0.3382",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672533720000,
+      "field": "open",
+      "calculated": "0.338",
+      "official": "0.3379",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672533780000,
+      "field": "open",
+      "calculated": "0.3379",
+      "official": "0.338",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672533840000,
+      "field": "open",
+      "calculated": "0.3382",
+      "official": "0.3381",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672533840000,
+      "field": "low",
+      "calculated": "0.3382",
+      "official": "0.3381",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672534020000,
+      "field": "open",
+      "calculated": "0.3386",
+      "official": "0.3385",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672534200000,
+      "field": "open",
+      "calculated": "0.3385",
+      "official": "0.3384",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672534200000,
+      "field": "low",
+      "calculated": "0.3385",
+      "official": "0.3384",
+      "difference": "0.0001"
+    },
+    {
+      "start_ms": 1672534380000,
+      "field": "open",
+      "calculated": "0.3384",
+      "official": "0.3385",
+      "difference": "-0.0001"
+    },
+    {
+      "start_ms": 1672534440000,
+      "field": "open",
+      "calculated": "0.3386",
+      "official": "0.3387",
+      "difference": "-0.0001"
+    }
+  ],
+  "observed_comparison_count": 300
+}

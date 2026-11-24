@@ -1,0 +1,194 @@
+{
+  "chart": {
+    "candles": [
+      {
+        "close": "100",
+        "end_ms": 60000,
+        "high": "101",
+        "low": "99",
+        "open": "100",
+        "start_ms": 0
+      },
+      {
+        "close": "100",
+        "end_ms": 120000,
+        "high": "112",
+        "low": "94",
+        "open": "100",
+        "start_ms": 60000
+      },
+      {
+        "close": "100",
+        "end_ms": 180000,
+        "high": "101",
+        "low": "99",
+        "open": "100",
+        "start_ms": 120000
+      }
+    ],
+    "category": "spot",
+    "coverage": "complete",
+    "cutoff_ms": 180000,
+    "end_ms": 180000,
+    "execution_mode": "SIMULATED",
+    "interval": "1",
+    "markers": [
+      {
+        "closed_trade_id": null,
+        "fill_id": "f1",
+        "known_at_ms": 60000,
+        "order_id": "o1",
+        "position_id": "position:f1",
+        "price": "100",
+        "role": "entry",
+        "side": "buy",
+        "time_precision": "modeled_open",
+        "timestamp_ms": 60000,
+        "window_end_ms": 120000,
+        "window_start_ms": 60000
+      },
+      {
+        "closed_trade_id": "t1",
+        "fill_id": "f2",
+        "known_at_ms": 120000,
+        "order_id": "o2",
+        "position_id": "position:f1",
+        "price": "95.00",
+        "role": "exit",
+        "side": "sell",
+        "time_precision": "bar",
+        "timestamp_ms": 119999,
+        "window_end_ms": 120000,
+        "window_start_ms": 60000
+      },
+      {
+        "closed_trade_id": null,
+        "fill_id": "f3",
+        "known_at_ms": 120000,
+        "order_id": "o3",
+        "position_id": "position:f3",
+        "price": "100",
+        "role": "entry",
+        "side": "buy",
+        "time_precision": "modeled_open",
+        "timestamp_ms": 120000,
+        "window_end_ms": 180000,
+        "window_start_ms": 120000
+      }
+    ],
+    "revision": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+    "run_id": "8149a0fa864d0cf6355fc048b30dbc49d72d68eed9b16d82fa2e479cac3aae6a",
+    "schema_version": "tester.research-chart/2",
+    "snapshot_id": "synthetic:c5e6df427501dd9de9f1683c126e5f1066f51f317e5f90604c0f392f2880aa0b",
+    "source_ids": [
+      "synthetic:9ae76e45cfba1652ba475f99796f59ce77330ca90c103dc0097d8031ec6a3008"
+    ],
+    "start_ms": 0,
+    "symbol": "BTCUSDT",
+    "synthetic": true,
+    "venue": "bybit"
+  },
+  "envelope": {
+    "summary": {
+      "artifact_digest": "b2704ca080a0987622b062fa088372894537372a3b8cd15705f518edcd4b6d44",
+      "brackets": [
+        {
+          "entry_fill_id": "f3",
+          "stop_loss": "95.00",
+          "take_profit": "110.00",
+          "timestamp_ms": 180000,
+          "trailing_stop": null
+        }
+      ],
+      "certification": {
+        "real_market_coverage": "NOT_PROVEN",
+        "scope": "SYNTHETIC_ONLY"
+      },
+      "engine_version": "strategy-bar-1.1.0",
+      "equity_curve": [
+        {
+          "cash": "1000",
+          "equity": "1000",
+          "margin": "0",
+          "timestamp_ms": 0
+        },
+        {
+          "cash": "1000",
+          "equity": "1000",
+          "margin": "0",
+          "timestamp_ms": 60000
+        },
+        {
+          "cash": "994.80500",
+          "equity": "994.80500",
+          "margin": "0",
+          "timestamp_ms": 120000
+        },
+        {
+          "cash": "994.70500",
+          "equity": "994.70500",
+          "margin": "100",
+          "timestamp_ms": 180000
+        }
+      ],
+      "input_digest": "8149a0fa864d0cf6355fc048b30dbc49d72d68eed9b16d82fa2e479cac3aae6a",
+      "levels": [
+        {
+          "end_ms": 120000,
+          "entry_fill_id": "f1",
+          "kind": "sl",
+          "known_at_ms": 60000,
+          "price": "95.00",
+          "start_ms": 60000
+        },
+        {
+          "end_ms": 120000,
+          "entry_fill_id": "f1",
+          "kind": "tp",
+          "known_at_ms": 60000,
+          "price": "110.00",
+          "start_ms": 60000
+        }
+      ],
+      "metrics": {
+        "confidence": {
+          "method": "not_estimated",
+          "reason": "dependent, selected historical trades; no IID confidence claim"
+        },
+        "expectancy": "-5.19500",
+        "exposure": "0.66666666666666666666666666666666666666666666666667",
+        "fees": "0.29500",
+        "funding_costs": "0",
+        "max_drawdown": "0.005295",
+        "net_realized_pnl": "-5.19500",
+        "profit_factor": "0E+5",
+        "trade_count": 1,
+        "win_rate": "0"
+      },
+      "run_id": "8149a0fa864d0cf6355fc048b30dbc49d72d68eed9b16d82fa2e479cac3aae6a",
+      "schema_version": "tester.research-summary/1",
+      "source_sha": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+      "trades": [
+        {
+          "entry_fill_id": "f1",
+          "entry_price": "100",
+          "entry_timestamp_ms": 60000,
+          "exit_fill_id": "f2",
+          "exit_price": "95.00",
+          "exit_timestamp_ms": 119999,
+          "fees": "0.19500",
+          "funding_costs": "0",
+          "gross_pnl": "-5.00",
+          "id": "t1",
+          "net_pnl": "-5.19500",
+          "quantity": "1",
+          "reason": "stop_loss",
+          "side": "long",
+          "stop_loss": "95.00",
+          "take_profit": "110.00"
+        }
+      ]
+    },
+    "summary_digest": "e7babb5c945901861e44dd9e90fc348eb9627dd3b40bd1d1e6e0d07016b58241"
+  }
+}

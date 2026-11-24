@@ -1,0 +1,98 @@
+name: Guardian MASTER isolated fault acceptance
+on:
+  pull_request:
+    paths:
+      - 'src/api/guardian_policy.py'
+      - 'src/api/guardian_supervisor.py'
+      - 'src/api/guardians/**'
+      - 'tests/platform/test_guardian_*.py'
+      - 'tests/platform/test_windows_install_*.py'
+      - '.github/workflows/guardian-master-isolated.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: guardian-master-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  isolated:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.12']
+    env:
+      GUARDIANS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pinned platform dev dependencies
+        run: python -m pip install -e ".[dev]" -c requirements-platform.lock
+      - name: Verify exact HEAD
+        shell: bash
+        run: |
+          actual="$(git rev-parse HEAD)"
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "HEAD=${actual}"
+          test "${actual}" = "${expected}"
+      - name: Ruff lint MASTER foundation
+        run: >
+          python -m ruff check
+          src/api/guardian_policy.py
+          src/api/guardian_supervisor.py
+          src/api/guardians/supervisor.py
+          src/api/guardians/windows_install_gate.py
+          src/api/guardians/windows_install_plan.py
+          src/api/guardians/windows_release_lifecycle.py
+          src/api/guardians/windows_release_signature.py
+          tests/platform/test_guardian_policy.py
+          tests/platform/test_guardian_supervisor.py
+          tests/platform/test_windows_install_gate.py
+          tests/platform/test_windows_install_plan.py
+          tests/platform/test_windows_release_lifecycle.py
+          tests/platform/test_windows_release_signature.py
+      - name: Ruff format MASTER foundation
+        run: >
+          python -m ruff format --check
+          src/api/guardian_policy.py
+          src/api/guardian_supervisor.py
+          src/api/guardians/supervisor.py
+          src/api/guardians/windows_install_gate.py
+          src/api/guardians/windows_install_plan.py
+          tests/platform/test_guardian_policy.py
+          tests/platform/test_guardian_supervisor.py
+          tests/platform/test_windows_install_gate.py
+          tests/platform/test_windows_install_plan.py
+      - name: Independent SQLite and installer negative tests
+        run: >
+          python -m pytest -q
+          tests/platform/test_guardian_policy.py
+          tests/platform/test_guardian_supervisor.py
+          tests/platform/test_windows_install_gate.py
+          tests/platform/test_windows_install_plan.py
+      - name: Disposable Windows desktop shortcuts
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $fixture = Join-Path $env:RUNNER_TEMP 'tester-desktop-fixture'
+          New-Item -ItemType Directory -Force -Path $fixture | Out-Null
+          ./scripts/windows/Write-TesterShortcutsFixture.ps1 -FixtureDesktop $fixture -CreateFixture
+          ./scripts/windows/Write-TesterShortcutsFixture.ps1 -FixtureDesktop $fixture -CreateFixture
+          $names = @(Get-ChildItem -LiteralPath $fixture -Filter '*.lnk' | Select-Object -ExpandProperty BaseName)
+          if ($names.Count -ne 2 -or $names -notcontains 'TESTER — Запуск' -or $names -notcontains 'TESTER — Удаление') {
+            throw 'Expected exact two pinned TESTER shortcut names'
+          }
+          # Only disposable fixture resources; verify complete removal.
+          Remove-Item -LiteralPath (Join-Path $fixture 'TESTER — Запуск.lnk') -Force
+          Remove-Item -LiteralPath (Join-Path $fixture 'TESTER — Удаление.lnk') -Force
+          if (@(Get-ChildItem -LiteralPath $fixture -Force).Count -ne 0) {
+            throw 'Fixture uninstall left unexpected files'
+          }
+          Remove-Item -LiteralPath $fixture -Force
+          if (Test-Path -LiteralPath $fixture) { throw 'Fixture desktop was not removed' }

@@ -1,0 +1,111 @@
+{
+  "checked_at": "2026-11-07T15:00:22.182404+00:00",
+  "tested_base_sha": "addbdda232bc1a604a7a637bdad479752c4cccfe",
+  "contract_sha": "9766c0093e2608280875ac56db074414a3d62c69",
+  "storage_baseline_sha": "5154efab05d44b96f4aa83819672396d75679f2e",
+  "storage_run_ledger_sha": "47fd36f32389174377682a13862f5b36c7a886da",
+  "unit_tests_passed": 40,
+  "baseline_consumer_fixtures_passed": 4,
+  "current_consumer_fixtures_passed": 4,
+  "commands": [
+    {
+      "command": "C:\\Python314\\python.exe -m unittest discover -v",
+      "exit_code": 0,
+      "log": "handoff-unit-tests.txt"
+    },
+    {
+      "command": "C:\\Python314\\python.exe -m tests.ingest.verify_handoff --references C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-a-bybit-complete-historical\\work\\handoff-reference",
+      "exit_code": 0,
+      "log": "handoff-baseline-consumer-tests.txt"
+    },
+    {
+      "command": "C:\\Python314\\python.exe -m tests.ingest.verify_handoff --references C:\\Users\\maxkr\\Documents\\Codex\\2026-11-07\\codex-agent-a-bybit-complete-historical\\work\\handoff-reference-latest --storage-sha 47fd36f32389174377682a13862f5b36c7a886da",
+      "exit_code": 0,
+      "log": "handoff-current-consumer-tests.txt"
+    }
+  ],
+  "live": {
+    "checked_at": "2026-11-07T14:57:46.996784+00:00",
+    "contract_sha": "9766c0093e2608280875ac56db074414a3d62c69",
+    "storage_sha": "47fd36f32389174377682a13862f5b36c7a886da",
+    "archive_sha256": "cbca6933a8f0a11429661cfa93b04056055d776ee199209e8af9719ad2060a33",
+    "archive_rows": 2693,
+    "rest_records": 3,
+    "restart_records": 3,
+    "empty_probe": {
+      "records": 0,
+      "status": "unverified",
+      "reason": "Real prelaunch-window empty responses remain unknown history"
+    },
+    "strict_validated": 2696,
+    "B_normalized": 2696,
+    "export": {
+      "path": "handoff.json (included in outputs/handoff-proof.zip)",
+      "records": 2696,
+      "evidence": 34,
+      "conflicts": 0
+    },
+    "conflicts": 0,
+    "postgres_batches": [
+      {
+        "dataset": "trades",
+        "count": 2693,
+        "retry_count": 2693,
+        "verified": false,
+        "read_count": 2693,
+        "caller_supplied_run_verified": true
+      },
+      {
+        "dataset": "candles",
+        "count": 3,
+        "retry_count": 3,
+        "verified": false,
+        "read_count": 3,
+        "caller_supplied_run_verified": true
+      },
+      {
+        "dataset": "candles",
+        "count": 0,
+        "retry_count": 0,
+        "verified": false,
+        "read_count": 0,
+        "caller_supplied_run_verified": true
+      },
+      {
+        "dataset": "candles",
+        "count": 0,
+        "retry_count": 0,
+        "verified": false,
+        "read_count": 0,
+        "caller_supplied_run_verified": true
+      }
+    ],
+    "coverage": "PARTIAL; no global/source COMPLETE claim",
+    "postgres_version": "postgres (PostgreSQL) 18.4",
+    "cluster_scope": "New isolated scratch cluster; existing user DBs not contacted",
+    "scratch_server_stopped": true
+  },
+  "source_file_sha256": {
+    "src/ingest/archive.py": "f3a96512e7d6d4d1932c7dbfab64e77ab5831fb0ec18e55e6f35d910572ff486",
+    "src/ingest/catalog.py": "bf7b97a24f709c4fd67fc02305ee8d2d82d939f1c271f32272d4e61c322ef846",
+    "src/ingest/handoff.py": "d800f17ca5cdb15c8678c470fc8ce0a236789d22b9c8873f14b171703b973771",
+    "src/ingest/journal.py": "374d00d90b02a56e09b927f51618f09e656b53955c41f19f8eaf4c31a4c52956",
+    "src/ingest/rest.py": "2611386d374d0bfb80b907050d4ab59be1c2c058e4e30943bd1932d3989d7a71",
+    "src/ingest/transport.py": "dfab3314fbcab6ca12f2fe3944f069a9b28e408b0f4e9699b7341ef829511107",
+    "src/ingest/__main__.py": "b7f786059113b67b388fc03b6755e940161f12f6512afd8b79ac7c1190dab9e0",
+    "tests/ingest/live_handoff.py": "718b9155d5f9858c87b89591a0e67d26990a57cad4f3fb887cd57dbb949570dd",
+    "tests/ingest/live_smoke.py": "79c105e1f8c3d41fd698456fdc0430c383220bd487df3c81e3a306f74d4a3502",
+    "tests/ingest/test_handoff.py": "0538437f9a928716cbe68bc9a726fc907dffad74e81375bcd7997b4bb0196d71",
+    "tests/ingest/test_pipeline.py": "e82fa70132c8cbc911713ff39dfaf07213ed4b226b3ee80cecd29fce189014ab",
+    "tests/ingest/verify_handoff.py": "3751142f89a78eb5f36c4592be6fa6c84b984f685c9c327825b6b83beba3c417",
+    "tests/ingest/__init__.py": "29f0fb859436c3176432909f68422f11df7b6a2aed08a4b5992b297c868ef259"
+  },
+  "independent_review": "No remaining blocker in focused corrections; Decimal and second-window failure regressions reproduced RED and fixed GREEN",
+  "limitations": [
+    "Shared candle schema cannot truthfully project signed premium or volume-less reference-price candles; raw/B values retained and errors explicit",
+    "Coverage remains PARTIAL/UNKNOWN; no complete-history or full-system approval",
+    "Self-contained export and B inline evidence reads require bounded work units; no whole-exchange memory/capacity benchmark",
+    "Historical orderbook/liquidation history remains UNVERIFIED",
+    "No merge or physical deployment"
+  ]
+}

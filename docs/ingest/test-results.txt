@@ -1,0 +1,32 @@
+test_archive_corruption_restart_and_provenance (tests.ingest.test_pipeline.PipelineTests.test_archive_corruption_restart_and_provenance) ... ok
+test_archive_nanosecond_timestamp_metadata (tests.ingest.test_pipeline.PipelineTests.test_archive_nanosecond_timestamp_metadata) ... ok
+test_bybit_application_rate_limit_retries (tests.ingest.test_pipeline.PipelineTests.test_bybit_application_rate_limit_retries) ... ok
+test_calendar_month_spacing (tests.ingest.test_pipeline.PipelineTests.test_calendar_month_spacing) ... ok
+test_cancel_has_no_network_and_is_resumable (tests.ingest.test_pipeline.PipelineTests.test_cancel_has_no_network_and_is_resumable) ... ok
+test_capped_empty_retry_is_paginated (tests.ingest.test_pipeline.PipelineTests.test_capped_empty_retry_is_paginated) ... ok
+test_corrupt_remote_archive_never_published (tests.ingest.test_pipeline.PipelineTests.test_corrupt_remote_archive_never_published) ... ok
+test_discovery_rejects_external_links_and_extracts_dates (tests.ingest.test_pipeline.PipelineTests.test_discovery_rejects_external_links_and_extracts_dates) ... ok
+test_empty_window_is_reprobed_not_boundary (tests.ingest.test_pipeline.PipelineTests.test_empty_window_is_reprobed_not_boundary) ... ok
+test_funding_empty_older_range_stays_unverified (tests.ingest.test_pipeline.PipelineTests.test_funding_empty_older_range_stays_unverified) ... ok
+test_gap_repairs_advance_across_restarts (tests.ingest.test_pipeline.PipelineTests.test_gap_repairs_advance_across_restarts) ... ok
+test_headerless_mt4_keeps_first_row (tests.ingest.test_pipeline.PipelineTests.test_headerless_mt4_keeps_first_row) ... ok
+test_instrument_cursor_pagination (tests.ingest.test_pipeline.PipelineTests.test_instrument_cursor_pagination) ... ok
+test_monthly_archive_has_explicit_range (tests.ingest.test_pipeline.PipelineTests.test_monthly_archive_has_explicit_range) ... ok
+test_open_candle_not_cached_as_final (tests.ingest.test_pipeline.PipelineTests.test_open_candle_not_cached_as_final) ... ok
+test_permanent_error_not_retried (tests.ingest.test_pipeline.PipelineTests.test_permanent_error_not_retried) ... ok
+test_persisted_funding_rows_do_not_prove_empty_ranges (tests.ingest.test_pipeline.PipelineTests.test_persisted_funding_rows_do_not_prove_empty_ranges) ... ok
+test_repeated_cursor_fails_instead_of_silent_truncation (tests.ingest.test_pipeline.PipelineTests.test_repeated_cursor_fails_instead_of_silent_truncation) ... ok
+test_rest_pages_and_restart (tests.ingest.test_pipeline.PipelineTests.test_rest_pages_and_restart) ... ok
+test_resume_requires_verified_content_range (tests.ingest.test_pipeline.PipelineTests.test_resume_requires_verified_content_range) ... ok
+test_retry_network_and_rate_limit (tests.ingest.test_pipeline.PipelineTests.test_retry_network_and_rate_limit) ... ok
+test_trade_contract_keeps_exchange_id_and_precision (tests.ingest.test_pipeline.PipelineTests.test_trade_contract_keeps_exchange_id_and_precision) ... ok
+test_trade_id_fallback_requires_explicit_opt_in (tests.ingest.test_pipeline.PipelineTests.test_trade_id_fallback_requires_explicit_opt_in) ... ok
+test_trade_staging_identity_uses_exchange_id (tests.ingest.test_pipeline.PipelineTests.test_trade_staging_identity_uses_exchange_id) ... ok
+test_unknown_dataset_rejected_before_network (tests.ingest.test_pipeline.PipelineTests.test_unknown_dataset_rejected_before_network) ... ok
+test_valid_range_resume (tests.ingest.test_pipeline.PipelineTests.test_valid_range_resume) ... ok
+test_volatility_requires_contiguous_closed_window (tests.ingest.test_pipeline.PipelineTests.test_volatility_requires_contiguous_closed_window) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.187s
+
+OK

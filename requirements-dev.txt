@@ -1,0 +1,3 @@
+# Canonical platform/dev extras.
+-c requirements-platform.lock
+-e .[dev]

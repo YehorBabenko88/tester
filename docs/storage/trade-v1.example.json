@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "venue": "bybit",
+  "category": "linear",
+  "symbol": "BTCUSDT",
+  "dataset": "trades",
+  "interval": "",
+  "timestamp_ms": 1700000000123,
+  "timestamp_ns": null,
+  "timestamp_precision": "ms",
+  "payload": {
+    "trade_id": "example-original-Bybit-trade-ID",
+    "price": "123.000000000000000001",
+    "size": "0.01",
+    "side": "Buy"
+  },
+  "source": {
+    "url": "https://public.bybit.com/trading/BTCUSDT/example.csv.gz",
+    "fetched_at": "2026-11-07T12:00:00Z"
+  }
+}

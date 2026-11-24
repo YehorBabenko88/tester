@@ -1,0 +1,131 @@
+name: TESTER release candidate
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tester-release-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-scm:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12.10', '3.14.10']
+    env:
+      GUARDIANS_ENABLED: 'false'
+      TESTER_REQUIRE_NATIVE_SCM: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: x64
+      - name: Install native fixture dependencies
+        run: |
+          python -m pip install 'pip>=26.2,<27'
+          python -m pip install -e '.[dev,windows-service]' -c requirements-platform.lock pywin32==312
+      - name: Require elevated disposable runner
+        shell: pwsh
+        run: |
+          if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Native SCM gate requires elevated disposable Windows runner' }
+          New-Item -ItemType Directory -Force .scratch/release-evidence | Out-Null
+          git rev-parse HEAD | Set-Content .scratch/release-evidence/source-sha.txt
+      - name: Real native SCM recovery lifecycle
+        run: python -m pytest tests/platform/test_release_scm.py::test_real_native_scm_uuid_lifecycle_recovery -q -rs --basetemp=.scratch/release-scm
+      - name: Preserve native evidence
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force .scratch/release-evidence | Out-Null
+          Get-ChildItem .scratch/release-scm -Filter '*evidence*.json' -Recurse -ErrorAction SilentlyContinue | Copy-Item -Destination .scratch/release-evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-scm-${{ matrix.python }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .scratch/release-evidence/
+          if-no-files-found: error
+
+  package-contracts:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2022]
+    runs-on: ${{ matrix.os }}
+    env:
+      GUARDIANS_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.10'
+      - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - run: python -m pytest -q tests/platform/test_release_build.py tests/platform/test_repository_inventory.py tests/platform/test_release_ci_components.py
+      - run: python -m ruff check scripts/build_release.py scripts/repository_inventory.py scripts/release_ci_components.py tests/platform/test_release_build.py tests/platform/test_repository_inventory.py tests/platform/test_release_ci_components.py
+      - run: python -m ruff format --check scripts/build_release.py scripts/repository_inventory.py scripts/release_ci_components.py tests/platform/test_release_build.py tests/platform/test_repository_inventory.py tests/platform/test_release_ci_components.py
+      - name: Verify actual production wheel hashes
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip download --only-binary=:all: --require-hashes --dest .scratch/verified-wheelhouse -r requirements-release-windows314.lock
+  full-installer:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GUARDIANS_ENABLED: 'false'
+      PYTHONDONTWRITEBYTECODE: '1'
+      TESTER_REQUIRE_FULL_INSTALLER: '1'
+      TESTER_REQUIRE_INSTALLED_BROWSER: '1'
+      RELEASE_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.10'
+          architecture: x64
+      - name: Require elevated disposable Windows runner
+        shell: pwsh
+        run: |
+          if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Full installer acceptance requires elevated disposable Windows runner' }
+      - name: Install fixture tooling outside signed runtime
+        run: |
+          python -m pip install 'pip>=26.2,<27'
+          python -m pip install -e '.[dev,windows-service]' -c requirements-platform.lock
+      - name: Provision pinned official runtime and fixture-signed bundle
+        shell: pwsh
+        run: |
+          python -B scripts/release_ci_components.py --repo . --source-sha $env:RELEASE_SOURCE_SHA --work .scratch/full-release --evidence .scratch/release-evidence --github-env $env:GITHUB_ENV
+          if ($LASTEXITCODE -ne 0) { throw 'Verified component provisioning failed' }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install real installed-terminal browser tooling
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install chromium
+      - name: Full native PostgreSQL and application installer lifecycle
+        run: python -B -m pytest tests/platform/test_release_install.py::test_full_native_installer_lifecycle -q -rs --basetemp=.scratch/full-installer
+      - name: Preserve sanitized lifecycle evidence
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force .scratch/release-evidence | Out-Null
+          Get-ChildItem .scratch/full-installer -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Name -like '*evidence*.json' -or $_.Name -like '*diagnostic*.json' } | Copy-Item -Destination .scratch/release-evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-installer-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .scratch/release-evidence/
+          if-no-files-found: error

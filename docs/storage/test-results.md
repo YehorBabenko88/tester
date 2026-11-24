@@ -1,0 +1,52 @@
+# Local verification — 2026-11-07
+
+Latest P1 captured-horizon fix (PR13 comment6709945814): **81 branch tests/15.596s/OK/zero skips** (prior76+5new), **90 main+B snapshot tests/15.787s/OK/zero skips**. Original MASTER future-horizon probe rerun unchanged with updated module imports: **1 PG test/0.463s/PASS**, bounds through2100 retained UNKNOWN/verified_ms0/percent0/no proof_refs;3 reviewer-authored independent fixtures root-executed again, allPASS. New regressions cover future requested range, future proof clipped to a past request, future availability clipped to a past proof, past proof with a future request, DB elapsed/exact boundary and spoofed client clock. One captured PostgreSQL transaction-start epoch-ms cutoff governs all checks; declarations/legacy APIs/schema unchanged. Narrow review found no material issue. Exact cutoff semantics: bounded-read-page.md. Earlier runs follow.
+
+Latest bounded snapshot proof task (Issue2 comment6709223310): **76 branch tests/15.113s/OK/zero skips**, **85 main+B snapshot tests/15.132s/OK/zero skips**, plus **3 separately reviewer-authored fixture assertions executed by root on real PostgreSQL, all PASS**. Exact standalone command: `python -m tests.storage.independent_read_page_check` with disposable TESTER_TEST_ADMIN_DSN. Independent review identified archive quarantine, historical evidence-run contradiction and malformed nesting gaps; regressions reproduced and fixes rereviewed. Old-proof/newer-incident chronology, stale raw support, actual cadence revalidation, EMPTY run-edge fanout and strict caps also tested. Full independent reviewer suite was blocked by TCP10013, not reported as passing. Contract/resource definitions and limits: bounded-read-page.md. No migration or original-reader semantics change; lifecycle change is only a defensive malformed-envelope catch, no policy/deletion expansion.
+
+Latest narrow lineage fix (Issue2 comment6708925158): branch **57 tests/11.818s/OK/zero skips** on PostgreSQL18.4; separate main+B snapshot **66 tests/11.659s/OK/zero skips**. Six new real-PG checks cover matching source original preservation, multi-record mismatch rollback with unchanged raw/evidence/run/audit counts and prior checkpoint, malformed/missing caller rejection, explicit undeclared-original status, historical contradiction failing authenticity without mutation, and recovery using the original acquisition run supplied by evidence. Initial failing regressions reproduced the old behavior. Independent narrow review found no material issue. No lifecycle expansion, migration, collection, trading or main merge in this fix.
+
+Latest authorized MASTER follow-up (PR13 comment6708160404, Issue14 comment6708160604): **51 storage tests, 11.086s, OK, zero skips**, and **60 tests, 11.066s, OK, zero skips** in the separate main+B compatibility snapshot. Covers original checks plus actual distinct run observations, EMPTY-run evidence links, explicit source-kind rejection, no read-generated runs, exclusive fetch, terminated claim takeover/late failure fencing, immutable backup evidence coverage, protected-path alias rejection, dry-run reference/backup gates, low-disk fetch/publication pause, forged raw/orphan detection, concurrent scan/read and scan/backup. All material review findings were reproduced with failing regressions and then fixed; targeted independent rereview reported no remaining material issue in those fixes.
+
+Measured small fixtures (branch run): raw table122880 bytes, WAL33554432 bytes, snapshot scan33ms, one intentional corrupt-cache finding, dump77742 bytes, RPO54ms/RTO225ms. Compatibility run: scan31ms, dump77560 bytes, RPO45ms/RTO220ms. These are fixture observations, not production throughput or recovery promises. Detailed API/limits: run-provenance-lifecycle.md. Earlier verification history follows.
+
+Environment: Windows, PostgreSQL **18.4**, Python **3.14.0**, psycopg **3.3.8**. PostgreSQL was a separate synthetic loopback cluster, not the existing local server. fsync, synchronous_commit and full_page_writes enabled; runtime role tested under SCRAM authentication. No production credentials/data or real Bybit downloads used.
+
+Command: `python -m unittest discover -v` with TESTER_TEST_ADMIN_DSN set to the synthetic administrator. Result: **40 tests, 10.455s, OK; zero failures/errors/skips**. Also `python -m compileall -q src/storage src/quality tests/storage` and `git diff --check` passed.
+
+Coverage of tests: Decimal/nonfinite/float rejection, seconds/ms/us/ns precision, schema compatibility, scoped original IDs and explicit composite fallback, numeric-format replay, W/M UTC boundaries, low-liquidity unknown gaps, coverage unions/availability/blockers; fresh/repeat/checksum/upgrade migrations; atomic ingestion/provenance/checkpoints; conflict quarantine, duplicate identities, request/page-chain/count/range/scope validation; sparse vs complete periodic observations and funding inventories; stable keyset pagination at equal timestamps; immutable records; minimal runtime privileges and bootstrap repeat/foreign-object refusal; archive publication/hash/tamper/repair/overlaps/missing-byte coverage invalidation; metadata revisions; raw/derived OHLCV comparison/stale fingerprint; retry/recovery and backoff fairness; forced process termination before and after commit; blocking concurrent writer; pg_dump/pg_restore into a new database with raw/provenance/checkpoint/migration checks.
+
+Independent code review found three material problems; all were reproduced with failing regression tests and fixed before this run. The bootstrap test uses an in-memory SecretStore adapter and real generated PostgreSQL credentials; actual OS vault persistence is not exercised. External archive backups/production role remapping are not covered by the SQL dump test. PowerShell fresh-cluster runner separately passed the then-current 36-test suite. Hosted CI status is separate from this local record.
+
+Limits: plain PostgreSQL tested, no TimescaleDB installation/hypertable tests; Parquet manifests supported but no codec; no large-archive throughput benchmark; ingestion retains per-window identity/candle state and uses per-record SQL; A/E downloader/HTTP wiring must use this API before its guarantees apply; existing main db.py/engine.py are not silently migrated or rewritten; confirmed-source corrections need an explicit audited revision policy; source availability attestations are trusted evidence, not a mathematical proof of exhaustive exchange history. Funding without event inventory and sparse/unknown periods stay unverified.
+
+Additional compatibility check: a separate read-only merge-tree snapshot of B + main (base 0a6ce227) passed **49 tests, 10.625s, OK, zero skips**. No branch merge or merge to main was performed. Two final failing regression tests reproduced checkpoint regression under late retries; monotonic sequence/offset and implicit checkpoint preservation fix both.
+
+Knowledge-time code-only follow-up: 18 unit/mock tests passed (6 knowledge-time,
+12 models/quality), compileall and git diff --check passed. No physical PostgreSQL,
+service, UAC, ACL or database cleanup actions were performed. These results do not
+constitute PostgreSQL or composed provider acceptance. Read-only code review found
+no actionable issues. The historical availability aggregate remains explicitly
+unavailable for current transaction-start-only schema; see bounded-read-page.md.
+
+Prospective visibility proposal v0.1 (Issue2 comment6711141791): docs and pure
+negative-trace harness only; NO production code or successful certificate path.
+20 unit/mock tests PASS (2 proposal tests exercising 10 named counterexamples,
+6 knowledge-time and 12 model/quality tests). `python -m tests.storage.visibility_protocol_cases
+--demonstrate-red` intentionally exits1: 10/10 assertions FAIL for the deliberately
+unsafe sampled-time-only candidate. This is an executable specification probe,
+not PostgreSQL lock/MVCC/crash verification or proof of protocol sufficiency.
+compileall and diff --check PASS. Existing current UNAVAILABLE unchanged.
+No physical PostgreSQL/service/UAC/ACL/global settings/cleanup actions performed.
+MASTER review and retained-DB interleavings precede any success implementation.
+
+Visibility foundation v1, limited authorization Issue2 comment6711209526:
+33 pure unit/mock tests PASS (13 foundation +2 proposal +6 knowledge-time +12
+models/quality); compileall/diff check PASS. Initial new suite RED observed missing
+foundation module before implementation. Independent static code review found no
+material issues. Migration007 creates separate tester_visibility schema with hard
+UNENROLLED/disabled/null constraints; no grants or Store/Lifecycle defaults changed.
+Existing PG upgrade assertion advanced6→7 in source but NOT executed. No actualPG
+migration/constraint/lock/rollback/crash claims: ROOT owns retained-DB validation.
+No physical PG/service/UAC/ACL/global settings/deletion operations performed.
+Production knowledge_time still UNAVAILABLE/null; success issuance absent.

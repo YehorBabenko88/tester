@@ -1,0 +1,42 @@
+{
+  "schema_version": "tester-unified-sources/v1",
+  "sources": {
+    "master": "bd619eb88e9444c3b414739a27f3053fb240251e",
+    "code": "96731dfe493e5967c1336d2315fd7187381bee70",
+    "data": "e7cc55a24a12ffcc9da82dda1f532fd13ae78af9",
+    "storage": "a58d0d428ac003dc8d9d3b829a97aeaa115e895f",
+    "exchange": "eea38f54340a943886a9ad95803626ddf5f49331"
+  },
+  "guardians_enabled": false,
+  "deployment_target": "C:\\TesterLab",
+  "foundation_overrides": [
+    "src/api/guardians/supervisor.py",
+    "tests/platform/test_guardian_supervisor.py"
+  ],
+  "owner_files": {
+    "code": {
+      "docs/guardians/code-guardian.md": "56a73474d547335b485bdbb34bb56c00a3b0e8bc40e2d5aea2702c4d7b91ccff",
+      "docs/guardians/workstream-code-p0.md": "9e3f94e3c417124796eba93e9cdb2de59b4fb654adc8c8fec0a69b456d31296e",
+      "src/api/guardians/code_guardian.py": "a558c7f09e3b0b21e4c790b7f363b9ddcf9b6755ceb9cf16202c0c38f2576f09",
+      "tests/platform/test_code_guardian.py": "2b81e064bab048e6c12bd0d7d33776b755882ebb617a6aa640136359fdfac1c3"
+    },
+    "data": {
+      "docs/guardians/data-guardian.md": "079c2f1c2acf680764ae87c795abbf1ddddcb8dfeef44425a0492bcb34772840",
+      "docs/guardians/workstream-data-p0.md": "4182dc3afffd09a0368e1a147b906162a60ad926be7366398ac811ac3f4996ac",
+      "src/api/guardians/data_guardian.py": "e85c916f5269119e6ab3b398cd9353ccde1b23c15610b19ec5032cf2549173ba",
+      "tests/platform/test_data_guardian.py": "b4bd2f48cfb7dcafa19d6e61be38ec9774481764bcc5fb7ec14cf9916a9e1f9f"
+    },
+    "storage": {
+      "docs/guardians/storage-guardian.md": "440c8fddff5cb896ab0fc8c85f526d7cac9ec022964685804462cdae39cc5988",
+      "docs/guardians/workstream-storage-p0.md": "0858aa34c11f76083fddc143798884ef4aeb50d6db4b171a321cccb7b2670945",
+      "src/api/guardians/storage_guardian.py": "92ac52e268b2947ee694d2a3aaf7e48c200ee5cbbda9e52144ad14a00e87850d",
+      "tests/platform/test_storage_guardian.py": "d960b71438023d6152bef71632f59acdc2a8da6df21f2308cbb6e4aab392490b"
+    },
+    "exchange": {
+      "docs/guardians/exchange-guardian.md": "bf27fdb8d0ad3d215c283efb2b65af5dce157d2cc3ce78377a4e09a810b1ac0e",
+      "docs/guardians/workstream-exchange-p0.md": "883b4dbad8d01b9c594633b78a43148fec958a7a600b564cc8ab01a11e8ad934",
+      "src/api/guardians/exchange_guardian.py": "f3eb242f3f28ccc8fe1826edca9d3bf41e70643cc6f0c1eba8211b28e0038ff8",
+      "tests/platform/test_exchange_guardian.py": "ed3046c390508ad9a0c4011f0c9026d227382daa976edd5ac561eaf722c22bf5"
+    }
+  }
+}

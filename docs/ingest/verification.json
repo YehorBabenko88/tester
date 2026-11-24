@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-11-07T13:33:56.201605+00:00",
+  "tests": {
+    "command": "python -m unittest discover -v",
+    "passed": 27,
+    "failed": 0
+  },
+  "live_archives": 6,
+  "live_rest_cases": 14,
+  "screener": {
+    "symbol": "BTCUSDT",
+    "category": "linear",
+    "asof_ms": 1794057720000,
+    "volatility_1h": 0.001806105437995593,
+    "volatility_24h": 0.01991512682354243,
+    "turnover_24h": "3390490824.6902",
+    "price_change_24h": "-0.001715",
+    "open_interest": "69515.097",
+    "oi_change_24h": "1215.13200000",
+    "ticker_source": "https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT",
+    "coverage_status": "observed",
+    "oi_change_24h_pct": "1.779519854809297052957825000",
+    "oi_asof_ms": 1794057600000
+  },
+  "later_live_rerun": "DNS environment failure; successful prior evidence retained",
+  "contract_issue": "https://github.com/YehorBabenko88/tester/issues/7",
+  "storage_contract_version": "1.0",
+  "review": "Independent review: no remaining blocker in final focused fixes and trade adapter",
+  "limitations": [
+    "No verified historical orderbook/liquidation download",
+    "No global all-symbol earliest-date/completeness claim",
+    "PostgreSQL adapter requires B integration",
+    "One process owner per journal/archive destination",
+    "ZIP not implemented"
+  ]
+}

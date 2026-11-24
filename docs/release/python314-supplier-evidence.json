@@ -1,0 +1,13 @@
+{
+  "schema": "tester-python-supplier/v1",
+  "version": "3.14.10",
+  "package_url": "https://api.nuget.org/v3-flatcontainer/python/3.14.10/python.3.14.10.nupkg",
+  "package_sha256": "f54ba67c9951c3d773ea47d2bb095150c037c399f0423a968bcda22809241784",
+  "nuget_verification_exit": 0,
+  "authenticode_status": "Valid",
+  "signer_subject": "CN=Python Software Foundation, O=Python Software Foundation, L=Beaverton, S=Oregon, C=US",
+  "signer_thumbprint": "6C435B1CAA2CA423A76C14A6693CD55644C8B4D6",
+  "release_page": "https://www.python.org/downloads/release/python-31410/",
+  "documentation": "https://docs.python.org/3.14/using/windows.html#the-nuget-org-packages",
+  "openssl": "3.5.9"
+}

@@ -1,0 +1,8 @@
+{
+  "postgres_restart": true,
+  "new_process_replay": true,
+  "economic_executions": 1,
+  "source_observations": 2,
+  "all_schema_counts_unchanged": true,
+  "source_run_status": "matched"
+}

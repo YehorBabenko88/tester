@@ -4,3 +4,10 @@ __pycache__/
 .pytest_cache/
 .data/
 *.pyc
+.master-local-state.json
+.supervisor-cycle.lock
+
+/build/
+/dist/
+/*.egg-info/
+

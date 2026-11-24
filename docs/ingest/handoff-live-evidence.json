@@ -1,0 +1,61 @@
+{
+  "checked_at": "2026-11-07T14:57:46.996784+00:00",
+  "contract_sha": "9766c0093e2608280875ac56db074414a3d62c69",
+  "storage_sha": "47fd36f32389174377682a13862f5b36c7a886da",
+  "archive_sha256": "cbca6933a8f0a11429661cfa93b04056055d776ee199209e8af9719ad2060a33",
+  "archive_rows": 2693,
+  "rest_records": 3,
+  "restart_records": 3,
+  "empty_probe": {
+    "records": 0,
+    "status": "unverified",
+    "reason": "Real prelaunch-window empty responses remain unknown history"
+  },
+  "strict_validated": 2696,
+  "B_normalized": 2696,
+  "export": {
+    "path": "handoff.json (included in outputs/handoff-proof.zip)",
+    "records": 2696,
+    "evidence": 34,
+    "conflicts": 0
+  },
+  "conflicts": 0,
+  "postgres_batches": [
+    {
+      "dataset": "trades",
+      "count": 2693,
+      "retry_count": 2693,
+      "verified": false,
+      "read_count": 2693,
+      "caller_supplied_run_verified": true
+    },
+    {
+      "dataset": "candles",
+      "count": 3,
+      "retry_count": 3,
+      "verified": false,
+      "read_count": 3,
+      "caller_supplied_run_verified": true
+    },
+    {
+      "dataset": "candles",
+      "count": 0,
+      "retry_count": 0,
+      "verified": false,
+      "read_count": 0,
+      "caller_supplied_run_verified": true
+    },
+    {
+      "dataset": "candles",
+      "count": 0,
+      "retry_count": 0,
+      "verified": false,
+      "read_count": 0,
+      "caller_supplied_run_verified": true
+    }
+  ],
+  "coverage": "PARTIAL; no global/source COMPLETE claim",
+  "postgres_version": "postgres (PostgreSQL) 18.4",
+  "cluster_scope": "New isolated scratch cluster; existing user DBs not contacted",
+  "scratch_server_stopped": true
+}

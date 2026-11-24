@@ -1,0 +1,58 @@
+{
+  "C": "152823e1528f0953f8175717212d795d7fe1ac0c",
+  "dependencies": {
+    "B": "e236395684d661f9464a62a0f6f67803d9000de6",
+    "E": "b15b1ce12633a134b19cb71a57d7e841a7120579",
+    "M": "d945b23ab940b67f569ed85aa4c8d6e9684f8149"
+  },
+  "references": [
+    {
+      "ref": "e236395684d661f9464a62a0f6f67803d9000de6",
+      "source": "src/storage/models.py",
+      "local": "b/models.py",
+      "local_sha256": "c9a0a946b8414b65a6728e9d951d92bc72edc4e5f646675dbe6bb4bcc39c8e29"
+    },
+    {
+      "ref": "d945b23ab940b67f569ed85aa4c8d6e9684f8149",
+      "source": "contracts/v1/market.schema.json",
+      "local": "master/contracts/v1/market.schema.json",
+      "local_sha256": "5eb8467fdb7a35acfacae957223d3c47b81f63df37cc804b8c2a056cdbb7bc4b"
+    },
+    {
+      "ref": "d945b23ab940b67f569ed85aa4c8d6e9684f8149",
+      "source": "contracts/v1/validate.py",
+      "local": "master/contracts/v1/validate.py",
+      "local_sha256": "cd37a0eb6194e0e5242e617ac07bfa5d5f584d3e41109b0239954ecf04d160e9"
+    },
+    {
+      "ref": "d945b23ab940b67f569ed85aa4c8d6e9684f8149",
+      "source": "src/integration/storage_api.py",
+      "local": "master/src/integration/storage_api.py",
+      "local_sha256": "b66851b5939c9bb697af6d098130f208a421bc62eb34464f81d8c3e6e6b03fac"
+    },
+    {
+      "ref": "d945b23ab940b67f569ed85aa4c8d6e9684f8149",
+      "source": "src/integration/__init__.py",
+      "local": "master/src/integration/__init__.py",
+      "local_sha256": "81c0fabefb056ce0b06714ef7211e923e7538aeac998357eaa15702bb9017dc0"
+    },
+    {
+      "ref": "b15b1ce12633a134b19cb71a57d7e841a7120579",
+      "source": "src/api/scope.py",
+      "local": "e/src/api/scope.py",
+      "local_sha256": "161fd0c9ce07e096a2732916a0cd6c57b4b244e5ec004f28761bc36332329926"
+    },
+    {
+      "ref": "b15b1ce12633a134b19cb71a57d7e841a7120579",
+      "source": "src/api/canonical.py",
+      "local": "e/src/api/canonical.py",
+      "local_sha256": "b948645af810e87c99828730d80d9a31247258e2728f85c2afb7036e0bb8386b"
+    },
+    {
+      "ref": "b15b1ce12633a134b19cb71a57d7e841a7120579",
+      "source": "src/api/__init__.py",
+      "local": "e/src/api/__init__.py",
+      "local_sha256": "a0b7f9e27d8c8eadd81e8f625c34458f94d595ff66ced42920ff4bda5249fe6c"
+    }
+  ]
+}

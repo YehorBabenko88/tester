@@ -1,0 +1,3 @@
+# These exact published Git bytes are SHA-256 pinned across platforms.
+example.snapshot.json -text
+example.strategy.json -text

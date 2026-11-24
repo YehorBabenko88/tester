@@ -1,0 +1,9 @@
+{
+  "source_commit": "9766c0093e2608280875ac56db074414a3d62c69",
+  "sha256": {
+    "contracts/__init__.py": "098986cafcc97706e63180fc7d134f399e42ef4666a7433ea8752117b888e645",
+    "contracts/v1/__init__.py": "4d97ad4dde399587f3c804468d8f09e5451c2018a92f9784c96e15f72fb16f91",
+    "contracts/v1/validate.py": "dc67686ef204ec7fdc9b46353487a90e18918e6baa8ed57ab2d9a94aaacc5469",
+    "contracts/v1/market.schema.json": "7d7f7f607a7d9be2adc45e0f47485c86464730ecf43c0703f3b2b9c781a8ef94"
+  }
+}

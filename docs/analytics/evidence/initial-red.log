@@ -1,0 +1,34 @@
+test_duplicate_exchange_id_is_not_double_counted (tests.analytics.test_initial_regressions.InitialRegressions.test_duplicate_exchange_id_is_not_double_counted) ... FAIL
+test_extreme_decimal_sum_is_exact (tests.analytics.test_initial_regressions.InitialRegressions.test_extreme_decimal_sum_is_exact) ... FAIL
+
+======================================================================
+FAIL: test_duplicate_exchange_id_is_not_double_counted (tests.analytics.test_initial_regressions.InitialRegressions.test_duplicate_exchange_id_is_not_double_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_initial_regressions.py", line 16, in test_duplicate_exchange_id_is_not_double_counted
+    self.assertEqual(aggregate([sourced(row), sourced(row)], 60000, '1')[0]['buy'], '2')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '4' != '2'
+- 4
++ 2
+
+
+======================================================================
+FAIL: test_extreme_decimal_sum_is_exact (tests.analytics.test_initial_regressions.InitialRegressions.test_extreme_decimal_sum_is_exact)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\maxkr\Documents\Codex\2026-11-07\codex-agent-c-market-microstructure-analytics\work\tester\tests\analytics\test_initial_regressions.py", line 21, in test_extreme_decimal_sum_is_exact
+    self.assertEqual(aggregate([sourced(r) for r in rows], 60000, '1')[0]['buy'],
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     '10000000000000000000000000002')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: '1.000000000000000000000000000E+28' != '10000000000000000000000000002'
+- 1.000000000000000000000000000E+28
+?  -                           -- -
++ 10000000000000000000000000002
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.002s
+
+FAILED (failures=2)

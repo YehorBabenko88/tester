@@ -1,0 +1,73 @@
+name: DATA to RESEARCH execution contract
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'src/ingest/execution_contract.py'
+      - 'src/ingest/public_auxiliary*.py'
+      - 'src/storage/**'
+      - 'src/analytics/research_metrics.py'
+      - 'src/integration/data_research_adapter.py'
+      - 'src/integration/research_preview.py'
+      - 'src/integration/research_ui_projection.py'
+      - 'src/api/capability_*.py'
+      - 'tests/test_execution_contract_*.py'
+      - 'tests/test_public_auxiliary*.py'
+      - 'tests/test_composed_data_research_postgres.py'
+      - 'tests/platform/test_*issue59.py'
+      - '.github/workflows/data-research.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tester_aux_ci
+          POSTGRES_PASSWORD: disposable-only
+          POSTGRES_DB: tester_aux_ci
+        ports: ['55479:5432']
+        options: >-
+          --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements-dev.txt
+      - name: Offline DATA and RESEARCH contracts
+        run: >-
+          python -m pytest -q
+          tests/test_public_auxiliary.py
+          tests/test_public_auxiliary_runner.py
+          tests/test_execution_contract_bridge.py
+          tests/platform/test_research_metrics_issue59.py
+          tests/platform/test_research_preview_issue59.py
+          tests/platform/test_research_preview_adapter_issue59.py
+          tests/platform/test_research_composed_negative_issue59.py
+          tests/platform/test_data_research_adapter_issue59.py
+      - name: PostgreSQL DATA roundtrip (dedicated database)
+        run: |
+          psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_roundtrip"
+          TESTER_AUX_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_aux_roundtrip" \
+            python -m pytest -q -rs tests/test_public_auxiliary_postgres.py tests/test_execution_contract_postgres.py
+      - name: Composed DATA to RESEARCH read (dedicated database)
+        run: |
+          psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_composed"
+          TESTER_AUX_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_aux_composed" \
+            python -m pytest -q -rs tests/test_composed_data_research_postgres.py
+      - name: RESEARCH adapter against real PostgreSQL (dedicated database)
+        run: |
+          psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
+          TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
+            python -m pytest -q -rs tests/platform/test_data_research_adapter_issue59.py

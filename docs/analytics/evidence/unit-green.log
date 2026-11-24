@@ -1,0 +1,32 @@
+test_boundaries_and_gaps (tests.analytics.test_analytics.Core.test_boundaries_and_gaps) ... ok
+test_comparison_requires_evidence_and_context (tests.analytics.test_analytics.Core.test_comparison_requires_evidence_and_context) ... ok
+test_dedup_conflict_scoped_identity (tests.analytics.test_analytics.Core.test_dedup_conflict_scoped_identity) ... ok
+test_equivalent_decimal_format_and_strict_provenance (tests.analytics.test_analytics.Core.test_equivalent_decimal_format_and_strict_provenance) ... ok
+test_genuine_sub_ms_order (tests.analytics.test_analytics.Core.test_genuine_sub_ms_order) ... ok
+test_independent_ohlcv_delta_reference (tests.analytics.test_analytics.Core.test_independent_ohlcv_delta_reference) ... ok
+test_inheritance_closure_and_coverage (tests.analytics.test_analytics.Core.test_inheritance_closure_and_coverage) ... ok
+test_invalid_and_unknown (tests.analytics.test_analytics.Core.test_invalid_and_unknown) ... ok
+test_nested_metadata_schema_types (tests.analytics.test_analytics.Core.test_nested_metadata_schema_types) ... ok
+test_normalize_and_schema (tests.analytics.test_analytics.Core.test_normalize_and_schema) ... ok
+test_permutations_exact_huge_sum (tests.analytics.test_analytics.Core.test_permutations_exact_huge_sum) ... ok
+test_profile_vwap_value_area_and_large_trades (tests.analytics.test_analytics.Core.test_profile_vwap_value_area_and_large_trades) ... ok
+test_unknown_side_delta_cvd_and_clusters (tests.analytics.test_analytics.Core.test_unknown_side_delta_cvd_and_clusters) ... ok
+test_unknown_side_metric_quality_is_partial (tests.analytics.test_analytics.Core.test_unknown_side_metric_quality_is_partial) ... ok
+test_absent_oi_does_not_inherit_complete_price_quality (tests.analytics.test_indicators.Indicators.test_absent_oi_does_not_inherit_complete_price_quality) ... ok
+test_archive_precision_and_synthetic_identity (tests.analytics.test_indicators.Indicators.test_archive_precision_and_synthetic_identity) ... ok
+test_archive_side_is_not_asserted_from_rest_documentation (tests.analytics.test_indicators.Indicators.test_archive_side_is_not_asserted_from_rest_documentation) ... ok
+test_atr_wilder (tests.analytics.test_indicators.Indicators.test_atr_wilder) ... ok
+test_correlation_and_ranking (tests.analytics.test_indicators.Indicators.test_correlation_and_ranking) ... ok
+test_gaps_are_explicit_and_mixed_series_rejected (tests.analytics.test_indicators.Indicators.test_gaps_are_explicit_and_mixed_series_rejected) ... ok
+test_missing_oi_preserves_worse_upstream_error (tests.analytics.test_indicators.Indicators.test_missing_oi_preserves_worse_upstream_error) ... ok
+test_oi_funding_alignment_and_units (tests.analytics.test_indicators.Indicators.test_oi_funding_alignment_and_units) ... ok
+test_rounding_is_independent_of_caller_context (tests.analytics.test_indicators.Indicators.test_rounding_is_independent_of_caller_context) ... ok
+test_volatility_and_distribution (tests.analytics.test_indicators.Indicators.test_volatility_and_distribution) ... ok
+test_volume_anomaly_no_lookahead (tests.analytics.test_indicators.Indicators.test_volume_anomaly_no_lookahead) ... ok
+test_duplicate_exchange_id_is_not_double_counted (tests.analytics.test_initial_regressions.InitialRegressions.test_duplicate_exchange_id_is_not_double_counted) ... ok
+test_extreme_decimal_sum_is_exact (tests.analytics.test_initial_regressions.InitialRegressions.test_extreme_decimal_sum_is_exact) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.052s
+
+OK

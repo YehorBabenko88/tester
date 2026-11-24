@@ -1,0 +1,10 @@
+test_archive_shared_and_B_precision_and_identity_roundtrip (__main__.PinnedHandoffTests.test_archive_shared_and_B_precision_and_identity_roundtrip) ... ok
+test_duplicates_keep_response_counts_separate_from_publication (__main__.PinnedHandoffTests.test_duplicates_keep_response_counts_separate_from_publication) ... ok
+test_empty_and_signed_reference_prices_are_not_faked (__main__.PinnedHandoffTests.test_empty_and_signed_reference_prices_are_not_faked) ... ok
+test_equivalent_decimal_sources_match_B_economics_but_remain_distinct (__main__.PinnedHandoffTests.test_equivalent_decimal_sources_match_B_economics_but_remain_distinct) ... ok
+test_rest_named_payload_and_dataset_mapping (__main__.PinnedHandoffTests.test_rest_named_payload_and_dataset_mapping) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.300s
+
+OK

@@ -1,0 +1,16 @@
+# Preserve approved core contract and pinned consumer references byte-for-byte.
+contracts/__init__.py -text
+contracts/v1/__init__.py -text
+contracts/v1/validate.py -text
+contracts/v1/market.schema.json -text
+contracts/MIGRATIONS.md -text
+tests/analytics/reference/binding/** -text
+src/integration/standalone_policy.py -text
+
+tests/platform/reference/financial_query/** -text
+
+# Exact Agent G producer sources; preserve committed bytes for pin verification.
+src/control/commands.py -text
+src/control/contracts.py -text
+src/control/types.py -text
+src/control/bridge.py -text

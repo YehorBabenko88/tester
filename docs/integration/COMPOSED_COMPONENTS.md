@@ -1,0 +1,22 @@
+# Tested A/B/C/E/D source composition, not full data acceptance
+
+Producer pins: A0a6d07c0aa65037a67320ae30533471186f1ed88 (runtime unchanged from3098d55); Be236395684d661f9464a62a0f6f67803d9000de6; C3cb073586ccc9213e6cb5c5f304dce43d8e46322; E5fa20ce18545d6b44ea71ef6bbb8d27e761a577e; D6cf9a2af19e05f57f6f3d18fbda8038d9bc0f89c. F/G/H are not composed. Only tester-owned sources; no inter-repository Gateway or physical deployment.
+
+All five components now coexist in one checkout. A exports lossless source/run/raw observations; B storage migrations and authentic resolver; C has exact behavior-preserving bindings and cutoff validation; E owns actual local HTTP/approved provider imports; D source frontend is served by E. This does **not** mean A→B→C→E→D live financial requests are fully wired. The configured optional storage reader still exposes trades only; C financial routes, dataset/catalog discovery, bounded active proof and full-range analytics need further integration. Unconnected providers return explicit503/404, not invented data. No default provider was activated.
+
+## Independent evidence
+
+- Final combined unittest247methods,245PASS,2root opt-in PG skips; actual owned disposable PG18.4, including B57 and same-checkout10synthetic-instrument20trade HTTP/keyset test. Separate platform113PASS,2skips. Both shared1.0 and owned-policy hash checks pass.
+- A immutable actual A3098→Be236 parser/journal/export/storage/shared roundtrip6/6PASS with true PostgreSQL stop/start and a new child process; exact runs/decimals/ns, equivalent sources, conflict and replay. New per-run cluster/directory only, stopped afterward; no user DB or data deleted.
+- C prior raw-fetched_at+1ns and original event residual ns/us cutoff defects independently reproduced then rejected after fix. Standalone corrected2816 suite51PASS; final3cb adds metadata/precision contradiction regression. Combined tests exercise actual modules, not vendored subset packages.
+- D19Node tests and25fixture browser tests PASS with existing locally installed Chrome; no browser/software installed on the physical machine. Initial bundled Playwright browser absence was an environment launch failure, not25 product regressions. CI has a separate pinned browser fixture job; hosted CI still queued/unverified.
+- Actual E→D static HTTP2PASS: HTML and JS bytes served from owned frontend, API unavailable503 remains JSON instead of static/empty-success fallback; unsupported analytics404. This is actual HTTP routing, not browser financial end-to-end acceptance.
+- Backend wheel includes A/B/C/E/integration/quality, SQL/schema and POLICY_PIN assets; isolated imports/byte pin/missing-DSN failclosed checks pass. D frontend assets remain source distribution; no complete installed frontend/service bundle or OS credential backend is certified.
+
+## Integration corrections
+
+Union preserves all core/ref/policy byte attributes and complete package discovery/data assets. Existing working policy file had CRLF from an older checkout; it was restored from its exact reviewed Git blob to satisfy the unchanged policy pin, not repinned or behavior-modified. C standalone reference imports initially shadowed the real E package during combined discovery (src.api.main missing); combined tests now use actual owned modules when present, with standalone-C fallback retained. Red/green evidence archived.
+
+A hidden restart-child isolation bypass is fixed upstream: both child modes validate data_directory, pinned source hashes/origins and restart state before reads/writes. E owned provider preflight validates origins/parents/caches/namespace paths/junction escape before import/invocation; final5fa bootstraps the policy from its anchored file without importing a foreign integration parent, and rejects cached foreign policy. Fresh-process regressions pass. It is trusted configuration ownership validation, not a general Python sandbox. Strong API provenance still requires matched original run declaration.
+
+Remaining gates: B bounded consistent read/provenance/active-proof API; C typed API cutoff and full-range/pagination semantics; actual real-source10instrument pipeline/history; catalog and derived routes; frontend financial smoke/performance; resource lifecycle/service dry-run; F artifacts and G canonical PostgreSQL/control ownership; successful exact-candidate CI. Source-based Trader Intelligence remains disabled/inertS0 pending P0 and rights/sample gates. No main merge, real trading, physical service installation or user-data deletion.

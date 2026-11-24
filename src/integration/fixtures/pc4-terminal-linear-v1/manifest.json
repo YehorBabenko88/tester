@@ -1,0 +1,12 @@
+{
+  "schema_version": "tester.synthetic-fixture/1",
+  "fixture_namespace": "synthetic:pc4-terminal-linear/v1",
+  "source": "SYNTHETIC",
+  "engine_source_sha": "998c5bc89d1b35c9ad3047b1e50dcb1295120e31",
+  "real_market_coverage": "NOT_PROVEN",
+  "description": "Authored hypothetical linear BTCUSDT prices, fees and one minute-boundary funding event; NOT Bybit funding/history evidence.",
+  "files": {
+    "strategy.json": "8bfa6c2a47337e5d8053d97a922c7a954244170b71eba496c9bd35fdf28986b0",
+    "snapshot.json": "5f7004151255852810f62969f6599745e407ad7f628c962192d52e010450a857"
+  }
+}

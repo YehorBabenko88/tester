@@ -1,0 +1,65 @@
+name: combined synthetic F-G-D browser
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  same-job-render-ack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: tester_research_combined_ci
+          POSTGRES_USER: tester_ci
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ["55472:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tester_ci -d tester_research_combined_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TESTER_COMBINED_CI: synthetic-disposable
+      TEST_RESEARCH_DATABASE_URL: postgresql://tester_ci:disposable-ci-only@127.0.0.1:55472/tester_research_combined_ci
+    steps:
+      - name: Set private fixture path for subsequent steps
+        shell: bash
+        run: echo "TESTER_COMBINED_FIXTURE_FILE=$RUNNER_TEMP/combined-private.json" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - run: npm ci && npx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Exact source manifest and pure fixture checks
+        run: |
+          mkdir -p ci-evidence
+          git rev-parse HEAD HEAD^{tree} > ci-evidence/source.txt
+          git ls-files -z | xargs -0 sha256sum > ci-evidence/files.sha256
+          python -m pytest tests/platform/test_combined_browser_fixture.py -q --junitxml=ci-evidence/pure.xml
+      - name: Genuine publication, G dispatch and same-job browser ACK
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m scripts.combined_browser_ci prepare "$TESTER_COMBINED_FIXTURE_FILE"
+          python -m scripts.combined_browser_ci serve "$TESTER_COMBINED_FIXTURE_FILE" >ci-evidence/server.log 2>&1 &
+          api=$!
+          trap 'kill -TERM "$api" 2>/dev/null || true; wait "$api" || true' EXIT
+          python -m scripts.combined_browser_ci gateway "$TESTER_COMBINED_FIXTURE_FILE"
+          (cd frontend && npx playwright test -c playwright.combined.config.js --reporter=line)
+          python -m scripts.combined_browser_ci verify "$TESTER_COMBINED_FIXTURE_FILE" | tee ci-evidence/ack.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact-combined-synthetic-evidence
+          path: |
+            ci-evidence/
+            frontend/test-results/
+          retention-days: 7

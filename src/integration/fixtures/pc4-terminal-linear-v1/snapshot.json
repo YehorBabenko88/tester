@@ -1,0 +1,225 @@
+{
+  "schema_version": "1.0",
+  "venue": "bybit",
+  "category": "linear",
+  "symbol": "BTCUSDT",
+  "start_ms": 1700000040000,
+  "end_ms": 1700000280000,
+  "timeframe_ms": 60000,
+  "initial_equity": "1000",
+  "quantity_step": "0.001",
+  "candles": [
+    {
+      "schema_version": "1.0",
+      "venue": "bybit",
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "timestamp_ms": 1700000040000,
+      "start_ms": 1700000040000,
+      "end_ms": 1700000100000,
+      "interval": "1",
+      "kind": "official_trade",
+      "open": "100",
+      "high": "101",
+      "low": "99",
+      "close": "100",
+      "volume": "100",
+      "is_closed": true,
+      "availability": {
+        "status": "AVAILABLE",
+        "reason": null
+      },
+      "coverage": {
+        "status": "COMPLETE",
+        "start_ms": 1700000040000,
+        "end_ms": 1700000280000,
+        "evidence_refs": [
+          "synthetic:pc4-terminal-linear/v1/hypothetical-bars"
+        ]
+      },
+      "provenance": [
+        {
+          "source_kind": "synthetic_fixture",
+          "source_ref": "synthetic:pc4-terminal-linear/v1/hypothetical-bars",
+          "source_hash": null,
+          "ingestion_run": "synthetic:pc4-terminal-linear-v1",
+          "timestamp_precision": "ms",
+          "source_timestamp": null
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "venue": "bybit",
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "timestamp_ms": 1700000100000,
+      "start_ms": 1700000100000,
+      "end_ms": 1700000160000,
+      "interval": "1",
+      "kind": "official_trade",
+      "open": "100",
+      "high": "101",
+      "low": "99",
+      "close": "100",
+      "volume": "100",
+      "is_closed": true,
+      "availability": {
+        "status": "AVAILABLE",
+        "reason": null
+      },
+      "coverage": {
+        "status": "COMPLETE",
+        "start_ms": 1700000040000,
+        "end_ms": 1700000280000,
+        "evidence_refs": [
+          "synthetic:pc4-terminal-linear/v1/hypothetical-bars"
+        ]
+      },
+      "provenance": [
+        {
+          "source_kind": "synthetic_fixture",
+          "source_ref": "synthetic:pc4-terminal-linear/v1/hypothetical-bars",
+          "source_hash": null,
+          "ingestion_run": "synthetic:pc4-terminal-linear-v1",
+          "timestamp_precision": "ms",
+          "source_timestamp": null
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "venue": "bybit",
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "timestamp_ms": 1700000160000,
+      "start_ms": 1700000160000,
+      "end_ms": 1700000220000,
+      "interval": "1",
+      "kind": "official_trade",
+      "open": "100",
+      "high": "111",
+      "low": "99",
+      "close": "110",
+      "volume": "100",
+      "is_closed": true,
+      "availability": {
+        "status": "AVAILABLE",
+        "reason": null
+      },
+      "coverage": {
+        "status": "COMPLETE",
+        "start_ms": 1700000040000,
+        "end_ms": 1700000280000,
+        "evidence_refs": [
+          "synthetic:pc4-terminal-linear/v1/hypothetical-bars"
+        ]
+      },
+      "provenance": [
+        {
+          "source_kind": "synthetic_fixture",
+          "source_ref": "synthetic:pc4-terminal-linear/v1/hypothetical-bars",
+          "source_hash": null,
+          "ingestion_run": "synthetic:pc4-terminal-linear-v1",
+          "timestamp_precision": "ms",
+          "source_timestamp": null
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "venue": "bybit",
+      "category": "linear",
+      "symbol": "BTCUSDT",
+      "timestamp_ms": 1700000220000,
+      "start_ms": 1700000220000,
+      "end_ms": 1700000280000,
+      "interval": "1",
+      "kind": "official_trade",
+      "open": "110",
+      "high": "111",
+      "low": "109",
+      "close": "110",
+      "volume": "100",
+      "is_closed": true,
+      "availability": {
+        "status": "AVAILABLE",
+        "reason": null
+      },
+      "coverage": {
+        "status": "COMPLETE",
+        "start_ms": 1700000040000,
+        "end_ms": 1700000280000,
+        "evidence_refs": [
+          "synthetic:pc4-terminal-linear/v1/hypothetical-bars"
+        ]
+      },
+      "provenance": [
+        {
+          "source_kind": "synthetic_fixture",
+          "source_ref": "synthetic:pc4-terminal-linear/v1/hypothetical-bars",
+          "source_hash": null,
+          "ingestion_run": "synthetic:pc4-terminal-linear-v1",
+          "timestamp_precision": "ms",
+          "source_timestamp": null
+        }
+      ]
+    }
+  ],
+  "funding": {
+    "availability": {
+      "status": "AVAILABLE",
+      "reason": null
+    },
+    "coverage": {
+      "status": "COMPLETE",
+      "start_ms": 1700000040000,
+      "end_ms": 1700000280000,
+      "evidence_refs": [
+        "synthetic:pc4-terminal-linear/v1/hypothetical-funding-schedule"
+      ]
+    },
+    "provenance": [
+      {
+        "source_kind": "synthetic_fixture",
+        "source_ref": "synthetic:pc4-terminal-linear/v1/hypothetical-funding-schedule",
+        "source_hash": null,
+        "ingestion_run": "synthetic:pc4-terminal-linear-v1",
+        "timestamp_precision": "ms",
+        "source_timestamp": null
+      }
+    ],
+    "expected_timestamps": [
+      1700000160000
+    ],
+    "events": [
+      {
+        "timestamp_ms": 1700000160000,
+        "rate": "0.0001",
+        "mark_price": "100"
+      }
+    ]
+  },
+  "availability": {
+    "status": "AVAILABLE",
+    "reason": null
+  },
+  "coverage": {
+    "status": "COMPLETE",
+    "start_ms": 1700000040000,
+    "end_ms": 1700000280000,
+    "evidence_refs": [
+      "synthetic:pc4-terminal-linear/v1/hypothetical-history"
+    ]
+  },
+  "provenance": [
+    {
+      "source_kind": "synthetic_fixture",
+      "source_ref": "synthetic:pc4-terminal-linear/v1/hypothetical-history",
+      "source_hash": null,
+      "ingestion_run": "synthetic:pc4-terminal-linear-v1",
+      "timestamp_precision": "ms",
+      "source_timestamp": null
+    }
+  ]
+}

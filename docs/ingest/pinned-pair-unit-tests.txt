@@ -1,0 +1,47 @@
+test_conflicting_identity_retains_both_sources_and_is_quarantined (tests.ingest.test_handoff.HandoffTests.test_conflicting_identity_retains_both_sources_and_is_quarantined) ... ok
+test_empty_acquisition_has_a_B_run_evidence_batch (tests.ingest.test_handoff.HandoffTests.test_empty_acquisition_has_a_B_run_evidence_batch) ... ok
+test_equivalent_trade_decimals_preserve_both_source_observations (tests.ingest.test_handoff.HandoffTests.test_equivalent_trade_decimals_preserve_both_source_observations) ... ok
+test_failed_rest_attempt_and_retry_remain_resolvable (tests.ingest.test_handoff.HandoffTests.test_failed_rest_attempt_and_retry_remain_resolvable) ... ok
+test_http200_html_never_replaces_existing_archive (tests.ingest.test_handoff.HandoffTests.test_http200_html_never_replaces_existing_archive) ... ok
+test_interrupted_task_attempts_survive_restart (tests.ingest.test_handoff.HandoffTests.test_interrupted_task_attempts_survive_restart) ... ok
+test_invalid_financial_value_does_not_abort_lossless_export (tests.ingest.test_handoff.HandoffTests.test_invalid_financial_value_does_not_abort_lossless_export) ... ok
+test_legacy_integer_version_is_retained_but_not_published (tests.ingest.test_handoff.HandoffTests.test_legacy_integer_version_is_retained_but_not_published) ... ok
+test_rest_export_preserves_run_raw_response_and_exact_cursors (tests.ingest.test_handoff.HandoffTests.test_rest_export_preserves_run_raw_response_and_exact_cursors) ... ok
+test_revised_archive_etag_restarts_instead_of_appending (tests.ingest.test_handoff.HandoffTests.test_revised_archive_etag_restarts_instead_of_appending) ... ok
+test_second_window_failure_keeps_exact_failure_bounds (tests.ingest.test_handoff.HandoffTests.test_second_window_failure_keeps_exact_failure_bounds) ... ok
+test_trade_decimal_comparison_does_not_round_with_decimal_context (tests.ingest.test_handoff.HandoffTests.test_trade_decimal_comparison_does_not_round_with_decimal_context) ... ok
+test_trade_export_is_lossless_with_us_and_distinct_ids (tests.ingest.test_handoff.HandoffTests.test_trade_export_is_lossless_with_us_and_distinct_ids) ... ok
+test_unknown_source_does_not_gain_official_provenance (tests.ingest.test_handoff.HandoffTests.test_unknown_source_does_not_gain_official_provenance) ... ok
+test_url_and_observed_status_do_not_establish_availability (tests.ingest.test_handoff.HandoffTests.test_url_and_observed_status_do_not_establish_availability) ... ok
+test_archive_corruption_restart_and_provenance (tests.ingest.test_pipeline.PipelineTests.test_archive_corruption_restart_and_provenance) ... ok
+test_archive_nanosecond_timestamp_metadata (tests.ingest.test_pipeline.PipelineTests.test_archive_nanosecond_timestamp_metadata) ... ok
+test_bybit_application_rate_limit_retries (tests.ingest.test_pipeline.PipelineTests.test_bybit_application_rate_limit_retries) ... ok
+test_calendar_month_spacing (tests.ingest.test_pipeline.PipelineTests.test_calendar_month_spacing) ... ok
+test_cancel_has_no_network_and_is_resumable (tests.ingest.test_pipeline.PipelineTests.test_cancel_has_no_network_and_is_resumable) ... ok
+test_capped_empty_retry_is_paginated (tests.ingest.test_pipeline.PipelineTests.test_capped_empty_retry_is_paginated) ... ok
+test_corrupt_remote_archive_never_published (tests.ingest.test_pipeline.PipelineTests.test_corrupt_remote_archive_never_published) ... ok
+test_discovery_rejects_external_links_and_extracts_dates (tests.ingest.test_pipeline.PipelineTests.test_discovery_rejects_external_links_and_extracts_dates) ... ok
+test_empty_window_is_reprobed_not_boundary (tests.ingest.test_pipeline.PipelineTests.test_empty_window_is_reprobed_not_boundary) ... ok
+test_funding_empty_older_range_stays_unverified (tests.ingest.test_pipeline.PipelineTests.test_funding_empty_older_range_stays_unverified) ... ok
+test_gap_repairs_advance_across_restarts (tests.ingest.test_pipeline.PipelineTests.test_gap_repairs_advance_across_restarts) ... ok
+test_headerless_mt4_keeps_first_row (tests.ingest.test_pipeline.PipelineTests.test_headerless_mt4_keeps_first_row) ... ok
+test_instrument_cursor_pagination (tests.ingest.test_pipeline.PipelineTests.test_instrument_cursor_pagination) ... ok
+test_monthly_archive_has_explicit_range (tests.ingest.test_pipeline.PipelineTests.test_monthly_archive_has_explicit_range) ... ok
+test_open_candle_not_cached_as_final (tests.ingest.test_pipeline.PipelineTests.test_open_candle_not_cached_as_final) ... ok
+test_permanent_error_not_retried (tests.ingest.test_pipeline.PipelineTests.test_permanent_error_not_retried) ... ok
+test_persisted_funding_rows_do_not_prove_empty_ranges (tests.ingest.test_pipeline.PipelineTests.test_persisted_funding_rows_do_not_prove_empty_ranges) ... ok
+test_repeated_cursor_fails_instead_of_silent_truncation (tests.ingest.test_pipeline.PipelineTests.test_repeated_cursor_fails_instead_of_silent_truncation) ... ok
+test_rest_pages_and_restart (tests.ingest.test_pipeline.PipelineTests.test_rest_pages_and_restart) ... ok
+test_resume_requires_verified_content_range (tests.ingest.test_pipeline.PipelineTests.test_resume_requires_verified_content_range) ... ok
+test_retry_network_and_rate_limit (tests.ingest.test_pipeline.PipelineTests.test_retry_network_and_rate_limit) ... ok
+test_trade_contract_keeps_exchange_id_and_precision (tests.ingest.test_pipeline.PipelineTests.test_trade_contract_keeps_exchange_id_and_precision) ... ok
+test_trade_id_fallback_requires_explicit_opt_in (tests.ingest.test_pipeline.PipelineTests.test_trade_id_fallback_requires_explicit_opt_in) ... ok
+test_trade_staging_identity_uses_exchange_id (tests.ingest.test_pipeline.PipelineTests.test_trade_staging_identity_uses_exchange_id) ... ok
+test_unknown_dataset_rejected_before_network (tests.ingest.test_pipeline.PipelineTests.test_unknown_dataset_rejected_before_network) ... ok
+test_valid_range_resume (tests.ingest.test_pipeline.PipelineTests.test_valid_range_resume) ... ok
+test_volatility_requires_contiguous_closed_window (tests.ingest.test_pipeline.PipelineTests.test_volatility_requires_contiguous_closed_window) ... ok
+
+----------------------------------------------------------------------
+Ran 42 tests in 0.704s
+
+OK

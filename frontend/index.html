@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Bybit · Historical Laboratory</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="research.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="logo">B<span>∕</span></span>
+        <div>
+          <strong>HISTORICAL LAB</strong><small>BYBIT MARKET RESEARCH</small>
+        </div>
+      </div>
+      <nav>
+        <a href="#screener">Instruments</a><a href="#downloads">Downloads</a
+        ><a href="#terminal">Terminal</a>
+      </nav>
+      <span class="badge">LOCAL · READ ONLY</span>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">MARKET WORKSPACE</p>
+          <h1>Explore the market. Inspect the evidence.</h1>
+          <p>
+            Historical data, source coverage and order-flow analytics in one
+            workspace.
+          </p>
+        </div>
+        <div class="clock" id="clock">UTC</div>
+      </div>
+      <section id="screener">
+        <div class="section-title">
+          <div>
+            <span class="index">01</span>
+            <h2>Market Screener & Downloads</h2>
+          </div>
+          <span id="selection-count" data-testid="selection-count"
+            >0 selected</span
+          >
+        </div>
+        <div class="toolbar">
+          <label
+            >Search symbols<input
+              id="search"
+              aria-label="Search symbols"
+              placeholder="BTC, ETH, SOL"
+              maxlength="40" /></label
+          ><label
+            >Market<select id="category">
+              <option value="linear">Linear</option>
+
+              <option value="inverse">Inverse</option>
+            </select></label
+          ><label
+            >Contract<select id="contract-kind">
+              <option value="">All contracts</option>
+              <option value="perpetual">Perpetual</option>
+              <option value="dated">Dated futures</option>
+            </select></label
+          >
+          <label
+            >Status<select id="market-status">
+              <option value="Trading">Trading</option>
+              <option value="">All statuses</option>
+              <option>PreLaunch</option>
+              <option>PendingOpen</option>
+              <option>Delivering</option>
+              <option>Closed</option>
+            </select></label
+          >
+          <button id="refresh">Refresh now / Retry instruments</button>
+          <span id="refresh-countdown" role="status"></span>
+          <button id="save">Save watchlist</button
+          ><label class="inline"
+            ><input type="checkbox" id="watchlist" />Saved only</label
+          >
+        </div>
+        <div
+          id="screener-status"
+          data-testid="screener-status"
+          role="status"
+        ></div>
+        <div class="table-scroll" id="table-scroll">
+          <table>
+            <thead>
+              <tr id="catalog-head"></tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span id="page-info"
+            >Metrics require source + observation time. Hover a value for
+            evidence.</span
+          ><button id="previous" disabled>Previous page</button
+          ><button id="next" disabled>Next page</button
+          ><button id="clear">Clear selection</button>
+        </div>
+        <details id="download-options">
+          <summary>
+            Download options - UTC window, source &amp; 13 timeframes
+          </summary>
+          <div class="toolbar">
+            <label
+              >Range start UTC<input
+                id="start"
+                type="datetime-local"
+                aria-label="Range start UTC" /></label
+            ><label
+              >Range end UTC<input
+                id="end"
+                type="datetime-local"
+                aria-label="Range end UTC" /></label
+            ><label
+              >Timeframe<select id="interval">
+                <option value="1">1m</option>
+                <option value="3">3m</option>
+                <option value="5">5m</option>
+                <option value="15">15m</option>
+                <option value="30">30m</option>
+                <option value="60" selected>1h</option>
+                <option value="120">2h</option>
+                <option value="240">4h</option>
+                <option value="360">6h</option>
+                <option value="720">12h</option>
+                <option value="D">1D</option>
+                <option value="W">1W UTC</option>
+                <option value="M">1M UTC</option>
+              </select></label
+            ><label
+              >Source<select id="source">
+                <option value="">Discovering sources…</option>
+              </select></label
+            ><label
+              >Data kind<select id="kind">
+                <option value="candles">OHLCV</option>
+                <option value="trades">Historical trades</option>
+                <option value="open_interest">Open Interest</option>
+                <option value="funding">Funding</option>
+              </select></label
+            ><button id="refresh-jobs">Refresh jobs</button>
+          </div>
+        </details>
+        <div class="bulk-actions">
+          <button id="download" class="primary">Download selected</button>
+          <div id="download-status" role="status"></div>
+        </div>
+        <details id="downloads">
+          <summary>
+            Download history, coverage &amp; errors <span id="overall"></span>
+          </summary>
+          <div id="jobs"></div>
+        </details>
+      </section>
+      <section id="terminal">
+        <div class="section-title">
+          <div>
+            <span class="index">03</span>
+            <h2>Chart terminal</h2>
+            <strong id="active-symbol">Select an instrument</strong>
+          </div>
+          <div>
+            <button id="pan-left" aria-label="Pan earlier">←</button
+            ><button id="zoom-in" aria-label="Zoom in">＋</button
+            ><button id="zoom-out" aria-label="Zoom out">−</button
+            ><button id="pan-right" aria-label="Pan later">→</button
+            ><button id="apply">Apply range / Retry charts</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <label>Direct source instrument
+            <input id="manual-symbol" aria-label="Direct source symbol" maxlength="40"
+                   autocomplete="off" placeholder="BTCUSDT" spellcheck="false" />
+          </label>
+          <button id="open-manual" type="button">Open source symbol</button>
+          <span class="muted">Direct selection is unverified until API source discovery succeeds.</span>
+        </div>
+        <div class="toolbar">
+          <label
+            >OI source cadence<select
+              id="oi-source-interval"
+              aria-label="OI source cadence"
+            >
+              <option value="5min">5 minutes</option>
+              <option value="15min">15 minutes</option>
+              <option value="30min">30 minutes</option>
+              <option value="1h">1 hour</option>
+              <option value="4h">4 hours</option>
+              <option value="1d">1 day</option>
+            </select></label
+          ><span class="muted"
+            >Funding source: event-based. Display timeframe does not resample
+            source observations.</span
+          >
+        </div>
+        <div class="chart-info">
+          <span id="range-label"
+            >Shared UTC time axis · wheel to zoom · drag to pan · Shift-drag to
+            select range</span
+          ><span id="crosshair">—</span>
+        </div>
+        <div id="chart-status" role="status"></div>
+        <div class="panels" id="panels"></div>
+      </section>
+      <section id="quality">
+        <div class="section-title">
+          <div>
+            <span class="index">04</span>
+            <h2>Data quality & provenance</h2>
+          </div>
+          <span class="badge">EVIDENCE FIRST</span>
+        </div>
+        <div id="quality-data">
+          Select an instrument to inspect coverage. Raw records, derived
+          aggregates and verified coverage are distinct.
+        </div>
+      </section>
+      <section id="strategy">
+        <div class="section-title">
+          <div>
+            <span class="index">05</span>
+            <h2>Strategy workspace</h2>
+          </div>
+          <span class="badge">SIMULATION ONLY · UNAVAILABLE</span>
+        </div>
+        <p class="muted">
+          Strategy assumptions, risk levels and results appear only after a
+          validated simulation is available. No browser-side backtest or
+          execution is performed.
+        </p>
+        <p class="muted">
+          <a href="research.html">View approved simulation results</a>
+          with a valid access capability. Qualified real-market execution remains unavailable.
+        </p>
+        <div class="panels" id="strategy-panels"></div>
+      </section>
+      <footer>
+        No trading keys · No order placement · Exact values retained as decimal
+        strings · Display geometry uses approximate numbers
+      </footer>
+    </main>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
