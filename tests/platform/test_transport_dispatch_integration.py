@@ -337,3 +337,22 @@ def test_malformed_scope_authority_never_sends(monkeypatch, reply):
     with pytest.raises(RuntimeError):
         Transport(session=session, policy_store=store, sleep=clock.sleep).get(URL)
     session.request.assert_not_called()
+
+
+def test_session_is_revalidated_after_shared_admission_wait(monkeypatch):
+    from src.ingest.transport import UnsafePublicSession
+
+    clock, store = setup(monkeypatch)
+    store.not_before = clock.now + 0.5
+    session = requests.Session()
+    session.trust_env = False
+    session.request = Mock(return_value=response())
+
+    def sleep(delay):
+        clock.sleep(delay)
+        session.auth = ("forbidden", "credential")
+
+    with pytest.raises(UnsafePublicSession):
+        Transport(session=session, policy_store=store, sleep=sleep).get(URL)
+    session.request.assert_not_called()
+    assert store.token is None

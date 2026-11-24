@@ -435,6 +435,7 @@ class Transport:
             token = self._reserve_dispatch(cancel)
             try:
                 self._wait(0, cancel)
+                self._validate_session(session)
                 response = session.request(
                     "GET", url, timeout=timeout, allow_redirects=False, **kwargs
                 )
