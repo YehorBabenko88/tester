@@ -45,6 +45,7 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get update
           sudo apt-get install -y postgresql-client-${{ matrix.postgres }}
+          echo "/usr/lib/postgresql/${{ matrix.postgres }}/bin" >> "$GITHUB_PATH"
       - name: Upgrade, backup, content verification and fault-injected rollback
         env:
           TESTER_REQUIRE_LAB_UPGRADE_PG: '1'
