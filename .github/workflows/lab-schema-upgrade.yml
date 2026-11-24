@@ -1,0 +1,53 @@
+name: Lab schema upgrade (d6059af to current)
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lab-schema-upgrade-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['14', '18']
+        python: ['3.12', '3.14']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: lab_upgrade_owner
+          POSTGRES_DB: lab_upgrade_owner
+          POSTGRES_HOST_AUTH_METHOD: trust
+        # Disposable service on a non-5432 host port: the upgrader refuses 5432.
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd "pg_isready -U lab_upgrade_owner"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install 'pip>=26.2,<27'
+      - run: python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Matching pg_dump/pg_restore
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-${{ matrix.postgres }}
+      - name: Upgrade, backup, content verification and fault-injected rollback
+        env:
+          TESTER_REQUIRE_LAB_UPGRADE_PG: '1'
+          TESTER_LAB_UPGRADE_ADMIN_DSN: host=127.0.0.1 port=55432 user=lab_upgrade_owner dbname=lab_upgrade_owner connect_timeout=5
+          TESTER_LAB_UPGRADE_PG_BIN: /usr/lib/postgresql/${{ matrix.postgres }}/bin
+        run: python -m pytest -q -rs tests/platform/test_lab_schema_upgrade_postgres.py tests/platform/test_lab_upgrade_contract.py

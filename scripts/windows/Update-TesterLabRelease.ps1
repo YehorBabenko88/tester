@@ -1,6 +1,11 @@
 # Published, separately approved in-place app upgrade. Never self-elevates.
+# Default mode is app-only and refuses any dependency or schema change.
+# -SchemaUpgrade is a separate explicit owner mode: the approved manifest must
+# list exactly the new migration files; existing migrations must be unchanged;
+# the database is backed up, migrated in one transaction and content-verified
+# by scripts/lab_schema_upgrade.py before the new app is started.
 [CmdletBinding()]
-param([switch]$FunctionsOnly,[string]$UpgradeManifest='',
+param([switch]$FunctionsOnly,[switch]$SchemaUpgrade,[string]$UpgradeManifest='',
       [ValidatePattern('^$|^[0-9a-fA-F]{64}$')][string]$UpgradeManifestSHA256='')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
@@ -61,6 +66,24 @@ function Assert-UpgradeBackupDestination([string]$BackupRoot,[string]$Bundle) {
     Assert-UpgradePlain $BackupRoot
     if ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($Bundle)) -ine [IO.Path]::GetFullPath($BackupRoot) -or [IO.Path]::GetFileName($Bundle) -notmatch '^upgrade-[0-9a-f]{32}$') {throw 'Backup bundle escaped its fixed parent.'}
     if (Test-Path -LiteralPath $Bundle) {Assert-UpgradePlain $Bundle}
+}
+function Assert-UpgradeMigrationScope($Old,$New,[bool]$SchemaMode,$Declared) {
+    $Pattern='^src/(api|storage)/migrations/'
+    $OldNames=@($Old.PSObject.Properties.Name | Where-Object {$_ -match $Pattern})
+    $NewNames=@($New.PSObject.Properties.Name | Where-Object {$_ -match $Pattern})
+    foreach ($Name in $OldNames) {
+        $After=$New.PSObject.Properties[$Name]
+        if ($null -eq $After -or $Old.PSObject.Properties[$Name].Value -cne $After.Value) {throw 'Dependency/schema changes require a separate migration proposal.'}
+    }
+    $Added=@($NewNames | Where-Object {$_ -cnotin $OldNames} | Sort-Object)
+    if ($Added.Count -eq 0) {
+        if ($SchemaMode) {throw 'Schema upgrade mode requires declared new migrations.'}
+        return @()
+    }
+    if (-not $SchemaMode) {throw 'New migrations are outside app-only upgrade.'}
+    $Expected=@(@($Declared) | Where-Object {$null -ne $_} | ForEach-Object {[string]$_} | Sort-Object)
+    if (($Added -join "`n") -cne ($Expected -join "`n")) {throw 'Declared schema migrations differ from the published payload.'}
+    return $Added
 }
 function Assert-UpgradeExpectedState([string]$Expected,[string]$Actual) {
     if ($Expected -cnotin @('Running','Stopped') -or $Actual -cne $Expected) {throw 'Actual app state differs from the explicitly approved initial state.'}
@@ -190,7 +213,7 @@ if ($OldNative.schema_version -ne 'tester-lab-service-runtime/v1' -or $NewNative
 Assert-UpgradeTree $OldRelease $OldPayload.files
 Assert-UpgradeTree $NewSource $NewPayload.files
 $Creator=(Get-Acl -LiteralPath $Root).GetOwner([Security.Principal.SecurityIdentifier]).Value
-$Outcome=[ordered]@{schema='tester-lab-upgrade-result/v2';installation_id=$Id;old_source_sha=$Plan.old_source_sha;new_source_sha=$Plan.new_source_sha;expected_app_state=$Plan.expected_app_state;status='PENDING';stage='SOURCE_IDENTITY_PREFLIGHT_PASS';failure_stage=$null;error_type=$null;rollback_status='NOT_REQUIRED';rollback_error_type=$null;rollback_failure_stage=$null;reporting_error_type=$null;rollback_bundle=$null;committed=$false;postgres_pid=$null;completed_utc=$null}
+$Outcome=[ordered]@{schema='tester-lab-upgrade-result/v2';installation_id=$Id;schema_upgrade=$(if ($SchemaUpgrade) {'REQUESTED'} else {'NOT_REQUESTED'});old_source_sha=$Plan.old_source_sha;new_source_sha=$Plan.new_source_sha;expected_app_state=$Plan.expected_app_state;status='PENDING';stage='SOURCE_IDENTITY_PREFLIGHT_PASS';failure_stage=$null;error_type=$null;rollback_status='NOT_REQUIRED';rollback_error_type=$null;rollback_failure_stage=$null;reporting_error_type=$null;rollback_bundle=$null;committed=$false;postgres_pid=$null;completed_utc=$null}
 $PublicReport=New-UpgradePublicReport (Join-Path $Root 'runtime') $Creator $Outcome
 Write-Output ('UPGRADE_REPORT '+$PublicReport.path)
 try {
@@ -199,10 +222,16 @@ $Runtime=Join-Path $Root 'dependencies\service'
 Assert-UpgradeTree $Runtime $OldNative.files
 Assert-UpgradeTree $NewRuntime $NewNative.files
 Assert-UpgradeNativeDiff $OldNative.files $NewNative.files
-foreach ($Name in @('requirements-windows-lab.lock')+@($OldPayload.files.PSObject.Properties.Name | Where-Object {$_ -match '^src/(api|storage)/migrations/'})) {
+foreach ($Name in @('requirements-windows-lab.lock')) {
     if ($OldPayload.files.PSObject.Properties[$Name].Value -cne $NewPayload.files.PSObject.Properties[$Name].Value) {throw 'Dependency/schema changes require a separate migration proposal.'}
 }
-if (@($NewPayload.files.PSObject.Properties.Name|Where-Object {$_ -match '^src/(api|storage)/migrations/'}).Count -ne @($OldPayload.files.PSObject.Properties.Name|Where-Object {$_ -match '^src/(api|storage)/migrations/'}).Count) {throw 'New migrations are outside app-only upgrade.'}
+$DeclaredMigrations=$null
+if ($SchemaUpgrade) {
+    $SchemaPlan=$Plan.PSObject.Properties['schema_upgrade']
+    if ($null -eq $SchemaPlan -or $null -eq $SchemaPlan.Value.PSObject.Properties['new_migrations']) {throw 'Schema upgrade mode requires an approved schema_upgrade.new_migrations list.'}
+    $DeclaredMigrations=@($SchemaPlan.Value.new_migrations)
+}
+$NewMigrations=Assert-UpgradeMigrationScope $OldPayload.files $NewPayload.files ([bool]$SchemaUpgrade) $DeclaredMigrations
 foreach ($Mapping in @(@('lab_service_bootstrap.py','src/api/lab_service_bootstrap.py'),@('Lib/sitecustomize.py','src/api/lab_sitecustomize.py'))) {
     if ($NewNative.files.PSObject.Properties[$Mapping[0]].Value -cne $NewPayload.files.PSObject.Properties[$Mapping[1]].Value) {throw 'Native hook does not match published source.'}
 }
@@ -248,7 +277,7 @@ Assert-UpgradeBackupDestination (Join-Path $Root 'backups') $Bundle
 $Journal=[IO.File]::Open((Join-Path $Bundle 'transaction.json'),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read)
 $JournalWriter=[IO.StreamWriter]::new($Journal,[Text.UTF8Encoding]::new($false))
 try {$JournalWriter.Write(($Transaction|ConvertTo-Json -Depth 7));$JournalWriter.Flush();$Journal.Flush($true)} finally {$JournalWriter.Dispose()}
-$StopRequested=$false;$OldMoved=$false;$NewMoved=$false;$Committed=$false
+$StopRequested=$false;$OldMoved=$false;$NewMoved=$false;$Committed=$false;$SchemaCommitted=$false
 $Outcome.postgres_pid=$PGPid
 try {
     $null=Assert-UpgradeOwnedServices @($Plan.old_source_sha)
@@ -262,6 +291,16 @@ try {
     Assert-UpgradeTree $Runtime $OldNative.files
     Assert-UpgradeTree $SourceCandidate $NewPayload.files
     Assert-UpgradeTree $NativeCandidate $NewNative.files
+    if ($SchemaUpgrade) {
+        # Owner-role, backed-up, single-transaction migration with content verification.
+        Set-UpgradeStage 'SCHEMA_UPGRADE'
+        $SchemaReport=Join-Path $Bundle 'schema-upgrade.json'
+        & (Join-Path $Root 'dependencies\venv\Scripts\python.exe') -I -B (Join-Path $SourceCandidate 'scripts\lab_schema_upgrade.py') lab-upgrade --root $Root --backup-dir (Join-Path $Bundle 'schema-backup') --report $SchemaReport
+        if ($LASTEXITCODE -ne 0) {$Outcome.schema_upgrade='FAILED_TRANSACTION_ROLLED_BACK';throw 'Owner schema upgrade failed; its transaction was rolled back.'}
+        $SchemaCommitted=$true
+        $Outcome.schema_upgrade='COMMITTED'
+        Assert-UpgradeTree $SourceCandidate $NewPayload.files
+    }
     Set-UpgradeStage 'STAGE_NEW_SOURCE'
     [IO.Directory]::Move($SourceCandidate,$NewRelease)
     Assert-UpgradeTree $NewRelease $NewPayload.files
@@ -319,7 +358,9 @@ try {
             Set-UpgradeRollbackStage 'ROLLBACK_START_OLD_APP'
             Invoke-UpgradeAppAction start @($Plan.old_source_sha)
             Assert-UpgradeReady $Plan.old_source_sha $Plan.old_payload_sha256 $false
-            $Outcome.rollback_status='OLD_APP_RESTORED'
+            # Committed migrations are not reverted automatically; the verified
+            # schema backup in the bundle restores into a NEW database only.
+            $Outcome.rollback_status=$(if ($SchemaCommitted) {'OLD_APP_RESTORED_ON_UPGRADED_SCHEMA'} else {'OLD_APP_RESTORED'})
             Write-Output ('ROLLBACK_OLD_APP_PASS retained_bundle='+$Bundle)
         } catch {
             $Outcome.rollback_status='FAILED'

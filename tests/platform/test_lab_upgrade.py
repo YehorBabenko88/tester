@@ -275,3 +275,40 @@ if (-not $RestorationAttempted -or $script:Outcome.error_type -cne 'OriginalFail
         text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_migration_scope_keeps_app_only_refusal_and_explicit_schema_mode(tmp_path):
+    library = Path("scripts/windows/Update-TesterLabRelease.ps1").absolute()
+    script = tmp_path / "scope.ps1"
+    script.write_text(
+        r"""
+param($Library)
+$ErrorActionPreference='Stop'
+. $Library -FunctionsOnly
+$A='a'*64;$B='b'*64
+$Old=[pscustomobject]@{'src/storage/migrations/007_x.sql'=$A;'src/api/app.py'=$A}
+$Same=[pscustomobject]@{'src/storage/migrations/007_x.sql'=$A;'src/api/app.py'=$B}
+$Added=[pscustomobject]@{'src/storage/migrations/007_x.sql'=$A;'src/storage/migrations/008_y.sql'=$B;'src/api/migrations/008_z.sql'=$B}
+$Edited=[pscustomobject]@{'src/storage/migrations/007_x.sql'=$B;'src/storage/migrations/008_y.sql'=$B}
+$Removed=[pscustomobject]@{'src/api/app.py'=$A}
+function Refused([scriptblock]$Block,[string]$Message) {
+ try {& $Block} catch {if ($_.Exception.Message -cne $Message) {throw ('Wrong refusal: '+$_.Exception.Message)};return}
+ throw ('Accepted: '+$Message)
+}
+if (@(Assert-UpgradeMigrationScope $Old $Same $false $null).Count -ne 0) {throw 'App-only change misread'}
+Refused {Assert-UpgradeMigrationScope $Old $Added $false $null} 'New migrations are outside app-only upgrade.'
+Refused {Assert-UpgradeMigrationScope $Old $Edited $true @('src/storage/migrations/008_y.sql')} 'Dependency/schema changes require a separate migration proposal.'
+Refused {Assert-UpgradeMigrationScope $Old $Removed $true @()} 'Dependency/schema changes require a separate migration proposal.'
+Refused {Assert-UpgradeMigrationScope $Old $Same $true @()} 'Schema upgrade mode requires declared new migrations.'
+Refused {Assert-UpgradeMigrationScope $Old $Added $true @('src/storage/migrations/008_y.sql')} 'Declared schema migrations differ from the published payload.'
+$Accepted=@(Assert-UpgradeMigrationScope $Old $Added $true @('src/storage/migrations/008_y.sql','src/api/migrations/008_z.sql'))
+if (($Accepted -join ',') -cne 'src/api/migrations/008_z.sql,src/storage/migrations/008_y.sql') {throw ('Wrong accepted set: '+($Accepted -join ','))}
+""",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-File", str(script), str(library)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
