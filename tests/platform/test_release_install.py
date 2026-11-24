@@ -609,7 +609,7 @@ def test_full_native_installer_lifecycle(tmp_path):
         kill_owned(
             pg_before["pid"],
             role="postgres",
-            allowed=(root / "dependencies/postgres/bin/pg_ctl.exe",),
+            allowed=(root / "dependencies/service/pythonservice.exe",),
         )
         deadline = time.monotonic() + 100
         while time.monotonic() < deadline:
@@ -659,6 +659,37 @@ def test_full_native_installer_lifecycle(tmp_path):
             if before != after and failure is None:
                 pytest.fail("Unrelated PostgreSQL service/listener snapshot changed")
             if marker is not None and root.exists():
+                try:
+                    from src.api.lab_scm import NativeSCM
+
+                    diagnostic_scm = NativeSCM()
+                    try:
+                        status = [
+                            diagnostic_scm.inspect(name) for name in marker["services"].values()
+                        ]
+                        evidence["final_service_status"] = [
+                            {
+                                key: row.get(key)
+                                for key in ("name", "state", "pid", "executable", "python_class")
+                            }
+                            if row
+                            else None
+                            for row in status
+                        ]
+                    finally:
+                        diagnostic_scm.close()
+                    pidfile = root / "postgres-data/postmaster.pid"
+                    if pidfile.exists():
+                        postmaster = int(pidfile.read_text().splitlines()[0])
+                        evidence["final_postmaster_pid"] = postmaster
+                        try:
+                            evidence["final_postmaster_image"] = NativeSCM.process_image(postmaster)
+                        except Exception as diagnostic_error:
+                            evidence["final_postmaster_query_error"] = type(
+                                diagnostic_error
+                            ).__name__
+                except Exception as diagnostic_error:
+                    evidence["final_status_query_error"] = type(diagnostic_error).__name__
                 try:
                     from src.api import release_provision
 

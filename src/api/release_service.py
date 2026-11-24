@@ -36,19 +36,15 @@ def plans(marker):
         common,
         name=marker["services"]["postgres"],
         account="NT SERVICE\\" + marker["services"]["postgres"],
-        executable=str(root / "dependencies/postgres/bin/pg_ctl.exe"),
+        host=str(root / "dependencies/service/pythonservice.exe"),
+        executable=str(root / "dependencies/service/pythonservice.exe"),
+        enforce_python_class=True,
+        python_class=str(root / "dependencies/service/release_service_bootstrap")
+        + ".ReleasePostgresService",
+        release=str(root / "releases" / marker["source_sha"]),
+        python=str(root / "dependencies/venv/Scripts/python.exe"),
     )
-    pg["image"] = subprocess.list2cmdline(
-        [
-            str(root / "dependencies/postgres/bin/pg_ctl.exe"),
-            "runservice",
-            "-N",
-            pg["name"],
-            "-D",
-            str(root / "postgres-data"),
-            "-w",
-        ]
-    )
+    pg["image"] = subprocess.list2cmdline([pg["host"]])
     return app, pg
 
 
@@ -77,17 +73,18 @@ def service_sid(name):
     return "S-1-5-80-" + "-".join(str(n) for n in struct.unpack("<5I", digest))
 
 
-def job_name(marker):
-    return "Global\\TesterReleaseJob_" + marker["installation_id"].replace("-", "")
+def job_name(marker, role="app"):
+    prefix = "TesterReleaseJob_" if role == "app" else "TesterReleasePostgresJob_"
+    return "Global\\" + prefix + marker["installation_id"].replace("-", "")
 
 
-def create_owned_job(marker):
+def create_owned_job(marker, role="app"):
     import pywintypes
     import win32api
     import win32job
     import win32security
 
-    sid = win32security.ConvertStringSidToSid(service_sid(marker["services"]["app"]))
+    sid = win32security.ConvertStringSidToSid(service_sid(marker["services"][role]))
     acl = win32security.ACL()
     for value in (
         sid,
@@ -103,15 +100,15 @@ def create_owned_job(marker):
     )
     attributes = pywintypes.SECURITY_ATTRIBUTES()
     attributes.SECURITY_DESCRIPTOR = descriptor
-    handle = win32job.CreateJobObject(attributes, job_name(marker))
+    handle = win32job.CreateJobObject(attributes, job_name(marker, role))
     if win32api.GetLastError() == 183:
         handle.Close()
         raise ValueError("Owned TESTER supervisor job already exists")
-    _validate_job_owner(handle, marker)
+    _validate_job_owner(handle, marker, role)
     return handle
 
 
-def _validate_job_owner(handle, marker):
+def _validate_job_owner(handle, marker, role="app"):
     import win32security
 
     descriptor = win32security.GetSecurityInfo(
@@ -119,9 +116,9 @@ def _validate_job_owner(handle, marker):
         win32security.SE_KERNEL_OBJECT,
         win32security.OWNER_SECURITY_INFORMATION | win32security.DACL_SECURITY_INFORMATION,
     )
-    expected = {service_sid(marker["services"]["app"]), "S-1-5-18", "S-1-5-32-544"}
+    expected = {service_sid(marker["services"][role]), "S-1-5-18", "S-1-5-32-544"}
     if win32security.ConvertSidToStringSid(descriptor.GetSecurityDescriptorOwner()) != service_sid(
-        marker["services"]["app"]
+        marker["services"][role]
     ):
         raise ValueError("Foreign TESTER supervisor job owner")
     acl = descriptor.GetSecurityDescriptorDacl()
@@ -239,6 +236,7 @@ class NativeStopProof:
         self.handles = []
         self.processes = {}
         self.job = None
+        self.pg_job = None
         try:
             states = validator(marker)
             root = Path(marker["root"])
@@ -259,6 +257,18 @@ class NativeStopProof:
                     raise
             if self.job is not None:
                 _validate_job_owner(self.job, marker)
+            if pg_descendants:
+                try:
+                    self.pg_job = win32job.OpenJobObject(
+                        0x20000 | 4 | 8, False, job_name(marker, "postgres")
+                    )
+                except Exception as exc:
+                    if getattr(exc, "winerror", None) != 2 or (
+                        states[1] and states[1]["state"] == "running"
+                    ):
+                        raise
+                if self.pg_job is not None:
+                    _validate_job_owner(self.pg_job, marker, "postgres")
             pidfile = root / "postgres-data/postmaster.pid"
             if pg_descendants and pidfile.exists():
                 from .lab_install import plain
@@ -296,6 +306,8 @@ class NativeStopProof:
                 if not ready:
                     raise ValueError("Cyclic PostgreSQL ancestry snapshot")
                 for pid in ready:
+                    if pid in self.processes:
+                        continue  # SCM host already authenticated with its role-specific image.
                     try:
                         self._capture(
                             pid,
@@ -377,14 +389,16 @@ class NativeStopProof:
         import win32event
         import win32job
 
-        if self.job is not None:
+        for job in (self.job, self.pg_job):
+            if job is None:
+                continue
             if win32job.QueryInformationJobObject(
-                self.job, win32job.JobObjectBasicAccountingInformation
+                job, win32job.JobObjectBasicAccountingInformation
             )["ActiveProcesses"]:
-                win32job.TerminateJobObject(self.job, 1)
+                win32job.TerminateJobObject(job, 1)
             deadline = time.monotonic() + 15
             while win32job.QueryInformationJobObject(
-                self.job, win32job.JobObjectBasicAccountingInformation
+                job, win32job.JobObjectBasicAccountingInformation
             )["ActiveProcesses"]:
                 if time.monotonic() >= deadline:
                     raise ValueError("Owned supervisor job did not empty")
@@ -397,6 +411,9 @@ class NativeStopProof:
         if self.job is not None:
             self.job.Close()
             self.job = None
+        if self.pg_job is not None:
+            self.pg_job.Close()
+            self.pg_job = None
         for handle in self.handles:
             handle.Close()
         self.handles = []
@@ -499,14 +516,15 @@ def validate_config(marker, config):
         raise ValueError("Dedicated release API/database/storage scope required")
 
 
-def preflight(root, *, physical_postgres=True):
+def preflight(root, *, physical_postgres=True, api_config=True):
     marker = load_marker(root)
     import json
 
     from .lab_install import verify_tree
 
-    config = json.loads((root / "config.json").read_text())
-    validate_config(marker, config)
+    if api_config:
+        config = json.loads((root / "config.json").read_text())
+        validate_config(marker, config)
     from .lab_install import plain
     from .lab_scm import validate_pg_config
 
@@ -654,6 +672,119 @@ class ReleaseService(LabService):
         return dict(
             argv=[str(root / "dependencies/venv/Scripts/python.exe"), "-m", "src.api.supervisor"],
             cwd=str(root / "releases" / marker["source_sha"]),
+            env=env,
+            sha=marker["source_sha"],
+        )
+
+
+class ReleasePostgresService(ReleaseService):
+    """The existing SCM host owns foreground PostgreSQL and its entire job."""
+
+    service_role = "postgres"
+    uses_http_health = False
+
+    def admit_start(self, root):
+        return True  # PostgreSQL must be available before SQL admission is possible.
+
+    def create_job(self, marker):
+        return create_owned_job(marker, "postgres")
+
+    def evidence_path(self, root):
+        return root / "postgres-data/service.json"
+
+    def signal_stop(self, root):
+        pass  # SCM handler only signals; verified pg_ctl runs in the service thread.
+
+    def graceful_stop(self, root):
+        preflight(root, api_config=False)
+        result = subprocess.run(
+            [
+                str(root / "dependencies/postgres/bin/pg_ctl.exe"),
+                "-D",
+                str(root / "postgres-data"),
+                "-m",
+                "fast",
+                "-w",
+                "-t",
+                "25",
+                "stop",
+            ],
+            capture_output=True,
+            timeout=28,
+            check=False,
+        )
+        if result.returncode:
+            raise ValueError("Dedicated PostgreSQL graceful stop failed")
+
+    def service_preflight(self, root):
+        return preflight(root, api_config=False)
+
+    def record_phase(self, phase):
+        import json
+        import time
+
+        from .release_install import write_json
+
+        marker = load_marker(self.root)
+        path = self.root / "postgres-data/service-lifecycle.json"
+        previous = json.loads(path.read_text()) if path.exists() else {}
+        rows = previous.get("transitions", [])[-63:]
+        rows.append(dict(phase=phase, at=time.time(), instance_id=self.instance))
+        write_json(
+            path,
+            dict(
+                source_sha=marker["source_sha"],
+                installation_id=marker["installation_id"],
+                transitions=rows,
+            ),
+        )
+
+    def ready_without_http(self, root, marker, instance):
+        result = subprocess.run(
+            [
+                str(root / "dependencies/postgres/bin/pg_isready.exe"),
+                "-h",
+                "127.0.0.1",
+                "-p",
+                str(marker["ports"]["postgres"]),
+                "-t",
+                "1",
+            ],
+            capture_output=True,
+            timeout=3,
+            check=False,
+        )
+        if result.returncode:
+            return False
+        lines = (root / "postgres-data/postmaster.pid").read_text().splitlines()
+        if (
+            len(lines) < 4
+            or Path(lines[1]) != root / "postgres-data"
+            or lines[3] != str(marker["ports"]["postgres"])
+        ):
+            raise ValueError("Foreground PostgreSQL PID scope mismatch")
+        # Kernel-created process is assigned to our job before it can execute.
+        # Its exact pid is also checked by the host readiness hook below.
+        return int(lines[0]) == self.child_pid
+
+    @staticmethod
+    def contract_builder(root):
+        import os
+
+        marker = load_marker(root)
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if not k.upper().startswith(("TESTER_", "PYTHON", "PG"))
+        }
+        env.update(PYTHONDONTWRITEBYTECODE="1", GUARDIANS_ENABLED="false")
+        return dict(
+            argv=[
+                str(root / "dependencies/postgres/bin/postgres.exe"),
+                "-D",
+                str(root / "postgres-data"),
+            ],
+            cwd=str(root / "postgres-data"),
             env=env,
             sha=marker["source_sha"],
         )

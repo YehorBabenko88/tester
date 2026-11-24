@@ -612,6 +612,7 @@ def apply_acls(root, marker):
     acl(root, read)
     for name in ("dependencies", "releases", "state"):
         acl(root / name, read)
+    acl(root / "config.json", ["*S-1-5-18:F", "*S-1-5-32-544:F", sids["app"] + ":R"])
     acl(root / "runtime", administrators + [sids["app"] + ":(OI)(CI)M"])
     acl(root / "postgres-data", administrators + [sids["postgres"] + ":(OI)(CI)M"])
     acl(root / "private", administrators)

@@ -89,3 +89,19 @@ bootstrap additionally requires valid Authenticode signatures and the independen
 approved certificate SHA-256 through `-TrustedPublisherSHA256`. Test-mode fixture
 signatures do not satisfy or claim this production gate. No certificate is added
 to a host trust store by the installer.
+
+
+The PostgreSQL role uses the same private `pythonservice.exe` host and existing
+`LabService` lifecycle as the application role. It runs foreground `postgres.exe`
+suspended until assignment to its separately named, PG-SID-owned JobObject;
+`KILL_ON_JOB_CLOSE` prevents orphan database descendants after a host crash.
+Graceful stop verifies the dedicated cluster before invoking its private
+`pg_ctl -m fast stop`. Its receipts and collector logs remain in `postgres-data`.
+It does not read the application configuration or database passwords.
+
+PostgreSQL recovery uses the existing SCM failure-action sequence (two delayed
+restarts followed by no action, with the SCM reset interval); there is no internal
+PG restart loop or SQL reservation before PostgreSQL starts. The durable SQL
+launch budget separately governs the application host, API and worker. SCM
+recovery counters and their reset/reboot behavior must not be represented as a
+lifetime durable PostgreSQL launch budget.

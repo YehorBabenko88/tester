@@ -44,6 +44,8 @@ class LabService(_Framework):
     _svc_name_ = "TesterLabDynamic"
     _svc_display_name_ = "Tester fresh isolated lab"
 
+    service_role = "app"
+    uses_http_health = True
     marker_reader = staticmethod(check)
     contract_builder = staticmethod(launch_contract)
 
@@ -51,6 +53,15 @@ class LabService(_Framework):
         from .lab_scm import preflight
 
         return preflight(root)
+
+    def evidence_path(self, root):
+        return plain(root / "runtime/service.json")
+
+    def signal_stop(self, root):
+        plain(root / "runtime/stop.request").touch()
+
+    def graceful_stop(self, root):
+        self.signal_stop(root)
 
     def ready_without_http(self, root, marker, instance):
         return False
@@ -95,7 +106,7 @@ class LabService(_Framework):
 
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING, waitHint=35000)
         if self.root is not None:
-            plain(self.root / "runtime/stop.request").touch()
+            self.signal_stop(self.root)
         win32event.SetEvent(self.stop_event)
 
     def SvcRun(self):
@@ -128,7 +139,7 @@ class LabService(_Framework):
         marker = self.marker_reader(root)
         if (
             marker["installation_id"] != ident
-            or marker["services"]["app"] != self.service_name
+            or marker["services"][self.service_role] != self.service_name
             or marker.get("active_sha", marker.get("source_sha")) != sha
         ):
             raise LabViolation("Registered release/ownership does not match marker")
@@ -148,7 +159,7 @@ class LabService(_Framework):
         win32job.SetInformationJobObject(job, win32job.JobObjectExtendedLimitInformation, limits)
         process = thread = None
         assigned = False
-        evidence = plain(root / "runtime/service.json")
+        evidence = self.evidence_path(root)
         try:
             # Suspend before assignment: descendants cannot escape before entering the job.
             process, thread, pid, _ = win32process.CreateProcess(
@@ -162,6 +173,7 @@ class LabService(_Framework):
                 contract["cwd"],
                 win32process.STARTUPINFO(),
             )
+            self.child_pid = pid
             win32job.AssignProcessToJobObject(job, process)
             assigned = True
             if win32event.WaitForSingleObject(self.stop_event, 0) == win32event.WAIT_OBJECT_0:
@@ -180,18 +192,21 @@ class LabService(_Framework):
                     raise LabViolation("Unexpected supervisor exit during startup")
                 if self.ready_without_http(root, marker, instance):
                     break
-                try:
-                    connection = HTTPConnection("127.0.0.1", self.health_port(marker), timeout=1)
+                if self.uses_http_health:
                     try:
-                        connection.request("GET", "/api/health")
-                        response = connection.getresponse()
-                        health = json.loads(response.read())["data"]
-                    finally:
-                        connection.close()
-                    if self.health_ready(response, health, instance):
-                        break
-                except (OSError, ValueError, KeyError):
-                    pass
+                        connection = HTTPConnection(
+                            "127.0.0.1", self.health_port(marker), timeout=1
+                        )
+                        try:
+                            connection.request("GET", "/api/health")
+                            response = connection.getresponse()
+                            health = json.loads(response.read())["data"]
+                        finally:
+                            connection.close()
+                        if self.health_ready(response, health, instance):
+                            break
+                    except (OSError, ValueError, KeyError):
+                        pass
                 if time.monotonic() > deadline:
                     raise LabViolation("Service health readiness timed out")
                 self.ReportServiceStatus(win32service.SERVICE_START_PENDING, waitHint=60000)
@@ -217,7 +232,7 @@ class LabService(_Framework):
             if result == win32event.WAIT_OBJECT_0:
                 # supervisor drains admission/claims then waits children; job kills survivors at deadline.
                 self.record_phase("stopping")
-                plain(root / "runtime/stop.request").touch()
+                self.graceful_stop(root)
                 if win32event.WaitForSingleObject(process, 32000) != win32event.WAIT_OBJECT_0:
                     raise LabViolation("Graceful shutdown timed out")
                 if win32process.GetExitCodeProcess(process) != 0:

@@ -18,7 +18,8 @@ def test_release_plan_uses_private_uuid_services_and_auto_start(tmp_path):
     app, pg = rs.plans(marker)
     assert app["auto_start"] is True and pg["auto_start"] is True
     assert pg["name"] == app["dependency"]
-    assert str(tmp_path / "dependencies/postgres/bin/pg_ctl.exe") in pg["image"]
+    assert pg["executable"] == app["executable"]
+    assert pg["python_class"].endswith(".ReleasePostgresService")
     assert app["recovery_delays_ms"] == [1000, 5000, 0]
 
 
@@ -941,3 +942,52 @@ def test_postgres_console_requires_physical_os_binary_and_parent_order(tmp_path,
     times[1] = 10
     times[2] = 40  # Candidate PID was replaced after the ancestry snapshot.
     assert not rs._owned_postgres_console(2, str(console), parent, "private-postgres.exe", 30)
+
+
+def test_postgres_role_contract_uses_foreground_child_and_private_evidence(tmp_path, monkeypatch):
+    from src.api import release_install
+
+    marker = dict(
+        root=str(tmp_path),
+        installation_id=str(uuid.uuid4()),
+        source_sha="a" * 40,
+        services=dict(app="app", postgres="pg"),
+        ports=dict(postgres=55471, api=18767),
+    )
+    monkeypatch.setattr(rs, "load_marker", lambda root: marker)
+    service = object.__new__(rs.ReleasePostgresService)
+    assert service.service_role == "postgres" and not service.uses_http_health
+    assert service.evidence_path(tmp_path) == tmp_path / "postgres-data/service.json"
+    assert rs.job_name(marker) != rs.job_name(marker, "postgres")
+    contract = service.contract_builder(tmp_path)
+    assert contract["argv"] == [
+        str(tmp_path / "dependencies/postgres/bin/postgres.exe"),
+        "-D",
+        str(tmp_path / "postgres-data"),
+    ]
+    assert contract["cwd"] == str(tmp_path / "postgres-data")
+    assert "TESTER_CONFIG_FILE" not in contract["env"]
+    calls = []
+    monkeypatch.setattr(rs, "preflight", lambda root, **kw: calls.append(kw))
+    service.service_preflight(tmp_path)
+    assert calls == [dict(api_config=False)]
+    monkeypatch.setattr(release_install, "load_marker", lambda root: marker)
+
+
+def test_postgres_shutdown_verifies_cluster_before_using_private_pg_ctl(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    calls = []
+    monkeypatch.setattr(rs, "preflight", lambda root, **kw: calls.append(("verified", kw)))
+
+    def run(argv, **kwargs):
+        calls.append(("stop", argv, kwargs))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(rs.subprocess, "run", run)
+    service = object.__new__(rs.ReleasePostgresService)
+    service.graceful_stop(tmp_path)
+    assert calls[0] == ("verified", dict(api_config=False))
+    assert calls[1][1][0] == str(tmp_path / "dependencies/postgres/bin/pg_ctl.exe")
+    assert calls[1][1][-1] == "stop" and "fast" in calls[1][1]
+    assert calls[1][2]["timeout"] == 28

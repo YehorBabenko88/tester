@@ -125,7 +125,9 @@ def provision(root):
     )
     password_file.unlink()
     (root / "postgres-data/postgresql.conf").write_text(
-        "listen_addresses = '127.0.0.1'\nport = " + str(marker["ports"]["postgres"]) + "\n",
+        "listen_addresses = '127.0.0.1'\nport = "
+        + str(marker["ports"]["postgres"])
+        + "\nlogging_collector = on\nlog_statement = 'none'\nlog_min_error_statement = 'panic'\n",
         encoding="utf-8",
     )
     run(
