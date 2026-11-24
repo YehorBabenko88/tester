@@ -460,3 +460,31 @@ and this production reproducibility gate remain **NOT RUN**. Fixture-signature
 archive comparisons do not satisfy that gate.
 
 The archive helper is not a signer or trust authority. Signed archive calls require the complete externally verified file map, including the independently pinned final envelope digest. Changes, missing/extra files, digest mismatches and destinations inside the bundle are refused. Private owned partial assembly is validated before atomic no-overwrite publication; failure does not delete a foreign destination or issue a successful receipt. Unsigned snapshots do not establish production trust.
+
+## Installation-wide public dispatch authority
+
+Migration `006_public_dispatch.sql` extends the existing protected PostgreSQL
+transport scope. Every canonical API/catalog and worker/job instance must acquire
+`PostgresTransportPolicy.reserve_dispatch()` immediately before its network call.
+The fixed authority permits at most one outstanding dispatch across the entire
+installation. Completion calls `finish_dispatch(token, cooldown_seconds)` after
+headers or a network failure returns, and sets the next opportunity at least
+500 ms later. Valid HTTP 429 Retry-After extends that same durable deadline, up to
+3600 seconds. This deliberately conservative bound is at most two sends per second
+across processes and fresh per-job instances, with network latency reducing it.
+
+No database transaction remains open during network I/O. A durable UUID token,
+not a timeout, excludes other dispatchers. Process death, failed commit, unavailable
+database, corrupt/nonfinite deadline or uncertain completion refuses further sends.
+No TTL automatically clears uncertainty. Endpoint PENDING/HALTED records continue
+to protect response body/close TLS outcomes independently of this send gate.
+Only an authenticated owner calling whole-scope `reset(None)` after reviewing and
+stopping uncertain writers may clear the dispatch token and cooldown. Endpoint-only
+reset does not clear a possibly unrelated sender. Runtime cannot edit scope columns,
+raise the fixed rate, reset cooldown or execute owner recovery.
+
+The adapter/SQL change requires the corresponding Transport call integration;
+installing the migration alone does not impose a network gate. Disposable tests
+exercise concurrent/fresh-process reservations, cooldown persistence, stale tokens,
+owner-only reset and denied direct runtime DDL/DML. These are distinct from live
+exchange performance and production signing acceptance.

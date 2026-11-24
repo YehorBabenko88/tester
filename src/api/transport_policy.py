@@ -1,5 +1,6 @@
 """Public request policy adapter using the existing platform PostgreSQL boundary."""
 
+import math
 from uuid import UUID
 
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
@@ -53,10 +54,17 @@ class PostgresTransportPolicy:
             "read": "SELECT tester_platform.read_public_transport(%s,%s)",
             "finish": "SELECT tester_platform.finish_public_transport(%s,%s,%s,%s)",
             "reset": "SELECT tester_platform.reset_public_transport(%s,%s)",
+            "reserve_dispatch": "SELECT * FROM tester_platform.reserve_public_dispatch(%s)",
+            "finish_dispatch": "SELECT tester_platform.finish_public_dispatch(%s,%s,%s)",
         }
         try:
             with connect(self.dsn) as conn:
-                row = conn.execute(queries[function], (self.installation_id, key, *args)).fetchone()
+                parameters = (
+                    (self.installation_id, *args)
+                    if function in {"reserve_dispatch", "finish_dispatch"}
+                    else (self.installation_id, key, *args)
+                )
+                row = conn.execute(queries[function], parameters).fetchone()
             if row is None:
                 raise PublicPolicyUnavailable("Public transport policy unavailable")
             return row
@@ -64,6 +72,51 @@ class PostgresTransportPolicy:
             raise PublicPolicyUnavailable(
                 "Public transport policy unavailable; owner review required"
             ) from None
+
+    def reserve_dispatch(self):
+        """Acquire one installation-wide send lease, independent of endpoint/job."""
+        row = self._call("reserve_dispatch", None)
+        try:
+            state, token, delay = row
+            if (
+                type(delay) not in (int, float)
+                or not math.isfinite(delay)
+                or not 0 <= delay <= 3600
+            ):
+                raise ValueError
+            if state == "GRANTED":
+                if delay != 0 or token is None:
+                    raise ValueError
+                token = str(UUID(str(token)))
+            elif state == "WAIT":
+                if token is not None or delay <= 0:
+                    raise ValueError
+            elif state in {"PENDING", "HALTED"}:
+                if token is not None or delay != 0:
+                    raise ValueError
+            else:
+                raise ValueError
+            return state, token, float(delay)
+        except (TypeError, ValueError):
+            raise PublicPolicyUnavailable(
+                "Public dispatch authority invalid; owner review required"
+            ) from None
+
+    def finish_dispatch(self, token, cooldown_seconds=0):
+        """Release only after the actual network call returns; never expire leases."""
+        try:
+            token = UUID(str(token))
+            if (
+                type(cooldown_seconds) not in (int, float)
+                or not math.isfinite(cooldown_seconds)
+                or not 0 <= cooldown_seconds <= 3600
+            ):
+                raise ValueError
+        except (TypeError, ValueError):
+            raise PublicPolicyUnavailable("Invalid public dispatch completion") from None
+        row = self._call("finish_dispatch", None, token, cooldown_seconds)
+        if len(row) != 1 or row[0] is not True:
+            raise PublicPolicyUnavailable("Public dispatch lease fenced; owner review required")
 
     def reserve(self, endpoint):
         row = self._call("reserve", endpoint)

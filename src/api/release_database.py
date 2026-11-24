@@ -174,7 +174,9 @@ def provision_release_databases(marker, owner_password):
                 conn.execute(
                     "GRANT EXECUTE ON FUNCTION tester_platform.read_public_transport(uuid,text), "
                     "tester_platform.reserve_public_transport(uuid,text), "
-                    "tester_platform.finish_public_transport(uuid,text,uuid,text) TO tester_app"
+                    "tester_platform.finish_public_transport(uuid,text,uuid,text), "
+                    "tester_platform.reserve_public_dispatch(uuid), "
+                    "tester_platform.finish_public_dispatch(uuid,uuid,double precision) TO tester_app"
                 )
         role_endpoint = (
             endpoint
