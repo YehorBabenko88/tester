@@ -33,15 +33,27 @@ GRANTS = (
 
 
 def test_published_restart_migration_003_is_byte_identical():
-    digest = hashlib.sha256((MIGRATIONS / "003_restart_budget.sql").read_bytes()).hexdigest()
+    # Same digest db.migrate records (universal newlines), independent of git autocrlf.
+    content = (MIGRATIONS / "003_restart_budget.sql").read_text(encoding="utf-8")
+    digest = hashlib.sha256(content.encode()).hexdigest()
     assert digest == "f2f8b1e966cbe588d696a9de901938fd3d03ed32d2ec6962392efb377ecdc765"
     assert sorted(p.name for p in MIGRATIONS.glob("008_*.sql")) == ["008_restart_window.sql"]
 
 
-def _admin_dsn():
+def _admin_dsn(capability="rolcreaterole"):
     dsn = os.environ.get("TEST_DATABASE_URL")
     if not dsn:
         pytest.skip("Disposable TEST_DATABASE_URL required")
+    import psycopg
+
+    with psycopg.connect(dsn) as conn:
+        allowed = conn.execute(
+            f"SELECT rolsuper OR {capability} FROM pg_roles WHERE rolname=current_user"
+        ).fetchone()[0]
+    if not allowed:
+        # The restricted role must be created fresh; the Linux platform gate's
+        # disposable superuser runs these, a least-privilege installer DSN cannot.
+        pytest.skip("Disposable TEST_DATABASE_URL cannot create the restricted test role")
     return dsn
 
 
@@ -240,7 +252,7 @@ def test_actual_pg_runtime_kill_switch_file_denies_without_sql(authority, tmp_pa
 @pytest.mark.integration
 def test_actual_pg_existing_installation_upgrade_applies_008(tmp_path):
     """An installation migrated before 008 is repaired by the owner migrate path."""
-    admin = _admin_dsn()
+    admin = _admin_dsn("(rolcreaterole AND rolcreatedb)")
     import psycopg
     from psycopg import sql
     from psycopg.conninfo import conninfo_to_dict, make_conninfo
