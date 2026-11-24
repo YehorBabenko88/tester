@@ -76,15 +76,23 @@ def test_stream_tls_latches_before_context_cleanup_and_fresh_instance():
     assert store.state == "HALTED"
     fresh = Mock()
     with pytest.raises(RuntimeError):
-        Transport(session=fresh, policy_store=store).get(URL)
+        Transport(session=fresh, policy_store=store, sleep=Mock()).get(URL)
     fresh.request.assert_not_called()
 
 
-def close_before_delayed_tls(store):
+def close_before_delayed_tls(store, fail_halt_write=False, outage=None):
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event
 
     reading, resume = Event(), Event()
+    original_finish = store.finish
+
+    def finish(key, token, outcome):
+        if fail_halt_write and outcome != "allow":
+            raise RuntimeError("simulated halt write outage")
+        return original_finish(key, token, outcome)
+
+    store.finish = finish
     value = response()
 
     def delayed(*args, **kwargs):
@@ -103,16 +111,84 @@ def close_before_delayed_tls(store):
             assert reading.wait(5), "reader never entered stream"
             stream.close()
             stream.close()  # ordinary cleanup is idempotent
+            if outage:
+                outage(False)
         finally:
             resume.set()
-        with pytest.raises(requests.exceptions.SSLError):
+        with pytest.raises(
+            RuntimeError if fail_halt_write or outage else requests.exceptions.SSLError
+        ):
             future.result(timeout=5)
-    stream.close()  # cleanup must never downgrade the late TLS outcome
+    if outage:
+        outage(True)
+    store.finish = original_finish
+    if not fail_halt_write and not outage:
+        stream.close()  # cleanup must never downgrade the late TLS outcome
     fresh = Mock()
     fresh.request.return_value = response()
     with pytest.raises(RuntimeError, match="manual review"):
-        Transport(session=fresh, policy_store=store).get(URL)
+        Transport(session=fresh, policy_store=store, sleep=Mock()).get(URL)
     fresh.request.assert_not_called()
+
+
+@pytest.mark.parametrize("reader_count", [1, 2])
+def test_stream_close_waits_for_all_readers_and_rejects_reentry(reader_count):
+    store = ReservationFixture()
+    value = response()
+    value.iter_content = lambda *a, **k: iter([b"prefix", b"suffix"])
+    session = Mock()
+    session.request.return_value = value
+    stream = Transport(session=session, policy_store=store).get(URL, stream=True)
+    readers = [stream.iter_content(10) for _ in range(reader_count)]
+    for reader in readers:
+        assert next(reader) == b"prefix"
+    stream.close()
+    assert store.state == "PENDING"
+    with pytest.raises(ValueError, match="already closed"):
+        next(stream.iter_content(10))
+    for reader in readers[:-1]:
+        reader.close()
+        assert store.state == "PENDING"
+    readers[-1].close()
+    assert store.state == "CLEAR"
+    stream.close()
+
+
+def test_actual_pg_stream_close_then_tls_during_real_database_outage(durable_policy):
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    from src.api.db import connect
+
+    policy, owner, scope = durable_policy
+    database = conninfo_to_dict(owner.dsn)["dbname"]
+    admin = make_conninfo(owner.dsn, dbname="postgres")
+
+    def availability(enabled):
+        with connect(admin) as conn:
+            conn.execute(
+                sql.SQL(
+                    "ALTER DATABASE {} ALLOW_CONNECTIONS " + ("true" if enabled else "false")
+                ).format(sql.Identifier(database))
+            )
+
+    try:
+        close_before_delayed_tls(policy, outage=availability)
+        assert policy.read(URL.removeprefix("https://")) == "PENDING"
+    finally:
+        availability(True)
+
+
+def test_stream_active_reader_keeps_pending_if_tls_halt_write_fails():
+    store = ReservationFixture()
+    close_before_delayed_tls(store, fail_halt_write=True)
+    assert store.state == "PENDING"
+
+
+def test_actual_pg_active_reader_keeps_pending_if_tls_halt_write_fails(durable_policy):
+    policy, owner, scope = durable_policy
+    close_before_delayed_tls(policy, fail_halt_write=True)
+    assert policy.read(URL.removeprefix("https://")) == "PENDING"
 
 
 def test_stream_close_cannot_discard_later_reader_tls_identity():
@@ -121,10 +197,10 @@ def test_stream_close_cannot_discard_later_reader_tls_identity():
     assert store.state == "HALTED"
 
 
-def test_actual_pg_stream_close_then_delayed_tls_halts_whole_scope(durable_policy):
+def test_actual_pg_stream_close_then_delayed_tls_halts_endpoint(durable_policy):
     policy, owner, scope = durable_policy
     close_before_delayed_tls(policy)
-    assert policy.read("api.bybit.com/v5/market/kline") == "HALTED"
+    assert policy.read(URL.removeprefix("https://")) == "HALTED"
 
 
 def test_stream_pending_until_close_and_explicit_abort_releases_clean_request():

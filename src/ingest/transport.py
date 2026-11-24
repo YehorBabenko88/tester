@@ -163,7 +163,11 @@ class Transport:
 
     def _finish_policy(self, key, lease):
         with lease["lock"]:
-            if self.policy_store is not None and lease["token"] is not None:
+            if (
+                self.policy_store is not None
+                and lease["token"] is not None
+                and not lease.get("active_readers", 0)
+            ):
                 self.policy_store.finish(key, lease["token"], lease["outcome"])
                 lease["token"] = None
 
@@ -185,14 +189,25 @@ class Transport:
         original_iter, original_close = response.iter_content, response.close
 
         def consume(*args, **kwargs):
+            with lease["lock"]:
+                if lease.get("closing", False):
+                    raise ValueError("Public response already closed")
+                lease["active_readers"] = lease.get("active_readers", 0) + 1
             try:
                 yield from original_iter(*args, **kwargs)
             except requests.exceptions.SSLError:
                 self._security_fault(key, lease, "tls_failure")
                 self._observe(key, started, "tls_failure")
                 raise
+            finally:
+                with lease["lock"]:
+                    lease["active_readers"] -= 1
+                    if lease.get("closing", False):
+                        self._finish_policy(key, lease)
 
         def close():
+            with lease["lock"]:
+                lease["closing"] = True
             try:
                 original_close()
             except requests.exceptions.SSLError:
