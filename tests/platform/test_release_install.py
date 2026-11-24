@@ -257,6 +257,7 @@ def test_full_native_installer_lifecycle(tmp_path):
                     )
                 try:
                     old_marker = ri.load_marker(root)
+                    marker = old_marker
                     pause_path = Path(old_marker["trust_config"]).parent / "test-pause.json"
                     pause = json.loads(pause_path.read_text())
                     if (
@@ -487,6 +488,93 @@ def test_full_native_installer_lifecycle(tmp_path):
         maintenance = Path(marker["trust_config"]).parent
         assert not list(maintenance.glob("maintenance-*"))
         evidence["checks"].append(dict(phase="absence-verified"))
+        first_installation = marker["installation_id"]
+        media2 = tmp_path / ("SecondCleanInstallerMedia_" + ident)
+        shutil.copytree(Path(os.environ["TESTER_RELEASE_BUNDLE"]), media2)
+        powershell(
+            [
+                "-File",
+                media2 / "Setup-Tester.ps1",
+                "-Bundle",
+                media2,
+                "-Root",
+                root,
+                "-Mode",
+                "test",
+                "-Desktop",
+                desktop,
+                "-ManifestSHA256",
+                manifest_pin,
+                "-TrustedPublicKeySHA256",
+                key_pin,
+                "-ExpectedSourceSHA",
+                source_sha,
+            ],
+            timeout=1200,
+        )
+        marker = ri.load_marker(root)
+        assert marker["installation_id"] != first_installation
+        second_native = ready()
+        evidence["checks"].append(
+            dict(
+                phase="second-clean-install-same-path-ready",
+                installation_id=marker["installation_id"],
+            )
+        )
+        owner2 = json.loads((root / "private/database-owner.json").read_text())
+        with psycopg.connect(owner2["database_url"]) as conn:
+            conn.execute("CREATE SCHEMA tester_acceptance")
+            conn.execute("CREATE TABLE tester_acceptance.lifecycle(value text PRIMARY KEY)")
+            conn.execute(
+                "INSERT INTO tester_acceptance.lifecycle VALUES (%s)",
+                ("pg-fault-durable-" + ident,),
+            )
+        pg_before = validate_resources(marker)[1]
+        evidence["checks"].append(
+            dict(phase="before-real-postgres-service-fault", pid=pg_before["pid"])
+        )
+        kill_owned(
+            pg_before["pid"],
+            role="postgres",
+            allowed=(root / "dependencies/postgres/bin/pg_ctl.exe",),
+        )
+        deadline = time.monotonic() + 100
+        while time.monotonic() < deadline:
+            current = validate_resources(marker)[1]
+            if current and current["state"] == "running" and current["pid"] != pg_before["pid"]:
+                break
+            time.sleep(0.3)
+        else:
+            pytest.fail("Real private PostgreSQL SCM service did not automatically recover")
+        recovered = ready()
+        with psycopg.connect(owner2["database_url"]) as conn:
+            assert (
+                conn.execute("SELECT value FROM tester_acceptance.lifecycle").fetchone()[0]
+                == "pg-fault-durable-" + ident
+            )
+        evidence["checks"].append(
+            dict(
+                phase="real-postgres-service-recovered-data-retained",
+                old_pid=pg_before["pid"],
+                new_pid=current["pid"],
+                app_instance=recovered["instance_id"],
+                initial_app_instance=second_native["instance_id"],
+            )
+        )
+        powershell(
+            [
+                "-File",
+                root / "releases" / source_sha / "scripts/windows/Uninstall-ReleaseTester.ps1",
+                "-TrustConfig",
+                marker["trust_config"],
+            ],
+            input_text="DELETE TESTER\nYES\n",
+            timeout=600,
+        )
+        assert not root.exists() and not list(desktop.glob("*.lnk"))
+        assert all(state is None for state in validate_resources(marker))
+        evidence["checks"].append(dict(phase="second-clean-install-cleanup-complete"))
+
     except BaseException as exc:
         failure = type(exc).__name__ + ": " + str(exc)
         evidence["failure"] = failure
