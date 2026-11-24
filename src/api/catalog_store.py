@@ -28,11 +28,22 @@ def validate_catalog_dsn(dsn):
     port = values.get("port", "5432")
     host = values.get("host")
     pinned = "127.0.0.1" if host == "localhost" else host
-    allowed = {"host", "hostaddr", "port", "dbname", "user", "password", "sslmode", "sslrootcert"}
+    allowed = {
+        "host",
+        "hostaddr",
+        "port",
+        "dbname",
+        "user",
+        "password",
+        "sslmode",
+        "sslrootcert",
+        "require_auth",
+    }
     if (
         host not in {"127.0.0.1", "localhost", "::1"}
         or set(values) - allowed
         or values.get("hostaddr", pinned) != pinned
+        or values.get("require_auth") not in (None, "scram-sha-256")
         or not port.isdecimal()
         or not 1 <= int(port) <= 65535
         or int(port) == 5432

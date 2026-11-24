@@ -34,7 +34,7 @@ def database_identity(marker):
         or api in {5432, port}
     ):
         raise ValueError("Release requires separate explicit non-5432 loopback ports")
-    return dict(host="127.0.0.1", hostaddr="127.0.0.1", port=port)
+    return dict(host="127.0.0.1", hostaddr="127.0.0.1", port=port, require_auth="scram-sha-256")
 
 
 def runtime_configuration(root, marker, app_dsn, catalog_dsn, *, research_dsn=None):
@@ -50,6 +50,8 @@ def runtime_configuration(root, marker, app_dsn, catalog_dsn, *, research_dsn=No
         handler_factory="src.integration.reference_prices:create_handler",
         market_catalog_enabled=True,
         market_catalog_database_url=catalog_dsn,
+        public_transport_policy_enabled=True,
+        public_transport_installation_id=marker["installation_id"],
     )
     if research_dsn is not None:
         endpoint = validate_research_dsn(research_dsn)
@@ -133,6 +135,20 @@ def provision_release_databases(marker, owner_password):
                 conn.execute(
                     "GRANT EXECUTE ON FUNCTION tester_platform.reserve_restart(uuid,text,text), "
                     "tester_platform.restart_counts(uuid,text) TO tester_app"
+                )
+                conn.execute(
+                    "INSERT INTO tester_platform.transport_policy_scopes "
+                    "(installation_id,runtime_role,owner_role) VALUES(%s,'tester_app',current_user)",
+                    (marker["installation_id"],),
+                )
+                conn.execute(
+                    "REVOKE ALL ON tester_platform.transport_policy_scopes, "
+                    "tester_platform.transport_policy_entries FROM tester_app"
+                )
+                conn.execute(
+                    "GRANT EXECUTE ON FUNCTION tester_platform.read_public_transport(uuid,text), "
+                    "tester_platform.reserve_public_transport(uuid,text), "
+                    "tester_platform.finish_public_transport(uuid,text,uuid,text) TO tester_app"
                 )
         role_endpoint = (
             endpoint

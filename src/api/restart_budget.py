@@ -45,7 +45,9 @@ class DatabaseRestartBudget:
                 or int(endpoint["port"]) == 5432
                 or endpoint.get("dbname") != "tester"
                 or endpoint.get("user") != "tester_app"
-                or set(endpoint) - {"host", "hostaddr", "port", "dbname", "user", "password"}
+                or endpoint.get("require_auth") != "scram-sha-256"
+                or set(endpoint)
+                - {"host", "hostaddr", "port", "dbname", "user", "password", "require_auth"}
             ):
                 raise ValueError
         except (ValueError, TypeError, AttributeError, psycopg.Error) as exc:

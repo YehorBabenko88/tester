@@ -9,7 +9,7 @@ import pytest
 from src.api.restart_budget import BudgetDenied, DatabaseRestartBudget
 
 IDENT = "00000000-0000-0000-0000-000000000042"
-DSN = "host=127.0.0.1 port=55822 dbname=tester user=tester_app password=temporary"
+DSN = "host=127.0.0.1 port=55822 dbname=tester user=tester_app password=temporary require_auth=scram-sha-256"
 
 
 def budget(tmp_path):

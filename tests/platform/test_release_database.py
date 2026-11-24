@@ -32,6 +32,8 @@ def test_configuration_connects_existing_typed_catalog_history_adapter(tmp_path)
     assert result["market_catalog_database_url"] == "CATALOG-DSN"
     assert result["database_url"] == "APP-DSN"
     assert result["data_dir"] == str(tmp_path / "runtime")
+    assert result["public_transport_policy_enabled"] is True
+    assert result["public_transport_installation_id"] == marker()["installation_id"]
 
 
 def test_projection_configuration_uses_only_owned_isolated_research_database(tmp_path):
@@ -99,14 +101,27 @@ def test_real_fresh_release_migration_roles_catalog_and_queue(tmp_path):
     if not expected:
         pytest.skip("explicit fresh dedicated release DB cluster required")
     # Read the cluster identity before any DDL. A port alone cannot authorize it.
-    owner = "host=127.0.0.1 hostaddr=127.0.0.1 port=55822 dbname=postgres user=tester_owner"
+    from psycopg.conninfo import make_conninfo
+
+    owner_password = os.environ.get(
+        "TESTER_RELEASE_DATABASE_TEST_OWNER_PASSWORD", "disposable-test-only"
+    )
+    owner = make_conninfo(
+        host="127.0.0.1",
+        hostaddr="127.0.0.1",
+        port=55822,
+        dbname="postgres",
+        user="tester_owner",
+        password=owner_password,
+        require_auth="scram-sha-256",
+    )
     with psycopg.connect(owner) as conn:
         actual = conn.execute("SHOW data_directory").fetchone()[0]
     if Path(actual).resolve() != Path(expected).resolve() or not Path(expected).name.startswith(
         "release-database-pg"
     ):
         raise ValueError("Disposable release database scope mismatch")
-    runtime, owners = provision_release_databases(marker(), "disposable-test-only")
+    runtime, owners = provision_release_databases(marker(), owner_password)
     for name, dsn in runtime.items():
         with psycopg.connect(dsn) as conn:
             assert (
