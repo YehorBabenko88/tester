@@ -1,3 +1,4 @@
+import sys
 import uuid
 
 import pytest
@@ -17,6 +18,7 @@ def _open_observed_process(pid):
         raise
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="native pywin32 OpenProcess exception contract")
 def test_observed_process_only_ignores_exited_pid(monkeypatch):
     import pywintypes
     import win32api
