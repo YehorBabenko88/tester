@@ -112,9 +112,16 @@ def provision_release_databases(marker, owner_password):
             )
             conn.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
             for schema in schemas:
+                # Research capabilities and published chart inputs are owner-issued.
+                # Projection evidence is append-only; runtime has no rewrite/delete authority.
+                table_privileges = (
+                    "SELECT"
+                    if schema in {"tester_research", "tester_lab"}
+                    else "SELECT,INSERT,UPDATE,DELETE"
+                )
                 for grant in (
                     "GRANT USAGE ON SCHEMA {} TO {}",
-                    "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA {} TO {}",
+                    f"GRANT {table_privileges} ON ALL TABLES IN SCHEMA {{}} TO {{}}",
                     "GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA {} TO {}",
                 ):
                     conn.execute(
@@ -130,7 +137,26 @@ def provision_release_databases(marker, owner_password):
                         sql.Identifier(schema), sql.Identifier(migration), sql.Identifier(role)
                     )
                 )
+            if name == "tester_research_release":
+                for table, privileges in (
+                    ("jobs", "INSERT,UPDATE"),
+                    ("acknowledgments", "INSERT"),
+                    ("audit", "INSERT"),
+                ):
+                    conn.execute(
+                        sql.SQL("GRANT {} ON tester_research.{} TO {}").format(
+                            sql.SQL(privileges), sql.Identifier(table), sql.Identifier(role)
+                        )
+                    )
+                # Definer guards retain row-share locks until the caller commits,
+                # without granting runtime UPDATE on credentials or capabilities.
+                conn.execute(
+                    "GRANT EXECUTE ON FUNCTION tester_research.lock_projection_credential(text), "
+                    "tester_research.lock_projection_capability(text,text,text) "
+                    "TO tester_research_app"
+                )
             if name == "tester":
+                conn.execute("GRANT INSERT ON tester_lab.projections TO tester_app")
                 conn.execute("REVOKE ALL ON tester_platform.restart_budgets FROM tester_app")
                 conn.execute(
                     "GRANT EXECUTE ON FUNCTION tester_platform.reserve_restart(uuid,text,text), "
