@@ -364,3 +364,115 @@ def test_overlay_verifier_uses_kernel_resolved_powershell_not_path_or_systemroot
     monkeypatch.setattr(release.subprocess, "run", checked_run)
     release.verify_overlay_publisher(tmp_path / "signed.ps1", "a" * 64)
     assert len(observed) == 1
+
+
+def test_archive_refuses_mutation_between_inventory_and_read(tmp_path, monkeypatch):
+    from scripts import build_release as release
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    payload = bundle / "payload.txt"
+    payload.write_bytes(b"approved")
+    original = release.component_files
+    first = True
+
+    def inventory_then_mutate(root):
+        nonlocal first
+        result = original(root)
+        if first:
+            first = False
+            payload.write_bytes(b"unapproved replacement")
+        return result
+
+    monkeypatch.setattr(release, "component_files", inventory_then_mutate)
+    destination = tmp_path / "release.zip"
+    with pytest.raises(ValueError, match="changed|digest|inventory"):
+        archive(bundle, destination)
+    assert not destination.exists()
+
+
+def test_archive_tiny_unsigned_snapshot_is_deterministic(tmp_path):
+    import zipfile
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "b.txt").write_bytes(b"beta")
+    (bundle / "a.txt").write_bytes(b"alpha")
+    one, two = tmp_path / "one.zip", tmp_path / "two.zip"
+    assert archive(bundle, one) == archive(bundle, two)
+    assert one.read_bytes() == two.read_bytes()
+    with zipfile.ZipFile(one) as z:
+        assert z.namelist() == ["a.txt", "b.txt"]
+        assert z.read("a.txt") == b"alpha"
+
+
+def test_archive_refuses_extra_file_after_inventory(tmp_path, monkeypatch):
+    from scripts import build_release as release
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "a.txt").write_bytes(b"approved")
+    original = release.component_files
+    first = True
+
+    def inventory_then_add(root):
+        nonlocal first
+        result = original(root)
+        if first:
+            first = False
+            (bundle / "unexpected.txt").write_bytes(b"not-approved")
+        return result
+
+    monkeypatch.setattr(release, "component_files", inventory_then_add)
+    with pytest.raises(ValueError, match="tree|inventory"):
+        archive(bundle, tmp_path / "release.zip")
+    assert not (tmp_path / "release.zip").exists()
+    assert not list(tmp_path.glob(".tester-archive-*"))
+
+
+def test_archive_refuses_bundle_destination_and_preserves_foreign_output(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "a.txt").write_bytes(b"approved")
+    with pytest.raises(ValueError, match="outside"):
+        archive(bundle, bundle / "inside.zip")
+    foreign = tmp_path / "foreign.zip"
+    foreign.write_bytes(b"foreign sentinel")
+    with pytest.raises(FileExistsError):
+        archive(bundle, foreign)
+    assert foreign.read_bytes() == b"foreign sentinel"
+
+
+def test_archive_signed_bundle_requires_verified_complete_map(tmp_path):
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "a.txt").write_bytes(b"approved")
+    envelope = dict(manifest=dict(files=component_files(bundle)))
+    (bundle / "release-manifest.json").write_text(json.dumps(envelope))
+    with pytest.raises(ValueError, match="independently verified"):
+        archive(bundle, tmp_path / "unapproved.zip")
+    approved = component_files(bundle)
+    assert archive(bundle, tmp_path / "signed.zip", expected_inventory=approved)
+    (bundle / "a.txt").write_bytes(b"changed-before-snapshot")
+    with pytest.raises(ValueError, match="approved"):
+        archive(bundle, tmp_path / "changed.zip", expected_inventory=approved)
+    assert not (tmp_path / "changed.zip").exists()
+
+
+def test_archive_publication_race_never_deletes_foreign_destination(tmp_path, monkeypatch):
+    from scripts import build_release as release
+
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    (bundle / "a.txt").write_bytes(b"approved")
+    destination = tmp_path / "release.zip"
+
+    def foreign_wins(source, target):
+        destination.write_bytes(b"foreign winner")
+        raise FileExistsError(target)
+
+    monkeypatch.setattr(release.os, "link", foreign_wins)
+    with pytest.raises(FileExistsError):
+        archive(bundle, destination)
+    assert destination.read_bytes() == b"foreign winner"
+    assert not list(tmp_path.glob(".tester-archive-*"))

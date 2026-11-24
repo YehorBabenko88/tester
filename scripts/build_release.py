@@ -11,6 +11,7 @@ import re
 import shutil
 import stat
 import subprocess
+import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
 
@@ -407,15 +408,87 @@ def build(
     return manifest
 
 
-def archive(bundle, destination):
-    """Stable ZIP bytes: sorted paths, fixed timestamps and permissions, no platform metadata."""
-    with zipfile.ZipFile(destination, "x", compression=zipfile.ZIP_STORED) as z:
-        for name in component_files(Path(bundle)):
-            info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
-            info.create_system = 3
-            info.external_attr = 0o100644 << 16
-            z.writestr(info, (Path(bundle) / name).read_bytes())
-    return digest(Path(destination))
+def archive(bundle, destination, *, expected_inventory=None):
+    """Publish deterministic ZIP bytes; signer trust belongs to the external verifier.
+
+    Signed bundles require the complete independently verified map, including the
+    envelope digest. Unsigned default mode is only an untrusted snapshot.
+    """
+    bundle, destination = Path(bundle).resolve(), Path(destination).absolute()
+    if destination.exists() or destination.is_symlink():
+        raise FileExistsError(destination)
+    destination = destination.resolve()
+    if destination == bundle or bundle in destination.parents:
+        raise ValueError("Archive destination must be outside its input bundle")
+    observed = component_files(bundle)
+    if "release-manifest.json" in observed and expected_inventory is None:
+        raise ValueError("Signed archive requires independently verified complete inventory")
+    approved = dict(observed if expected_inventory is None else expected_inventory)
+    if observed != approved:
+        raise ValueError("Archive input inventory differs from approved digests")
+
+    def identity(info):
+        return info.st_dev, info.st_ino
+
+    private = Path(tempfile.mkdtemp(prefix=".tester-archive-", dir=destination.parent))
+    private_identity = identity(private.lstat())
+    partial = private / "archive.partial"
+    partial_identity = None
+    try:
+        with partial.open("x+b") as stream:
+            partial_identity = identity(os.fstat(stream.fileno()))
+            with zipfile.ZipFile(stream, "w", compression=zipfile.ZIP_STORED) as z:
+                for name, expected in sorted(approved.items()):
+                    path = bundle / name
+                    try:
+                        regular(path)
+                        data = path.read_bytes()
+                    except OSError as exc:
+                        raise ValueError("Archive input changed or became unreadable") from exc
+                    if hashlib.sha256(data).hexdigest() != expected:
+                        raise ValueError("Archive input changed from its approved digest")
+                    if name == "release-manifest.json":
+                        envelope = json.loads(data)
+                        manifest = envelope.get("manifest", {}) if type(envelope) is dict else {}
+                        if type(manifest) is not dict or manifest.get("files") != {
+                            n: h for n, h in approved.items() if n != name
+                        }:
+                            raise ValueError(
+                                "Archive inventory differs from final manifest payload"
+                            )
+                    info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+                    info.create_system = 3
+                    info.external_attr = 0o100644 << 16
+                    z.writestr(info, data)
+            if component_files(bundle) != approved:
+                raise ValueError("Archive input tree or digests changed during assembly")
+            stream.flush()
+            os.fsync(stream.fileno())
+            stream.seek(0)
+            result = hashlib.sha256()
+            while chunk := stream.read(1024 * 1024):
+                result.update(chunk)
+            # Same-filesystem hardlink creates the final name atomically and never
+            # overwrites an existing destination. No partial final ZIP is exposed.
+            if (
+                identity(private.lstat()) != private_identity
+                or identity(partial.lstat()) != partial_identity
+            ):
+                raise ValueError("Private archive identity changed before publication")
+            os.link(partial, destination)
+            if identity(destination.lstat()) != partial_identity:
+                raise ValueError("Published archive identity differs from verified bytes")
+    finally:
+        # Remove only objects created by this call. Never recurse or delete a
+        # pre-existing/foreign destination, even when publication loses a race.
+        if identity(private.lstat()) != private_identity:
+            raise ValueError("Private archive directory ownership identity changed")
+        if partial_identity is not None:
+            if identity(partial.lstat()) != partial_identity:
+                raise ValueError("Private partial archive ownership identity changed")
+            partial.unlink()
+        private.rmdir()
+    return result.hexdigest()
 
 
 def stage_local_components(python_root, postgres_root, wheelhouse, lock, output, pins_path):
