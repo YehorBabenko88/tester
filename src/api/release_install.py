@@ -664,9 +664,15 @@ def provision_database(root, marker, password):
     runtime, owners = provision_release_databases(marker, password)
     write_json(
         root / "config.json",
-        runtime_configuration(root, marker, runtime["tester"], runtime["tester_catalog"]),
+        runtime_configuration(
+            root,
+            marker,
+            runtime["tester"],
+            runtime["tester_catalog"],
+            research_dsn=runtime["tester_research_release"],
+        ),
     )
-    # Research and administrative credentials never enter the API/worker config.
+    # Administrative owner credentials never enter the API/worker config.
     write_json(
         root / "private/database-owner.json", dict(database_url=owners["tester"], databases=owners)
     )

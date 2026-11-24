@@ -5,6 +5,35 @@ import pytest
 from src.api import release_install as ri
 
 
+def _open_observed_process(pid):
+    import pywintypes
+    import win32api
+
+    try:
+        return win32api.OpenProcess(0x1000, False, pid)
+    except pywintypes.error as exc:
+        if exc.winerror == 87:  # Snapshot PID exited before OpenProcess.
+            return None
+        raise
+
+
+def test_observed_process_only_ignores_exited_pid(monkeypatch):
+    import pywintypes
+    import win32api
+
+    def fail(code):
+        def opening(*args):
+            raise pywintypes.error(code, "OpenProcess", "native observation race")
+
+        return opening
+
+    monkeypatch.setattr(win32api, "OpenProcess", fail(87))
+    assert _open_observed_process(1234) is None
+    monkeypatch.setattr(win32api, "OpenProcess", fail(5))
+    with pytest.raises(pywintypes.error):
+        _open_observed_process(1234)
+
+
 def test_test_root_requires_unique_name_and_fake_desktop(tmp_path):
     with pytest.raises(ValueError):
         ri.validate_destination(tmp_path / "ordinary", mode="test", desktop=tmp_path / "desktop")
@@ -196,20 +225,21 @@ def test_full_native_installer_lifecycle(tmp_path):
         rows = rows if isinstance(rows, list) else [rows]
         own = []
         for row in rows:
+            handle = _open_observed_process(row["ProcessId"])
+            if handle is None:
+                continue
+            token = None
             try:
-                handle = win32api.OpenProcess(0x1000, False, row["ProcessId"])
                 token = win32security.OpenProcessToken(handle, win32con.TOKEN_QUERY)
-                try:
-                    sid = win32security.ConvertSidToStringSid(
-                        win32security.GetTokenInformation(token, win32security.TokenUser)[0]
-                    )
-                    if sid == service_sid(marker["services"]["app"]):
-                        own.append(row)
-                finally:
+                sid = win32security.ConvertSidToStringSid(
+                    win32security.GetTokenInformation(token, win32security.TokenUser)[0]
+                )
+                if sid == service_sid(marker["services"]["app"]):
+                    own.append(row)
+            finally:
+                if token is not None:
                     token.Close()
-                    handle.Close()
-            except OSError:
-                pass
+                handle.Close()
         parents = {r["ParentProcessId"] for r in own}
         leaves = [r for r in own if r["ProcessId"] not in parents]
         return leaves
