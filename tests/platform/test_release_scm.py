@@ -277,8 +277,14 @@ def test_release_database_scope_refuses_system_and_external_cluster(tmp_path):
     )
     with pytest.raises(ValueError):
         rs.validate_config(marker, config)
-    config["database_url"] = "host=127.0.0.1 port=55471 dbname=tester user=tester_app"
+    config["database_url"] = (
+        "host=127.0.0.1 port=55471 dbname=tester user=tester_app require_auth=scram-sha-256"
+    )
     rs.validate_config(marker, config)
+    for method in ("", " require_auth=password", " require_auth=scram-sha-256,password"):
+        config["database_url"] = "host=127.0.0.1 port=55471 dbname=tester user=tester_app" + method
+        with pytest.raises(ValueError):
+            rs.validate_config(marker, config)
     config["data_dir"] = str(tmp_path.parent / "foreign")
     with pytest.raises(ValueError):
         rs.validate_config(marker, config)
@@ -859,7 +865,7 @@ def test_app_service_preflight_keeps_pg_data_private(tmp_path):
         port=18767,
         data_dir=str(root / "runtime"),
         frontend_dir=str(source / "frontend"),
-        database_url="host=127.0.0.1 port=55471 dbname=tester user=tester_app",
+        database_url="host=127.0.0.1 port=55471 dbname=tester user=tester_app require_auth=scram-sha-256",
     )
     (root / "config.json").write_text(json.dumps(config))
     service = object.__new__(rs.ReleaseService)

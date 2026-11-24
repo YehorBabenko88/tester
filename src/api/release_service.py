@@ -410,6 +410,7 @@ def validate_config(marker, config):
         or pg.get("port") == "5432"
         or pg.get("dbname") != "tester"
         or pg.get("user") != "tester_app"
+        or pg.get("require_auth") != "scram-sha-256"
         or pg.get("hostaddr") not in (None, "127.0.0.1")
         or any(key in pg for key in ("service", "options"))
     ):
