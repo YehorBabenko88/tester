@@ -438,6 +438,12 @@ def remove_resources(marker):
         return controller.apply("remove")
 
 
+# Upper bounds for an operator start: PostgreSQL readiness may include crash recovery;
+# the App host may wait for restart authority before its own readiness deadline.
+PG_START_SECONDS = 660
+APP_START_SECONDS = 180
+
+
 class NativeController:
     def __init__(self, marker):
         self.marker = marker
@@ -486,10 +492,24 @@ class NativeController:
             raise ValueError("Unknown lifecycle action")
         if action in {"start", "restart"}:
             preflight(Path(self.marker["root"]))
-            for plan in (pg, app):
+            for plan, limit in ((pg, PG_START_SECONDS), (app, APP_START_SECONDS)):
                 self.scm.start(plan["name"])
-                self.scm.wait(plan["name"], "running")
+                self._wait_running(plan["name"], limit)
         return validate_resources(self.marker, self.scm)
+
+    def _wait_running(self, name, limit):
+        """The SCM wait is bounded; keep waiting only while the service is still pending."""
+        import time
+
+        from .lab_install import LabViolation
+
+        deadline = time.monotonic() + limit
+        while True:
+            try:
+                return self.scm.wait(name, "running")
+            except LabViolation:
+                if time.monotonic() >= deadline or self.scm.inspect(name)["state"] != "pending":
+                    raise
 
 
 def validate_config(marker, config):
@@ -594,22 +614,58 @@ class ReleaseService(LabService):
     _receipt_lock = threading.Lock()
     marker_reader = staticmethod(load_marker)
 
+    # PostgreSQL may still be finishing startup/crash recovery after its own service
+    # reports RUNNING. Waiting here keeps a transient outage from consuming one of the
+    # two SCM recovery actions; exhausted/disabled policy still stops normally.
+    admission_grace_seconds = 45
+
     def admit_start(self, root):
+        import time
+
         from .restart_budget import BudgetDenied, BudgetUnavailable, DatabaseRestartBudget
 
         marker = load_marker(root)
+        deadline = time.monotonic() + self.admission_grace_seconds
         try:
-            DatabaseRestartBudget.from_config(
+            budget = DatabaseRestartBudget.from_config(
                 root / "config.json",
                 root / "runtime",
                 marker["installation_id"],
                 marker["source_sha"],
-            ).admit("host")
+            )
+            while True:
+                try:
+                    budget.admit("host")
+                    break
+                except BudgetUnavailable:
+                    if time.monotonic() >= deadline:
+                        raise
+                    if self._admission_pause():
+                        return False  # Stop requested while authority was unavailable.
         except BudgetUnavailable:
             raise
         except BudgetDenied:
             return False
+        self._restart_budget = budget
         return True
+
+    def _admission_pause(self):
+        import time
+
+        event = getattr(self, "stop_event", None)
+        if event is None:
+            time.sleep(2)
+            return False
+        import win32event
+        import win32service
+
+        self.ReportServiceStatus(win32service.SERVICE_START_PENDING, waitHint=60000)
+        return win32event.WaitForSingleObject(event, 2000) == win32event.WAIT_OBJECT_0
+
+    def record_clean_stop(self, root):
+        budget = getattr(self, "_restart_budget", None)
+        if budget is not None:
+            budget.record_clean_stop()  # Exact host-run token; children never hold it.
 
     def create_job(self, marker):
         return create_owned_job(marker)
@@ -682,6 +738,9 @@ class ReleasePostgresService(ReleaseService):
 
     service_role = "postgres"
     uses_http_health = False
+    # Crash recovery after power loss/unclean shutdown can exceed the App's 55 s.
+    # The child must stay alive and in our job; START_PENDING keeps advancing.
+    startup_deadline_seconds = 600
 
     def admit_start(self, root):
         return True  # PostgreSQL must be available before SQL admission is possible.

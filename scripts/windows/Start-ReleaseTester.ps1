@@ -9,7 +9,10 @@ $Release=Join-Path $Root ('releases\'+$Marker.source_sha)
 $Python=Join-Path $Root 'dependencies\venv\Scripts\python.exe'
 Push-Location -LiteralPath $Release
 try {
-    & $Python -B -m src.api.release_service start --root $Root
+    # Elevated: -I ignores PYTHON* variables, user site and the current directory, so a
+    # caller-controlled PYTHONPATH cannot inject modules. The release root is explicit.
+    $Bootstrap="import sys,runpy;sys.path.insert(0,sys.argv.pop(1));runpy.run_module('src.api.release_service',run_name='__main__',alter_sys=True)"
+    & $Python -I -B -c $Bootstrap $Release start --root $Root
     if ($LASTEXITCODE -ne 0) {throw 'Service startup failed; inspect state and runtime logs.'}
     try {$Health=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$Marker.ports.api+'/api/health') -ErrorAction Stop}
     catch {
