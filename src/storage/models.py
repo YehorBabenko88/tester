@@ -75,7 +75,7 @@ def normalize(envelope):
     if r['dataset']=='trades':
         p['price']=decimal(p.get('price'),'price',positive=True)
         p['size']=decimal(p.get('size'),'size',positive=True)
-        if p.get('side') not in ('Buy','Sell'): raise ValueError('invalid taker side')
+        if p.get('side') not in ('Buy','Sell','Unknown'): raise ValueError('invalid taker side')
         tid=p.get('trade_id')
         if tid is not None:
             if not isinstance(tid,str) or not tid or len(tid)>512: raise ValueError('invalid original trade_id')
