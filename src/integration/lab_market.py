@@ -49,7 +49,7 @@ def commit_batch(commit, write, mark_conflict, checkpoint, progress):
         raise
 
 
-def bound_store(connection, settings):
+def bound_store(connection, settings=None):
     class BoundStore(Store):
         @contextmanager
         def connect(self):
@@ -61,7 +61,11 @@ def bound_store(connection, settings):
             finally:
                 connection.row_factory = old
 
-    return BoundStore(settings.dsn, storage_root=settings.data_dir)
+    return (
+        BoundStore(settings.dsn, storage_root=settings.data_dir)
+        if settings is not None
+        else BoundStore()
+    )
 
 
 def validate_download(request):
@@ -215,32 +219,34 @@ class LabReader:
                     raise ValueError()
             except (ValueError, TypeError) as exc:
                 raise ProviderDataUnavailable("continuation_unavailable") from exc
-        rows = self.store.read(
-            "candles",
-            query.venue,
-            query.category,
-            query.symbol,
-            query.start_ms,
-            query.end_ms,
-            query.interval,
-            limit=query.limit + 1,
-            after=after,
-            compact_provenance=True,
-        )
-        report = self.store.coverage(
-            query.venue,
-            query.category,
-            query.symbol,
-            "candles",
-            query.interval,
-            query.start_ms,
-            query.end_ms,
-        )
-        if report.get("corrupt") or report.get("unavailable"):
-            raise ProviderDataUnavailable("storage_integrity_unavailable")
-        more = len(rows) > query.limit
-        rows = rows[: query.limit]
         with self.store.connect() as c:
+            c.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            snapshot = bound_store(c)
+            rows = snapshot.read(
+                "candles",
+                query.venue,
+                query.category,
+                query.symbol,
+                query.start_ms,
+                query.end_ms,
+                query.interval,
+                limit=query.limit + 1,
+                after=after,
+                compact_provenance=True,
+            )
+            report = snapshot.coverage(
+                query.venue,
+                query.category,
+                query.symbol,
+                "candles",
+                query.interval,
+                query.start_ms,
+                query.end_ms,
+            )
+            if report.get("corrupt") or report.get("unavailable"):
+                raise ProviderDataUnavailable("storage_integrity_unavailable")
+            more = len(rows) > query.limit
+            rows = rows[: query.limit]
             projections = {
                 r["record_key"]: r["record"]
                 for r in c.execute(
@@ -248,10 +254,10 @@ class LabReader:
                     ([r["record_key"] for r in rows],),
                 ).fetchall()
             }
-        values = [
-            project_candle(r, projections.get(r["record_key"]), query.start_ms, query.end_ms)
-            for r in rows
-        ]
+            values = [
+                project_candle(r, projections.get(r["record_key"]), query.start_ms, query.end_ms)
+                for r in rows
+            ]
         cursor = (
             json.dumps([rows[-1]["timestamp_ms"], rows[-1]["record_key"]], separators=(",", ":"))
             if more
@@ -263,6 +269,34 @@ class LabReader:
                 if p not in provenance:
                     provenance.append(p)
         return envelope(values, query, provenance, cursor)
+
+
+def publish_projection(connection, key, original):
+    """Publish once; later acquisitions retain the first authenticated projection."""
+    row = connection.execute(
+        "INSERT INTO tester_lab.projections(record_key,record) VALUES(%s,%s) "
+        "ON CONFLICT DO NOTHING RETURNING record",
+        (key, Jsonb(original)),
+    ).fetchone()
+    inserted = row is not None
+    if not inserted:
+        row = connection.execute(
+            "SELECT record FROM tester_lab.projections WHERE record_key=%s", (key,)
+        ).fetchone()
+    if row is None:
+        raise DataConflict("Original projection missing")
+    stored = row[0]
+    if inserted and json.dumps(stored, sort_keys=True, allow_nan=False) != json.dumps(
+        original, sort_keys=True, allow_nan=False
+    ):
+        raise DataConflict("Inserted projection differs from captured mapping")
+    try:
+        validate_record("candle", stored)
+    except (ValueError, TypeError) as exc:
+        raise DataConflict("Stored projection malformed") from exc
+    # Existing verify_published_batch checks this retained record's complete
+    # identity, closure, OHLCV and authenticated provenance under the same fence.
+    return stored
 
 
 def verify_published_batch(store, connection, batch):
@@ -404,10 +438,7 @@ class LabHandler:
                         original = originals.get(key)
                         if original is None:
                             raise ValueError("No original canonical source projection")
-                        connection.execute(
-                            "INSERT INTO tester_lab.projections(record_key,record) VALUES(%s,%s) ON CONFLICT DO NOTHING",
-                            (key, Jsonb(original)),
-                        )
+                        publish_projection(connection, key, original)
                     verified = self._verify_batch(store, connection, batch)
                     published["telemetry"] = acknowledgment(
                         current,

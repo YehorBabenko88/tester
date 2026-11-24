@@ -128,7 +128,7 @@ def test_store_read_default_and_opt_in_only_change_resolver_document_selection(m
     assert compact == ordinary
 
 
-def test_lab_reader_explicitly_requests_compact_linkage():
+def test_lab_reader_explicitly_requests_compact_linkage(monkeypatch):
     from src.api.models import Query
     from src.integration.lab_market import LabReader
 
@@ -146,6 +146,7 @@ def test_lab_reader_explicitly_requests_compact_linkage():
         def connect(self):
             yield SimpleNamespace(execute=lambda *a: SimpleNamespace(fetchall=lambda: []))
 
+    monkeypatch.setattr("src.integration.lab_market.bound_store", lambda connection: FakeStore())
     value = LabReader(FakeStore()).read(
         "candles", Query(symbol="BTCUSDT", start_ms=0, end_ms=120000)
     )

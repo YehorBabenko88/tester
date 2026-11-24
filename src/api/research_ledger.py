@@ -97,21 +97,19 @@ class PersistentResearchLedger:
     @staticmethod
     def _credential(conn, actor):
         row = conn.execute(
-            "SELECT actor FROM tester_research.credentials WHERE actor=%s "
-            "AND NOT revoked AND expires_at>clock_timestamp() FOR SHARE",
+            "SELECT tester_research.lock_projection_credential(%s) AS allowed",
             (actor,),
         ).fetchone()
-        if not row:
+        if not row or row["allowed"] is not True:
             raise Denied("credential expired or revoked")
 
     def _acl(self, conn, actor, command):
         self._credential(conn, actor)
         row = conn.execute(
-            "SELECT actor FROM tester_research.grants WHERE actor=%s AND artifact_digest=%s "
-            "AND action=%s FOR SHARE",
+            "SELECT tester_research.lock_projection_capability(%s,%s,%s) AS allowed",
             (actor, command.expected_artifact_digest, command.action),
         ).fetchone()
-        if not row:
+        if not row or row["allowed"] is not True:
             raise Denied("capability denied")
         self._resolve(conn, command)
 
