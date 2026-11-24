@@ -7,11 +7,11 @@ deployment remains subject to owner authorization and independent acceptance.
 
 ## Before installation
 
-Record the VM identity, Windows build, UTC timestamp, exact published Git SHA,
-installer ZIP SHA-256, independently supplied envelope digest and owner public-key
-fingerprint. Verify the ZIP against that external receipt and extract to a fresh
-directory. A fixture key is allowed only for explicitly labelled disposable tests.
-It cannot establish production trust.
+Record the VM identity, Windows build, UTC timestamp and exact published Git SHA. Obtain ZIP, Setup-script and envelope SHA-256 values, the Ed25519 key fingerprint, the raw DER code-signing-certificate SHA-256 and current owner trust/rotation policy through an independently authenticated owner channel.
+
+Before copying or executing package code, use trusted Windows console commands from [security-signing.md](security-signing.md) to create fresh UUID staging with protected SYSTEM/Administrators ownership and ACLs. Copy the ZIP into that protected tree, verify the external ZIP digest on the protected copy, and extract only safe regular paths. Reject reparse points, links and unexpected files; protect every extracted directory and file before verification. Verify the protected Setup byte digest, its Valid Authenticode signature and independently approved raw certificate pin before invocation. Never execute a mutable Downloads copy or import a certificate from the package.
+
+Fixture keys are permitted only in explicitly labelled disposable test-mode procedures. They do not satisfy production Ed25519, owner publisher or AllSigned trust. No production owner key or certificate is available here, so the production signing/AllSigned portion of this procedure remains NOT RUN. Do not bypass execution policy or install test trust to manufacture a production PASS.
 
 Capture existing services' names, accounts, executable paths, startup types and
 dependencies; capture listener owners on port 5432 and unrelated sentinel hashes.
@@ -19,14 +19,18 @@ Do not stop, modify or delete the system PostgreSQL. Ensure `C:\TesterLab` does 
 exist on the VM. If it exists, stop and choose another disposable VM. Preserve
 evidence outside the installation, without credentials or market-data backups.
 
-Run elevated PowerShell from the extracted package, substituting independently
-verified values (never copy trust values from the package being authenticated):
+After the complete trusted staging/bootstrap checks above, run an elevated trusted owner console against the protected signed package. Substitute independently verified pins, never values copied from the package being authenticated:
 
 ```powershell
-.\Setup-Tester.ps1 -ManifestSHA256 '<external-envelope-sha256>' `
-  -TrustedPublicKeySHA256 '<owner-key-sha256>' `
-  -ExpectedSourceSHA '<published-source-sha>'
+powershell.exe -NoProfile -ExecutionPolicy AllSigned -File '<protected-staging>\bundle\Setup-Tester.ps1' `
+  -Bundle '<protected-staging>\bundle' `
+  -ManifestSHA256 '<external-envelope-sha256>' `
+  -TrustedPublicKeySHA256 '<owner-ed25519-key-sha256>' `
+  -TrustedPublisherSHA256 '<owner-raw-certificate-sha256>' `
+  -ExpectedSourceSHA '<published-source-sha>' -Mode production
 ```
+
+AllSigned script authentication and Ed25519 full-payload authentication are separate gates. A fixture-signed review ZIP cannot be substituted into this production command. The disposable test-mode CI fixture uses its explicit UUID root/fake desktop and cannot establish canonical production installation, trusted owner signing or reboot acceptance.
 
 Record the installation UUID and names from `.tester-release.json`. All subsequent
 service operations must use those exact, verified names. The expected configuration
