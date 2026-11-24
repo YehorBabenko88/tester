@@ -167,6 +167,8 @@ class Transport:
                 self.policy_store is not None
                 and lease["token"] is not None
                 and not lease.get("active_readers", 0)
+                and not lease.get("active_closers", 0)
+                and not lease.get("close_failed", False)
             ):
                 self.policy_store.finish(key, lease["token"], lease["outcome"])
                 lease["token"] = None
@@ -207,15 +209,25 @@ class Transport:
 
         def close():
             with lease["lock"]:
+                if lease.get("closing", False):
+                    return
                 lease["closing"] = True
+                lease["active_closers"] = 1
+            succeeded = False
             try:
                 original_close()
+                succeeded = True
             except requests.exceptions.SSLError:
                 self._security_fault(key, lease, "tls_failure")
                 self._observe(key, started, "tls_failure")
                 raise
             finally:
-                self._finish_policy(key, lease)
+                with lease["lock"]:
+                    lease["active_closers"] = 0
+                    # Any unconfirmed underlying close leaves its reservation
+                    # pending. A successful TLS halt write already consumed it.
+                    lease["close_failed"] = not succeeded
+                    self._finish_policy(key, lease)
 
         response.iter_content, response.close = consume, close
         return response

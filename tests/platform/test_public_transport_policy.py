@@ -504,3 +504,100 @@ def test_policy_constructor_rejects_numeric_default_port_without_connect(monkeyp
             uuid4(),
         )
     connect.assert_not_called()
+
+
+def close_inflight_after_clean_reader(store, *, outage=None, close_error="tls"):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    reader_started, reader_release, close_started, close_release = [Event() for _ in range(4)]
+    original_finish = store.finish
+    close_calls = []
+
+    def finish(key, token, outcome):
+        if not outage and close_error == "tls" and outcome != "allow":
+            raise RuntimeError("halt write unavailable")
+        return original_finish(key, token, outcome)
+
+    def read(*a, **k):
+        yield b"prefix"
+        reader_started.set()
+        assert reader_release.wait(5)
+
+    def original_close():
+        close_calls.append(1)
+        close_started.set()
+        assert close_release.wait(5)
+        if close_error == "tls":
+            raise requests.exceptions.SSLError("close TLS")
+        if close_error == "generic":
+            raise OSError("close failed")
+
+    store.finish = finish
+    value = response()
+    value.iter_content, value.close = read, original_close
+    session = Mock()
+    session.request.return_value = value
+    stream = Transport(session=session, policy_store=store).get(URL, stream=True)
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            reader = executor.submit(lambda: list(stream.iter_content(10)))
+            try:
+                assert reader_started.wait(5)
+                closer = executor.submit(stream.close)
+                assert close_started.wait(5)
+                stream.close()  # must not call the underlying close again
+                reader_release.set()
+                assert reader.result(timeout=5) == [b"prefix"]
+                key = URL.removeprefix("https://")
+                assert (store.read(key) if hasattr(store, "read") else store.state) == "PENDING"
+                if outage:
+                    outage(False)
+            finally:
+                reader_release.set()
+                close_release.set()
+            if close_error:
+                with pytest.raises(RuntimeError if close_error == "tls" else OSError):
+                    closer.result(timeout=5)
+            else:
+                closer.result(timeout=5)
+    finally:
+        if outage:
+            outage(True)
+        store.finish = original_finish
+    assert close_calls == [1]
+    stream.close()
+    key = URL.removeprefix("https://")
+    state = store.read(key) if hasattr(store, "read") else store.state
+    assert state == ("PENDING" if close_error else "CLEAR")
+    if close_error:
+        fresh = Mock()
+        with pytest.raises(RuntimeError, match="manual review"):
+            Transport(session=fresh, policy_store=store, sleep=Mock()).get(URL)
+        fresh.request.assert_not_called()
+
+
+@pytest.mark.parametrize("close_error", ["tls", "generic", None])
+def test_inflight_close_blocks_cleanup_after_clean_reader(close_error):
+    close_inflight_after_clean_reader(ReservationFixture(), close_error=close_error)
+
+
+def test_actual_pg_inflight_close_tls_with_real_database_outage(durable_policy):
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    from src.api.db import connect
+
+    policy, owner, scope = durable_policy
+    database = conninfo_to_dict(owner.dsn)["dbname"]
+    admin = make_conninfo(owner.dsn, dbname="postgres")
+
+    def availability(enabled):
+        with connect(admin) as conn:
+            conn.execute(
+                sql.SQL(
+                    "ALTER DATABASE {} ALLOW_CONNECTIONS " + ("true" if enabled else "false")
+                ).format(sql.Identifier(database))
+            )
+
+    close_inflight_after_clean_reader(policy, outage=availability)
