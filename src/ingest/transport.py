@@ -490,6 +490,10 @@ class Transport:
                         response.close()
                     if isinstance(exc, requests.exceptions.SSLError) or status == 403:
                         raise
+                    # A cancelled in-flight request may finish with its bounded
+                    # network exception on the final attempt. Report pause even
+                    # without a retry; security outcomes above retain priority.
+                    self._wait(0, cancel)
                     if not transient or not self.local.remaining:
                         raise
                     self.defer(delay)

@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, Response
 
-from .bybit_catalog import AcquisitionError, acquire_instruments
+from .bybit_catalog import AcquisitionError, acquire_instruments, call_public_catalog
 from .bybit_catalog import BybitCatalogSource as BybitCatalogSource
 
 CATEGORIES = ("linear", "inverse")
@@ -144,7 +144,9 @@ class CatalogService:
             ticker_error = None
             now = self.clock()
             try:
-                ticker_result, ticker_url = self.source.call("/tickers", {"category": category})
+                ticker_result, ticker_url = call_public_catalog(
+                    self.source, "/tickers", {"category": category}, cancel=self._cancel
+                )
                 if self._cancel.is_set():
                     raise AcquisitionError("cancelled")
                 tickers = ticker_result.get("list")

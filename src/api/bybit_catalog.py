@@ -56,36 +56,56 @@ class BybitCatalogSource:
         self.verify = verify
         self.transport = transport if transport is not None else Transport(attempts=1)
 
-    def call(self, endpoint, params):
+    def call(self, endpoint, params, *, cancel=None):
         if endpoint not in {"/instruments-info", "/tickers"}:
             raise ValueError("Unsupported public catalog endpoint")
         url = "https://api.bybit.com/v5/market" + endpoint
-        with _public_get(
-            url,
-            params=params,
-            timeout=(5, 15),
-            stream=True,
-            verify=self.verify,
-            transport=self.transport,
-        ) as response:
-            if response.status_code == 429:
-                raise AcquisitionError("rate_limited")
-            response.raise_for_status()
-            content = bytearray()
-            for chunk in response.iter_content(chunk_size=65536):
-                if len(content) + len(chunk) > 8_000_000:
-                    raise AcquisitionError("response_budget")
-                content.extend(chunk)
-            body = json.loads(content)
-            if not isinstance(body, dict):
-                raise AcquisitionError("invalid_response")
-            if body.get("retCode") == 10006:
-                raise AcquisitionError("rate_limited")
-            if body.get("retCode") != 0 or not isinstance(body.get("result"), dict):
-                raise AcquisitionError("invalid_response")
-            result = dict(body["result"])
-            result["_source_time_ms"] = body.get("time")
-            return result, response.url
+        try:
+            with _public_get(
+                url,
+                params=params,
+                timeout=(5, 15),
+                stream=True,
+                verify=self.verify,
+                transport=self.transport,
+                cancel=cancel,
+            ) as response:
+                if response.status_code == 429:
+                    raise AcquisitionError("rate_limited")
+                response.raise_for_status()
+                content = bytearray()
+                for chunk in response.iter_content(chunk_size=65536):
+                    if len(content) + len(chunk) > 8_000_000:
+                        raise AcquisitionError("response_budget")
+                    content.extend(chunk)
+                body = json.loads(content)
+                if not isinstance(body, dict):
+                    raise AcquisitionError("invalid_response")
+                if body.get("retCode") == 10006:
+                    raise AcquisitionError("rate_limited")
+                if body.get("retCode") != 0 or not isinstance(body.get("result"), dict):
+                    raise AcquisitionError("invalid_response")
+                result = dict(body["result"])
+                result["_source_time_ms"] = body.get("time")
+                return result, response.url
+
+        except InterruptedError as exc:
+            raise AcquisitionError("cancelled") from exc
+
+
+def call_public_catalog(source, endpoint, params, *, cancel=None):
+    """Forward cancellation to the canonical source; preserve fixture protocols."""
+    if cancel is not None and cancel.is_set():
+        raise AcquisitionError("cancelled")
+    if isinstance(source, BybitCatalogSource):
+        result = source.call(endpoint, params, cancel=cancel.is_set if cancel is not None else None)
+    else:
+        # Injected non-network source fixtures retain their explicit two-argument
+        # protocol; real BybitCatalogSource calls never take this seam.
+        result = source.call(endpoint, params)
+    if cancel is not None and cancel.is_set():
+        raise AcquisitionError("cancelled")
+    return result
 
 
 STATUSES = ("Trading", "PreLaunch", "PendingOpen", "Delivering", "Closed")
@@ -137,7 +157,9 @@ def acquire_instruments(
                 params = {"category": category, "status": status, "limit": 1000}
                 if cursor:
                     params["cursor"] = cursor
-                result, url = source.call("/instruments-info", params)
+                result, url = call_public_catalog(
+                    source, "/instruments-info", params, cancel=cancel
+                )
                 batch = result.get("list")
                 empty_scope = (
                     result.get("category") == ""
