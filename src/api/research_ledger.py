@@ -29,8 +29,9 @@ def validate_research_dsn(dsn: str):
     values = conninfo_to_dict(dsn)
     if (
         values.get("host") not in {"127.0.0.1", "::1"}
-        or not values.get("port")
-        or values["port"] == "5432"
+        or not values.get("port", "").isdecimal()
+        or not 1024 <= int(values["port"]) <= 65535
+        or int(values["port"]) == 5432
         or not values.get("dbname", "").startswith("tester_research_")
         or values.get("service")
         or values.get("hostaddr")

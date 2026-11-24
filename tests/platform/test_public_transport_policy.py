@@ -490,3 +490,17 @@ def test_app_cannot_clear_halt_with_old_token_and_real_db_outage_denies_network(
             conn.execute(
                 sql.SQL("ALTER DATABASE {} ALLOW_CONNECTIONS true").format(sql.Identifier(database))
             )
+
+
+@pytest.mark.parametrize("port", ["05432", "0005432"])
+def test_policy_constructor_rejects_numeric_default_port_without_connect(monkeypatch, port):
+    import src.api.transport_policy as module
+
+    connect = Mock(side_effect=AssertionError("No database connection permitted"))
+    monkeypatch.setattr(module, "connect", connect)
+    with pytest.raises(ValueError):
+        module.PostgresTransportPolicy(
+            f"host=127.0.0.1 port={port} dbname=tester user=tester_app require_auth=scram-sha-256",
+            uuid4(),
+        )
+    connect.assert_not_called()

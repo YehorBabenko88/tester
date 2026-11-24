@@ -35,7 +35,7 @@ class PostgresTransportPolicy:
             or values.get("hostaddr", host) != host
             or not values.get("port", "").isdecimal()
             or not 1024 <= int(values["port"]) <= 65535
-            or values["port"] == "5432"
+            or int(values["port"]) == 5432
             or not values.get("dbname")
             or not values.get("user")
             or values.get("require_auth") != "scram-sha-256"

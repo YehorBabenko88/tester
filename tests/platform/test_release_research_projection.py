@@ -387,3 +387,16 @@ def test_real_market_queue_work_precedes_persisted_projection(persisted_projecti
     )
     assert queue.get(job.id).state == "completed"
     assert control.result(identity, projection["job_id"])["state"] == "complete"
+
+
+@pytest.mark.parametrize("port", ["05432", "0005432", "0", "65536", "abc", "55824,55825"])
+def test_research_constructor_requires_bounded_numeric_nondefault_port(monkeypatch, port):
+    from src.api import research_ledger
+
+    connect = Mock(side_effect=AssertionError("No database connection permitted"))
+    monkeypatch.setattr(research_ledger.psycopg, "connect", connect)
+    with pytest.raises(ValueError):
+        research_ledger.validate_research_dsn(
+            f"host=127.0.0.1 port={port} dbname=tester_research_test"
+        )
+    connect.assert_not_called()
