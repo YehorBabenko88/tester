@@ -17,11 +17,15 @@ from pathlib import Path, PurePosixPath
 
 REPOSITORY = "https://github.com/YehorBabenko88/tester"
 SOURCE_ROOTS = ("src/", "contracts/", "frontend/")
+# The installer (src/api/release_install.py, release_provision.py) and the
+# release CI provision only the CPython 3.14.10 ABI and its wheel lock.  Any
+# other interpreter would select a lock the shipped installer never installs.
+SUPPORTED_PYTHON = "3.14.10"
+RELEASE_LOCK = "requirements-release-windows314.lock"
 SOURCE_FILES = {
     "scripts/windows/Start-ReleaseTester.ps1",
     "scripts/windows/Uninstall-ReleaseTester.ps1",
     "pyproject.toml",
-    "requirements-release-windows312.lock",
     "requirements-release-windows314.lock",
 }
 
@@ -254,15 +258,11 @@ def build(
     pins = json.loads(Path(pins_path).read_text(encoding="utf-8-sig"))
     if (
         pins.get("schema") != "tester-components/v1"
-        or pins.get("python_version") not in {"3.12.10", "3.14.10"}
+        or pins.get("python_version") != SUPPORTED_PYTHON
         or pins.get("architecture") != "win_amd64"
     ):
         raise ValueError("Pinned supported Windows Python component contract required")
-    lock_name = (
-        "requirements-release-windows"
-        + ("314" if pins["python_version"] == "3.14.10" else "312")
-        + ".lock"
-    )
+    lock_name = RELEASE_LOCK
     expected = pins.get("files", {})
     for name, value in expected.items():
         safe_name(name)
@@ -512,7 +512,7 @@ def stage_local_components(python_root, postgres_root, wheelhouse, lock, output,
         .decode()
         .strip()
     )
-    if version not in {"3.12.10", "3.14.10"}:
+    if version != SUPPORTED_PYTHON:
         raise ValueError("Private Python must be an explicitly supported pinned release")
     output.mkdir(parents=True)
     runtime = output / "runtimes/python"

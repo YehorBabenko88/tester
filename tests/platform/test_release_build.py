@@ -7,10 +7,10 @@ import pytest
 from scripts.build_release import archive, build, component_files
 
 
-def fixture(tmp_path, version="3.12.10"):
+def fixture(tmp_path, version="3.14.10"):
     repo, components = tmp_path / "repo", tmp_path / "components"
     repo.mkdir()
-    lock = "requirements-release-windows" + ("314" if version == "3.14.10" else "312") + ".lock"
+    lock = "requirements-release-windows" + version.replace(".", "")[:3] + ".lock"
     files = {
         lock: "x==1 --hash=sha256:" + hashlib.sha256(b"wheel").hexdigest(),
         "scripts/windows/Setup-Tester.ps1": "verified bootstrap",
@@ -65,9 +65,8 @@ def fixture(tmp_path, version="3.12.10"):
     return repo, components, pins, sha
 
 
-@pytest.mark.parametrize("version", ["3.12.10", "3.14.10"])
-def test_immutable_source_reproducible_manifest_and_archive(tmp_path, version):
-    repo, components, pins, sha = fixture(tmp_path, version)
+def test_immutable_source_reproducible_manifest_and_archive(tmp_path):
+    repo, components, pins, sha = fixture(tmp_path)
     (repo / "frontend/index.html").write_text("dirty secret")
     first, second = tmp_path / "one", tmp_path / "two"
     a = build(repo, sha, components, pins, first)
@@ -101,6 +100,38 @@ def test_tampered_component_and_extra_wheel_fail_before_output(tmp_path, mutatio
     with pytest.raises(ValueError):
         build(repo, sha, components, pins, tmp_path / "out")
     assert not (tmp_path / "out").exists()
+
+
+@pytest.mark.parametrize("version", ["3.12.10", "3.13.9", "3.15.0"])
+def test_only_shipped_installer_abi_is_buildable_issue112(tmp_path, version):
+    # The installer hard-codes the 3.14 lock; a 3.12 build was accepted here
+    # and then always failed later with an ABI/lock mismatch.
+    repo, components, pins, sha = fixture(tmp_path, version)
+    with pytest.raises(ValueError, match="Pinned supported Windows Python"):
+        build(repo, sha, components, pins, tmp_path / "out")
+    assert not (tmp_path / "out").exists()
+
+
+def test_release_lock_matches_installer_and_ci_issue112():
+    from pathlib import Path
+
+    from scripts.build_release import RELEASE_LOCK, SOURCE_FILES, SUPPORTED_PYTHON
+
+    root = Path(__file__).resolve().parents[2]
+    assert SUPPORTED_PYTHON == "3.14.10"
+    assert RELEASE_LOCK in SOURCE_FILES
+    assert (root / RELEASE_LOCK).is_file()
+    locks = sorted(p.name for p in root.glob("requirements-release-windows*.lock"))
+    assert locks == [RELEASE_LOCK]
+    assert not [n for n in SOURCE_FILES if n.startswith("requirements-") and n != RELEASE_LOCK]
+    for consumer in ("src/api/release_install.py", "src/api/release_provision.py"):
+        text = (root / consumer).read_text(encoding="utf-8")
+        assert RELEASE_LOCK in text
+        assert "windows312" not in text
+    workflow = (root / ".github/workflows/release-candidate.yml").read_text(encoding="utf-8")
+    assert "-r " + RELEASE_LOCK in workflow
+    ci = (root / "scripts/release_ci_components.py").read_text(encoding="utf-8")
+    assert SUPPORTED_PYTHON in ci and RELEASE_LOCK in ci
 
 
 def test_missing_canonical_source_fails(tmp_path):
@@ -476,3 +507,34 @@ def test_archive_publication_race_never_deletes_foreign_destination(tmp_path, mo
         archive(bundle, destination)
     assert destination.read_bytes() == b"foreign winner"
     assert not list(tmp_path.glob(".tester-archive-*"))
+
+
+def test_python_bounds_cover_release_runtime_and_ci_matrix_issue112():
+    import re
+    import tomllib
+    from pathlib import Path
+
+    from scripts.build_release import SUPPORTED_PYTHON
+
+    root = Path(__file__).resolve().parents[2]
+    spec = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"][
+        "requires-python"
+    ]
+    # Explicit upper bound: only CPython ABIs exercised by CI and the shipped
+    # 3.14 wheel lock are declared supported.
+    assert spec == ">=3.11,<3.15"
+
+    def minor(version):
+        return tuple(int(x) for x in version.split(".")[:2])
+
+    versions = {SUPPORTED_PYTHON}
+    for workflow in (root / ".github/workflows").glob("*.yml"):
+        text = workflow.read_text(encoding="utf-8")
+        versions.update(re.findall(r"python-version:\s*['\"]([0-9.]+)['\"]", text))
+        for listed in re.findall(r"\bpython:\s*\[([^\]]*)\]", text):
+            versions.update(re.findall(r"['\"]([0-9.]+)['\"]", listed))
+    assert versions
+    assert all((3, 11) <= minor(v) < (3, 15) for v in versions), sorted(versions)
+    assert {minor(v) for v in versions} == {(3, 11), (3, 12), (3, 13), (3, 14)}
+    lab = (root / "requirements-windows-lab.lock").read_text(encoding="utf-8")
+    assert lab.startswith("# CPython 3.14 Windows x64")

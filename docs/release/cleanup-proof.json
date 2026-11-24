@@ -7,27 +7,28 @@
       "path": "app.py",
       "sha256": "a74dc530d8d54c178258435ba96e096e63062a9fdf922a4189b01ab7b91d5b6c",
       "purpose": "Legacy Streamlit UI",
-      "active_consumers": [
-        "test_screener.py migrated to test reference"
-      ],
-      "historical_consumers": "Prior accepted source manifests and coordination documents retained with original SHA",
+      "active_consumers": [],
+      "historical_consumers": "Prior source manifests and coordination documents; those documents were themselves removed from the tree in PR #102 (07187ab) and remain only in Git history / archive/branches-20261124",
       "workflows": [],
       "canonical_installer_usage": false,
       "dynamic_consumer_review": "Old externally installed Preview copies remain untouched; release now exposes only signed Setup entrypoint",
-      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; history migration guard retained",
+      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; preview history migration guard retained",
       "hash_basis": "Pre-removal working-tree SHA256 plus immutable baseline Git-blob SHA256",
-      "git_blob_sha256": "a74dc530d8d54c178258435ba96e096e63062a9fdf922a4189b01ab7b91d5b6c"
+      "git_blob_sha256": "a74dc530d8d54c178258435ba96e096e63062a9fdf922a4189b01ab7b91d5b6c",
+      "former_consumers": [
+        "test_screener.py via tests/platform/reference/legacy_screener.py (both removed in PR #102, 07187ab)"
+      ]
     },
     {
       "path": "scripts/windows_preview/Install-TesterPreview-ADMINIT-v3.5.ps1",
       "sha256": "afadcb83d2410623d164d10074d8d534d6a5b79313e73dc98fade016b1c1f089",
       "purpose": "Legacy Preview installation/history/readiness entrypoint",
       "active_consumers": [],
-      "historical_consumers": "Prior accepted source manifests and coordination documents retained with original SHA",
+      "historical_consumers": "Prior source manifests and coordination documents; those documents were themselves removed from the tree in PR #102 (07187ab) and remain only in Git history / archive/branches-20261124",
       "workflows": [],
       "canonical_installer_usage": false,
       "dynamic_consumer_review": "Old externally installed Preview copies remain untouched; release now exposes only signed Setup entrypoint",
-      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; history migration guard retained",
+      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; preview history migration guard retained",
       "hash_basis": "Pre-removal working-tree SHA256 plus immutable baseline Git-blob SHA256",
       "git_blob_sha256": "a77585b409293688ebeb738b71ce2ee6ee6ef96f3b862e82627eac864cee24e5"
     },
@@ -36,11 +37,11 @@
       "sha256": "ca3192354601511b63e2e4f0cad2b913f233b3e27f66a7497f38ebe0f2eaf907",
       "purpose": "Legacy Preview installation/history/readiness entrypoint",
       "active_consumers": [],
-      "historical_consumers": "Prior accepted source manifests and coordination documents retained with original SHA",
+      "historical_consumers": "Prior source manifests and coordination documents; those documents were themselves removed from the tree in PR #102 (07187ab) and remain only in Git history / archive/branches-20261124",
       "workflows": [],
       "canonical_installer_usage": false,
       "dynamic_consumer_review": "Old externally installed Preview copies remain untouched; release now exposes only signed Setup entrypoint",
-      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; history migration guard retained",
+      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; preview history migration guard retained",
       "hash_basis": "Pre-removal working-tree SHA256 plus immutable baseline Git-blob SHA256",
       "git_blob_sha256": "d247540190e937f219d9c2bd36a8660d986a51c5b41c7eae159c2550c85769f8"
     },
@@ -49,30 +50,173 @@
       "sha256": "edd5ff53b9ad97dcade5b935541a6c349b52e5c89d43bce2a919a870ca0e6e56",
       "purpose": "Legacy Preview installation/history/readiness entrypoint",
       "active_consumers": [],
-      "historical_consumers": "Prior accepted source manifests and coordination documents retained with original SHA",
+      "historical_consumers": "Prior source manifests and coordination documents; those documents were themselves removed from the tree in PR #102 (07187ab) and remain only in Git history / archive/branches-20261124",
       "workflows": [],
       "canonical_installer_usage": false,
       "dynamic_consumer_review": "Old externally installed Preview copies remain untouched; release now exposes only signed Setup entrypoint",
-      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; history migration guard retained",
+      "replacement_coverage": "Canonical frontend/API and release installer regressions retained; preview history migration guard retained",
       "hash_basis": "Pre-removal working-tree SHA256 plus immutable baseline Git-blob SHA256",
       "git_blob_sha256": "93f3cb7904038d6acaee977e208f07d4091db925405671df4f1c622ae911a2ff"
+    },
+    {
+      "path": "bybit.py",
+      "sha256": "7973293e06626398b329f548f2ce24e6130a9f6c7d9a4f89db8ca12551bf87c7",
+      "git_blob_sha1": "4aa67def8c4312c780cd98d0190dc7a16277d399",
+      "git_blob_sha256": "7973293e06626398b329f548f2ce24e6130a9f6c7d9a4f89db8ca12551bf87c7",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "d6059af84474329ec8cf02d686416ef8a54c208a",
+      "purpose": "Legacy root prototype REST client (consumed only by root engine.py/test_core.py)",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Removed in PR #102 together with all of its root consumers; not part of the release payload",
+      "replacement_coverage": "src/ingest public historical ingestion (python -m src.ingest) with src/storage; root regressions test_core.py/test_ingest_integrity.py/test_postgres_integration.py were deleted with it, not ported",
+      "equivalence_evidence": "NOT PRODUCED: no data/functionality equivalence evidence (raw_market/ingest_ranges vs src/ingest + src/storage) was generated before removal in PR #102 (commit 07187ab). The MIGRATE classification recorded at d6059af was not satisfied; the files were removed as not shipped in the release payload."
+    },
+    {
+      "path": "bybit_history.py",
+      "sha256": "296a6d8f70a397f7395ab175789a28239b262730fd928fa05d146a8ef07cc072",
+      "git_blob_sha1": "9ac24465ab7ec618c18e1be14b825f21559ddc79",
+      "git_blob_sha256": "296a6d8f70a397f7395ab175789a28239b262730fd928fa05d146a8ef07cc072",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "d6059af84474329ec8cf02d686416ef8a54c208a",
+      "purpose": "Standalone legacy PostgreSQL history prototype (raw_market/ingest_ranges schema)",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Removed in PR #102; no in-repo consumer remained",
+      "replacement_coverage": "src/ingest + src/storage (tester_storage schema); different schema, no migration of existing raw_market data is provided",
+      "equivalence_evidence": "NOT PRODUCED: no data/functionality equivalence evidence (raw_market/ingest_ranges vs src/ingest + src/storage) was generated before removal in PR #102 (commit 07187ab). The MIGRATE classification recorded at d6059af was not satisfied; the files were removed as not shipped in the release payload."
+    },
+    {
+      "path": "engine.py",
+      "sha256": "96da3f4283156953e504cfee58112026519299332f36a63a346295c748ad7f6e",
+      "git_blob_sha1": "4620b1f53eff363c50a38dfad0bf1991e0f3e6e7",
+      "git_blob_sha256": "96da3f4283156953e504cfee58112026519299332f36a63a346295c748ad7f6e",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "d6059af84474329ec8cf02d686416ef8a54c208a",
+      "purpose": "Legacy root download/ingest engine",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Removed in PR #102 together with root consumers",
+      "replacement_coverage": "src/ingest and src/storage; root regressions deleted with it",
+      "equivalence_evidence": "NOT PRODUCED: no data/functionality equivalence evidence (raw_market/ingest_ranges vs src/ingest + src/storage) was generated before removal in PR #102 (commit 07187ab). The MIGRATE classification recorded at d6059af was not satisfied; the files were removed as not shipped in the release payload."
+    },
+    {
+      "path": "db.py",
+      "sha256": "0ae898d1b0b9d9e99aebeb42dd1bf8ab3764a562888d5061ec82f8beee0f1ee9",
+      "git_blob_sha1": "68fab885232f1b23d65ab7a01a688cc3f98a05cd",
+      "git_blob_sha256": "0ae898d1b0b9d9e99aebeb42dd1bf8ab3764a562888d5061ec82f8beee0f1ee9",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "d6059af84474329ec8cf02d686416ef8a54c208a",
+      "purpose": "Legacy root PostgreSQL helper",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Removed in PR #102 together with root consumers",
+      "replacement_coverage": "src/storage migrations/store and src/api/db (platform); root regressions deleted with it",
+      "equivalence_evidence": "NOT PRODUCED: no data/functionality equivalence evidence (raw_market/ingest_ranges vs src/ingest + src/storage) was generated before removal in PR #102 (commit 07187ab). The MIGRATE classification recorded at d6059af was not satisfied; the files were removed as not shipped in the release payload."
+    },
+    {
+      "path": "requirements-release-windows312.lock",
+      "sha256": "a9680416a2d1c3c8269b1533813cdfc8225039062c3903df414c5fa2998ff9c9",
+      "git_blob_sha1": "d3fe325965eb1bcee8bdf80af27a286321b38003",
+      "git_blob_sha256": "a9680416a2d1c3c8269b1533813cdfc8225039062c3903df414c5fa2998ff9c9",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "a1d38d0ec8b4bac008bfc17578abdb3081d53fdf",
+      "purpose": "CPython 3.12.10 release wheel lock",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "Only consumer was scripts/build_release.py SOURCE_FILES/3.12 branch, which could never produce an installable build",
+      "replacement_coverage": "requirements-release-windows314.lock is the only lock the installer (release_install.py/release_provision.py) and release CI install; build_release.py now accepts only CPython 3.14.10 (issue #112, tests/platform/test_release_build.py::test_only_shipped_installer_abi_is_buildable_issue112)"
+    },
+    {
+      "path": "scripts/windows/Proposed-Install-7df.ps1",
+      "sha256": "6a4702d2d875afebc2a99971ad4b424c4551b22fc1ae17d06ddce87213c6bf4d",
+      "git_blob_sha1": "01eae64dd8f1acf0a4d3f90ee546d8dddcca85db",
+      "git_blob_sha256": "6a4702d2d875afebc2a99971ad4b424c4551b22fc1ae17d06ddce87213c6bf4d",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "a1d38d0ec8b4bac008bfc17578abdb3081d53fdf",
+      "purpose": "One-off physical-test install proposal hard-coded to candidate 7df3ee98",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "git grep over code, tests, workflows, scripts and docs (excluding the historical docs/release/repository-inventory.json snapshot) found no reference other than the file itself",
+      "replacement_coverage": "Signed Setup-Tester.ps1 release route; Install-PhysicalTest.ps1 retained"
+    },
+    {
+      "path": "scripts/windows/Invoke-ApprovedPhysicalTest.ps1",
+      "sha256": "6efebfd868dc0aa49f86c5e8d0216ac2b4dd31adaaa00788d2a6787cecfb7677",
+      "git_blob_sha1": "035cb8bb7344a2a069fbdcad74f44f4add22595d",
+      "git_blob_sha256": "6efebfd868dc0aa49f86c5e8d0216ac2b4dd31adaaa00788d2a6787cecfb7677",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "a1d38d0ec8b4bac008bfc17578abdb3081d53fdf",
+      "purpose": "Physical-test UAC wrapper for retired candidate 0ff59c69; first statement unconditionally throws RETIRED",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "git grep over code, tests, workflows, scripts and docs (excluding the historical docs/release/repository-inventory.json snapshot) found no reference other than the file itself",
+      "replacement_coverage": "None needed: script was already non-executable (unconditional throw)"
+    },
+    {
+      "path": "scripts/windows/Repair-TesterLabNativeHost.ps1",
+      "sha256": "3120fd04da3a0a5dc03c204e165b64eb091d9863b2a72553f8c2eefa36bee6e8",
+      "git_blob_sha1": "0d1e46b8112ce6788d3c237326935d2c9d8a32c4",
+      "git_blob_sha256": "3120fd04da3a0a5dc03c204e165b64eb091d9863b2a72553f8c2eefa36bee6e8",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "a1d38d0ec8b4bac008bfc17578abdb3081d53fdf",
+      "purpose": "One-time C:\\TesterLab native-host repair hard-coded to lab release a3138eb9 and deploy digest 21b2854d",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "git grep over code, tests, workflows, scripts and docs (excluding the historical docs/release/repository-inventory.json snapshot) found no reference other than the file itself",
+      "replacement_coverage": "Update-TesterLabRelease.ps1 (app-only upgrade) and Manage-TesterLab.ps1 retained"
+    },
+    {
+      "path": "scripts/windows/verify_physical_data.py",
+      "sha256": "8ab7438697cbdb06c8c5d99fbf6b741f8556dbbbf81d47f06587111562f030e1",
+      "git_blob_sha1": "84945ef216a9cc0dbe5a2ec14b48107fee2adaa5",
+      "git_blob_sha256": "8ab7438697cbdb06c8c5d99fbf6b741f8556dbbbf81d47f06587111562f030e1",
+      "hash_basis": "SHA-256 of the Git blob content at the last commit that contained the file",
+      "last_present_commit": "a1d38d0ec8b4bac008bfc17578abdb3081d53fdf",
+      "purpose": "One-off data/restore verification bound to retired physical candidate 0ff59c69, its manifest digest and a dated 20261107 source probe",
+      "active_consumers": [],
+      "workflows": [],
+      "canonical_installer_usage": false,
+      "dynamic_consumer_review": "git grep over code, tests, workflows, scripts and docs (excluding the historical docs/release/repository-inventory.json snapshot) found no reference other than the file itself",
+      "replacement_coverage": "prepare_physical_database.py and tests/platform/test_physical_database.py retained"
     }
   ],
   "preserved": [
-    "All original historical docs/manifests/screenshots remain unchanged",
-    "Root screener regression retains exact original one_hour_range AST in test-only reference",
     "scripts/windows_preview/migrate_preview_history.py and its isolation regression remain",
     "Old scripts/windows/Install-Tester.ps1 retained: active Test-Isolated/Start-Tester consumers",
-    "bybit.py,engine.py,db.py retained: active core/ingest/PostgreSQL regressions"
+    "scripts/windows/Prepare-PhysicalTest.ps1 retained: only producer of the installation-owner.json marker consumed by Install-PhysicalTest.ps1 and src/api/physical_scope.py",
+    "scripts/windows/Invoke-TesterLabAcceptance.ps1 retained: parameterised owner-run lab acceptance via Manage-TesterLab.ps1 (no in-repo consumer, but not bound to a retired SHA)",
+    "src/analytics/indicators.py retained: tests/analytics/test_indicators.py, tests/platform/reference/financial_query/PIN.json and docs/analytics/README.md consume it",
+    "requirements-windows-lab.lock retained byte-identical to d6059af (issue #110)"
   ],
-  "validation_before": {
-    "legacy_core_ingest_screener_unittest_passed": 29,
-    "preview_migration_guard_pytest_passed": 2
+  "compatibility": "Retired source entrypoints are removed from the candidate only; no installed host resources or Git history are changed. Former branch tips are retained on branch archive/branches-20261124.",
+  "removed_in_pr102": {
+    "commit": "07187ab79618d7c5c3f8c239658e346f8174b173",
+    "merge": "22493c8a8fd5b530292e826c094b289a7e7d38f4",
+    "pre_removal_candidate": "d6059af84474329ec8cf02d686416ef8a54c208a",
+    "summary": "PR #102 removed 474 tracked paths relative to d6059af: legacy root prototype (bybit.py, bybit_history.py, engine.py, db.py) and its root regressions (test_core.py, test_ingest_integrity.py, test_postgres_integration.py, test_screener.py with tests/platform/reference/legacy_screener.py), contract_checks/, requirements.txt, MASTER pinned-wave workflows/scripts (master-current-runtime-candidate, master-disposable-compose, master-pending-blob-review) and historical evidence trees docs/coordination (163), docs/adminit-acceptance (140), docs/physical-test (101), docs/evidence (23), docs/superpowers (21).",
+    "screener_regression": "REMOVED: the exact original one_hour_range reference and test_screener.py were deleted in 07187ab; the earlier claim that they remain is withdrawn.",
+    "historical_evidence": "REMOVED from the tree; readable via git history (e.g. git show d6059af:<path>) and on branch archive/branches-20261124. No archive/* tags exist.",
+    "list_command": "git diff --diff-filter=D --name-only d6059af 07187ab"
   },
-  "compatibility": "Retired source entrypoints are removed from the candidate only; no installed host resources or Git history are changed.",
-  "validation_after": {
-    "legacy_core_ingest_screener_unittest_passed": 29,
-    "preview_migration_guard_and_release_pytest_passed": 9,
-    "compileall": "PASS"
+  "validation_history": {
+    "note": "Counts below were recorded for the original four deletions at baseline e64e30d; they predate PR #102 and do not cover the PR #102 removals, whose root legacy regressions no longer exist.",
+    "before": {
+      "legacy_core_ingest_screener_unittest_passed": 29,
+      "preview_migration_guard_pytest_passed": 2
+    },
+    "after": {
+      "legacy_core_ingest_screener_unittest_passed": 29,
+      "preview_migration_guard_and_release_pytest_passed": 9,
+      "compileall": "PASS"
+    }
   }
 }

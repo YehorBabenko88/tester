@@ -10,7 +10,7 @@ The release remains **NO_GO** until its exact SHA has passed the required checks
 - [Architecture, runtime and repository map](docs/release/architecture.md)
 - [Reproducible release and signing handoff](docs/release/release-process.md)
 - [Repository and branch consolidation](docs/release/consolidation.md)
-- Historical Codex acceptance evidence was removed from the tree; it is preserved in Git history and in the `archive/branches-20261124` branch (ARCHIVE.md lists every former branch tip)
+- Historical Codex acceptance evidence was removed from the tree; it is preserved in Git history and in the `archive/branches-20261124` branch (the `ARCHIVE.md` file on that branch lists every former branch tip)
 
 Developer validation uses Python 3.12, `python -m pip install -e ".[dev]" -c requirements-platform.lock`, then `python -m pytest`, `python -m ruff check src/api scripts tests/platform`, and `python -m ruff format --check src/api scripts tests/platform`. PostgreSQL integration tests require a separate disposable database. Native Windows SCM tests require an elevated disposable Windows runner; skipped tests do not establish acceptance. See [release CI](.github/workflows/release-candidate.yml).
 

@@ -158,3 +158,81 @@ def test_poc_tie_break_is_lower_price_independent_of_order():
         assert bar["cvd_known"] == "0"
         assert bar["vwap"] == "100.5"
         assert [level["price"] for level in bar["footprint"]] == ["100", "101"]
+
+
+def market_trade(category, symbol, ts, price, qty, side, trade_id):
+    source = {
+        "source_kind": "bybit_rest",
+        "source_ref": "fixture-rest",
+        "source_hash": None,
+        "ingestion_run": "test-run",
+        "timestamp_precision": "ms",
+        "source_timestamp": str(ts),
+    }
+    return normalize_trade(
+        {"time": str(ts), "price": price, "size": qty, "side": side, "execId": trade_id},
+        category=category,
+        symbol=symbol,
+        source_ref=source,
+    )
+
+
+def exact(value):
+    return Fraction(Decimal(value))
+
+
+def test_inverse_vwap_uses_quote_quantity_issue112():
+    # Inverse size is quote-denominated (USD contracts): VWAP = sum(q) / sum(q/p).
+    # Before the fix this returned sum(p*q)/sum(q) = 150.
+    rows = [
+        market_trade("inverse", "BTCUSD", 1, "100", "100", "Buy", "i1"),
+        market_trade("inverse", "BTCUSD", 2, "200", "100", "Buy", "i2"),
+    ]
+    result = calculate(rows, start_ms=0, end_ms=60000, interval_ms=60000, tick_size="1")
+    bar = result["bars"][0]
+    assert abs(exact(bar["vwap"]) - Fraction(400, 3)) < Fraction(1, 10**46)
+    assert bar["vwap"].startswith("133.3333")
+    assert result["quantity_unit"] == "quote"
+    # Volume, delta and POC stay in the venue-native (quote) execution unit.
+    assert bar["volume"] == "200"
+    assert bar["delta_known"] == "200"
+    assert bar["poc"] == "100"
+
+
+@pytest.mark.parametrize("category,symbol", [("linear", "BTCUSDT"), ("spot", "BTCUSDT")])
+def test_linear_and_spot_vwap_use_base_quantity_issue112(category, symbol):
+    rows = [
+        market_trade(category, symbol, 1, "100", "1", "Buy", "b1"),
+        market_trade(category, symbol, 2, "200", "3", "Sell", "b2"),
+    ]
+    result = calculate(rows, start_ms=0, end_ms=60000, interval_ms=60000, tick_size="1")
+    bar = result["bars"][0]
+    assert result["quantity_unit"] == "base"
+    assert exact(bar["vwap"]) == Fraction(700, 4)
+    assert bar["volume"] == "4"
+    assert bar["poc"] == "200"
+
+
+@pytest.mark.parametrize(
+    "category,symbol,rows",
+    [
+        ("inverse", "BTCUSD", [("100", "100", "Buy"), ("200", "100", "Sell"), ("150", "7", "Buy")]),
+        ("linear", "BTCUSDT", [("100", "0.1", "Buy"), ("101", "0.2", "Sell"), ("99", "3", "Buy")]),
+        ("spot", "ETHUSDT", [("3000", "1.5", "Sell"), ("3001", "0.25", "Buy")]),
+    ],
+)
+def test_vwap_volume_and_poc_match_candle_statistics_issue112(category, symbol, rows):
+    from src.analytics.statistics import candle_statistics
+
+    trades = [
+        market_trade(category, symbol, 1 + i, p, q, s, f"x{i}") for i, (p, q, s) in enumerate(rows)
+    ]
+    metrics = calculate(trades, start_ms=0, end_ms=60000, interval_ms=60000, tick_size="1")
+    bar = metrics["bars"][0]
+    (stats,) = candle_statistics(trades, interval="1", price_step="1")
+    assert metrics["quantity_unit"] == stats["quantity_unit"]
+    assert abs(exact(bar["vwap"]) - exact(stats["vwap"])) < Fraction(1, 10**40)
+    assert exact(bar["volume"]) == exact(stats["buy_volume"]) + exact(stats["sell_volume"]) + exact(
+        stats["unknown_side_volume"]
+    )
+    assert bar["poc"] == stats["point_of_control"]

@@ -1,6 +1,6 @@
 # Official Bybit ingestion
 
-Use Python 3.11+ and the repository's `requests` dependency. No trading keys, order methods, or authenticated routes are used. The earlier `bybit_history.py` is a legacy PostgreSQL prototype; the supported resumable entry point for this workstream is `python -m src.ingest`.
+Use Python 3.11+ and the repository's `requests` dependency. No trading keys, order methods, or authenticated routes are used. The earlier root `bybit_history.py` legacy PostgreSQL prototype was removed in PR #102 (no equivalence evidence; see docs/release/consolidation.md); the supported resumable entry point for this workstream is `python -m src.ingest`.
 
 ```powershell
 python -m unittest discover -v

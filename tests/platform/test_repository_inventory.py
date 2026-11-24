@@ -72,3 +72,29 @@ def test_branch_consumers_preserve_open_pr_base_and_deployment_pin():
     result = reference_consumers("refs/remotes/origin/candidate", "a" * 40, hosted)
     assert result["status"] == "PARTIALLY_VERIFIED"
     assert {x["kind"] for x in result["items"]} == {"pull_requests", "deployments"}
+
+
+def test_cleanup_proof_matches_tree_issue113():
+    import json
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    proof = json.loads((root / "docs/release/cleanup-proof.json").read_text(encoding="utf-8"))
+    paths = [row["path"] for row in proof["deletions"]]
+    assert len(paths) == len(set(paths))
+    for row in proof["deletions"]:
+        # A recorded deletion must really be absent and carry its old blob hash.
+        assert not (root / row["path"]).exists(), row["path"]
+        assert re.fullmatch(r"[0-9a-f]{64}", row["git_blob_sha256"])
+        assert row["active_consumers"] == []
+        if "git_blob_sha1" in row:
+            assert re.fullmatch(r"[0-9a-f]{40}", row["git_blob_sha1"])
+    text = json.dumps(proof["preserved"])
+    # Former false claims: these files were removed in PR #102.
+    for removed in ("bybit.py", "engine.py", "db.py", "screener", "historical docs"):
+        assert removed not in text
+    for claim in proof["preserved"]:
+        for path in re.findall(r"(?:scripts|src|tests)/[\w./-]+\.(?:py|ps1|json)", claim):
+            assert (root / path).exists(), path
+    assert "archive/branches-20261124" in proof["compatibility"]

@@ -19,6 +19,13 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
     A taker Buy is positive delta; Sell negative. Unknown taker direction
     contributes to volume/VWAP/POC but NOT delta. No Bid/Ask reconstruction.
     Coverage/availability is reported separately and never promoted.
+
+    Volume, buy/sell/unknown volume, delta, CVD, footprint levels and POC are
+    in the venue-native execution quantity unit reported as ``quantity_unit``:
+    base asset for linear and spot, quote currency (contracts) for inverse.
+    VWAP is always quote per base: sum(quote notional) / sum(base quantity),
+    i.e. sum(p*q)/sum(q) for linear/spot and sum(q)/sum(q/p) for inverse
+    (same convention as ``statistics.candle_statistics``).
     """
     if any(type(x) is not int for x in (start_ms, end_ms, interval_ms)):
         raise ValueError("integer millisecond bounds required")
@@ -42,6 +49,7 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
     scopes = {(t["venue"], t["category"], t["symbol"]) for t in canonical}
     if len(scopes) != 1:
         raise ValueError("mixed market identities")
+    inverse = next(iter(scopes))[1] == "inverse"
     buckets = defaultdict(list)
     for t in canonical:
         ts = t["timestamp_ms"]
@@ -54,7 +62,7 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
     for start in range(start_ms, end_ms, interval_ms):
         rows = buckets[start]
         levels = defaultdict(lambda: [Fraction(), Fraction(), Fraction()])
-        pv = volume = buy = sell = unknown = Fraction()
+        quote = base = volume = buy = sell = unknown = Fraction()
         evidence = set()
         reasons = set()
         for t in rows:
@@ -72,7 +80,12 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
             else:
                 unknown += qty
             volume += qty
-            pv += price * qty
+            if inverse:
+                quote += qty
+                base += qty / price
+            else:
+                quote += price * qty
+                base += qty
             for p in t["provenance"]:
                 evidence.add(p["source_ref"])
             if t["coverage"]["status"] != "COMPLETE":
@@ -99,7 +112,7 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
             "coverage_certified": False,
             "vwap_volume_coverage_certified": False,
             "poc_volume_coverage_certified": False,
-            "vwap": decimal(pv / volume) if volume else None,
+            "vwap": decimal(quote / base) if base else None,
             "poc": decimal(poc) if poc is not None else None,
             "footprint": [
                 {"price": decimal(p), "volume": decimal(v[0]),
@@ -118,6 +131,7 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
         "empty_bar_count": sum(not buckets[start] for start in range(start_ms, end_ms, interval_ms)),
         "unknown_side_bar_count": sum(b["unknown_side_volume"] != "0" for b in bars),
         "market": dict(zip(("venue", "category", "symbol"), next(iter(scopes)))),
+        "quantity_unit": "quote" if inverse else "base",
         "admitted_to_f": False,
         "reasons": ["no_historical_visibility_proof", "no_complete_range_proof"],
         "bars": bars,
