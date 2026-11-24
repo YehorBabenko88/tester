@@ -18,16 +18,6 @@ def git(repo, *args):
 
 
 NETWORK_CONTRACTS = {
-    "bybit.py": {
-        "classification": "MIGRATE",
-        "semantics": "Legacy public candle/archive endpoint adapter and timeframe helpers; engine.py, test_core.py and live baseline acceptance consume it",
-        "migration_gate": "Preserve parser/timeframe/coverage regressions and historical archive semantics before routing network calls through the canonical transport",
-    },
-    "bybit_history.py": {
-        "classification": "MIGRATE",
-        "semantics": "Standalone CLI with raw_market/ingest_ranges schema, eight-attempt loop and legacy DATABASE_URL default; no current Python/workflow importer found",
-        "migration_gate": "Prove candle/mark/index/premium/OI/funding and raw-schema data migration equivalence before retiring this independent CLI",
-    },
     "src/api/bybit_catalog.py": {
         "classification": "KEEP",
         "semantics": "Active catalog API adapter: instruments/tickers, one bounded streaming attempt, Windows system TLS and scheduler-owned retry; different DTO/acquisition budget from history",

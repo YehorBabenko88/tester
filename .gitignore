@@ -6,7 +6,6 @@ __pycache__/
 *.pyc
 .master-local-state.json
 .supervisor-cycle.lock
-docs/coordination/CHECKPOINT.json.*.tmp
 
 /build/
 /dist/

@@ -1,4 +1,3 @@
-# Shared public-data regression dependencies plus canonical platform/dev extras.
--r requirements.txt
+# Canonical platform/dev extras.
 -c requirements-platform.lock
 -e .[dev]
