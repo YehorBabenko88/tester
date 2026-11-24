@@ -875,3 +875,21 @@ def test_app_service_preflight_keeps_pg_data_private(tmp_path):
     (root / "dependencies/service/fixed.bin").write_bytes(b"tampered")
     with pytest.raises(ValueError):
         service.service_preflight(root)
+
+
+def test_stop_proof_foreign_token_diagnostic_is_fail_closed():
+    import os
+
+    import pytest
+
+    if os.name != "nt":
+        pytest.skip("Native process-token diagnostic requires Windows")
+    proof = object.__new__(rs.NativeStopProof)
+    proof.handles = []
+    with pytest.raises(ValueError, match="Foreign executable/token") as caught:
+        proof._capture(os.getpid(), "S-1-5-80-1-2-3-4-5", {"foreign.exe"})
+    message = str(caught.value)
+    assert "pid=" + str(os.getpid()) in message
+    assert "token_user=S-" in message and "image=" in message
+    assert "expected_token_user=S-1-5-80-1-2-3-4-5" in message
+    assert not proof.handles

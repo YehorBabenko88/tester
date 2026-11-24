@@ -241,7 +241,14 @@ class NativeStopProof:
                 str(root / "dependencies/postgres/bin/pg_ctl.exe"),
             }
             for pid in descendants:
-                self._capture(pid, service_sid(marker["services"]["postgres"]), allowed)
+                try:
+                    self._capture(pid, service_sid(marker["services"]["postgres"]), allowed)
+                except ValueError as exc:
+                    ancestry = {child: parents.get(child) for child in sorted(descendants)}
+                    raise ValueError(
+                        f"PostgreSQL stop-proof rejected: roots={sorted(pg_roots)}; "
+                        f"ancestry={ancestry}; {exc}"
+                    ) from exc
         except BaseException:
             self.close()
             raise
@@ -280,7 +287,11 @@ class NativeStopProof:
             if actual != sid or buffer.value.casefold() not in {
                 path.casefold() for path in allowed
             }:
-                raise ValueError("Foreign executable/token in owned service ancestry")
+                raise ValueError(
+                    "Foreign executable/token in owned service ancestry: "
+                    f"pid={pid}; image={buffer.value!r}; token_user={actual}; "
+                    f"expected_token_user={sid}; allowed_images={sorted(allowed)!r}"
+                )
             self.handles.append(handle)
             handle = None
         finally:
