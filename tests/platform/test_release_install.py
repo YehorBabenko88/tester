@@ -430,6 +430,47 @@ def test_full_native_installer_lifecycle(tmp_path):
                 browser_scope="NoBrowser; browser acceptance separate",
             )
         )
+        if os.environ.get("TESTER_REQUIRE_INSTALLED_BROWSER") != "1":
+            pytest.fail("Full installed lifecycle requires explicit real-browser acceptance")
+        frontend = Path(__file__).resolve().parents[2] / "frontend"
+        browser_env = dict(
+            env,
+            TESTER_INSTALLED_URL="http://127.0.0.1:" + str(marker["ports"]["api"]),
+            TESTER_INSTALLED_INSTANCE=native["instance_id"],
+            TESTER_INSTALLED_SOURCE_SHA=source_sha,
+            TESTER_INSTALLED_APP_SHA256=hashlib.sha256(
+                (root / "releases" / source_sha / "frontend/app.js").read_bytes()
+            ).hexdigest(),
+        )
+        browser = subprocess.run(
+            [
+                "node",
+                str(frontend / "node_modules/@playwright/test/cli.js"),
+                "test",
+                "--config",
+                str(frontend / "playwright.release-installed.config.js"),
+            ],
+            cwd=frontend,
+            env=browser_env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if browser.returncode:
+            pytest.fail(
+                "Installed SCM browser gate failed: "
+                + browser.stdout[-6000:]
+                + browser.stderr[-3000:]
+            )
+        assert ready()["supervisor_pid"] == native["supervisor_pid"]
+        evidence["checks"].append(
+            dict(
+                phase="real-installed-scm-browser-terminal-ready",
+                source_sha=source_sha,
+                instance_id=native["instance_id"],
+                duplicate_launch_same_instance=True,
+            )
+        )
         with NativeController(marker) as controller:
             controller.apply("restart")
         native = ready(different_instance=native["instance_id"])

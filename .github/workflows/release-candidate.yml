@@ -83,6 +83,7 @@ jobs:
       GUARDIANS_ENABLED: 'false'
       PYTHONDONTWRITEBYTECODE: '1'
       TESTER_REQUIRE_FULL_INSTALLER: '1'
+      TESTER_REQUIRE_INSTALLED_BROWSER: '1'
       RELEASE_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
@@ -106,6 +107,14 @@ jobs:
         run: |
           python -B scripts/release_ci_components.py --repo . --source-sha $env:RELEASE_SOURCE_SHA --work .scratch/full-release --evidence .scratch/release-evidence --github-env $env:GITHUB_ENV
           if ($LASTEXITCODE -ne 0) { throw 'Verified component provisioning failed' }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install real installed-terminal browser tooling
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install chromium
       - name: Full native PostgreSQL and application installer lifecycle
         run: python -B -m pytest tests/platform/test_release_install.py::test_full_native_installer_lifecycle -q -rs --basetemp=.scratch/full-installer
       - name: Preserve sanitized lifecycle evidence
