@@ -8,6 +8,14 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE_BASE = "e64e30d8369626197403b3962f91bb350656e4c9"
+APPROVED_RELEASE_OVERRIDES = frozenset(
+    {
+        "src/api/guardians/storage_guardian.py",
+        "tests/platform/test_storage_guardian.py",
+        "src/api/guardians/exchange_guardian.py",
+        "tests/platform/test_exchange_guardian.py",
+    }
+)
 PINS = {
     "master": "bd619eb88e9444c3b414739a27f3053fb240251e",
     "code": "96731dfe493e5967c1336d2315fd7187381bee70",
@@ -42,8 +50,12 @@ def load_release_overrides(root):
 
 def _validate_overrides(root, overrides, owners):
     allowed = {name: digest for files in owners.values() for name, digest in files.items()}
-    if not isinstance(overrides, dict) or not set(overrides) <= set(allowed):
-        raise ValueError("Override outside original owner paths")
+    if (
+        not isinstance(overrides, dict)
+        or not set(overrides) <= set(allowed)
+        or not set(overrides) <= APPROVED_RELEASE_OVERRIDES
+    ):
+        raise ValueError("Override outside approved release owner paths")
     for name, entry in overrides.items():
         if not isinstance(entry, dict) or entry.get("baseline_sha256") != allowed[name]:
             raise ValueError("Override baseline digest differs from immutable source")

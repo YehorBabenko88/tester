@@ -6,11 +6,35 @@ from pathlib import Path
 
 import pytest
 
-from scripts.verify_unified_sources import load_release_overrides, verify
+from scripts.verify_unified_sources import _validate_overrides, load_release_overrides, verify
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "docs/guardians/unified-candidate-sources.json"
 FILE = "src/api/guardians/exchange_guardian.py"
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "src/api/guardians/code_guardian.py",
+        "tests/platform/test_code_guardian.py",
+        "src/api/guardians/data_guardian.py",
+        "tests/platform/test_data_guardian.py",
+    ],
+)
+def test_release_override_rejects_unapproved_code_and_data_paths(name):
+    manifest = json.loads(MANIFEST.read_text())
+    role = "code" if "code_guardian" in name else "data"
+    override = {
+        name: {
+            "baseline_sha256": manifest["owner_files"][role][name],
+            "candidate_sha256": "a" * 64,
+            "reason": "An explanation cannot authorize an unapproved source override",
+            "regression_tests": ["tests/platform/test_release_source_overrides.py"],
+        }
+    }
+    with pytest.raises(ValueError, match="approved"):
+        _validate_overrides(ROOT, override, manifest["owner_files"])
 
 
 def entry(manifest, candidate):
