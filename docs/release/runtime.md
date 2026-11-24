@@ -320,3 +320,23 @@ It does not depend on legacy `state/tls.json`. The opt-in legacy lab path retain
 its pinned bundle/hash checks. Certificate and hostname verification remain on.
 The hard network policy is independent of disabled Guardian effectors;
 `GUARDIANS_ENABLED=false` is unchanged.
+
+
+Committed native policy/readiness replay at
+`8b41d277e9a40b7f7eaaf87fa0fb36e9c38b14ca` used CPython 3.14.10 and PostgreSQL
+18.7 on disposable ports 55824/55828 with SCRAM mutual authentication. The actual
+release initializer seeded the shared transport authority: no manual policy
+seed/grant or configuration override was used. All 47 PostgreSQL regressions
+passed; the authenticated native API/worker/browser flow passed (4.3 seconds).
+An actual CatalogHandler download completed three public BTCUSDT minute candles
+with authentic declared provenance through the existing fenced queue and Store,
+without a legacy TLS manifest. This is a bounded window, not historical coverage.
+
+Migration 005 records the existing service instance in worker heartbeats. Native
+health accepts only a fresh heartbeat matching the API's captured instance; a
+fresh previous-instance heartbeat cannot make a restarted API ready. The real
+PostgreSQL regression covers previous/current instances and legacy standalone
+NULL semantics. Evidence is in
+`native-research-projection/run-20261124T011701-08381ad2` within the sanitized
+runtime evidence bundle. API/worker and disposable PostgreSQL were stopped after
+the replay; no SCM install or 24-hour soak is claimed.
