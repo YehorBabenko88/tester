@@ -332,6 +332,17 @@ def maintenance_parent(root, mode):
     return Path(os.environ["ProgramData"]) if mode == "production" else plain(root).parent
 
 
+# Time SCM grants each service to drain on PRESHUTDOWN (agent A: clean stop record).
+PRESHUTDOWN_TIMEOUT_MS = {"app": 60000, "postgres": 90000}
+
+
+def _with_preshutdown(app, pg):
+    return (
+        dict(app, preshutdown_timeout_ms=PRESHUTDOWN_TIMEOUT_MS["app"]),
+        dict(pg, preshutdown_timeout_ms=PRESHUTDOWN_TIMEOUT_MS["postgres"]),
+    )
+
+
 def enable_automatic_start(marker):
     """Idempotent post-commit switch of both exact owned services to AUTO_START."""
     import subprocess
@@ -344,7 +355,7 @@ def enable_automatic_start(marker):
         scm.set_start_type(
             [
                 (plan, plan.get("image", subprocess.list2cmdline([plan.get("host", "")])))
-                for plan in plans(marker)
+                for plan in _with_preshutdown(*plans(marker))
             ],
             automatic=True,
         )
@@ -604,7 +615,7 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
             lifecycle_lock=lambda _: nullcontext(),
         )
         stage("registering-runtime-services")
-        app, pg = plans(marker)
+        app, pg = _with_preshutdown(*plans(marker))
         scm = NativeSCM(mutating=True)
         try:
             # DEMAND_START until the commit point: an interrupted installation

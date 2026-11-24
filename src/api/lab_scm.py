@@ -415,6 +415,16 @@ class NativeSCM:
 
         return held()
 
+    def _apply_preshutdown(self, handle, timeout_ms):
+        """Register and read back the PRESHUTDOWN timeout of one pinned service handle."""
+        if type(timeout_ms) is not int or not 1000 <= timeout_ms <= 600000:
+            raise LabViolation("Bounded PRESHUTDOWN timeout required")
+        ws = self.ws
+        level = getattr(ws, "SERVICE_CONFIG_PRESHUTDOWN_INFO", 7)
+        ws.ChangeServiceConfig2(handle, level, timeout_ms)
+        if ws.QueryServiceConfig2(handle, level) != timeout_ms:
+            raise LabViolation("PRESHUTDOWN timeout readback mismatch")
+
     def install(self, plan, image, dependency):
         import winreg
 
@@ -435,7 +445,8 @@ class NativeSCM:
                 else 0
             )
             | 0x00010000
-            | (ws.SERVICE_START if plan.get("recovery_delays_ms") else 0),
+            | (ws.SERVICE_START if plan.get("recovery_delays_ms") else 0)
+            | (ws.SERVICE_QUERY_CONFIG if plan.get("preshutdown_timeout_ms") else 0),
             ws.SERVICE_WIN32_OWN_PROCESS,
             ws.SERVICE_AUTO_START if plan.get("auto_start", False) else ws.SERVICE_DEMAND_START,
             ws.SERVICE_ERROR_NORMAL,
@@ -455,6 +466,8 @@ class NativeSCM:
                 ws.ChangeServiceConfig2(
                     h, ws.SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, plan["failure_on_non_crash"]
                 )
+            if plan.get("preshutdown_timeout_ms"):
+                self._apply_preshutdown(h, plan["preshutdown_timeout_ms"])
             if plan.get("recovery_delays_ms"):
                 delays = plan["recovery_delays_ms"]
                 if len(delays) != 3 or delays[-1] != 0:
@@ -552,6 +565,8 @@ class NativeSCM:
                 ws.SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
                 final.get("failure_on_non_crash", False),
             )
+            if final.get("preshutdown_timeout_ms"):
+                self._apply_preshutdown(handle, final["preshutdown_timeout_ms"])
             delays = final["recovery_delays_ms"]
             ws.ChangeServiceConfig2(
                 handle,
@@ -606,6 +621,13 @@ class NativeSCM:
                         None,
                     ),
                 )
+                if plan.get("preshutdown_timeout_ms"):
+                    # Idempotent: also upgrades installations registered without it.
+                    self._call(
+                        plan["name"],
+                        ws.SERVICE_CHANGE_CONFIG,
+                        lambda h: self._apply_preshutdown(h, plan["preshutdown_timeout_ms"]),
+                    )
 
     def _call(self, name, access, fn):
         if getattr(self, "_bound", None) is not None and self._bound.get(name) is not None:

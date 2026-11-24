@@ -271,6 +271,24 @@ def test_full_native_installer_lifecycle(tmp_path):
         finally:
             scm.close()
 
+    def preshutdown(names):
+        import win32service
+
+        scm = NativeSCM()
+        try:
+            result = []
+            for name in names:
+                handle = win32service.OpenService(
+                    scm.manager, name, win32service.SERVICE_QUERY_CONFIG
+                )
+                try:
+                    result.append(win32service.QueryServiceConfig2(handle, 7))
+                finally:
+                    win32service.CloseServiceHandle(handle)
+            return result
+        finally:
+            scm.close()
+
     def assert_no_leftovers(markers):
         import winreg
 
@@ -436,6 +454,10 @@ def test_full_native_installer_lifecycle(tmp_path):
         native = ready()
         assert marker["installation_id"] != old_marker["installation_id"]
         assert set(start_types(marker["services"].values()).values()) == {"auto"}
+        assert preshutdown([marker["services"]["app"], marker["services"]["postgres"]]) == [
+            ri.PRESHUTDOWN_TIMEOUT_MS["app"],
+            ri.PRESHUTDOWN_TIMEOUT_MS["postgres"],
+        ]
         assert not Path(old_marker["trust_config"]).parent.exists(), "rolled-back metadata left"
         old_scm = NativeSCM()
         try:

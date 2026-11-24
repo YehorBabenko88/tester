@@ -43,14 +43,23 @@ class _FakeWS:
     SC_ACTION_RESTART = 1
     SC_ACTION_NONE = 0
 
+    SERVICE_CONFIG_PRESHUTDOWN_INFO = 7
+
     def __init__(self):
         self.start_types = []
+        self.preshutdown = {}
+        self.drop_preshutdown = False
 
     def ChangeServiceConfig(self, handle, service_type, start_type, *rest):
         self.start_types.append((handle, start_type))
 
-    def ChangeServiceConfig2(self, *args):
-        pass
+    def ChangeServiceConfig2(self, handle, level, value):
+        if level == self.SERVICE_CONFIG_PRESHUTDOWN_INFO and not self.drop_preshutdown:
+            self.preshutdown[handle] = value
+
+    def QueryServiceConfig2(self, handle, level):
+        assert level == self.SERVICE_CONFIG_PRESHUTDOWN_INFO
+        return self.preshutdown.get(handle, 180000)
 
 
 def _fake_scm(monkeypatch, bound):
@@ -575,3 +584,28 @@ Remove-OwnedMaintenanceDirectory $dir $env:TESTER_INSTALLATION $identity
     done = purge()
     assert done.returncode == 0, done.stderr + done.stdout
     assert not directory.exists()
+
+
+def test_preshutdown_timeouts_registered_and_verified_for_both_services(monkeypatch):
+    """Agent A request: bounded PRESHUTDOWN drain time, re-applied idempotently."""
+    app = dict(name="app", preshutdown_timeout_ms=ri.PRESHUTDOWN_TIMEOUT_MS["app"])
+    pg = dict(name="pg", preshutdown_timeout_ms=ri.PRESHUTDOWN_TIMEOUT_MS["postgres"])
+    scm = _fake_scm(monkeypatch, {"app": "h-app", "pg": "h-pg"})
+    for _ in range(2):
+        scm.set_start_type([(app, "img"), (pg, "img")], automatic=True)
+    assert scm.ws.preshutdown == {"h-app": 60000, "h-pg": 90000}
+    promoted = _fake_scm(monkeypatch, {"app": "h-app"})
+    promoted.promote(
+        dict(name="app"),
+        dict(app, dependency="pg", recovery_delays_ms=[1000, 5000, 0], python_class="c"),
+        "img",
+    )
+    assert promoted.ws.preshutdown == {"h-app": 60000}
+    ignored = _fake_scm(monkeypatch, {"app": "h-app", "pg": "h-pg"})
+    ignored.ws.drop_preshutdown = True  # SCM silently ignoring the setting must fail.
+    with pytest.raises(ValueError):
+        ignored.set_start_type([(app, "img"), (pg, "img")], automatic=True)
+    with pytest.raises(ValueError):
+        scm._apply_preshutdown("h-app", 10**9)
+    marker_plans = ri._with_preshutdown(dict(name="a"), dict(name="p"))
+    assert [plan["preshutdown_timeout_ms"] for plan in marker_plans] == [60000, 90000]
