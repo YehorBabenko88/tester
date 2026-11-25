@@ -1,4 +1,4 @@
-# Execution ledger — docs/superpowers/plans/2026-11-07-storage.md
+# Execution ledger — docs/superpowers/plans/2026-11-07-storage.md (removed in PR #102; `git show d6059af:docs/superpowers/plans/2026-11-07-storage.md`)
 
 P1 horizon task: PR13 comment6709945814. Confirmed future proof/request/availability defect in actualPG RED regressions. Added one authoritative PostgreSQL transaction-start clock in snapshot.clock_ms and strict full-range elapsed guards at certification (no present-time clipping). Audit claims preserved; legacy methods/schema unchanged. Five new PG cases GREEN; full81 includes old76. MASTER adverse probe rerun unchanged with updated modules preloaded (its script embeds an old-checkout sys.path); PASS, full range UNKNOWN/percent0/proof_refs[]. Three reviewer-authored checks PASS. Narrow independent code review found no material issue. Final compatibility/HEAD/logs follow.
 
