@@ -289,3 +289,33 @@ def test_cli_upgrade_writes_report(legacy, tmp_path):
 
     assert json.loads(report.read_text())["status"] == "SCHEMA_UPGRADE_PASS"
     assert legacy.encode() not in process.stdout
+
+
+def test_additional_platform_and_storage_migrations_are_applied_generically(legacy, tmp_path):
+    # Future numbered migrations (e.g. platform 008/009 from other PRs) need no
+    # code change: every file in the published directories is applied.
+    storage, platform = tmp_path / "storage-next", tmp_path / "platform-next"
+    shutil.copytree(ROOT / "src/storage/migrations", storage)
+    shutil.copytree(ROOT / "src/api/migrations", platform)
+    (platform / "098_future_platform.sql").write_text(
+        "CREATE TABLE tester_platform.future_probe(id integer PRIMARY KEY);\n", encoding="utf-8"
+    )
+    (storage / "098_future_storage.sql").write_text(
+        "ALTER TABLE tester_storage.download_jobs ADD COLUMN future_note text;\n",
+        encoding="utf-8",
+    )
+    before = state(legacy)[0]
+    report = lab.upgrade(
+        legacy,
+        backup_dir=tmp_path / "backup",
+        pg_bin=PG_BIN,
+        storage_dir=storage,
+        platform_dir=platform,
+        verify_restore=False,
+    )
+    assert report["status"] == "SCHEMA_UPGRADE_PASS"
+    assert "098_future_platform.sql" in report["migrations_after"]["platform"]
+    assert "98" in report["migrations_after"]["storage"]
+    assert "tester_platform.future_probe" in report["new_tables"]
+    with psycopg.connect(legacy) as c:
+        assert lab.snapshot(c, {k: v["columns"] for k, v in before.items()}) == before
