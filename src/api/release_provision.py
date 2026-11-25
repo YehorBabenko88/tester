@@ -105,25 +105,28 @@ def provision(root):
     pgbin = root / "dependencies/postgres/bin"
     password = secrets.token_urlsafe(36)
     password_file = root / "private/initdb-password.txt"
-    password_file.write_text(password, encoding="utf-8")
-    run(
-        [
-            str(pgbin / "initdb.exe"),
-            "-D",
-            str(root / "postgres-data"),
-            "-U",
-            "tester_owner",
-            "--pwfile",
-            str(password_file),
-            "--auth-host=scram-sha-256",
-            "--auth-local=scram-sha-256",
-            "--encoding=UTF8",
-        ],
-        check=True,
-        timeout=120,
-        env=env,
-    )
-    password_file.unlink()
+    try:
+        password_file.write_text(password, encoding="utf-8")
+        run(
+            [
+                str(pgbin / "initdb.exe"),
+                "-D",
+                str(root / "postgres-data"),
+                "-U",
+                "tester_owner",
+                "--pwfile",
+                str(password_file),
+                "--auth-host=scram-sha-256",
+                "--auth-local=scram-sha-256",
+                "--encoding=UTF8",
+            ],
+            check=True,
+            timeout=120,
+            env=env,
+        )
+    finally:
+        # The plaintext bootstrap secret never survives a failed or timed-out initdb.
+        password_file.unlink(missing_ok=True)
     (root / "postgres-data/postgresql.conf").write_text(
         "listen_addresses = '127.0.0.1'\nport = "
         + str(marker["ports"]["postgres"])
@@ -274,6 +277,7 @@ class ProvisioningTransaction:
         self.external_leases = {}
         self.root_guard = None
         self.root_identity = None
+        self.closed = False
         self.token = win32security.OpenProcessToken(
             win32api.GetCurrentProcess(), win32con.TOKEN_ADJUST_PRIVILEGES | win32con.TOKEN_QUERY
         )
@@ -453,8 +457,15 @@ class ProvisioningTransaction:
     def relative(self, path):
         return plain(path).relative_to(self.root).as_posix()
 
-    def root_created(self):
+    def root_created(self, *, adopt_empty=False):
+        """Create the root, or adopt an existing EMPTY plain directory as created.
+
+        Adoption pins the directory (no rename/delete), proves it is a plain empty
+        directory, replaces its descriptor with the same atomic actor-owned
+        protected descriptor a fresh root receives and proves emptiness again.
+        """
         import win32file
+        import win32security
 
         from .release_uninstall import (
             _identity,
@@ -463,10 +474,29 @@ class ProvisioningTransaction:
             _WindowsObject,
         )
 
-        if self.root.exists():
+        if self.root.exists() and not adopt_empty:
             raise LabViolation("Fresh provisioning requires an absent root")
-        win32file.CreateDirectory(str(self.root), self.attributes(directory=True))
-        self.root_guard = open_directory_guard(self.root)
+        if adopt_empty:
+            self.root_guard = open_directory_guard(self.root)
+            obj = _WindowsObject(self.root, lock=False)  # Refuses reparse points.
+            try:
+                if not obj.is_dir or any(os.scandir(self.root)):
+                    raise LabViolation("Only an empty plain installation root can be adopted")
+            finally:
+                obj.close()
+            descriptor = self.attributes(directory=True).SECURITY_DESCRIPTOR
+            win32security.SetFileSecurity(
+                str(self.root),
+                win32security.OWNER_SECURITY_INFORMATION
+                | win32security.DACL_SECURITY_INFORMATION
+                | win32security.PROTECTED_DACL_SECURITY_INFORMATION,
+                descriptor,
+            )
+            if any(os.scandir(self.root)):
+                raise LabViolation("Adopted installation root changed during adoption")
+        else:
+            win32file.CreateDirectory(str(self.root), self.attributes(directory=True))
+            self.root_guard = open_directory_guard(self.root)
         obj = _WindowsObject(self.root, lock=False)
         try:
             _validate_provisioning_actor_security(
@@ -591,6 +621,9 @@ class ProvisioningTransaction:
     def close(self):
         import win32security
 
+        if self.closed:
+            return
+        self.closed = True
         self.release_guards()
         win32security.AdjustTokenPrivileges(self.token, False, self.previous_privileges)
         self.token.Close()
@@ -775,8 +808,16 @@ if __name__ == "__main__":
         raise
 
 
-def recover_or_validate_existing(root, release, *, trusted_public_key_sha256, mode):
-    """Return an authenticated completed marker, or remove a proven fresh attempt."""
+def recover_or_validate_existing(
+    root, release, *, trusted_public_key_sha256, mode, lifecycle_lock=None
+):
+    """Return an authenticated completed marker, or remove a proven fresh attempt.
+
+    Returns None after an authenticated rollback (root removed) or when the root
+    is an empty, marker-less directory that no TESTER transaction claims; the
+    caller then adopts it. The caller must already hold the lifecycle lock and
+    passes a null ``lifecycle_lock`` for the nested rollback.
+    """
     from .release_install import MARKER
     from .release_security import _unique_object
     from .release_uninstall import (
@@ -840,6 +881,8 @@ def recover_or_validate_existing(root, release, *, trusted_public_key_sha256, mo
             if marker is not None:
                 raise
             continue
+    if not matches and marker is None and root.is_dir() and not any(os.scandir(root)):
+        return None  # Empty unclaimed root: adopted by the fresh transaction.
     if len(matches) != 1:
         raise LabViolation("Existing root has no unique authenticated provisioning transaction")
     path, header, rows = matches[0]
@@ -855,9 +898,13 @@ def recover_or_validate_existing(root, release, *, trusted_public_key_sha256, mo
             journal_path=path,
             trusted_public_key_sha256=trusted_public_key_sha256,
             expected_source_sha=release.source_sha,
+            lifecycle_lock=lifecycle_lock,
         )
         if root.exists():
             raise LabViolation("Authenticated interrupted root remains; fresh install refused")
+        from .release_install import _cleanup_metadata
+
+        _cleanup_metadata(path.parent, header["installation_id"])
         return None
     if marker is None:
         raise LabViolation("Completed installation lost its immutable marker")
@@ -889,5 +936,5 @@ def recover_or_validate_existing(root, release, *, trusted_public_key_sha256, mo
     )
     if ledger["marker"] != marker:
         raise LabViolation("Completed ledger marker mismatch")
-    _preflight(root, ledger)
+    _preflight(root, ledger, tolerate_churn=True)  # Services may be running.
     return marker

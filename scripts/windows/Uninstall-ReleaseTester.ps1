@@ -16,6 +16,10 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+# A shortcut or console may start this process inside the installation root. The
+# process current directory is an open handle that blocks the final root deletion.
+[Environment]::CurrentDirectory = [Environment]::SystemDirectory
+Set-Location -LiteralPath ([Environment]::SystemDirectory)
 
 # Only trusted, installed launcher code reaches this bootstrap; no bundle code executes here.
 Add-Type -TypeDefinition @"
@@ -167,6 +171,52 @@ function Remove-ProtectedMetadata([string]$Path, [string]$ExpectedIdentity) {
     } finally { $handle.Dispose() }
 }
 
+function Remove-OwnedMaintenanceDirectory([string]$Directory, [string]$InstallationId, [string]$ConfigIdentity) {
+    # Full removal: only known metadata names of exactly this installation are
+    # deleted; any unknown object preserves the directory and fails loudly.
+    $full = [IO.Path]::GetFullPath($Directory).TrimEnd('\')
+    if ([IO.Path]::GetFileName($full) -cne ('TesterReleaseMaintenance_' + ([Guid]$InstallationId).ToString('N'))) { throw 'Maintenance directory is not bound to this installation.' }
+    [Environment]::CurrentDirectory = [Environment]::SystemDirectory
+    Set-Location -LiteralPath ([Environment]::SystemDirectory)
+    Assert-AdminTrust $full $true
+    $pattern = '^(provisioning\.jsonl|provisioning\.rollback(-retry-[0-9a-f]{32})?\.jsonl|ownership(-[0-9a-f]{32})?\.json|trust\.json|trust\.pending|test-pause\.(json|pending)|maintenance-recovery\.jsonl|evidence|evidence\\removal-[0-9a-f]{32}\.jsonl)$'
+    $records = New-Object 'System.Collections.Generic.List[object]'
+    $top = New-Object TesterMaintenanceLease($full, $true, $true)
+    try {
+        $items = @(Get-ChildItem -LiteralPath $full -Recurse -Force)
+        foreach ($item in $items) {
+            $relative = $item.FullName.Substring($full.Length + 1)
+            if ($relative -cnotmatch $pattern) { throw ('Unknown maintenance object preserved: ' + $relative) }
+            if ([bool]$item.PSIsContainer -ne ($relative -ceq 'evidence')) { throw 'Unexpected maintenance object kind.' }
+            $lease = New-Object TesterMaintenanceLease($item.FullName, [bool]$item.PSIsContainer, $true)
+            if ($relative -ceq 'trust.json' -and $lease.Identity -cne $ConfigIdentity) { $lease.Dispose(); throw 'Protected trust identity changed.' }
+            $rank = switch ($relative) { 'trust.json' {1} 'maintenance-recovery.jsonl' {2} 'evidence' {3} 'provisioning.jsonl' {4} default {0} }
+            $records.Add([PSCustomObject]@{Rank=$rank; Relative=$relative; Lease=$lease})
+        }
+        if (@(Get-ChildItem -LiteralPath $full -Recurse -Force).Count -ne $records.Count) { throw 'Maintenance directory changed during removal.' }
+        # Audit files first; trust last-but-journal so an interrupted cleanup stays
+        # resumable (trust + recovery record) or provable by Setup (journal only).
+        foreach ($record in @($records | Sort-Object Rank, @{Expression={$_.Relative.Length}; Descending=$true})) { $record.Lease.Delete() }
+        $top.Delete()
+    } finally {
+        foreach ($record in $records) { $record.Lease.Dispose() }
+        $top.Dispose()
+    }
+}
+
+function Write-FinalCleanupRecord([string]$Path) {
+    $encoded = [Text.Encoding]::UTF8.GetBytes(([ordered]@{kind='final-cleanup';root=$Root;ledger_sha256=$TrustedLedgerSha256} | ConvertTo-Json -Compress) + "`n")
+    $stream = New-Object IO.FileStream($Path, [IO.FileMode]::Append, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+    try { $stream.Write($encoded, 0, $encoded.Length); $stream.Flush($true) } finally { $stream.Dispose() }
+}
+
+function Complete-Removal {
+    foreach ($lease in $maintenanceLeases) { $lease.Dispose() }
+    $maintenanceLeases.Clear(); $maintenanceLocked.Clear()
+    Remove-OwnedMaintenanceDirectory $maintenanceParent $config.installation_id $configIdentity
+    Write-Output (([ordered]@{schema='tester-removal/v1';root=$Root;ledger_sha256=$TrustedLedgerSha256;status='removed';maintenance_cleanup='removed'}) | ConvertTo-Json -Compress)
+}
+
 if (-not $TrustConfig) { throw 'Use the protected external -TrustConfig created by the installer.' }
 Lock-MaintenancePath $TrustConfig
 $configIdentity = $maintenanceLocked[[IO.Path]::GetFullPath($TrustConfig)].Identity
@@ -182,6 +232,13 @@ $SourceSha = $config.source_sha
 $ManifestSha256 = $config.manifest_sha256
 $maintenanceParent = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($TrustConfig))
 Assert-AdminTrust $maintenanceParent $true
+$recoveryPath = Join-Path $maintenanceParent 'maintenance-recovery.jsonl'
+if (-not (Test-Path -LiteralPath $Root) -and (Test-Path -LiteralPath $recoveryPath)) {
+    # Resume an interrupted final cleanup: the ledger may already be deleted.
+    Assert-AdminTrust $recoveryPath $true
+    $final = @(Get-Content -LiteralPath $recoveryPath -Encoding UTF8 | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.PSObject.Properties['kind'] -and $_.kind -eq 'final-cleanup' -and $_.root -ceq $Root -and $_.ledger_sha256 -ceq $TrustedLedgerSha256 })
+    if ($final.Count -gt 0) { Complete-Removal; exit 0 }
+}
 Lock-MaintenancePath $Ledger
 Assert-AdminTrust $Ledger $true
 foreach ($pin in @($TrustedLedgerSha256, $TrustedPublicKeySha256, $ManifestSha256)) {
@@ -195,7 +252,6 @@ if ($ownership.release_envelope.manifest.source_sha -cne $SourceSha -or $ownersh
 $EvidencePath = Join-Path $config.evidence_directory ('removal-' + [Guid]::NewGuid().ToString('N') + '.jsonl')
 Assert-AdminTrust $config.evidence_directory $true
 $rootDirectory = [IO.Path]::GetFullPath($Root).TrimEnd('\')
-$recoveryPath = Join-Path $maintenanceParent 'maintenance-recovery.jsonl'
 $recoveryStream = $null
 if (Test-Path -LiteralPath $recoveryPath) {
     Lock-MaintenancePath $recoveryPath
@@ -210,6 +266,7 @@ if (Test-Path -LiteralPath $recoveryPath) {
     $stageRecords = New-Object 'System.Collections.Generic.List[object]'
     $seen = @{}
     foreach ($record in @($records | Select-Object -Skip 1)) {
+        if ($record.kind -eq 'final-cleanup') { continue }
         $path = [IO.Path]::GetFullPath($record.path)
         if ($record.kind -ne 'created' -or $seen.ContainsKey($path) -or (-not $path.Equals($stagePrefix, [StringComparison]::OrdinalIgnoreCase) -and -not $path.StartsWith($stagePrefix + '\', [StringComparison]::OrdinalIgnoreCase))) { throw 'Unsafe recovery creation receipt.' }
         $seen[$path]=$true
@@ -227,12 +284,19 @@ if (Test-Path -LiteralPath $recoveryPath) {
         $proof = @(Get-Content -LiteralPath $header.evidence_path -Encoding UTF8 | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json } | Where-Object { $_.status -eq 'root_removed_pending_maintenance_cleanup' -and $_.root -ceq $Root -and $_.ledger_sha256 -ceq $TrustedLedgerSha256 })
         if ($proof.Count -eq 0) { throw 'Root absence has no completed native-removal evidence.' }
         $EvidencePath = $header.evidence_path
-        Remove-ProtectedMetadata $TrustConfig $configIdentity
-        Remove-ProtectedMetadata $recoveryPath $recoveryIdentity
-        Write-RemovalEvent 'removed'
+        Write-FinalCleanupRecord $recoveryPath
+        Complete-Removal
         exit 0
     }
     Remove-ProtectedMetadata $recoveryPath $recoveryIdentity
+}
+if (-not (Test-Path -LiteralPath $Root)) {
+    # Root already removed without a recovery journal (older or interrupted
+    # cleanup): finish only with durable native-removal evidence for this ledger.
+    $proofs = @(Get-ChildItem -LiteralPath $config.evidence_directory -Filter 'removal-*.jsonl' -File -Force | ForEach-Object { Get-Content -LiteralPath $_.FullName -Encoding UTF8 | Where-Object { $_ } | ForEach-Object { $_ | ConvertFrom-Json } } | Where-Object { $_.status -in @('root_removed_pending_maintenance_cleanup','removed') -and $_.root -ceq $Root -and $_.ledger_sha256 -ceq $TrustedLedgerSha256 })
+    if ($proofs.Count -eq 0) { throw 'Installation root is absent without native-removal evidence.' }
+    Complete-Removal
+    exit 0
 }
 $stageRoot = Join-Path $maintenanceParent ('maintenance-' + [Guid]::NewGuid().ToString('N'))
 $stageRecords = New-Object 'System.Collections.Generic.List[object]'
@@ -314,10 +378,11 @@ try {
         $env:PYTHONDONTWRITEBYTECODE = $previousBytecode
     }
     if ($cleanupPassed) {
-        Remove-ProtectedMetadata $recoveryPath $recoveryIdentity
         if ($childPassed -and -not $ScopeOnly) {
-            Remove-ProtectedMetadata $TrustConfig $configIdentity
-            Write-RemovalEvent 'removed'
+            Write-FinalCleanupRecord $recoveryPath
+            Complete-Removal
+        } else {
+            Remove-ProtectedMetadata $recoveryPath $recoveryIdentity
         }
     }
 }
