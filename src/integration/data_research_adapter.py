@@ -11,8 +11,10 @@ verified read-only by ``research_ui_projection``; they are never recomputed or
 relabelled as /2.  Inverse markets are admitted by the RESEARCH arithmetic
 (``project_events``) because /2 computes the inverse VWAP correctly; the
 source-backed ``read_data_metrics`` path additionally requires DATA to declare
-an inverse research projection (``RESEARCH_CATEGORIES``) and otherwise refuses
-inverse before any read.
+an inverse research projection (``RESEARCH_CATEGORIES``) with the identical
+source unit (``SOURCE_QUANTITY_UNITS``) and otherwise refuses inverse before
+any read.  DATA src.ingest.execution_contract declares both for linear and
+inverse.  Units per layer: docs/integration/INVERSE_UNITS.md.
 """
 import importlib
 import re
@@ -200,6 +202,13 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
     # until it declares an inverse projection, refuse before reading rows.
     if category not in getattr(data, "RESEARCH_CATEGORIES", _DATA_DEFAULT_RESEARCH_CATEGORIES):
         raise ValueError("inverse_quantity_unit_not_comparable")
+    # A declared non-linear projection must name the same source-native unit;
+    # a skewed or missing DATA unit table is refused before any read.
+    data_units = getattr(data, "SOURCE_QUANTITY_UNITS", None)
+    if category != "linear" and (
+            not isinstance(data_units, dict)
+            or data_units.get(category) != SOURCE_QUANTITY_UNITS[category]):
+        raise ValueError("data_source_quantity_unit_skew")
     # The DATA bounded read returns at most `limit` rows. Exactly hitting the
     # cap is ambiguous: another page may exist and the observed sample would
     # otherwise silently omit it. Refuse to label capped results as sourced.

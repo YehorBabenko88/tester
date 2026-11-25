@@ -155,3 +155,37 @@ def test_preview_inverse_refused_by_snapshot_scope_not_metrics(monkeypatch):
     )
     with pytest.raises(ValueError, match="execution_candle_scope_mismatch"):
         bridge.research_preview(object(), request(), _inverse_rows(), tick_size="1")
+
+
+def test_preview_spot_binds_base_unit_v2_metrics(monkeypatch):
+    # Spot stays in the B snapshot scope; its /2 metrics are in base units.
+    from src.analytics.core import normalize_trade
+
+    monkeypatch.setattr(
+        bridge,
+        "read_canonical_snapshot",
+        lambda *args: QualifiedSnapshot("REAL", "r", None, "e", False, (), None, "{}"),
+    )
+    rows = [
+        normalize_trade(
+            {"time": str(ts), "price": price, "size": "100", "side": side, "execId": exec_id},
+            category="spot",
+            symbol="BTCUSDT",
+            source_ref={
+                "source_kind": "bybit_rest",
+                "source_ref": "fixture-rest",
+                "source_hash": None,
+                "ingestion_run": "test-run",
+                "timestamp_precision": "ms",
+                "source_timestamp": str(ts),
+            },
+        )
+        for ts, price, side, exec_id in ((1, "100", "Buy", "a"), (2, "200", "Sell", "b"))
+    ]
+    spot = SnapshotRequest("bybit", "spot", "BTCUSDT", "1", 0, 60000)
+    result = bridge.research_preview(object(), spot, rows, tick_size="1")
+    bar = result["metrics"]["bars"][0]
+    assert result["metrics"]["quantity_unit"] == "base"
+    assert result["metrics"]["market"]["category"] == "spot"
+    assert (bar["vwap"], bar["volume"], bar["delta_known"]) == ("150", "200", "0")
+    assert result["f_input"] is None and result["snapshot_admitted"] is False

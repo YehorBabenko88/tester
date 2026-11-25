@@ -5,7 +5,12 @@ upgrade historical visibility. F authorization remains in the reviewed B/F/G pat
 
 New previews are computed with ``tester.execution-metrics/2``.  Inverse stays
 refused here by the B snapshot scope (``SnapshotRequest`` admits only spot and
-linear candles), not by the metrics arithmetic.
+linear candles), not by the metrics arithmetic.  That scope is deliberately
+NOT widened: ``SnapshotRequest`` is the typed B->F seam and the F/backtest
+engine has no inverse (coin-margined) PnL arithmetic, so an inverse candle
+request type would invite a unit-wrong F input.  Source-backed inverse
+research uses ``research_ui_projection.read_verified_ui_observation`` (DATA
+execution contract -> adapter -> /2 metrics), which needs no candle snapshot.
 """
 from src.analytics.core import interval_bounds
 from src.analytics.research_metrics import calculate_v2

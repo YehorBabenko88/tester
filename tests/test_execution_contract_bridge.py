@@ -7,8 +7,16 @@ import unittest
 from unittest.mock import Mock
 
 from src.ingest.execution_contract import (
-    READ_BUDGET, ExecutionContractError, ReadBudgetExceeded, VERSION, _canonical,
-    project_storage_execution, read_execution_events, read_research_trades,
+    READ_BUDGET,
+    RESEARCH_CATEGORIES,
+    SOURCE_QUANTITY_UNITS,
+    VERSION,
+    ExecutionContractError,
+    ReadBudgetExceeded,
+    _canonical,
+    project_storage_execution,
+    read_execution_events,
+    read_research_trades,
     to_research_trade,
 )
 from src.storage.bounded_read import ReadBudgetExceeded as StorageBudgetExceeded
@@ -128,12 +136,42 @@ class ContractTests(unittest.TestCase):
                 with self.assertRaises((ExecutionContractError, KeyError, ValueError)):
                     self.project(r)
 
-    def test_native_inverse_is_non_comparable(self):
+    def test_native_inverse_projects_with_its_own_contract_unit(self):
+        # Before: to_research_trade refused every inverse event.
         r=fixture(category='inverse')
         event=project_storage_execution(r,category='inverse',symbol='BTCUSDT',start_ms=START,end_ms=END)
         self.assertEqual(event['quantity_unit'],'source_native_inverse_contract')
+        canonical=to_research_trade(event)
+        # Source-native contract count is carried unchanged (never converted).
+        self.assertEqual((canonical['category'],canonical['quantity'],canonical['price']),('inverse','0.125','80000'))
+        self.assertEqual(RESEARCH_CATEGORIES,('linear','inverse'))
+        self.assertEqual(SOURCE_QUANTITY_UNITS['inverse'],'source_native_inverse_contract')
+
+    def test_cross_unit_events_are_refused(self):
+        linear=self.project()
+        inverse=project_storage_execution(fixture(category='inverse'),category='inverse',symbol='BTCUSDT',start_ms=START,end_ms=END)
+        for event,unit in ((linear,'source_native_inverse_contract'),(inverse,'source_native_linear_size')):
+            with self.subTest(category=event['category']), self.assertRaises(ExecutionContractError):
+                to_research_trade({**event,'quantity_unit':unit})
         with self.assertRaises(ExecutionContractError):
-            to_research_trade(event)
+            to_research_trade({**linear,'category':'spot'})
+        # Storage row whose payload unit contradicts its category is refused.
+        wrong=fixture(category='inverse');wrong['payload']['unit']='source_native_linear_size'
+        with self.assertRaises(ExecutionContractError):
+            project_storage_execution(wrong,category='inverse',symbol='BTCUSDT',start_ms=START,end_ms=END)
+
+    def test_spot_has_no_execution_source_and_never_reads(self):
+        store=compact_store([fixture()])
+        for call in (read_execution_events, read_research_trades):
+            with self.subTest(call=call.__name__), self.assertRaises(ExecutionContractError):
+                call(store,category='spot',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2)
+        store.read_bounded.assert_not_called()
+
+    def test_inverse_research_read_through_bounded_store(self):
+        store=compact_store([fixture(category='inverse')])
+        trades=read_research_trades(store,category='inverse',symbol='BTCUSDT',start_ms=START,end_ms=END,limit=2)
+        self.assertEqual([(t['category'],t['quantity']) for t in trades],[('inverse','0.125')])
+        self.assertEqual(store.read_bounded.call_args.args[2],'inverse')
 
     def test_late_observation_does_not_invent_publication(self):
         r = fixture()

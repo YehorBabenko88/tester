@@ -34,8 +34,8 @@ OBSERVED = datetime(2026, 11, 13, 20, tzinfo=UTC)
 class Replay:
     """Original-HTTP replay of one recent-trade page (no network)."""
 
-    def __init__(self, rows, padding=0):
-        self.result = {"category": "linear", "list": rows}
+    def __init__(self, rows, padding=0, category="linear"):
+        self.result = {"category": category, "list": rows}
         if padding:
             self.result["padding"] = "x" * padding
 
@@ -314,3 +314,174 @@ def test_existing_database_upgrade_migration_revokes_broad_grants(release):
     assert_no_delete(release.app)
     assert_queue_flow(release.app)
     migrate_platform(release.owner)  # idempotent: recorded once, no further change
+
+
+def _priced(symbol, index, price, size, side):
+    return {
+        "symbol": symbol,
+        "execId": f"{symbol}-units-{index}",
+        "time": str(BASE_MS + index),
+        "price": price,
+        "size": size,
+        "side": side,
+    }
+
+
+def _chain(store, category, symbol):
+    """execution_contract -> adapter -> /2 metrics -> UI projection, as tester_app."""
+    from src.ingest.execution_contract import read_execution_events, read_research_trades
+    from src.integration.data_research_adapter import read_data_metrics
+    from src.integration.research_ui_projection import read_verified_ui_observation
+
+    scope = dict(category=category, symbol=symbol, start_ms=BASE_MS, end_ms=BASE_MS + 2)
+    events = read_execution_events(store, **scope, limit=10)
+    trades = read_research_trades(store, **scope, limit=10)
+    metric_scope = dict(scope, interval_ms=2, tick_size="1", limit=10)
+    preview = read_data_metrics(store, **metric_scope)
+    observation = read_verified_ui_observation(store, **metric_scope)
+    return events, trades, preview, observation
+
+
+@pytest.mark.parametrize(
+    "category,symbol,source_unit,metrics_unit,vwap",
+    [
+        # inverse: 100 contracts @100 + 100 contracts @200 -> 200/(1+1/2) = 400/3
+        ("inverse", "BTCUSD", "source_native_inverse_contract", "quote", (400, 3)),
+        # linear: 100 base @100 + 100 base @200 -> 30000/200 = 150
+        ("linear", "SOLUSDT", "source_native_linear_size", "base", (150, 1)),
+    ],
+)
+def test_restricted_runtime_inverse_and_linear_units_end_to_end(
+    release, category, symbol, source_unit, metrics_unit, vwap
+):
+    from fractions import Fraction
+
+    from src.analytics.exact import decimal
+    from src.api.capability_data_bridge import observed_execution_evidence
+    from src.ingest.execution_contract import ReadBudgetExceeded, read_execution_events
+    from src.ingest.public_auxiliary import fetch_and_ingest
+    from src.storage.store import Store
+
+    assert_no_delete(release.app)
+    store = Store(release.app)
+    rows = [
+        _priced(symbol, 0, "100", "100", "Buy"),
+        _priced(symbol, 1, "200", "100", "Sell"),
+    ]
+    fetch_and_ingest(
+        store,
+        Replay(rows, category=category),
+        kind="trades",
+        category=category,
+        symbol=symbol,
+        run_id=f"units-{category}",
+        job_key=f"units-{category}",
+        observed_at=OBSERVED,
+    )
+    # Canonical storage kept the source-native payload unit.
+    with store.connect() as conn:
+        units = conn.execute(
+            "SELECT DISTINCT payload->>'unit' AS unit FROM tester_storage.raw_records "
+            "WHERE category=%s AND symbol=%s AND dataset='trades'",
+            (category, symbol),
+        ).fetchall()
+    assert [row["unit"] for row in units] == [source_unit]
+
+    reopened = Store(release.app)
+    events, trades, preview, observation = _chain(reopened, category, symbol)
+    assert [(e["quantity_unit"], e["quantity"], e["taker_side"]) for e in events] == [
+        (source_unit, "100", "Buy"),
+        (source_unit, "100", "Sell"),
+    ]
+    assert {t["category"] for t in trades} == {category}
+    assert [t["quantity"] for t in trades] == ["100", "100"]
+    assert preview["quantity_unit"] == source_unit
+    assert preview["source_verification"] == "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
+    metrics = preview["metrics"]
+    assert metrics["method"] == "tester.execution-metrics/2"
+    assert metrics["quantity_unit"] == metrics_unit
+    (bar,) = metrics["bars"]
+    assert bar["vwap"] == decimal(Fraction(*vwap))
+    assert (bar["volume"], bar["buy_volume"], bar["sell_volume"]) == ("200", "100", "100")
+    assert (bar["delta_known"], bar["cvd_known"], bar["poc"]) == ("0", "0", "100")
+    assert [(lv["price"], lv["buy_volume"], lv["sell_volume"]) for lv in bar["footprint"]] == [
+        ("100", "100", "0"),
+        ("200", "0", "100"),
+    ]
+    assert observation["quantity_unit"] == metrics_unit
+    assert observation["source_quantity_unit"] == source_unit
+    assert observation["vwap_unit"] == "quote_per_base"
+    assert observation["metrics_contract"]["status"] == "CURRENT"
+    assert observation["bars"][0]["vwap"] == decimal(Fraction(*vwap))
+    assert observation["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
+
+    probe = observed_execution_evidence(
+        SimpleNamespace(store=reopened),
+        SimpleNamespace(
+            category=category,
+            symbol=symbol,
+            start_ms=BASE_MS,
+            end_ms=BASE_MS + 2,
+            information_cutoff_ms=None,
+        ),
+    )
+    assert (probe["observed_events"], probe["quantity_unit"]) == (2, source_unit)
+
+    # Bounded-read limits still hold for every category.
+    from src.integration.data_research_adapter import read_data_metrics
+
+    with pytest.raises(ValueError, match="requires_pagination"):
+        read_data_metrics(
+            reopened,
+            category=category,
+            symbol=symbol,
+            start_ms=BASE_MS,
+            end_ms=BASE_MS + 2,
+            interval_ms=2,
+            tick_size="1",
+            limit=2,
+        )
+    with pytest.raises(ReadBudgetExceeded) as caught:
+        read_execution_events(
+            reopened,
+            category=category,
+            symbol=symbol,
+            start_ms=BASE_MS,
+            end_ms=BASE_MS + 2,
+            limit=10,
+            budget={"max_row_bytes": 1},
+        )
+    assert caught.value.budget == "max_row_bytes"
+
+
+def test_restricted_runtime_spot_has_no_execution_source_and_never_reads(release):
+    from src.api.capability_data_bridge import observed_execution_evidence
+    from src.ingest.execution_contract import ExecutionContractError, read_execution_events
+    from src.ingest.public_auxiliary import fetch_and_ingest
+    from src.integration.data_research_adapter import read_data_metrics
+    from src.storage.store import Store
+
+    store = Store(release.app)
+    scope = dict(category="spot", symbol="BTCUSDT", start_ms=BASE_MS, end_ms=BASE_MS + 2)
+    with pytest.raises(ValueError, match="unsupported public dataset/category"):
+        fetch_and_ingest(
+            store,
+            Replay([_priced("BTCUSDT", 0, "100", "1", "Buy")], category="spot"),
+            kind="trades",
+            run_id="units-spot",
+            job_key="units-spot",
+            observed_at=OBSERVED,
+            **{k: scope[k] for k in ("category", "symbol")},
+        )
+    with pytest.raises(ExecutionContractError):
+        read_execution_events(store, **scope, limit=10)
+    with pytest.raises(ValueError, match="execution_category_not_comparable"):
+        read_data_metrics(store, **scope, interval_ms=2, tick_size="1", limit=10)
+    probe = observed_execution_evidence(
+        SimpleNamespace(store=store), SimpleNamespace(**scope, information_cutoff_ms=None)
+    )
+    assert probe["reason"] == "execution_category_unit_unsupported"
+    with store.connect() as conn:
+        assert not conn.execute(
+            "SELECT count(*) AS n FROM tester_storage.raw_records WHERE category='spot'"
+        ).fetchone()["n"]

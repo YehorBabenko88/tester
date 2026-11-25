@@ -16,6 +16,12 @@ guess the units.
 
 PROTOCOL_VERSION = "tester.ui-capabilities/1"
 DATA_EXECUTION_VERSION = "tester-public-execution/1"
+# DATA source-native execution unit per category (mirrors
+# src.ingest.execution_contract.SOURCE_QUANTITY_UNITS; skew fails closed).
+DATA_EXECUTION_QUANTITY_UNITS = {
+    "linear": "source_native_linear_size",
+    "inverse": "source_native_inverse_contract",
+}
 RESEARCH_METRICS_VERSION = "tester.execution-metrics/2"
 RESEARCH_METRICS_HISTORICAL_VERSIONS = ("tester.execution-metrics/1",)
 
@@ -28,7 +34,10 @@ DEPENDENCIES = {
         "scope": ["category", "symbol", "start_ms", "end_ms", "limit"],
         "max_rows": 100,
         "max_range_ms": 7 * 86400000,
-        "quantity_unit": "source_native_linear_size",
+        "categories": sorted(DATA_EXECUTION_QUANTITY_UNITS),
+        "quantity_unit": dict(DATA_EXECUTION_QUANTITY_UNITS),
+        # Bybit inverse ``size`` counts quote-denominated contracts (1 USD).
+        "inverse_contract_value": "1_quote_unit_per_contract",
         "event_time": "event_ms",
         "observation_time": "observed_ms",
         "publication_time": "UNKNOWN",
@@ -51,9 +60,15 @@ DEPENDENCIES = {
         "read_contract": "src.analytics.research_metrics.metrics_read_contract",
         "quantity_unit": {"linear": "base", "spot": "base", "inverse": "quote"},
         "vwap_unit": "quote_per_base",
-        # Source-backed inverse additionally requires DATA to declare an
-        # inverse research projection; until then read_data_metrics refuses it.
-        "source_backed_categories": ["linear"],
+        "vwap_formula": {
+            "linear": "sum(p*q)/sum(q)",
+            "spot": "sum(p*q)/sum(q)",
+            "inverse": "sum(q)/sum(q/p)",
+        },
+        "mixed_unit_aggregation": "REFUSED",
+        # Source-backed reads need a DATA research projection with the same
+        # source unit (execution_contract.RESEARCH_CATEGORIES); spot has none.
+        "source_backed_categories": sorted(DATA_EXECUTION_QUANTITY_UNITS),
         "scope": [
             "category",
             "symbol",
