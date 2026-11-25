@@ -261,6 +261,24 @@ def test_graceful_stop_runs_pg_ctl_only_after_app_stopped(monkeypatch, tmp_path)
     assert order == ["preflight", "app-active", "app-active", "app-stopped", "pg_ctl-stop"]
 
 
+def test_failing_ordering_probe_never_skips_the_fast_stop(monkeypatch, tmp_path):
+    pg = _pg({"state": "active"})
+
+    def broken(marker):
+        raise OSError("SCM unavailable")
+
+    pg.dependent_state = broken
+    monkeypatch.setattr(rs, "preflight", lambda root, **kw: None)
+    stops = []
+
+    class Done:
+        returncode = 0
+
+    monkeypatch.setattr(rs.subprocess, "run", lambda argv, **kw: stops.append(argv) or Done())
+    pg.graceful_stop(tmp_path)
+    assert stops and stops[0][-1] == "stop"
+
+
 def test_preshutdown_budget_fits_postgres_timeout():
     # Wait + pg_ctl (-t 25, 28 s process bound) must stay inside PostgreSQL's 90 s.
     assert rs.ReleasePostgresService.dependent_stop_wait_seconds + 28 < 90

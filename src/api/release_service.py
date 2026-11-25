@@ -956,7 +956,12 @@ class ReleasePostgresService(ReleaseService):
 
     def graceful_stop(self, root):
         preflight(root, api_config=False)
-        self.await_dependent_stop(root)
+        try:
+            self.await_dependent_stop(root)
+        except Exception:
+            # Ordering is a best-effort guard: never skip the verified fast stop, or the
+            # job close at host exit would kill PostgreSQL uncleanly.
+            pass
         result = subprocess.run(
             [
                 str(root / "dependencies/postgres/bin/pg_ctl.exe"),
