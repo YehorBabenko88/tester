@@ -63,19 +63,19 @@ Source of the behaviours: `git show d6059af:<file>` for `bybit.py`, `engine.py`,
 | 27 | Instrument pagination with repeated-cursor guard | `ingest.catalog.instruments`, `ingest.metadata.acquire_instruments` | EQ `test_instrument_pagination_rejects_repeated_cursor`; tests/ingest `test_instrument_cursor_pagination` | Equivalent |
 | 28 | Retry on 429/5xx and rate limit 10006, request pacing | `ingest.transport.Transport` (shared throttling, halt on 403) + `rest.API` retry | tests/ingest `test_bybit_application_rate_limit_retries`, `test_retry_network_and_rate_limit` | Equivalent (stricter) |
 | 29 | Archive directory listing (`archive_days`) | `ingest.archive.discover` | tests/ingest `test_discovery_rejects_external_links_and_extracts_dates` | Equivalent |
-| 30 | `bybit_history.py` backwards download of kline/mark/index/premium/OI/funding | `Backfill` for the same datasets plus account ratio | rows 1–17 | Equivalent, except GAP-1/GAP-2 |
+| 30 | `bybit_history.py` backwards download of kline/mark/index/premium/OI/funding | `Backfill` for the same datasets plus account ratio | rows 1–17 | Equivalent (GAP-1/GAP-2 closed by PR #126) |
 | 31 | Hourly high-low range % screener (`one_hour_range`, test_screener) | No canonical metric. `ingest.catalog.volatility` is realized volatility, not range | — | **GAP-4** |
 | 32 | 1m trade-volume vs kline reconciliation (`reconcile_minute_volume`) | No canonical equivalent | — | **GAP-5** |
-| 33 | Data in legacy `raw_market`/`ingest_ranges` and engine `candles/observations/trades/trade_files/coverage/clusters` tables | No importer into `tester_storage` | — | **GAP-6: de-scope proposed by owner for this release (pending formal approval in #88)** |
+| 33 | Data in legacy `raw_market`/`ingest_ranges` and engine `candles/observations/trades/trade_files/coverage/clusters` tables | No importer into `tester_storage` | — | **GAP-6: excluded from the current release (owner decision 2026-11-25)** |
 
 ### De-scope proposals (owner approval required)
 
-None of these is claimed as equivalent. Each stays open until the owner either approves the de-scope or asks for an implementation. GAP-1 to GAP-3 belong to the `src/ingest` owner; the strict-xfail tests turn into failures as soon as the behaviour is implemented.
+Owner decisions (2026-11-25, issue #88): GAP-1 to GAP-5 are implemented in the canonical modules (GAP-1 to GAP-3 by PR #126; GAP-4/GAP-5 by the GAP-4/5 branch); their former strict-xfail tests are normal passing tests. GAP-6 is excluded from the current release by owner decision.
 
 - **GAP-1** Closed (owner decision 2026-11-25): `Backfill` rejects off-grid rows of interval-sampled datasets and fails the window (row 16).
 - **GAP-2** Closed (owner decision 2026-11-25): a conflicting duplicate timestamp fails the window; identical duplicates are deduplicated (row 17).
 - **GAP-3** Closed (owner decision 2026-11-25): archive trades are bound to the UTC date in the archive name; the whole file is rejected otherwise (row 22).
 - **GAP-4** The hourly range % screener metric of the removed Streamlit UI. Proposal: de-scope, because the shipped terminal uses verified volatility/turnover metrics.
 - **GAP-5** Minute-volume reconciliation of ticks against klines. Proposal: de-scope, or re-implement as an analytics quality check.
-- **GAP-6** Data in an external legacy prototype database is not imported. **Owner direction (2026-11-25): exclude importing external legacy databases from the current release.** Existing legacy databases are not deleted, modified or adopted by TESTER, and the legacy code stays preserved in Git history and on `archive/branches-20261124`. Any future importer needs its own reviewed proposal (read-only source access, explicit mapping to `tester_storage` provenance, owner approval).
+- **GAP-6** Data in an external legacy prototype database is not imported. **Owner decision (2026-11-25, confirmed in #88): importing external legacy databases is excluded from the current release.** Existing legacy databases are not deleted, modified or adopted by TESTER, and the legacy code stays preserved in Git history and on `archive/branches-20261124`. Any future importer needs its own reviewed proposal (read-only source access, explicit mapping to `tester_storage` provenance, owner approval).
 
