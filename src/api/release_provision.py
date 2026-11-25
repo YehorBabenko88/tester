@@ -256,6 +256,197 @@ def open_directory_guard(path):
     )
 
 
+ADMIN_SIDS = ("S-1-5-18", "S-1-5-32-544")
+# Read/traverse-only rights a non-administrator may hold on a replaceable empty root.
+# Everything else (write/add file/add subdirectory/delete child/WRITE_DAC/
+# WRITE_OWNER/DELETE/generic write or all) could plant or keep control of a path.
+_SAFE_FOREIGN_ROOT_RIGHTS = (
+    0x1  # FILE_LIST_DIRECTORY
+    | 0x8  # FILE_READ_EA
+    | 0x20  # FILE_TRAVERSE
+    | 0x80  # FILE_READ_ATTRIBUTES
+    | 0x20000  # READ_CONTROL
+    | 0x100000  # SYNCHRONIZE
+    | 0x20000000  # GENERIC_EXECUTE
+    | 0x80000000  # GENERIC_READ
+)
+
+
+def empty_root_refusal(root):
+    return LabViolation(
+        "Existing installation folder "
+        + str(root)
+        + " cannot be used: Setup only replaces an EMPTY folder owned by Administrators"
+        + " or SYSTEM that grants no write access to other accounts and that no other"
+        + " process holds open. Remove the empty folder and run Setup again."
+    )
+
+
+def validate_replaceable_root_security(record, root="installation root"):
+    """A folder a standard user created, or may still write to, is never reused.
+
+    Only BUILTIN\\Administrators or SYSTEM can own it (a standard user cannot set
+    either as owner), and no other principal (including inherited, inherit-only
+    and CREATOR OWNER entries) may hold any right beyond read/traverse.
+    """
+    if record["owner"] not in ADMIN_SIDS:
+        raise empty_root_refusal(root)
+    for kind, _flags, mask, sid in record["aces"]:
+        if kind == 1:  # ACCESS_DENIED only narrows access.
+            continue
+        if kind != 0:
+            raise empty_root_refusal(root)  # Unsupported/conditional allow entries.
+        if sid not in ADMIN_SIDS and mask & ~_SAFE_FOREIGN_ROOT_RIGHTS:
+            raise empty_root_refusal(root)
+
+
+class _ExclusiveDirectory:
+    """Share mode 0 handle: opening fails while any foreign data/delete handle exists."""
+
+    def __init__(self, path):
+        import ctypes
+        from ctypes import wintypes
+
+        api = ctypes.WinDLL("kernel32", use_last_error=True)
+        api.CreateFileW.argtypes = [
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.HANDLE,
+        ]
+        api.CreateFileW.restype = wintypes.HANDLE
+        api.CloseHandle.argtypes = [wintypes.HANDLE]
+        api.GetFileInformationByHandle.argtypes = [wintypes.HANDLE, wintypes.LPVOID]
+        api.SetFileInformationByHandle.argtypes = [
+            wintypes.HANDLE,
+            ctypes.c_int,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+        ]
+        self.api = api
+        # DELETE | READ_CONTROL | FILE_READ_ATTRIBUTES | FILE_LIST_DIRECTORY, share
+        # mode 0, OPEN_EXISTING, backup semantics, never traversing a reparse point.
+        handle = api.CreateFileW(
+            str(path), 0x10000 | 0x20000 | 0x80 | 0x1, 0, None, 3, 0x02200000, None
+        )
+        if handle == wintypes.HANDLE(-1).value:
+            error = ctypes.get_last_error()
+            if error == 32:  # ERROR_SHARING_VIOLATION: another handle is open.
+                raise empty_root_refusal(path)
+            raise ctypes.WinError(error)
+        self.handle = handle
+
+        class Info(ctypes.Structure):
+            _fields_ = [
+                ("attributes", wintypes.DWORD),
+                ("creation", wintypes.FILETIME),
+                ("access", wintypes.FILETIME),
+                ("write", wintypes.FILETIME),
+                ("volume", wintypes.DWORD),
+                ("sizehigh", wintypes.DWORD),
+                ("sizelow", wintypes.DWORD),
+                ("links", wintypes.DWORD),
+                ("indexhigh", wintypes.DWORD),
+                ("indexlow", wintypes.DWORD),
+            ]
+
+        info = Info()
+        if not api.GetFileInformationByHandle(self.handle, ctypes.byref(info)):
+            error = ctypes.get_last_error()
+            self.close()
+            raise ctypes.WinError(error)
+        self.identity = [info.volume, (info.indexhigh << 32) | info.indexlow]
+        self.is_dir = bool(info.attributes & 0x10) and not info.attributes & 0x400
+
+    def delete(self):
+        import ctypes
+
+        disposition = ctypes.c_ubyte(1)
+        if not self.api.SetFileInformationByHandle(self.handle, 4, ctypes.byref(disposition), 1):
+            raise ctypes.WinError(ctypes.get_last_error())
+
+    def close(self):
+        if self.handle is not None:
+            self.api.CloseHandle(self.handle)
+            self.handle = None
+
+
+class _NativeRootOps:
+    def open_exclusive(self, path):
+        return _ExclusiveDirectory(path)
+
+    def security(self, obj):
+        from .release_uninstall import _security_record
+
+        return _security_record(obj)  # Queried from the pinned handle, not the path.
+
+    def delete(self, obj):
+        obj.delete()  # FileDispositionInfo by handle; fails unless the folder is empty.
+
+    def close(self, obj):
+        obj.close()
+
+    def identity(self, path):
+        from .release_uninstall import _identity
+
+        return _identity(path)
+
+
+def _open_replaceable_empty_root(root, ops):
+    if not root.is_dir() or root.is_symlink() or any(os.scandir(root)):
+        raise empty_root_refusal(root)
+    try:
+        obj = ops.open_exclusive(root)
+    except OSError as exc:
+        raise empty_root_refusal(root) from exc
+    try:
+        if not obj.is_dir:
+            raise empty_root_refusal(root)
+        try:
+            record = ops.security(obj)
+        except ValueError as exc:  # Null DACL or unsupported object-specific entries.
+            raise empty_root_refusal(root) from exc
+        validate_replaceable_root_security(record, root)
+    except BaseException:
+        ops.close(obj)
+        raise
+    return obj
+
+
+def prove_replaceable_empty_root(root, *, ops=None):
+    """Refuse early, before any transaction exists, unless the root is replaceable."""
+    ops = ops or _NativeRootOps()
+    ops.close(_open_replaceable_empty_root(plain(root), ops))
+
+
+def replace_empty_root(root, create, *, ops=None):
+    """Delete a proven-safe empty root by exclusive handle, then create a fresh object.
+
+    The previous directory object is never reused: any handle a third party kept
+    (for example WRITE_DAC only) refers to the deleted object, and a still
+    delete-pending name makes the atomic create fail instead of being adopted.
+    """
+    ops = ops or _NativeRootOps()
+    root = plain(root)
+    obj = _open_replaceable_empty_root(root, ops)
+    previous = obj.identity
+    try:
+        ops.delete(obj)
+    except OSError as exc:
+        raise empty_root_refusal(root) from exc
+    finally:
+        ops.close(obj)
+    try:
+        create()
+    except Exception as exc:  # pywintypes.error is not an OSError subclass.
+        raise empty_root_refusal(root) from exc
+    if ops.identity(root) == previous:
+        raise LabViolation("Replaced installation root kept its previous object identity")
+
+
 class ProvisioningTransaction:
     """Fsynced plans precede native creation with an atomic unique App SID owner."""
 
@@ -457,15 +648,14 @@ class ProvisioningTransaction:
     def relative(self, path):
         return plain(path).relative_to(self.root).as_posix()
 
-    def root_created(self, *, adopt_empty=False):
-        """Create the root, or adopt an existing EMPTY plain directory as created.
+    def root_created(self, *, replace_empty=False):
+        """Create the root as a NEW directory object with the atomic actor descriptor.
 
-        Adoption pins the directory (no rename/delete), proves it is a plain empty
-        directory, replaces its descriptor with the same atomic actor-owned
-        protected descriptor a fresh root receives and proves emptiness again.
+        An existing root is never adopted. With ``replace_empty`` an EMPTY folder that
+        only Administrators/SYSTEM could have created and can write, and that no
+        other process holds open, is deleted by exclusive handle and recreated.
         """
         import win32file
-        import win32security
 
         from .release_uninstall import (
             _identity,
@@ -474,29 +664,16 @@ class ProvisioningTransaction:
             _WindowsObject,
         )
 
-        if self.root.exists() and not adopt_empty:
-            raise LabViolation("Fresh provisioning requires an absent root")
-        if adopt_empty:
-            self.root_guard = open_directory_guard(self.root)
-            obj = _WindowsObject(self.root, lock=False)  # Refuses reparse points.
-            try:
-                if not obj.is_dir or any(os.scandir(self.root)):
-                    raise LabViolation("Only an empty plain installation root can be adopted")
-            finally:
-                obj.close()
-            descriptor = self.attributes(directory=True).SECURITY_DESCRIPTOR
-            win32security.SetFileSecurity(
-                str(self.root),
-                win32security.OWNER_SECURITY_INFORMATION
-                | win32security.DACL_SECURITY_INFORMATION
-                | win32security.PROTECTED_DACL_SECURITY_INFORMATION,
-                descriptor,
-            )
-            if any(os.scandir(self.root)):
-                raise LabViolation("Adopted installation root changed during adoption")
-        else:
+        def create():
             win32file.CreateDirectory(str(self.root), self.attributes(directory=True))
-            self.root_guard = open_directory_guard(self.root)
+
+        if replace_empty:
+            replace_empty_root(self.root, create)
+        elif self.root.exists():
+            raise LabViolation("Fresh provisioning requires an absent root")
+        else:
+            create()
+        self.root_guard = open_directory_guard(self.root)
         obj = _WindowsObject(self.root, lock=False)
         try:
             _validate_provisioning_actor_security(
@@ -809,14 +986,16 @@ if __name__ == "__main__":
 
 
 def recover_or_validate_existing(
-    root, release, *, trusted_public_key_sha256, mode, lifecycle_lock=None
+    root, release, *, trusted_public_key_sha256, mode, lifecycle_lock=None, root_ops=None
 ):
     """Return an authenticated completed marker, or remove a proven fresh attempt.
 
     Returns None after an authenticated rollback (root removed) or when the root
-    is an empty, marker-less directory that no TESTER transaction claims; the
-    caller then adopts it. The caller must already hold the lifecycle lock and
-    passes a null ``lifecycle_lock`` for the nested rollback.
+    is an empty, marker-less directory that no TESTER transaction claims AND is
+    proven replaceable (Administrators/SYSTEM owner, no foreign write access, no
+    foreign open handle); the caller then deletes and recreates it, never adopts
+    it. Any other empty root is refused. The caller must already hold the
+    lifecycle lock and passes a null ``lifecycle_lock`` for the nested rollback.
     """
     from .release_install import MARKER
     from .release_security import _unique_object
@@ -882,7 +1061,9 @@ def recover_or_validate_existing(
                 raise
             continue
     if not matches and marker is None and root.is_dir() and not any(os.scandir(root)):
-        return None  # Empty unclaimed root: adopted by the fresh transaction.
+        # Empty unclaimed root: replaced (deleted + recreated) only if provably safe.
+        prove_replaceable_empty_root(root, ops=root_ops)
+        return None
     if len(matches) != 1:
         raise LabViolation("Existing root has no unique authenticated provisioning transaction")
     path, header, rows = matches[0]

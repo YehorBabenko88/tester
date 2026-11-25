@@ -244,24 +244,267 @@ def test_prestop_preflight_tolerates_vanished_objects_only_when_requested(tmp_pa
         removal._preflight(root, ledger, tolerate_churn=True)
 
 
-# --- #111(2): empty pre-created root ----------------------------------------------
+# --- #111(2) / round 2: empty pre-created root is replaced, never adopted ---------
+
+ADMINS, SYSTEM, USERS, CREATOR_OWNER = "S-1-5-32-544", "S-1-5-18", "S-1-5-32-545", "S-1-3-0"
+USER_SID = "S-1-5-21-1-2-3-1001"
+CLEAN_ROOT = dict(
+    owner=ADMINS,
+    protected=True,
+    aces=[(0, 3, 0x1F01FF, SYSTEM), (0, 3, 0x1F01FF, ADMINS)],
+)
 
 
-def test_empty_unclaimed_root_is_routed_to_adoption_not_refused(tmp_path):
-    """Failed before: empty roots reached root_created() and were refused forever."""
+class _FakeRootOps:
+    """Injected security/handle probe standing in for the native exclusive handle."""
+
+    def __init__(self, record=CLEAN_ROOT, *, foreign_handle=False, is_dir=True):
+        self.record, self.foreign_handle, self.is_dir = record, foreign_handle, is_dir
+        self.calls = []
+
+    def open_exclusive(self, path):
+        self.calls.append("open")
+        if self.foreign_handle:
+            from src.api.release_provision import empty_root_refusal
+
+            raise empty_root_refusal(path)  # ERROR_SHARING_VIOLATION on share mode 0.
+        return types.SimpleNamespace(
+            path=path, identity=[1, path.stat().st_ino], is_dir=self.is_dir
+        )
+
+    def security(self, obj):
+        self.calls.append("security")
+        return self.record
+
+    def delete(self, obj):
+        self.calls.append("delete")
+        obj.path.rmdir()
+
+    def close(self, obj):
+        self.calls.append("close")
+
+    def identity(self, path):
+        return [2, path.stat().st_ino]
+
+
+def _recover(root, ops):
     from src.api.release_provision import recover_or_validate_existing
 
+    release = types.SimpleNamespace(manifest="{}", manifest_sha256="0" * 64, source_sha="a" * 40)
+    return recover_or_validate_existing(
+        root, release, trusted_public_key_sha256="0" * 64, mode="test", root_ops=ops
+    )
+
+
+def test_empty_unclaimed_clean_admin_root_is_routed_to_replacement(tmp_path):
+    """Admin-owned clean empty root (e.g. TESTER's own interrupted create) stays recoverable."""
     root = tmp_path / ("TesterReleaseTest_" + uuid.uuid4().hex)
     root.mkdir()
-    release = types.SimpleNamespace(manifest="{}", manifest_sha256="0" * 64, source_sha="a" * 40)
-    assert (
-        recover_or_validate_existing(root, release, trusted_public_key_sha256="0" * 64, mode="test")
-        is None
-    )
+    ops = _FakeRootOps()
+    assert _recover(root, ops) is None
+    assert ops.calls == ["open", "security", "close"]  # Proven, nothing deleted yet.
     (root / "foreign.txt").write_text("KEEP")
     with pytest.raises(ValueError):
-        recover_or_validate_existing(root, release, trusted_public_key_sha256="0" * 64, mode="test")
+        _recover(root, _FakeRootOps())
     assert (root / "foreign.txt").read_text() == "KEEP"
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        # Standard user created the folder (cannot assign Administrators as owner).
+        dict(CLEAN_ROOT, owner=USER_SID),
+        # Admin-owned but a user may still write / add subdirectories.
+        dict(CLEAN_ROOT, aces=[*CLEAN_ROOT["aces"], (0, 0x10, 0x1301BF, USERS)]),
+        # Inherited "Authenticated Users: create folders" as under C:\.
+        dict(CLEAN_ROOT, aces=[*CLEAN_ROOT["aces"], (0, 0x10, 0x4, "S-1-5-11")]),
+        # Only WRITE_DAC for the user is enough to take the root back later.
+        dict(CLEAN_ROOT, aces=[*CLEAN_ROOT["aces"], (0, 0, 0x40000, USER_SID)]),
+        # CREATOR OWNER inherit-only full control is refused too.
+        dict(CLEAN_ROOT, aces=[*CLEAN_ROOT["aces"], (0, 0x1B, 0x10000000, CREATOR_OWNER)]),
+        # Unsupported (callback/conditional) allow entry fails closed.
+        dict(CLEAN_ROOT, aces=[*CLEAN_ROOT["aces"], (9, 0, 0x1200A9, USERS)]),
+    ],
+    ids=[
+        "user-owner",
+        "users-write",
+        "auth-users-add-subdir",
+        "user-write-dac",
+        "creator-owner",
+        "callback-ace",
+    ],
+)
+def test_empty_root_with_foreign_creator_or_write_access_is_refused(tmp_path, record):
+    """Failed before: any empty root was adopted by SetFileSecurity (P1 privilege escalation)."""
+    from src.api.release_provision import replace_empty_root
+
+    root = tmp_path / "TesterLab"
+    root.mkdir()
+    ops = _FakeRootOps(record)
+    with pytest.raises(ValueError, match="Remove the empty folder"):
+        _recover(root, ops)
+    created = []
+    with pytest.raises(ValueError, match="Remove the empty folder"):
+        replace_empty_root(root, lambda: created.append(True), ops=_FakeRootOps(record))
+    assert root.is_dir() and not created
+    assert "delete" not in ops.calls
+
+
+def test_read_only_foreign_access_and_deny_entries_do_not_block_replacement():
+    from src.api.release_provision import validate_replaceable_root_security
+
+    validate_replaceable_root_security(
+        dict(
+            CLEAN_ROOT,
+            aces=[
+                *CLEAN_ROOT["aces"],
+                (0, 0x10, 0x1200A9, USERS),
+                (1, 0, 0x1F01FF, USER_SID),
+            ],
+        )
+    )
+
+
+def test_empty_root_open_by_foreign_handle_is_refused(tmp_path):
+    from src.api.release_provision import replace_empty_root
+
+    root = tmp_path / "TesterLab"
+    root.mkdir()
+    ops = _FakeRootOps(foreign_handle=True)
+    with pytest.raises(ValueError, match="Remove the empty folder"):
+        _recover(root, ops)
+    created = []
+    with pytest.raises(ValueError, match="Remove the empty folder"):
+        replace_empty_root(root, lambda: created.append(True), ops=ops)
+    assert root.is_dir() and not created and "delete" not in ops.calls
+
+
+def test_clean_admin_empty_root_is_deleted_and_created_fresh(tmp_path):
+    from src.api.release_provision import replace_empty_root
+
+    root = tmp_path / "TesterLab"
+    root.mkdir()
+    ops = _FakeRootOps()
+    old_inode = root.stat().st_ino
+    order = []
+
+    def create():
+        assert not root.exists(), "old directory object must be gone before creation"
+        order.append("create")
+        root.mkdir()  # Atomic create-new: fails if anything reappeared.
+
+    replace_empty_root(root, create, ops=ops)
+    assert ops.calls == ["open", "security", "delete", "close"]
+    assert order == ["create"] and root.is_dir()
+    assert [1, old_inode] != ops.identity(root)
+
+
+def test_replacement_refuses_when_name_is_reoccupied_or_delete_fails(tmp_path):
+    from src.api.release_provision import replace_empty_root
+
+    root = tmp_path / "TesterLab"
+    root.mkdir()
+
+    def raced():
+        raise FileExistsError(str(root))  # Delete-pending name or attacker re-created it.
+
+    with pytest.raises(ValueError, match="Remove the empty folder"):
+        replace_empty_root(root, raced, ops=_FakeRootOps())
+
+    root.mkdir()
+    ops = _FakeRootOps()
+    ops.delete = lambda obj: (_ for _ in ()).throw(OSError(145, "Directory not empty"))
+    created = []
+    with pytest.raises(ValueError, match="Remove the empty folder"):
+        replace_empty_root(root, lambda: created.append(True), ops=ops)
+    assert root.is_dir() and not created
+
+
+def test_provisioning_root_is_never_adopted_by_descriptor_rewrite():
+    import inspect
+
+    from src.api import release_provision as rp
+
+    source = inspect.getsource(rp.ProvisioningTransaction.root_created)
+    assert "SetFileSecurity" not in source and "adopt_empty" not in source
+    assert "replace_empty_root(self.root, create)" in source
+    assert "tx.root_created(replace_empty=replace_empty_root)" in inspect.getsource(
+        ri._install_locked
+    )
+
+
+def _admin_directory(path, extra_aces=(), *, admin_owner=True):
+    import pywintypes
+    import win32file
+    import win32security
+
+    descriptor = win32security.SECURITY_DESCRIPTOR()
+    try:
+        if admin_owner:
+            descriptor.SetSecurityDescriptorOwner(
+                win32security.ConvertStringSidToSid(ADMINS), False
+            )
+        acl = win32security.ACL()
+        for sid, mask in ((SYSTEM, 0x1F01FF), (ADMINS, 0x1F01FF), *extra_aces):
+            acl.AddAccessAllowedAceEx(
+                win32security.ACL_REVISION_DS, 3, mask, win32security.ConvertStringSidToSid(sid)
+            )
+        descriptor.SetSecurityDescriptorDacl(True, acl, False)
+        descriptor.SetSecurityDescriptorControl(
+            win32security.SE_DACL_PROTECTED, win32security.SE_DACL_PROTECTED
+        )
+        attributes = pywintypes.SECURITY_ATTRIBUTES()
+        attributes.SECURITY_DESCRIPTOR = descriptor
+        win32file.CreateDirectory(str(path), attributes)
+    except pywintypes.error as exc:
+        if exc.winerror == 1307:  # ERROR_INVALID_OWNER: token cannot assign Administrators.
+            pytest.skip("Token cannot assign the Administrators owner SID")
+        raise
+
+
+@windows_only
+def test_native_empty_root_granting_users_write_is_refused(tmp_path):
+    from src.api.release_provision import prove_replaceable_empty_root, replace_empty_root
+
+    root = tmp_path / "TesterLab"
+    # Default token owner: refused by the Users write ACE whatever the owner is.
+    _admin_directory(root, extra_aces=[(USERS, 0x1301BF)], admin_owner=False)
+    with pytest.raises(ValueError, match="Remove the empty folder"):
+        prove_replaceable_empty_root(root)
+    created = []
+    with pytest.raises(ValueError, match="Remove the empty folder"):
+        replace_empty_root(root, lambda: created.append(True))
+    assert root.is_dir() and not created
+
+
+@windows_only
+def test_native_clean_empty_root_is_recreated_and_foreign_handle_refused(tmp_path):
+    import win32con
+    import win32file
+
+    from src.api.release_provision import replace_empty_root
+
+    root = tmp_path / "TesterLab"
+    _admin_directory(root)
+    previous = removal._identity(root)
+    # Any foreign handle with data access (here FILE_ADD_SUBDIRECTORY) blocks share mode 0.
+    foreign = win32file.CreateFile(
+        str(root),
+        0x4 | 0x40000,
+        win32con.FILE_SHARE_READ | win32con.FILE_SHARE_WRITE | win32con.FILE_SHARE_DELETE,
+        None,
+        win32con.OPEN_EXISTING,
+        win32file.FILE_FLAG_BACKUP_SEMANTICS,
+        None,
+    )
+    try:
+        with pytest.raises(ValueError, match="Remove the empty folder"):
+            replace_empty_root(root, lambda: pytest.fail("must not create"))
+    finally:
+        foreign.Close()
+    assert removal._identity(root) == previous
+    replace_empty_root(root, lambda: _admin_directory(root))
+    assert root.is_dir() and removal._identity(root) != previous
 
 
 def test_installer_registration_source_keeps_demand_until_runtime_exposed():

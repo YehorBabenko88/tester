@@ -423,7 +423,7 @@ def _sweep_metadata(root, marker, mode):
 
 
 def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, desktop):
-    adopt_empty_root = False
+    replace_empty_root = False
     if root.exists():
         from .release_provision import recover_or_validate_existing
 
@@ -446,8 +446,9 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
             )
             return marker
         # Either an authenticated interrupted attempt was rolled back (root gone)
-        # or an empty unowned root remains to be adopted by a fresh transaction.
-        adopt_empty_root = root.exists()
+        # or an empty unclaimed root was proven replaceable: the fresh transaction
+        # deletes it by exclusive handle and creates a new object (never adopts it).
+        replace_empty_root = root.exists()
     import subprocess
 
     # A bundle must contain all pinned runtimes, wheelhouse, built frontend and source.
@@ -514,7 +515,7 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         raise
     exposed = False
     try:
-        tx.root_created(adopt_empty=adopt_empty_root)
+        tx.root_created(replace_empty=replace_empty_root)
         for name in (
             "state",
             "runtime",

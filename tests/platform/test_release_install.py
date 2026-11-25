@@ -425,8 +425,42 @@ def test_full_native_installer_lifecycle(tmp_path):
 
     before = system_pg()
     try:
-        # #111: an existing EMPTY root is adopted, never refused forever.
-        root.mkdir()
+        # Round 2: an existing EMPTY root is never adopted. One that grants Users
+        # write access is refused untouched before any transaction exists ...
+        import pywintypes
+        import win32file
+        import win32security
+
+        from src.api.release_uninstall import _identity as removal_identity
+
+        def admin_root(extra_aces=()):
+            descriptor = win32security.SECURITY_DESCRIPTOR()
+            descriptor.SetSecurityDescriptorOwner(
+                win32security.ConvertStringSidToSid("S-1-5-32-544"), False
+            )
+            acl = win32security.ACL()
+            for sid, mask in (("S-1-5-18", 0x1F01FF), ("S-1-5-32-544", 0x1F01FF), *extra_aces):
+                acl.AddAccessAllowedAceEx(
+                    win32security.ACL_REVISION_DS, 3, mask, win32security.ConvertStringSidToSid(sid)
+                )
+            descriptor.SetSecurityDescriptorDacl(True, acl, False)
+            descriptor.SetSecurityDescriptorControl(
+                win32security.SE_DACL_PROTECTED, win32security.SE_DACL_PROTECTED
+            )
+            attributes = pywintypes.SECURITY_ATTRIBUTES()
+            attributes.SECURITY_DESCRIPTOR = descriptor
+            win32file.CreateDirectory(str(root), attributes)
+
+        admin_root(extra_aces=[("S-1-5-32-545", 0x1301BF)])
+        with pytest.raises(AssertionError, match="Remove the empty folder"):
+            setup(media, timeout=600)
+        assert root.is_dir() and not any(root.iterdir())
+        assert not list(tmp_path.glob("TesterReleaseMaintenance_*"))
+        evidence["checks"].append(dict(phase="user-writable-empty-root-refused"))
+        root.rmdir()
+        # ... while an Administrators-owned clean empty root is deleted and created fresh.
+        admin_root()
+        precreated_identity = removal_identity(root)
         # First run is interrupted by killing only its authenticated private
         # bootstrap Python while the real same-account provisioning service runs.
         old_marker = interrupted_setup(
@@ -442,7 +476,8 @@ def test_full_native_installer_lifecycle(tmp_path):
             assert _security_record(obj)["owner"] == service_sid(old_marker["services"]["app"])
         finally:
             obj.close()
-        evidence["checks"].append(dict(phase="empty-precreated-root-adopted"))
+        assert removal_identity(root) != precreated_identity, "pre-created root object reused"
+        evidence["checks"].append(dict(phase="empty-precreated-root-replaced"))
         evidence["checks"].append(
             dict(
                 phase="real-install-driver-interrupted",
