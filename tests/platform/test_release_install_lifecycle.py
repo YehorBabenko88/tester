@@ -11,7 +11,7 @@ import subprocess
 import sys
 import types
 import uuid
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 import pytest
@@ -852,3 +852,254 @@ def test_preshutdown_timeouts_registered_and_verified_for_both_services(monkeypa
         scm._apply_preshutdown("h-app", 10**9)
     marker_plans = ri._with_preshutdown(dict(name="a"), dict(name="p"))
     assert [plan["preshutdown_timeout_ms"] for plan in marker_plans] == [60000, 90000]
+
+
+# --- Re-audit #2 (P3): a root re-created by a third party before root_created ------
+# The provisioning journal has no root_created receipt, so TESTER never owned the
+# object now at the root path. Rollback must not touch it, must still clean this
+# attempt's own metadata, and the original refusal must stay the reported error.
+
+
+class _RootProbe:
+    """Any native open/inspection of the root (or a tree under it) is recorded."""
+
+    def __init__(self, monkeypatch):
+        self.touched = []
+
+        def refuse(name):
+            def probe(*args, **kwargs):
+                self.touched.append(name)
+                # What the real Windows proof raises for a user-created folder.
+                raise ReleaseSecurityError("Unknown provisioning object has a foreign creator SID")
+
+            return probe
+
+        for name in ("_WindowsObject", "_provisioning_entries", "_locked_tree"):
+            monkeypatch.setattr(removal, name, refuse(name))
+
+
+@contextmanager
+def _linux_protected_journal(path, *, write=False):
+    # Isolates only the native protected-journal handle; parsing and signature
+    # verification of the journal content stay real.
+    class _Journal:
+        def read_bytes(self, max_bytes):
+            return Path(path).read_bytes()[:max_bytes]
+
+    yield _Journal()
+
+
+class _RecordingResources:
+    def __init__(self):
+        self.events = []
+
+    def validate_resources(self, marker):
+        self.events.append("validate")
+
+    def stop_and_prove_exit(self, marker):
+        self.events.append("stop")
+
+    def remove_resources(self, marker):
+        self.events.append("remove")
+
+
+def _journal_without_root_created(tmp_path):
+    from tests.platform.test_release_uninstall import provisioning_journal
+
+    root, pin, header, rows, _ = provisioning_journal(tmp_path)
+    (root / "app.txt").unlink()
+    (root / "FOREIGN-USER-DATA.txt").write_text("KEEP")
+    rows = [header, dict(event="phase", phase="interrupted")]
+    journal = tmp_path / "TesterReleaseMaintenance_journal.jsonl"
+    journal.write_bytes(b"".join(removal.canonical_json(row) + b"\n" for row in rows))
+    return root, pin, header, rows, journal
+
+
+def test_rollback_without_root_created_never_touches_the_foreign_root(tmp_path, monkeypatch):
+    root, pin, header, rows, journal = _journal_without_root_created(tmp_path)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", _linux_protected_journal)
+    probe = _RootProbe(monkeypatch)
+    resources = _RecordingResources()
+    result = removal.rollback_provisioning(
+        root,
+        journal_path=journal,
+        trusted_public_key_sha256=pin,
+        expected_source_sha="a" * 40,
+        resources=resources,
+        lifecycle_lock=lambda _: nullcontext(),
+    )
+    assert result["status"] == "rolled_back"
+    assert result["root_ownership"] == "never_recorded"
+    assert probe.touched == []
+    assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
+    assert resources.events == ["validate", "stop", "validate", "remove"]
+    assert removal.read_evidence(journal.with_suffix(".rollback.jsonl"))["status"] == "rolled_back"
+
+
+def test_rollback_refuses_creation_receipts_without_a_recorded_root(tmp_path, monkeypatch):
+    from tests.platform.test_release_uninstall import provisioning_journal
+
+    root, pin, header, rows, _ = provisioning_journal(tmp_path)
+    journal = tmp_path / "journal.jsonl"
+    rows = [row for row in rows if row.get("event") != "root_created"]
+    journal.write_bytes(b"".join(removal.canonical_json(row) + b"\n" for row in rows))
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", _linux_protected_journal)
+    probe = _RootProbe(monkeypatch)
+    with pytest.raises(ReleaseSecurityError, match="without a recorded root"):
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=_RecordingResources(),
+            lifecycle_lock=lambda _: nullcontext(),
+        )
+    assert probe.touched == [] and (root / "app.txt").exists()
+
+
+def test_rollback_after_root_created_still_proves_the_root(tmp_path, monkeypatch):
+    from tests.platform.test_release_uninstall import provisioning_journal
+
+    root, pin, header, rows, encoded = provisioning_journal(tmp_path)
+    journal = tmp_path / "journal.jsonl"
+    journal.write_bytes(encoded)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", _linux_protected_journal)
+    probe = _RootProbe(monkeypatch)
+    with pytest.raises(ReleaseSecurityError, match="foreign creator"):
+        removal.rollback_provisioning(
+            root,
+            journal_path=journal,
+            trusted_public_key_sha256=pin,
+            expected_source_sha="a" * 40,
+            resources=_RecordingResources(),
+            lifecycle_lock=lambda _: nullcontext(),
+        )
+    assert probe.touched == ["_provisioning_entries"]
+    assert (root / "app.txt").exists()
+
+
+def _drive_fresh_install(tmp_path, monkeypatch, *, record_root_created):
+    """Run _install_locked up to tx.root_created with only native seams injected."""
+    import shutil
+
+    from src.api import release_provision as rp
+    from tests.platform.test_release_uninstall import provisioning_journal
+
+    (tmp_path / "template").mkdir()
+    _, pin, template, _, _ = provisioning_journal(tmp_path / "template")
+    bundle = tmp_path / "bundle"
+    for relative in (
+        "payload/src/api/supervisor.py",
+        "payload/frontend/index.html",
+        "payload/requirements-release-windows314.lock",
+        "runtimes/python/python.exe",
+        "runtimes/postgres/bin/initdb.exe",
+        "runtimes/postgres/bin/pg_ctl.exe",
+    ):
+        (bundle / relative).parent.mkdir(parents=True, exist_ok=True)
+        (bundle / relative).write_bytes(b"x")
+    desktop = tmp_path / "desktop"
+    desktop.mkdir()
+    root = tmp_path / "TesterLab"
+    root.mkdir()  # Empty clean root: routed to replace_empty_root.
+    release = types.SimpleNamespace(
+        source_sha="a" * 40, manifest_sha256=template["release_manifest_sha256"]
+    )
+    cleaned = []
+
+    class FakeTransaction:
+        def __init__(self, root, marker, release, maintenance):
+            self.root, self.maintenance = root, maintenance
+            self.path = maintenance / "provisioning.jsonl"
+            self.root_identity = None
+            header = dict(
+                template,
+                root=str(root),
+                installation_id=marker["installation_id"],
+                marker=marker,
+                root_parent_identity=removal._identity(root.parent),
+            )
+            self.path.write_bytes(removal.canonical_json(header) + b"\n")
+
+        def append(self, row):
+            with self.path.open("ab") as stream:
+                stream.write(removal.canonical_json(row) + b"\n")
+
+        def root_created(self, *, replace_empty=False):
+            assert replace_empty
+            if record_root_created:
+                self.root_identity = removal._identity(self.root)
+                self.append(dict(event="root_created", identity=self.root_identity))
+                raise RuntimeError("later provisioning failure")
+            # Race: the old root was deleted by handle, then a standard user
+            # re-created it before CreateDirectory, which therefore failed.
+            (self.root / "FOREIGN-USER-DATA.txt").write_text("KEEP")
+            raise rp.empty_root_refusal(self.root) from FileExistsError(str(self.root))
+
+        def release_guards(self):
+            pass
+
+        def close(self):
+            pass
+
+    def cleanup(directory, *, installation_id):
+        cleaned.append(directory)
+        shutil.rmtree(directory)
+
+    monkeypatch.setattr(rp, "recover_or_validate_existing", lambda *a, **k: None)
+    monkeypatch.setattr(rp, "ProvisioningTransaction", FakeTransaction)
+    for name in ("validate_resources", "stop_and_prove_exit", "remove_resources"):
+        monkeypatch.setattr(rp, name, lambda marker: None)
+    monkeypatch.setattr(ri, "protect_external_bundle", lambda directory: None)
+    monkeypatch.setattr(removal, "_protected_provisioning_journal", _linux_protected_journal)
+    monkeypatch.setattr(removal, "remove_maintenance_directory", cleanup)
+    probe = _RootProbe(monkeypatch)
+    call = lambda: ri._install_locked(  # noqa: E731
+        bundle, root, release, trusted_public_key_sha256=pin, mode="test", desktop=desktop
+    )
+    return root, call, probe, cleaned
+
+
+def test_root_race_before_root_created_surfaces_original_refusal(tmp_path, monkeypatch):
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=False
+    )
+    with pytest.raises(ValueError, match="Remove the empty folder and run Setup again"):
+        call()
+    assert probe.touched == []
+    assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
+    assert len(cleaned) == 1 and not cleaned[0].exists()
+    assert not list(tmp_path.glob("TesterReleaseMaintenance_*"))
+
+
+def test_failure_after_root_created_keeps_fail_closed_rollback(tmp_path, monkeypatch):
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=True
+    )
+    with pytest.raises(ReleaseSecurityError, match="foreign creator"):
+        call()
+    assert probe.touched == ["_provisioning_entries"]
+    assert root.is_dir() and cleaned == []
+    (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
+    assert (maintenance / "provisioning.jsonl").is_file()
+
+
+def test_refused_rollback_before_root_created_never_masks_original(tmp_path, monkeypatch):
+    from src.api import release_provision as rp
+
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=False
+    )
+
+    def refused(marker):
+        raise ReleaseSecurityError("service of a different installation")
+
+    monkeypatch.setattr(rp, "validate_resources", refused)
+    with pytest.raises(ValueError, match="Remove the empty folder and run Setup again") as info:
+        call()
+    assert isinstance(info.value.__context__, ReleaseSecurityError)
+    assert any("rollback of this attempt was refused" in n for n in info.value.__notes__)
+    assert probe.touched == [] and cleaned == []
+    assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
+    (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
+    assert (maintenance / "provisioning.jsonl").is_file()
