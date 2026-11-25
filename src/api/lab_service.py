@@ -80,6 +80,14 @@ class LabService(_Framework):
     def admit_start(self, root):
         return True
 
+    def policy_drain(self, root, exit_code):
+        """True when the supervisor exited because an owner kill switch drained it.
+
+        Such an exit ends the run on request (clean stop, normal STOPPED, no SCM
+        recovery). Legacy hosts have no restart authority: never.
+        """
+        return False
+
     def record_clean_stop(self, root):
         """A requested stop (operator, SCM or OS shutdown) is not a crash; legacy no-op."""
 
@@ -137,6 +145,14 @@ class LabService(_Framework):
             self.SvcShutdown()
             return 0
         return super().SvcOtherEx(control, event_type, data)
+
+    def _child_exit_ends_run(self, root, exit_code):
+        """Classify a supervisor exit that the host did not request."""
+        if self.policy_drain(root, exit_code):
+            self.record_phase("drained-by-kill-switch")
+            self._mark_clean_stop(root)
+            return True
+        return self.accepts_child_exit(exit_code)
 
     def _mark_clean_stop(self, root):
         if getattr(self, "_clean_stop_recorded", False):
@@ -235,7 +251,7 @@ class LabService(_Framework):
                     self.record_phase("startup-interrupted")
                     return
                 if win32event.WaitForSingleObject(process, 0) == win32event.WAIT_OBJECT_0:
-                    if self.accepts_child_exit(win32process.GetExitCodeProcess(process)):
+                    if self._child_exit_ends_run(root, win32process.GetExitCodeProcess(process)):
                         return
                     raise LabViolation("Unexpected supervisor exit during startup")
                 if self.ready_without_http(root, marker, instance):
@@ -294,7 +310,7 @@ class LabService(_Framework):
                     self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING, waitHint=10000)
                 if win32process.GetExitCodeProcess(process) != 0:
                     raise LabViolation("Supervisor shutdown failed")
-            elif not self.accepts_child_exit(win32process.GetExitCodeProcess(process)):
+            elif not self._child_exit_ends_run(root, win32process.GetExitCodeProcess(process)):
                 raise LabViolation("Unexpected supervisor exit")
         finally:
             if process is not None and not assigned:

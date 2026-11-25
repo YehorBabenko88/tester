@@ -291,6 +291,58 @@ def test_actual_pg_clean_stop_is_recorded_under_both_kill_switches(authority, tm
 
 
 @pytest.mark.integration
+def test_actual_pg_kill_switch_drain_is_recorded_as_clean_stop(authority, tmp_path, monkeypatch):
+    """A supervisor drain caused by an owner kill switch ends the run cleanly.
+
+    Before the fix the supervisor exited 1 and the service host treated that as an
+    unexpected exit (no clean-stop record, SCM failure), so the first start after
+    the owner removed the switch was counted as a host crash restart.
+    """
+    from src.api import release_service as rs
+    from src.api.restart_budget import KILL_SWITCH_EXIT
+
+    owner, _, ident, budget = authority
+
+    def host():
+        service = object.__new__(rs.ReleaseService)
+        service.phases = []
+        service.record_phase = service.phases.append
+        service._restart_budget = budget()
+        service._restart_budget.admit("host")
+        return service
+
+    def disabled(value):
+        _owner(
+            owner,
+            "UPDATE tester_platform.restart_budgets SET disabled=%s WHERE installation_id=%s "
+            "RETURNING 1",
+            value,
+            ident,
+        )
+
+    for switch in ("sql", "file"):
+        running = host()
+        if switch == "sql":
+            disabled(True)
+        else:
+            (tmp_path / "restart.disabled").touch()
+        assert running._child_exit_ends_run(tmp_path, KILL_SWITCH_EXIT) is True
+        assert running.phases == ["drained-by-kill-switch"]
+        status = _owner(owner, "SELECT tester_platform.restart_window_status(%s)", ident)[0]
+        assert status["host_run_active"] is False
+        disabled(False)
+        (tmp_path / "restart.disabled").unlink(missing_ok=True)
+    after = host()
+    assert budget().counts()["host"] == 0  # Start after the switch is removed: clean.
+    after._mark_clean_stop(tmp_path)
+    # The exit status alone proves nothing: without a switch it is a crash.
+    forged = host()
+    assert forged._child_exit_ends_run(tmp_path, KILL_SWITCH_EXIT) is False
+    host()
+    assert budget().counts()["host"] == 1
+
+
+@pytest.mark.integration
 def test_actual_pg_runtime_kill_switch_file_denies_without_sql(authority, tmp_path):
     from src.api.restart_budget import BudgetDenied
 

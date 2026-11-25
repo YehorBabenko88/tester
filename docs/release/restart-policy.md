@@ -20,7 +20,12 @@ Each host start generates a random run token that stays in the service-host
 process; only its SHA-256 digest is stored in the protected row. A requested stop
 (operator stop/restart through the release controller, an SCM stop, or a Windows
 shutdown/restart delivered as PRESHUTDOWN/SHUTDOWN) records a clean stop for exactly
-that token before the supervisor drains. Therefore:
+that token before the supervisor drains. Windows sends PRESHUTDOWN to both services
+at once and ignores the service dependency, so the PostgreSQL host waits (bounded,
+inside its preshutdown timeout) until the dependent App service reports STOPPED before
+its fast stop, and the App host retries a transiently unavailable authority for a few
+seconds; see [runtime.md](runtime.md#native-service-restart-window-and-windows-shutdown).
+A drain that an owner kill switch asked for is a clean stop as well (below). Therefore:
 
 * a normal Windows reboot, OS auto-start and an operator start after a stop are
   clean starts: never counted and never refused by the window;
@@ -108,7 +113,14 @@ Creating `runtime/restart.disabled` prevents new reservations and asks the runni
 supervisor to drain and stop. Both kill switches deny every start and reservation but
 still accept the clean-stop record of the exact current host-run token
 (`host-stop:<token>`): stopping the service while a switch is set therefore does not
-turn the first start after the switch is removed into a counted crash restart. Create it only with the supported elevated procedure in
+turn the first start after the switch is removed into a counted crash restart. The same
+holds when the switch itself drains a running supervisor: it exits with status 3
+(`KILL_SWITCH_EXIT`), and the service host, which never trusts that status alone,
+re-verifies with its own authority that the file exists or `restart_counts` is
+definitely denied (never for mere unavailability; an exhausted window does not deny
+`restart_counts`), records the clean stop and stops normally without SCM recovery. A
+forged status without a switch is treated as a crash, and even a forged clean stop can
+only stop the service, never start one. Create it only with the supported elevated procedure in
 [product-guide.md](product-guide.md) (`New-Item`, owner set to Administrators with
 `icacls /setowner`, folder permissions unchanged); uninstall accepts exactly that file
 and removes it with the installation. For a durable owner-controlled kill switch, set the
@@ -152,6 +164,10 @@ still recorded under both switches), the upgrade of a pre-008 database through
 `db.migrate`, and legacy untokenized `host`/`api`/`worker` reservations on that
 upgraded database (bounded by the window). Existing tests still cover client
 reconstruction, identity/configuration mismatch, valid local-prefix rollback and
-commit failure before spawn. Real SCM recovery, a real Windows reboot, OS shutdown
-ordering against the PostgreSQL service and power loss must separately be proven on
-a disposable VM; SQL and unit tests alone do not establish reboot acceptance.
+commit failure before spawn. `tests/platform/test_shutdown_ordering.py` simulates OS shutdown ordering with injected
+SCM/PostgreSQL probes (PostgreSQL stopping first, slow PostgreSQL, slow and hung App,
+genuine crash, forged kill-switch status), and
+`test_actual_pg_kill_switch_drain_is_recorded_as_clean_stop` proves the kill-switch
+drain path against real PostgreSQL. Real SCM recovery, a real Windows reboot, OS
+shutdown ordering against the PostgreSQL service and power loss must separately be
+proven on a disposable VM; SQL and unit tests alone do not establish reboot acceptance.

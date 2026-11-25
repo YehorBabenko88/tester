@@ -16,6 +16,10 @@ from .lab_install import plain
 LIMITS = {"host": 3, "api": 6, "worker": 6}  # Crash restarts per WINDOW_SECONDS.
 WINDOW_SECONDS = 3600
 ENV_KEYS = ("TESTER_RESTART_BUDGET_DIR", "TESTER_INSTALLATION_ID", "TESTER_SOURCE_SHA")
+# Supervisor exit status after a drain asked for by an owner kill switch (runtime file or
+# the protected row's ``disabled`` flag). The service host still verifies the switch
+# itself before it treats the exit as a requested stop (see ``kill_switch_engaged``).
+KILL_SWITCH_EXIT = 3
 
 
 class BudgetDenied(ValueError):
@@ -161,6 +165,23 @@ class DatabaseRestartBudget:
         if role not in ("api", "worker"):
             raise BudgetDenied("Unknown restart role")
         self._request(role + "-start")
+
+    def kill_switch_engaged(self):
+        """True only when an owner kill switch provably denies this installation now.
+
+        ``restart_counts`` never fails for exhausted windows, so a definite (not
+        infrastructure) denial means the protected row is disabled or no longer
+        matches this identity. Unavailable authority proves nothing: False.
+        """
+        if (self.directory / "restart.disabled").exists():
+            return True
+        try:
+            self.counts()
+        except BudgetUnavailable:
+            return False
+        except BudgetDenied:
+            return True
+        return False
 
     def record_clean_stop(self):
         """Record that the current host run is ending on request (not a crash)."""

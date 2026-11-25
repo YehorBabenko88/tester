@@ -11,7 +11,12 @@ import time
 from .config import load_settings
 from .jobs import JobQueue
 from .logging_setup import configure
-from .restart_budget import BudgetDenied, BudgetUnavailable, DatabaseRestartBudget
+from .restart_budget import (
+    KILL_SWITCH_EXIT,
+    BudgetDenied,
+    BudgetUnavailable,
+    DatabaseRestartBudget,
+)
 
 # A transient PostgreSQL outage must not turn into a supervisor exit, which the
 # SCM would answer with a host crash restart. Denied/exhausted policy still drains.
@@ -89,7 +94,7 @@ def run():
         while not stopped.wait(0.25) and not stop_file.exists():
             if budget is not None and (budget.directory / "restart.disabled").exists():
                 logger.error("restart_kill_switch")
-                code = 1
+                code = KILL_SWITCH_EXIT  # Owner-requested drain, not a crash.
                 break
             if budget is not None and time.monotonic() >= next_budget_check:
                 next_budget_check = time.monotonic() + 1
@@ -98,6 +103,12 @@ def run():
                     unavailable_since = None
                 except BudgetUnavailable:
                     authority_unavailable()  # Running children are kept within the grace.
+                except BudgetDenied:
+                    # counts() never fails for an exhausted window: the owner row is
+                    # disabled (or no longer matches). The host re-verifies this.
+                    logger.error("restart_kill_switch")
+                    code = KILL_SWITCH_EXIT
+                    break
             for name in sorted(pending):
                 try:
                     children[name] = launch_component(name, budget, restart=True)
@@ -125,7 +136,10 @@ def run():
                         authority_unavailable()
     except BudgetDenied:
         logger.error("durable_restart_budget_denied")
-        code = 1
+        # A denial while the runtime kill switch is present is the owner's drain;
+        # anything else (exhausted child window, lost identity) stays a failure.
+        killed = budget is not None and (budget.directory / "restart.disabled").exists()
+        code = KILL_SWITCH_EXIT if killed else 1
     finally:
         # Linearizes shutdown against both API admission and worker claims.
         try:
