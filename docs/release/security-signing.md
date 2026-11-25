@@ -157,8 +157,11 @@ and the switch is completed by the next validated Setup run. Rollback of an
 uncommitted attempt additionally accepts objects created inside `postgres-data`
 by that installation's own UUID-bound PostgreSQL service SID (owner and ACL), and
 nothing else. An existing empty installation root that no TESTER transaction
-claims is adopted (pinned, proven empty and given the fresh-root descriptor)
-instead of being refused forever.
+claims is never adopted or re-permissioned: it is replaced only when it is owned by
+Administrators or SYSTEM, grants no other principal more than read/traverse
+(inherited and CREATOR OWNER entries included) and can be opened exclusively; it is
+then deleted by handle and created fresh with the TESTER descriptor. Any other
+empty root is refused with an instruction to remove it.
 
 ## Acceptance limits and open release gates
 
