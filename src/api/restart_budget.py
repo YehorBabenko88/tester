@@ -1,12 +1,20 @@
-"""Owner-protected PostgreSQL launch reservations; no process executor."""
+"""Owner-protected PostgreSQL crash-restart reservations; no process executor.
+
+Only crash restarts are counted, inside a fixed sliding window (migration 008).
+Clean starts (boot after a recorded clean stop, operator start after a stop) and
+the initial API/worker launch of a supervisor run are admitted without consuming
+crash budget, but still require the protected identity row and the kill switches.
+"""
 
 import json
 import re
+import secrets
 import uuid
 
 from .lab_install import plain
 
-LIMITS = {"host": 3, "api": 6, "worker": 6}
+LIMITS = {"host": 3, "api": 6, "worker": 6}  # Crash restarts per WINDOW_SECONDS.
+WINDOW_SECONDS = 3600
 ENV_KEYS = ("TESTER_RESTART_BUDGET_DIR", "TESTER_INSTALLATION_ID", "TESTER_SOURCE_SHA")
 
 
@@ -57,6 +65,7 @@ class DatabaseRestartBudget:
         self.dsn = make_conninfo(**{**endpoint, "hostaddr": "127.0.0.1"})
         self.installation_id = installation_id
         self.source_sha = source_sha
+        self.host_token = None
 
     @classmethod
     def from_environment(cls, environment):
@@ -128,6 +137,86 @@ class DatabaseRestartBudget:
         return result
 
     def admit(self, role):
+        """Reserve before spawning. ``host`` starts a service-host run; ``api``/``worker``
+        are child crash restarts. The host start is a crash restart only when the
+        previous host run never recorded a clean stop (crash, kill or power loss).
+        """
         if type(role) is not str or role not in LIMITS:
             raise BudgetDenied("Unknown restart role")
-        self._request(role)
+        if role == "host":
+            # The run token stays in the host process; children never receive it.
+            # A retry after an ambiguous commit reuses the token and is idempotent.
+            self.host_token = self.host_token or secrets.token_hex(16)
+            self._request("host:" + self.host_token)
+        else:
+            self._request(role)
+
+    def admit_initial(self, role):
+        """Initial child launch of a supervisor run: identity/kill switch only."""
+        if role not in ("api", "worker"):
+            raise BudgetDenied("Unknown restart role")
+        self._request(role + "-start")
+
+    def record_clean_stop(self):
+        """Record that the current host run is ending on request (not a crash)."""
+        if self.host_token is None:
+            raise BudgetDenied("No admitted host run")
+        self._request("host-stop:" + self.host_token)
+        self.host_token = None
+
+
+def _owner_dsn(root):
+    """Administrative owner credential; readable only by Administrators/SYSTEM."""
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    from .release_install import load_marker
+
+    root = plain(root)
+    marker = load_marker(root)
+    path = plain(root / "private/database-owner.json")
+    if path.stat().st_nlink != 1 or path.stat().st_size > 65536:
+        raise BudgetDenied("Owner credential receipt out of scope")
+    endpoint = conninfo_to_dict(json.loads(path.read_text(encoding="utf-8"))["database_url"])
+    if (
+        endpoint.get("host") != "127.0.0.1"
+        or endpoint.get("hostaddr", "127.0.0.1") != "127.0.0.1"
+        or endpoint.get("port") != str(marker["ports"]["postgres"])
+        or endpoint.get("port") == "5432"
+        or endpoint.get("dbname") != "tester"
+        or endpoint.get("user") != "tester_owner"
+        or endpoint.get("require_auth") != "scram-sha-256"
+    ):
+        raise BudgetDenied("Owner restart authority scope mismatch")
+    return make_conninfo(**{**endpoint, "hostaddr": "127.0.0.1"}), marker["installation_id"]
+
+
+def owner_command(root, action):
+    """Owner-authenticated diagnosis/reviewed reset. The App login cannot run either."""
+    from .db import connect
+
+    queries = {
+        "status": "SELECT tester_platform.restart_window_status(%s::uuid)",
+        "reset": "SELECT tester_platform.reset_restart_window(%s::uuid)",
+    }
+    if action not in queries:
+        raise BudgetDenied("Unknown restart owner action")
+    dsn, installation_id = _owner_dsn(root)
+    with connect(dsn) as conn:
+        result = conn.execute(queries[action], (installation_id,)).fetchone()[0]
+    if result is None:
+        raise BudgetDenied("Unknown restart installation")
+    return result
+
+
+def main(argv=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Owner-only TESTER restart window tool")
+    parser.add_argument("action", choices=("status", "reset"))
+    parser.add_argument("--root", required=True)
+    args = parser.parse_args(argv)
+    print(json.dumps(owner_command(args.root, args.action), indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
