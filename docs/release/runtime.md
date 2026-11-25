@@ -406,3 +406,55 @@ fixed rate. The caller does not blindly retry an uncertain completion or clear
 the old endpoint. An uncertain acknowledgement alone is therefore not proof that
 the global token remains PENDING; owner review must inspect the actual durable
 state before selecting endpoint-only or whole-scope recovery.
+
+## Native service restart window and Windows shutdown
+
+Restart admission counts only crash restarts inside a one-hour sliding window
+(host 3, API 6, worker 6); clean boots, OS auto-start and operator starts after a
+recorded stop are not counted. A stop while a kill switch is set still records the
+clean stop of the exact run. Untokenized starts of pre-008 code are each counted as a
+crash restart (bounded, never refused outright). See [restart policy](restart-policy.md)
+for the authority, kill switches, the owner-only `status`/`reset` diagnosis and why
+an exhausted pre-008 installation is recovered by reinstall.
+
+Both release services (App host and PostgreSQL host, and the legacy lab host)
+accept SCM STOP, SHUTDOWN and PRESHUTDOWN. Shutdown and preshutdown run the same
+path as a stop: the App host records the clean stop, signals `stop.request` and
+waits up to 32 seconds for the supervisor drain while advancing STOP_PENDING
+checkpoints; the PostgreSQL host performs the verified `pg_ctl -m fast` stop.
+PRESHUTDOWN is preferred because plain SHUTDOWN only receives the short system
+service kill timeout. Windows' default preshutdown timeout is 10 seconds (since
+build 15063); a longer per-service `SERVICE_CONFIG_PRESHUTDOWN_INFO` value must be set
+at service registration. Shutdown notifications are not ordered by service
+dependency, so both hosts receive PRESHUTDOWN at the same time (App 60 s,
+PostgreSQL 90 s). Two measures keep a routine reboot from racing `pg_ctl stop`:
+
+* the App host records the clean stop as the first action of its stop path, before
+  the drain, and retries a transiently unavailable authority for up to 6 seconds;
+* the PostgreSQL host, before its fast stop, waits for its dependent App service to
+  report STOPPED through an SCM status query under its own service SID (bounded to
+  55 seconds, so wait + the 28 second `pg_ctl` bound stay inside its 90 second
+  preshutdown timeout; an absent or unobservable App service is not waited for).
+  The outcome is written to `postgres-data/service-lifecycle.json`
+  (`dependent-stopped`, `dependent-absent`, `dependent-unknown` or
+  `dependent-stop-timeout`); the full installer asserts `dependent-stopped`.
+
+Only an App host that is still stopping after that bound (or one in START_PENDING,
+which accepts no controls) can still lose the race; such a stop costs at most one
+windowed crash restart on the next boot. A supervisor drain caused by an owner kill
+switch exits with status 3; the App host re-verifies the switch with its own
+authority, records the clean stop and stops normally (no SCM recovery).
+`HKLM\SYSTEM\CurrentControlSet\Control\PreshutdownOrder` is deliberately not
+used: it is a machine-global list shared with other software (read-modify-write races
+with other installers and leftover entries after uninstall), and it serializes the
+whole preshutdown phase, whereas the per-installation wait above gives the same
+ordering without touching system-wide state.
+
+PostgreSQL readiness waits up to 600 seconds while the postgres child stays alive in
+its job (crash recovery after power loss can exceed the App's 55 second readiness
+deadline), reporting START_PENDING throughout; the release controller waits while a
+service is still pending (660 seconds for PostgreSQL, 180 for the App).
+`Start-ReleaseTester.ps1` runs the private venv Python with `-I -B` and an explicit
+release path, so an elevated caller's `PYTHONPATH`, user site or working directory
+cannot inject modules. A real reboot, power loss and preshutdown timing remain
+UNVERIFIED until exercised on a disposable Windows VM.

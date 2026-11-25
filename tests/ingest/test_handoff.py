@@ -24,7 +24,7 @@ class HandoffTests(unittest.TestCase):
             for name,price,size in [('first','1.0','2.00'),('second','1.00','2.0')]:
                 path=root/(name+'.csv.gz')
                 path.write_bytes(gzip.compress(('timestamp,symbol,side,size,price,trdMatchID\n1704067200.123,BTCUSDT,Buy,'+size+','+price+',same-id\n').encode()))
-                records=iter_trade_records(path,'linear','BTCUSDT',{'url':'https://public.bybit.com/trading/BTCUSDT/'+name+'.csv.gz','ingestion_run':run})
+                records=iter_trade_records(path,'linear','BTCUSDT',{'url':'https://public.bybit.com/trading/BTCUSDT/'+name+'-BTCUSDT2024-01-01.csv.gz','ingestion_run':run})
                 j.save(name,'observed',{},records,run_id=run)
             j.finish_run(run,'PARTIAL'); j.export(root/'handoff.json'); j.close()
             bundle=json.loads((root/'handoff.json').read_text())
@@ -172,7 +172,7 @@ class HandoffTests(unittest.TestCase):
             root=Path(directory); path=root/'a.csv.gz'
             path.write_bytes(gzip.compress(b'timestamp,symbol,side,size,price,trdMatchID\n1704067200.123456,BTCUSDT,Buy,0.10,42000.01,one\n1704067200.123456,BTCUSDT,Sell,0.20,42000.02,two\n'))
             j=Journal(root/'j.sqlite')
-            j.save('archive-parse','observed',{},iter_trade_records(path,'linear','BTCUSDT',{'url':'https://public.bybit.com/trading/BTCUSDT/a.csv.gz'}))
+            j.save('archive-parse','observed',{},iter_trade_records(path,'linear','BTCUSDT',{'url':'https://public.bybit.com/trading/BTCUSDT/BTCUSDT2024-01-01.csv.gz'}))
             j.export(root/'handoff.json'); j.close()
             bundle=json.loads((root/'handoff.json').read_text())
             self.assertEqual(len(bundle['records']),2)

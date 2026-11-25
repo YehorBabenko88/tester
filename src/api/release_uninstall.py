@@ -108,6 +108,7 @@ class _WindowsObject:
             self.close()
             raise ctypes.WinError(ctypes.get_last_error())
         self.identity = [info.volume, (info.indexhigh << 32) | info.indexlow]
+        self.size = (info.sizehigh << 32) | info.sizelow
         self.is_dir = bool(info.attributes & 0x10)
         if info.attributes & 0x400 or (not self.is_dir and info.links != 1):
             self.close()
@@ -284,9 +285,42 @@ def _boundary_for(name, boundaries):
     )
 
 
+# Documented operator kill switch (docs/release/restart-policy.md). An elevated
+# administrator may create exactly this regular file inside the App writer tree.
+KILL_SWITCH = "runtime/restart.disabled"
+KILL_SWITCH_MAX_BYTES = 4096
+_KILL_SWITCH_OWNERS = ("S-1-5-18", "S-1-5-32-544")
+
+
+def _validate_kill_switch(obj, record, service_sid):
+    """Accept only the exact kill-switch file: regular, small, inherited writer ACL.
+
+    The handle already refused reparse points and hardlinks. Ownership may be
+    SYSTEM, Administrators or the App service SID; any other owner or any
+    broadened/explicit ACE still fails closed.
+    """
+    if obj.is_dir or obj.size > KILL_SWITCH_MAX_BYTES:
+        raise ReleaseSecurityError("Kill switch must be a small regular file")
+    if record["owner"] not in (*_KILL_SWITCH_OWNERS, service_sid):
+        raise ReleaseSecurityError(
+            "Kill switch owner must be Administrators, SYSTEM or the TESTER App service; "
+            "set it with: icacls <root>\\runtime\\restart.disabled /setowner *S-1-5-32-544"
+        )
+    _validate_writer_security({**record, "owner": service_sid}, service_sid, known=True)
+
+
 def _writer_proof(obj, name, boundary, *, known):
+    record = _security_record(obj)
+    if (
+        not known
+        and name == KILL_SWITCH
+        and boundary["path"] == "runtime"
+        and boundary["service_name"].startswith("TesterReleaseApp_")
+    ):
+        _validate_kill_switch(obj, record, boundary["service_sid"])
+        return
     _validate_writer_security(
-        _security_record(obj),
+        record,
         boundary["service_sid"],
         boundary=name == boundary["path"],
         known=known,
@@ -567,44 +601,59 @@ def _load_ledger(root, ledger_path, pin, key_pin, source_sha):
     return ledger
 
 
-def _preflight(root, ledger):
+def _preflight(root, ledger, *, tolerate_churn=False):
+    """Validate every current object; optionally ignore objects that vanish mid-scan.
+
+    ``tolerate_churn`` is used only while services may still run (before the
+    stop proof): a writer may delete its own temporary files during enumeration.
+    Objects that still exist are validated exactly as without it.
+    """
     if _identity(root) != ledger["root_identity"]:
         raise ReleaseSecurityError("Installation directory identity changed")
     actual = _tree(root)
     boundaries = _boundaries(ledger)
     entries = dict(ledger["entries"])
     for name, path in actual.items():
-        known = name in entries
-        boundary = _boundary_for(name, boundaries)
-        if not known and boundary is None:
-            raise ReleaseSecurityError("Unknown entries; no deletion authorized")
-        if boundary is not None:
-            obj = _WindowsObject(path, lock=False)
-            try:
-                same_identity = known and obj.identity == entries[name]["identity"]
-                replaceable = not known or (
-                    "sha256" not in entries[name] and name != boundary["path"]
-                )
-                authenticated_creation = replaceable and not same_identity
-                _writer_proof(obj, name, boundary, known=not authenticated_creation)
-                if authenticated_creation:
-                    entries[name] = dict(
-                        identity=obj.identity,
-                        kind="dir" if obj.is_dir else "file",
-                        writer_boundary=boundary["path"],
-                    )
-            finally:
-                obj.close()
-        entry = entries[name]
-        if (
-            _identity(path) != entry["identity"]
-            or path.is_dir() != (entry["kind"] == "dir")
-            or ("sha256" in entry and sha256(path) != entry["sha256"])
-        ):
-            raise ReleaseSecurityError("Owned object identity or immutable bytes changed")
+        try:
+            _preflight_entry(name, path, entries, boundaries)
+        except FileNotFoundError:
+            if tolerate_churn and not os.path.lexists(path):
+                if name not in ledger["entries"]:
+                    entries.pop(name, None)  # Never keep a vanished dynamic receipt.
+                continue
+            raise
     if (root / MARKER).exists() and read_json(root / MARKER) != ledger["marker"]:
         raise ReleaseSecurityError("Installation marker altered")
     return entries
+
+
+def _preflight_entry(name, path, entries, boundaries):
+    known = name in entries
+    boundary = _boundary_for(name, boundaries)
+    if not known and boundary is None:
+        raise ReleaseSecurityError("Unknown entries; no deletion authorized")
+    if boundary is not None:
+        obj = _WindowsObject(path, lock=False)
+        try:
+            same_identity = known and obj.identity == entries[name]["identity"]
+            replaceable = not known or ("sha256" not in entries[name] and name != boundary["path"])
+            authenticated_creation = replaceable and not same_identity
+            _writer_proof(obj, name, boundary, known=not authenticated_creation)
+            if authenticated_creation:
+                entries[name] = dict(
+                    identity=obj.identity,
+                    kind="dir" if obj.is_dir else "file",
+                    writer_boundary=boundary["path"],
+                )
+        finally:
+            obj.close()
+    entry = entries[name]
+    if (
+        _identity(path) != entry["identity"]
+        or path.is_dir() != (entry["kind"] == "dir")
+        or ("sha256" in entry and sha256(path) != entry["sha256"])
+    ):
+        raise ReleaseSecurityError("Owned object identity or immutable bytes changed")
 
 
 def _write_evidence(stream, value):
@@ -771,7 +820,9 @@ def uninstall(
                     trusted_public_key_sha256,
                     expected_source_sha,
                 )
-                _preflight(root, ledger)
+                # Services may still run: refuse unknown/foreign objects before any
+                # side effect, but tolerate their own transient files vanishing.
+                _preflight(root, ledger, tolerate_churn=True)
                 for path, entry in ledger.get("external_entries", {}).items():
                     path = plain(path)
                     if path.exists() and (
@@ -1090,11 +1141,16 @@ def _parse_provisioning_journal(encoded, *, root, trusted_public_key_sha256, exp
         raise ReleaseSecurityError("Malformed provisioning authority or journal") from exc
 
 
-def _validate_provisioning_actor_security(record, actor_sid, *, initial=False):
-    """Unknown output requires a unique kernel creator; Admin ownership is not enough."""
-    if record["owner"] != actor_sid:
+def _validate_provisioning_actor_security(record, actor_sid, *, initial=False, writer_sid=None):
+    """Unknown output requires a unique kernel creator; Admin ownership is not enough.
+
+    ``writer_sid`` additionally admits the installation's own unique PostgreSQL
+    service SID, only for non-initial objects inside its ``postgres-data`` tree.
+    """
+    owners = {actor_sid} if initial or writer_sid is None else {actor_sid, writer_sid}
+    if record["owner"] not in owners:
         raise ReleaseSecurityError("Unknown provisioning object has a foreign creator SID")
-    allowed = {"S-1-5-18", "S-1-5-32-544", actor_sid}
+    allowed = {"S-1-5-18", "S-1-5-32-544", *owners}
     if not record["aces"]:
         raise ReleaseSecurityError("Empty provisioning ACL cannot authorize deletion")
     if initial:
@@ -1104,6 +1160,27 @@ def _validate_provisioning_actor_security(record, actor_sid, *, initial=False):
     for kind, flags, mask, sid in record["aces"]:
         if kind != 0 or flags & ~0x1F or sid not in allowed or mask & ~0x1F01FF:
             raise ReleaseSecurityError("Provisioning actor ACL contains foreign access")
+
+
+def _postgres_writer_sid(name, header):
+    """The UUID-bound PostgreSQL service SID may create objects only in postgres-data."""
+    if name != "postgres-data" and not name.startswith("postgres-data/"):
+        return None
+    from src.api.release_service import service_sid
+
+    sid = service_sid(header["marker"]["services"]["postgres"])
+    if not re.fullmatch(r"S-1-5-80-(?:[0-9]+-){4}[0-9]+", sid) or sid == header["actor_sid"]:
+        raise ReleaseSecurityError("PostgreSQL writer SID is not a unique virtual account")
+    return sid
+
+
+def _provisioning_object_security(record, header, name, *, initial):
+    _validate_provisioning_actor_security(
+        record,
+        header["actor_sid"],
+        initial=initial,
+        writer_sid=None if initial else _postgres_writer_sid(name, header),
+    )
 
 
 def _provisioning_entries(root, state):
@@ -1157,8 +1234,8 @@ def _provisioning_entries(root, state):
             )
             if not _actor_path(name, header) and not initial:
                 raise ReleaseSecurityError("Unknown provisioning object has no creator scope")
-            _validate_provisioning_actor_security(
-                _security_record(obj), header["actor_sid"], initial=not _actor_path(name, header)
+            _provisioning_object_security(
+                _security_record(obj), header, name, initial=not _actor_path(name, header)
             )
             entries[name] = dict(
                 identity=obj.identity, kind="dir" if obj.is_dir else "file", provisioning_actor=True
@@ -1308,8 +1385,8 @@ def _locked_provisioning_proof(root, state, root_identity, entries, held, extern
     for name, entry in entries.items():
         if entry.get("provisioning_actor") and name in held:
             initial = not _actor_path(name, state["header"])
-            _validate_provisioning_actor_security(
-                _security_record(held[name]), state["header"]["actor_sid"], initial=initial
+            _provisioning_object_security(
+                _security_record(held[name]), state["header"], name, initial=initial
             )
 
 
@@ -1504,7 +1581,15 @@ def rollback_provisioning(
                 marker = state["header"]["marker"]
                 resources.validate_resources(marker)
                 resources.stop_and_prove_exit(marker)
-                if not root.exists():
+                # Without a durable root_created receipt TESTER never owned a root
+                # object in this attempt (e.g. a third party re-created the folder
+                # between the by-handle delete and CreateDirectory). Whatever now
+                # exists at ``root`` is foreign: it is never opened, inspected or
+                # deleted; only this attempt's own external objects are rolled back.
+                foreign_root = state["root_identity"] is None
+                if foreign_root and (state["entries"] or state["plans"] or state["directories"]):
+                    raise ReleaseSecurityError("Provisioning receipts without a recorded root")
+                if foreign_root or not root.exists():
                     externals = _provisioning_external_entries(state)
                     with _locked_provisioning_externals(state, externals) as held:
                         resources.validate_resources(marker)
@@ -1539,7 +1624,9 @@ def rollback_provisioning(
                             evidence["deleted_count"] += 1
                             _write_evidence(stream, evidence)
                         held[""].delete()
-                if root.exists():
+                if foreign_root:
+                    evidence["root_ownership"] = "never_recorded"
+                elif root.exists():
                     raise ReleaseSecurityError("Provisioning root absence not proven")
                 evidence["status"] = "rolled_back"
                 _write_evidence(stream, evidence)
@@ -1548,6 +1635,195 @@ def rollback_provisioning(
                 evidence["error_type"] = type(exc).__name__
                 _write_evidence(stream, evidence)
                 raise
+
+
+_MAINTENANCE_DIRECTORY = re.compile(r"TesterReleaseMaintenance_([0-9a-f]{32})")
+# Every name an installer, rollback or uninstaller can leave in its maintenance
+# directory. Anything else (including trust.json) preserves the whole directory.
+_MAINTENANCE_ENTRY = re.compile(
+    r"provisioning\.jsonl"
+    r"|provisioning\.rollback(?:-retry-[0-9a-f]{32})?\.jsonl"
+    r"|ownership(?:-[0-9a-f]{32})?\.json"
+    r"|trust\.pending"
+    r"|test-pause\.(?:json|pending)"
+    r"|maintenance-recovery\.jsonl"
+    r"|evidence"
+    r"|evidence/removal-[0-9a-f]{32}\.jsonl"
+)
+
+
+def remove_maintenance_directory(directory, *, installation_id):
+    """Delete one finished installation's protected metadata directory by native handle.
+
+    The directory must be named for exactly this installation UUID, be protected
+    SYSTEM/Administrators-only, and contain only the known metadata names. All
+    objects are pinned (no reparse points, no hardlinks) before anything is deleted.
+    """
+    directory = plain(directory)
+    match = _MAINTENANCE_DIRECTORY.fullmatch(directory.name)
+    if not match or match[1] != uuid.UUID(installation_id).hex:
+        raise ReleaseSecurityError("Maintenance directory is not bound to this installation")
+    if os.name != "nt":
+        raise ReleaseSecurityError("Native handle-safe deletion currently supports Windows only")
+    held, ancestors = {}, []
+    try:
+        for parent in reversed(directory.parents):
+            ancestors.append(_WindowsObject(parent))
+        held[""] = _WindowsObject(directory, delete=True)
+        if not held[""].is_dir:
+            raise ReleaseSecurityError("Maintenance path is not a directory")
+        _validate_admin_security(_security_record(held[""]))
+        entries = _tree(directory)
+        for name in entries:
+            if not _MAINTENANCE_ENTRY.fullmatch(name):
+                raise ReleaseSecurityError("Unknown maintenance object preserved: " + name)
+        for name in sorted(entries, key=lambda n: (len(Path(n).parts), n)):
+            handle = _WindowsObject(entries[name], delete=True)
+            held[name] = handle
+            if handle.is_dir != (name == "evidence"):
+                raise ReleaseSecurityError("Unexpected maintenance object kind")
+        if set(_tree(directory)) != set(entries):
+            raise ReleaseSecurityError("Maintenance directory changed during removal")
+        for name in sorted((n for n in held if n), key=lambda n: (len(Path(n).parts), n))[::-1]:
+            held.pop(name).delete()
+        held.pop("").delete()
+    finally:
+        for handle in reversed(list(held.values())):
+            handle.close()
+        for handle in reversed(ancestors):
+            handle.close()
+    return str(directory)
+
+
+def _journal_rows(path):
+    with _protected_provisioning_journal(path) as journal:
+        encoded = journal.read_bytes(max_bytes=128 * 1024 * 1024)
+    return [
+        json.loads(line, object_pairs_hook=_unique_object)
+        for line in encoded.splitlines(keepends=True)
+        if line.endswith(b"\n")
+    ]
+
+
+def sweep_orphan_maintenance(root, parent, *, keep_installation_id, services_absent):
+    """Remove metadata of finished earlier attempts for this exact root.
+
+    Called under the lifecycle lock after a validated installation owns ``root``.
+    A directory is removed only when it has no trust config, its protected
+    journal names this root and its own UUID, its services are absent, it does
+    not own the current root identity and none of its recorded shortcuts still
+    exists. Everything else is preserved and reported as kept.
+    """
+    root, parent = plain(root), plain(parent)
+    current = _identity(root) if root.exists() else None
+    keep = uuid.UUID(keep_installation_id).hex
+    removed, kept = [], []
+    for directory in sorted(parent.glob("TesterReleaseMaintenance_*")):
+        match = _MAINTENANCE_DIRECTORY.fullmatch(directory.name)
+        if not match or match[1] == keep:
+            continue
+        try:
+            journal = directory / "provisioning.jsonl"
+            if (directory / "trust.json").exists() or not journal.is_file():
+                raise ReleaseSecurityError("Not provably finished")
+            rows = _journal_rows(journal)
+            header = rows[0]
+            ident = uuid.UUID(header["installation_id"])
+            marker = header["marker"]
+            if (
+                header.get("schema") != "tester-provisioning/v1"
+                or header.get("root") != str(root)
+                or ident.hex != match[1]
+                or marker.get("installation_id") != str(ident)
+                or marker.get("services")
+                != {
+                    "app": "TesterReleaseApp_" + ident.hex,
+                    "postgres": "TesterReleasePG_" + ident.hex,
+                }
+            ):
+                raise ReleaseSecurityError("Foreign maintenance journal")
+            for row in rows[1:]:
+                if row.get("event") == "root_created" and row["identity"] == current:
+                    raise ReleaseSecurityError("Journal still owns the current root")
+                if row.get("event") == "external_created":
+                    path = plain(row["path"])
+                    if os.path.lexists(path) and _identity(path) == row["identity"]:
+                        raise ReleaseSecurityError("Journal still owns an external shortcut")
+            if not services_absent(marker):
+                raise ReleaseSecurityError("Installation services still registered")
+            removed.append(remove_maintenance_directory(directory, installation_id=str(ident)))
+        except (OSError, ValueError, KeyError, TypeError, IndexError, AttributeError):
+            kept.append(str(directory))
+    return dict(removed=removed, kept=kept)
+
+
+def reenroll_external_shortcuts(
+    root, marker, *, trusted_public_key_sha256, expected_source_sha, protect
+):
+    """Re-pin exact TESTER shortcuts recreated by an authenticated Setup re-run.
+
+    The caller has already proven (COM readback) that both links exist with the
+    exact TESTER target, arguments and working directory. A new ledger differing
+    only in external shortcut receipts is written, then the protected trust config
+    is atomically replaced. Returns the new ledger path, or None if unchanged.
+    """
+    root = plain(root)
+    config_path = plain(marker["trust_config"])
+    config_handle = _WindowsObject(config_path)
+    parent_handle = _WindowsObject(config_path.parent)
+    try:
+        _validate_admin_security(_security_record(config_handle))
+        _validate_admin_security(_security_record(parent_handle))
+        config = json.loads(config_handle.read_bytes(), object_pairs_hook=_unique_object)
+    finally:
+        config_handle.close()
+        parent_handle.close()
+    old_path = plain(config["ledger"])
+    if (
+        config.get("schema") != "tester-maintenance-trust/v1"
+        or config.get("installation_id") != marker["installation_id"]
+        or config.get("root") != str(root)
+        or old_path.parent != config_path.parent
+    ):
+        raise ReleaseSecurityError("Trust config does not belong to this installation")
+    ledger = _load_ledger(
+        root,
+        old_path,
+        config["trusted_ledger_sha256"],
+        trusted_public_key_sha256,
+        expected_source_sha,
+    )
+    if ledger["marker"] != marker or ledger.get("ledger_path") != str(old_path):
+        raise ReleaseSecurityError("Ledger does not belong to this installation")
+    previous = ledger.get("external_entries", {})
+    if not previous:
+        return None
+    current = _external_receipts(root, list(previous))
+    if current == previous:
+        return None
+    new_path = config_path.parent / ("ownership-" + uuid.uuid4().hex + ".json")
+    encoded = canonical_json(dict(ledger, external_entries=current, ledger_path=str(new_path)))
+    with new_path.open("xb") as stream:
+        stream.write(encoded)
+        stream.flush()
+        os.fsync(stream.fileno())
+    protect(new_path)
+    pending = config_path.with_suffix(".pending")
+    updated = dict(
+        config, ledger=str(new_path), trusted_ledger_sha256=hashlib.sha256(encoded).hexdigest()
+    )
+    with pending.open("wb") as stream:
+        stream.write(json.dumps(updated, indent=2).encode("utf-8"))
+        stream.flush()
+        os.fsync(stream.fileno())
+    protect(pending)  # A rename keeps the protected descriptor; never expose a weak trust.
+    os.replace(pending, config_path)
+    old = _WindowsObject(old_path, delete=True)
+    try:
+        old.delete()
+    finally:
+        old.close()
+    return str(new_path)
 
 
 def main(argv=None):
@@ -1605,6 +1881,10 @@ def main(argv=None):
         evidence_path=args.evidence_path,
         defer_completion=args.defer_completion,
     )
+    if not root.exists():
+        from src.api.release_install import remove_lifecycle_lock
+
+        remove_lifecycle_lock(root)
     print(json.dumps(result, indent=2))
     return 0
 

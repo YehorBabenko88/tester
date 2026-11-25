@@ -295,6 +295,16 @@ class Store:
         from .read_page import read_page
         return read_page(self,dataset,venue,category,symbol,start_ms,end_ms,interval,limit,after,**limits)
 
+    def read_bounded(self,dataset,venue,category,symbol,start_ms,end_ms,interval='',*,limit,budget):
+        """Resource-bounded documented read (see bounded_read). Fails closed with
+        ReadBudgetExceeded before any payload/source/evidence document leaves PostgreSQL."""
+        from .bounded_read import ReadBudgetExceeded,read_bounded
+        try:
+            with self.connect() as c:
+                return read_bounded(c,dataset,venue,category,symbol,start_ms,end_ms,interval,limit=limit,budget=budget)
+        except psycopg.errors.QueryCanceled:
+            raise ReadBudgetExceeded('statement_timeout') from None
+
     def provenance(self,record_keys):
         from .provenance import resolve
         with self.connect() as c: return resolve(c,record_keys)

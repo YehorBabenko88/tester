@@ -227,16 +227,85 @@ def _owned_postgres_console(handle, image, parent, postgres_image, snapshot_star
     return parent_created <= child_created <= snapshot_started
 
 
-class NativeStopProof:
-    """Stable handles for authenticated service roots, PG descendants and app job."""
+class _NativeProcessProbe:
+    """Read-only Windows process facts; it never terminates or modifies a process."""
 
-    def __init__(self, marker, *, validator=validate_resources, pg_descendants=True):
+    def open(self, pid):
+        """Return a SYNCHRONIZE|QUERY_LIMITED handle, or None when the PID does not exist."""
+        import win32api
+
+        try:
+            return win32api.OpenProcess(0x100000 | 0x1000, False, pid)
+        except Exception as exc:
+            if getattr(exc, "winerror", None) == 87:
+                return None
+            raise
+
+    def image(self, handle):
+        import ctypes
+        from ctypes import wintypes
+
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.QueryFullProcessImageNameW.argtypes = [
+            wintypes.HANDLE,
+            wintypes.DWORD,
+            wintypes.LPWSTR,
+            ctypes.POINTER(wintypes.DWORD),
+        ]
+        buffer = ctypes.create_unicode_buffer(32768)
+        size = wintypes.DWORD(len(buffer))
+        if not kernel.QueryFullProcessImageNameW(int(handle), 0, buffer, ctypes.byref(size)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        return buffer.value
+
+    def token_user(self, handle):
+        import win32con
+        import win32security
+
+        token = win32security.OpenProcessToken(handle, win32con.TOKEN_QUERY)
+        try:
+            return win32security.ConvertSidToStringSid(
+                win32security.GetTokenInformation(token, win32security.TokenUser)[0]
+            )
+        finally:
+            token.Close()
+
+    def created(self, handle):
+        import win32process
+
+        return win32process.GetProcessTimes(handle)["CreationTime"].timestamp()
+
+    def owned_console(self, handle, image, parent, postgres_image, snapshot_started):
+        return _owned_postgres_console(handle, image, parent, postgres_image, snapshot_started)
+
+
+class NativeStopProof:
+    """Stable handles for authenticated service roots, PG descendants and app job.
+
+    PIDs from postmaster.pid and toolhelp parent links are historical hints only.
+    Only an owned process (owned image and owned service-SID token) is ever captured
+    and waited for; a foreign process is never touched. A foreign process reached via
+    an authenticated parent is still fail-closed unless it provably predates that
+    parent (reused parent PID). While the PostgreSQL service is stopped per SCM, a
+    postmaster.pid naming a vanished or foreign process is a stale crash leftover.
+    """
+
+    def __init__(
+        self,
+        marker,
+        *,
+        validator=validate_resources,
+        pg_descendants=True,
+        probe=None,
+        process_parents=None,
+    ):
         import win32job
 
         self.handles = []
         self.processes = {}
         self.job = None
         self.pg_job = None
+        self.probe = probe or _NativeProcessProbe()
         try:
             states = validator(marker)
             root = Path(marker["root"])
@@ -270,6 +339,7 @@ class NativeStopProof:
                 if self.pg_job is not None:
                     _validate_job_owner(self.pg_job, marker, "postgres")
             pidfile = root / "postgres-data/postmaster.pid"
+            pidfile_root = pidfile_written = None
             if pg_descendants and pidfile.exists():
                 from .lab_install import plain
 
@@ -280,106 +350,149 @@ class NativeStopProof:
                     or lines[3] != str(marker["ports"]["postgres"])
                 ):
                     raise ValueError("Dedicated PostgreSQL PID receipt scope mismatch")
-                pg_roots.add(int(lines[0]))
-            if not pg_descendants:
-                pg_roots.clear()
-            import time
-
-            snapshot_started = time.time()
-            parents = _process_parents()
-            descendants = set(pg_roots)
-            while True:
-                more = {pid for pid, parent in parents.items() if parent in descendants}
-                if more <= descendants:
-                    break
-                descendants.update(more)
-            allowed = {
-                str(root / "dependencies/postgres/bin/postgres.exe"),
-                str(root / "dependencies/postgres/bin/pg_ctl.exe"),
-            }
-            # Authenticate parents before considering their console children.
-            pending = set(descendants)
-            while pending:
-                ready = {
-                    pid for pid in pending if pid in pg_roots or parents.get(pid) not in pending
-                }
-                if not ready:
-                    raise ValueError("Cyclic PostgreSQL ancestry snapshot")
-                for pid in ready:
-                    if pid in self.processes:
-                        continue  # SCM host already authenticated with its role-specific image.
-                    try:
-                        self._capture(
-                            pid,
-                            service_sid(marker["services"]["postgres"]),
-                            allowed,
-                            console_parent=self.processes.get(parents.get(pid)),
-                            postgres_image=root / "dependencies/postgres/bin/postgres.exe",
-                            snapshot_started=snapshot_started,
-                        )
-                    except ValueError as exc:
-                        ancestry = {child: parents.get(child) for child in sorted(descendants)}
-                        raise ValueError(
-                            f"PostgreSQL stop-proof rejected: roots={sorted(pg_roots)}; "
-                            f"ancestry={ancestry}; {exc}"
-                        ) from exc
-                pending.difference_update(ready)
+                pidfile_root = int(lines[0])
+                pidfile_written = plain(pidfile).stat().st_mtime
+            if pg_descendants:
+                # Only an SCM-stopped (or deregistered) service can leave a stale pidfile.
+                pg_stopped = states[1] is None or states[1].get("state") == "stopped"
+                self._capture_postgres_tree(
+                    marker,
+                    pg_roots,
+                    pidfile_root,
+                    pidfile_written if pg_stopped else None,
+                    process_parents or _process_parents,
+                )
         except BaseException:
             self.close()
             raise
 
+    def _capture_postgres_tree(self, marker, scm_roots, pidfile_root, stale_after, parents_of):
+        """Walk the snapshot breadth-first so parents are authenticated before children.
+
+        ``stale_after`` is the postmaster.pid mtime while PostgreSQL is SCM-stopped, else
+        None; a pidfile root is then only a hint and classified without fail-closed raise.
+        """
+        import time
+        from collections import deque
+
+        root = Path(marker["root"])
+        sid = service_sid(marker["services"]["postgres"])
+        postgres_image = root / "dependencies/postgres/bin/postgres.exe"
+        allowed = {str(postgres_image), str(root / "dependencies/postgres/bin/pg_ctl.exe")}
+        roots = set(scm_roots)
+        queue = deque((pid, False, None) for pid in sorted(scm_roots))
+        if pidfile_root is not None and pidfile_root not in roots:
+            roots.add(pidfile_root)
+            queue.append((pidfile_root, stale_after is not None, None))
+        if not roots:
+            return
+        snapshot_started = time.time()
+        parents = parents_of()
+        children = {}
+        for pid, parent in parents.items():
+            if pid != parent:
+                children.setdefault(parent, []).append(pid)
+        seen = set()
+        while queue:
+            pid, lenient, parent = queue.popleft()
+            if pid in seen:
+                continue
+            seen.add(pid)
+            if pid not in self.processes:
+                try:
+                    self._capture(
+                        pid,
+                        sid,
+                        allowed,
+                        console_parent=self.processes.get(parent),
+                        postgres_image=postgres_image,
+                        snapshot_started=snapshot_started,
+                        lenient=lenient,
+                        stale_after=stale_after,
+                    )
+                except ValueError as exc:
+                    descendants = set(roots)
+                    while True:
+                        more = {c for c, p in parents.items() if p in descendants}
+                        if more <= descendants:
+                            break
+                        descendants.update(more)
+                    ancestry = {child: parents.get(child) for child in sorted(descendants)}
+                    raise ValueError(
+                        f"PostgreSQL stop-proof rejected: roots={sorted(roots)}; "
+                        f"ancestry={ancestry}; {exc}"
+                    ) from exc
+            # Children of a vanished/foreign/historical parent are only hints: owned ones
+            # are still captured, foreign ones are left untouched.
+            child_lenient = pid not in self.processes
+            for child in sorted(children.get(pid, ())):
+                queue.append((child, child_lenient, pid))
+
     def _capture(
-        self, pid, sid, allowed, *, console_parent=None, postgres_image=None, snapshot_started=None
+        self,
+        pid,
+        sid,
+        allowed,
+        *,
+        console_parent=None,
+        postgres_image=None,
+        snapshot_started=None,
+        lenient=False,
+        stale_after=None,
     ):
-        import ctypes
-        from ctypes import wintypes
+        """Capture an owned process; return False when the PID is absent or (lenient) foreign.
 
-        import win32api
-        import win32con
-        import win32security
-
+        Strict: anything but an owned image with the owned service-SID token raises.
+        Lenient (historical PID hint): any process carrying the owned token is captured
+        and waited for; a foreign-token process is ignored (never touched) unless it runs
+        an owned PostgreSQL image and is not provably newer than ``stale_after``.
+        """
+        probe = getattr(self, "probe", None) or _NativeProcessProbe()
         try:
-            handle = win32api.OpenProcess(0x100000 | 0x1000, False, pid)
+            handle = probe.open(pid)
         except Exception as exc:
-            if getattr(exc, "winerror", None) == 87:
-                return
+            if lenient and getattr(exc, "winerror", None) == 5:
+                return False  # The elevated actor can always open owned service processes.
             raise
-        token = None
+        if handle is None:
+            return False
         try:
-            token = win32security.OpenProcessToken(handle, win32con.TOKEN_QUERY)
-            actual = win32security.ConvertSidToStringSid(
-                win32security.GetTokenInformation(token, win32security.TokenUser)[0]
-            )
-            kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-            kernel.QueryFullProcessImageNameW.argtypes = [
-                wintypes.HANDLE,
-                wintypes.DWORD,
-                wintypes.LPWSTR,
-                ctypes.POINTER(wintypes.DWORD),
-            ]
-            buffer = ctypes.create_unicode_buffer(32768)
-            size = wintypes.DWORD(len(buffer))
-            if not kernel.QueryFullProcessImageNameW(int(handle), 0, buffer, ctypes.byref(size)):
-                raise ctypes.WinError(ctypes.get_last_error())
-            executable_allowed = buffer.value.casefold() in {path.casefold() for path in allowed}
-            if actual == sid and not executable_allowed and console_parent is not None:
-                executable_allowed = _owned_postgres_console(
-                    handle, buffer.value, console_parent, postgres_image, snapshot_started
+            if not lenient and console_parent is not None:
+                # PPID is historical: a process older than its authenticated "parent"
+                # cannot be that parent's child (reused parent PID).
+                lenient = probe.created(handle) < probe.created(console_parent["handle"])
+            try:
+                image = probe.image(handle)
+                actual = probe.token_user(handle)
+            except Exception as exc:
+                if lenient and (isinstance(exc, OSError) or getattr(exc, "winerror", None)):
+                    return False  # Unreadable (e.g. protected) process is not owned.
+                raise
+            executable_allowed = image.casefold() in {path.casefold() for path in allowed}
+            if lenient and actual == sid:
+                executable_allowed = True  # Owned token: wait for it, whatever its image.
+            elif actual == sid and not executable_allowed and console_parent is not None:
+                executable_allowed = probe.owned_console(
+                    handle, image, console_parent, postgres_image, snapshot_started
                 )
             if actual != sid or not executable_allowed:
+                if lenient and (
+                    not executable_allowed
+                    or (stale_after is not None and probe.created(handle) > stale_after)
+                ):
+                    return False  # Foreign process behind a stale/historical PID hint.
                 raise ValueError(
                     "Foreign executable/token in owned service ancestry: "
-                    f"pid={pid}; image={buffer.value!r}; token_user={actual}; "
+                    f"pid={pid}; image={image!r}; token_user={actual}; "
                     f"expected_token_user={sid}; allowed_images={sorted(allowed)!r}"
                 )
             self.handles.append(handle)
             if not hasattr(self, "processes"):
                 self.processes = {}
-            self.processes[pid] = dict(handle=handle, image=buffer.value, sid=actual)
+            self.processes[pid] = dict(handle=handle, image=image, sid=actual)
             handle = None
+            return True
         finally:
-            if token is not None:
-                token.Close()
             if handle is not None:
                 handle.Close()
 
@@ -438,6 +551,12 @@ def remove_resources(marker):
         return controller.apply("remove")
 
 
+# Upper bounds for an operator start: PostgreSQL readiness may include crash recovery;
+# the App host may wait for restart authority before its own readiness deadline.
+PG_START_SECONDS = 660
+APP_START_SECONDS = 180
+
+
 class NativeController:
     def __init__(self, marker):
         self.marker = marker
@@ -486,10 +605,24 @@ class NativeController:
             raise ValueError("Unknown lifecycle action")
         if action in {"start", "restart"}:
             preflight(Path(self.marker["root"]))
-            for plan in (pg, app):
+            for plan, limit in ((pg, PG_START_SECONDS), (app, APP_START_SECONDS)):
                 self.scm.start(plan["name"])
-                self.scm.wait(plan["name"], "running")
+                self._wait_running(plan["name"], limit)
         return validate_resources(self.marker, self.scm)
+
+    def _wait_running(self, name, limit):
+        """The SCM wait is bounded; keep waiting only while the service is still pending."""
+        import time
+
+        from .lab_install import LabViolation
+
+        deadline = time.monotonic() + limit
+        while True:
+            try:
+                return self.scm.wait(name, "running")
+            except LabViolation:
+                if time.monotonic() >= deadline or self.scm.inspect(name)["state"] != "pending":
+                    raise
 
 
 def validate_config(marker, config):
@@ -594,22 +727,96 @@ class ReleaseService(LabService):
     _receipt_lock = threading.Lock()
     marker_reader = staticmethod(load_marker)
 
+    # PostgreSQL may still be finishing startup/crash recovery after its own service
+    # reports RUNNING. Waiting here keeps a transient outage from consuming one of the
+    # two SCM recovery actions; exhausted/disabled policy still stops normally.
+    admission_grace_seconds = 45
+
     def admit_start(self, root):
+        import time
+
         from .restart_budget import BudgetDenied, BudgetUnavailable, DatabaseRestartBudget
 
         marker = load_marker(root)
+        deadline = time.monotonic() + self.admission_grace_seconds
         try:
-            DatabaseRestartBudget.from_config(
+            budget = DatabaseRestartBudget.from_config(
                 root / "config.json",
                 root / "runtime",
                 marker["installation_id"],
                 marker["source_sha"],
-            ).admit("host")
+            )
+            while True:
+                try:
+                    budget.admit("host")
+                    break
+                except BudgetUnavailable:
+                    if time.monotonic() >= deadline:
+                        raise
+                    if self._admission_pause():
+                        return False  # Stop requested while authority was unavailable.
         except BudgetUnavailable:
             raise
         except BudgetDenied:
             return False
+        self._restart_budget = budget
         return True
+
+    def _admission_pause(self):
+        import time
+
+        event = getattr(self, "stop_event", None)
+        if event is None:
+            time.sleep(2)
+            return False
+        import win32event
+        import win32service
+
+        self.ReportServiceStatus(win32service.SERVICE_START_PENDING, waitHint=60000)
+        return win32event.WaitForSingleObject(event, 2000) == win32event.WAIT_OBJECT_0
+
+    # A transient PostgreSQL outage while the clean stop is recorded is retried for
+    # this long. The PostgreSQL host keeps the cluster up until this App host has
+    # stopped (``ReleasePostgresService.await_dependent_stop``), so during a Windows
+    # shutdown the record no longer races ``pg_ctl stop``.
+    clean_stop_retry_seconds = 6
+
+    def record_clean_stop(self, root):
+        import time
+
+        from .restart_budget import BudgetUnavailable
+
+        budget = getattr(self, "_restart_budget", None)
+        if budget is None:
+            return
+        deadline = time.monotonic() + self.clean_stop_retry_seconds
+        while True:
+            try:
+                budget.record_clean_stop()  # Exact host-run token; children never hold it.
+                return
+            except BudgetUnavailable:
+                # Same token: a retry after an ambiguous commit is denied, never doubled.
+                if time.monotonic() >= deadline:
+                    raise
+                self._stop_retry_pause()
+
+    def _stop_retry_pause(self):
+        import time
+
+        if getattr(self, "stop_event", None) is not None:
+            import win32service
+
+            self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING, waitHint=10000)
+        time.sleep(0.5)
+
+    def policy_drain(self, root, exit_code):
+        from .restart_budget import KILL_SWITCH_EXIT
+
+        budget = getattr(self, "_restart_budget", None)
+        # The supervisor's exit status alone is not trusted: the host re-verifies the
+        # owner switch with its own authority. A forged status only stops the service
+        # (normal STOPPED, no SCM recovery); it can never start or restart anything.
+        return exit_code == KILL_SWITCH_EXIT and budget is not None and budget.kill_switch_engaged()
 
     def create_job(self, marker):
         return create_owned_job(marker)
@@ -682,6 +889,9 @@ class ReleasePostgresService(ReleaseService):
 
     service_role = "postgres"
     uses_http_health = False
+    # Crash recovery after power loss/unclean shutdown can exceed the App's 55 s.
+    # The child must stay alive and in our job; START_PENDING keeps advancing.
+    startup_deadline_seconds = 600
 
     def admit_start(self, root):
         return True  # PostgreSQL must be available before SQL admission is possible.
@@ -695,8 +905,63 @@ class ReleasePostgresService(ReleaseService):
     def signal_stop(self, root):
         pass  # SCM handler only signals; verified pg_ctl runs in the service thread.
 
+    # Windows does not honour service dependencies at shutdown: both hosts receive
+    # PRESHUTDOWN concurrently (App 60 s, PostgreSQL 90 s). PostgreSQL therefore waits
+    # for its dependent App host to report STOPPED (it records its clean stop before
+    # draining) before the fast stop, bounded so that wait + pg_ctl (28 s) + checks
+    # stay inside the 90 s PostgreSQL preshutdown timeout.
+    dependent_stop_wait_seconds = 55
+
+    def dependent_state(self, marker):
+        """SCM state of the dependent App host: stopped, absent, active or unknown."""
+        import pywintypes
+        import win32service as ws
+
+        try:
+            manager = ws.OpenSCManager(None, None, ws.SC_MANAGER_CONNECT)
+        except pywintypes.error:
+            return "unknown"
+        try:
+            handle = ws.OpenService(manager, marker["services"]["app"], ws.SERVICE_QUERY_STATUS)
+            try:
+                state = ws.QueryServiceStatus(handle)[1]
+            finally:
+                ws.CloseServiceHandle(handle)
+        except pywintypes.error as exc:
+            return "absent" if exc.winerror == 1060 else "unknown"
+        finally:
+            ws.CloseServiceHandle(manager)
+        return "stopped" if state == ws.SERVICE_STOPPED else "active"
+
+    def await_dependent_stop(self, root):
+        import time
+
+        marker = load_marker(root)
+        deadline = time.monotonic() + self.dependent_stop_wait_seconds
+        waited = False
+        while True:
+            state = self.dependent_state(marker)
+            # "unknown": the App host cannot be observed; do not delay shutdown blindly.
+            if state in ("stopped", "absent", "unknown"):
+                break
+            if time.monotonic() >= deadline:
+                state = "stop-timeout"
+                break
+            if not waited:
+                self.record_phase("awaiting-dependent-stop")
+                waited = True
+            self._stop_retry_pause()
+        self.record_phase("dependent-" + state)  # Lifecycle evidence for every stop.
+        return state
+
     def graceful_stop(self, root):
         preflight(root, api_config=False)
+        try:
+            self.await_dependent_stop(root)
+        except Exception:
+            # Ordering is a best-effort guard: never skip the verified fast stop, or the
+            # job close at host exit would kill PostgreSQL uncleanly.
+            pass
         result = subprocess.run(
             [
                 str(root / "dependencies/postgres/bin/pg_ctl.exe"),

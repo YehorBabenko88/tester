@@ -201,14 +201,20 @@ def test_real_fresh_release_migration_roles_catalog_and_queue(tmp_path):
         from concurrent.futures import ThreadPoolExecutor
 
         def reserve_host(_):
+            # Each attempt is a distinct host run that never records a clean stop:
+            # the first run is a clean start, every later one is a crash restart
+            # bounded by the sliding window (migration 008, issue #103).
+            host = DatabaseRestartBudget(
+                runtime["tester"], tmp_path, marker()["installation_id"], marker()["source_sha"]
+            )
             try:
-                reservation.admit("host")
+                host.admit("host")
                 return True
             except BudgetDenied:
                 return False
 
         with ThreadPoolExecutor(max_workers=8) as pool:
-            assert sum(pool.map(reserve_host, range(8))) == 3
+            assert sum(pool.map(reserve_host, range(8))) == 1 + 3
         assert (
             DatabaseRestartBudget(
                 runtime["tester"], tmp_path, marker()["installation_id"], marker()["source_sha"]
@@ -218,6 +224,9 @@ def test_real_fresh_release_migration_roles_catalog_and_queue(tmp_path):
         with psycopg.connect(runtime["tester"]) as conn:
             with pytest.raises(psycopg.errors.InsufficientPrivilege):
                 conn.execute("UPDATE tester_platform.restart_budgets SET worker_starts=0")
+        with psycopg.connect(runtime["tester"]) as conn:
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                conn.execute("UPDATE tester_platform.restart_budgets SET host_crashes='{}'")
         with psycopg.connect(owners["tester"]) as conn:
             conn.execute("UPDATE tester_platform.restart_budgets SET disabled=true")
         with pytest.raises(BudgetDenied):
@@ -286,6 +295,16 @@ def test_release_runtime_grants_cannot_mint_research_authority_or_mutate_project
     for table in ("acknowledgments", "audit"):
         assert privileges(table, "tester_research", "tester_research_app") == {"SELECT", "INSERT"}
     assert privileges("projections", "tester_lab", "tester_app") == {"SELECT", "INSERT"}
+    # Issue #114: no DELETE/TRUNCATE on durable jobs/checkpoints; UPDATE only
+    # where runtime writes (claims, ON CONFLICT DO UPDATE checkpoint upserts).
+    for table, schema in (
+        ("jobs", "tester_platform"),
+        ("download_jobs", "tester_storage"),
+        ("ingestion_checkpoints", "tester_storage"),
+    ):
+        assert privileges(table, schema, "tester_app") == {"SELECT", "INSERT", "UPDATE"}, table
+    for table in ("raw_records", "record_sources", "pagination_evidence"):
+        assert privileges(table, "tester_storage", "tester_app") == {"SELECT", "INSERT"}, table
 
 
 def _assert_runtime_least_privileges(runtime, owners):

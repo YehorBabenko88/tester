@@ -17,7 +17,7 @@ def test_preview_refuses_f_and_binds_digests(monkeypatch):
     monkeypatch.setattr(bridge, "read_canonical_snapshot", lambda store, req: snapshot)
     monkeypatch.setattr(
         bridge,
-        "calculate",
+        "calculate_v2",
         lambda *args, **kwargs: {
             "market": {"venue": "bybit", "category": "linear", "symbol": "BTCUSDT"},
             "reasons": ["no_complete_range_proof"],
@@ -42,7 +42,7 @@ def test_cross_market_rejected(monkeypatch):
     )
     monkeypatch.setattr(
         bridge,
-        "calculate",
+        "calculate_v2",
         lambda *args, **kwargs: {
             "market": {"venue": "bybit", "category": "spot", "symbol": "BTCUSDT"},
             "reasons": [],
@@ -86,3 +86,106 @@ def test_weekly_interval_uses_monday_utc(monkeypatch):
     result = bridge.research_preview(object(), req, [], tick_size="0.5")
     assert result["status"] == "UNVERIFIED"
     assert result["f_input"] is None
+
+
+def _inverse_rows():
+    from src.analytics.core import normalize_trade
+
+    return [
+        normalize_trade(
+            {"time": "1", "price": price, "size": "100", "side": "Buy", "execId": exec_id},
+            category="inverse",
+            symbol="BTCUSD",
+            source_ref={
+                "source_kind": "bybit_rest",
+                "source_ref": "fixture-rest",
+                "source_hash": None,
+                "ingestion_run": "test-run",
+                "timestamp_precision": "ms",
+                "source_timestamp": "1",
+            },
+        )
+        for price, exec_id in (("100", "a"), ("200", "b"))
+    ]
+
+
+def test_preview_writes_execution_metrics_v2(monkeypatch):
+    # Before the consumer migration the preview wrote tester.execution-metrics/1
+    # (no quantity_unit).  New writes are /2 only.
+    from src.analytics.core import normalize_trade
+    from src.analytics.research_metrics import METHOD_V2, metrics_read_contract
+
+    monkeypatch.setattr(
+        bridge,
+        "read_canonical_snapshot",
+        lambda *args: QualifiedSnapshot("REAL", "r", None, "e", False, (), None, "{}"),
+    )
+    rows = [
+        normalize_trade(
+            {"time": "1", "price": "100", "size": "2", "side": "Buy", "execId": "a"},
+            category="linear",
+            symbol="BTCUSDT",
+            source_ref={
+                "source_kind": "bybit_rest",
+                "source_ref": "fixture-rest",
+                "source_hash": None,
+                "ingestion_run": "test-run",
+                "timestamp_precision": "ms",
+                "source_timestamp": "1",
+            },
+        )
+    ]
+    result = bridge.research_preview(object(), request(), rows, tick_size="1")
+    assert result["metrics"]["method"] == METHOD_V2
+    assert result["metrics"]["quantity_unit"] == "base"
+    assert metrics_read_contract(result["metrics"])["status"] == "CURRENT"
+    assert result["proof"]["metrics_digest"] == bridge.digest(result["metrics"])
+
+
+def test_preview_inverse_refused_by_snapshot_scope_not_metrics(monkeypatch):
+    # The metrics are /2 (inverse-correct); inverse is refused by the B
+    # snapshot scope (spot/linear candles only), and an inverse execution set
+    # can never be bound to a linear candle snapshot.
+    with pytest.raises(ValueError, match="unsupported_snapshot_scope"):
+        SnapshotRequest("bybit", "inverse", "BTCUSD", "1", 0, 60000)
+    monkeypatch.setattr(
+        bridge,
+        "read_canonical_snapshot",
+        lambda *args: QualifiedSnapshot("REAL", "r", None, "e", False, (), None, "{}"),
+    )
+    with pytest.raises(ValueError, match="execution_candle_scope_mismatch"):
+        bridge.research_preview(object(), request(), _inverse_rows(), tick_size="1")
+
+
+def test_preview_spot_binds_base_unit_v2_metrics(monkeypatch):
+    # Spot stays in the B snapshot scope; its /2 metrics are in base units.
+    from src.analytics.core import normalize_trade
+
+    monkeypatch.setattr(
+        bridge,
+        "read_canonical_snapshot",
+        lambda *args: QualifiedSnapshot("REAL", "r", None, "e", False, (), None, "{}"),
+    )
+    rows = [
+        normalize_trade(
+            {"time": str(ts), "price": price, "size": "100", "side": side, "execId": exec_id},
+            category="spot",
+            symbol="BTCUSDT",
+            source_ref={
+                "source_kind": "bybit_rest",
+                "source_ref": "fixture-rest",
+                "source_hash": None,
+                "ingestion_run": "test-run",
+                "timestamp_precision": "ms",
+                "source_timestamp": str(ts),
+            },
+        )
+        for ts, price, side, exec_id in ((1, "100", "Buy", "a"), (2, "200", "Sell", "b"))
+    ]
+    spot = SnapshotRequest("bybit", "spot", "BTCUSDT", "1", 0, 60000)
+    result = bridge.research_preview(object(), spot, rows, tick_size="1")
+    bar = result["metrics"]["bars"][0]
+    assert result["metrics"]["quantity_unit"] == "base"
+    assert result["metrics"]["market"]["category"] == "spot"
+    assert (bar["vwap"], bar["volume"], bar["delta_known"]) == ("150", "200", "0")
+    assert result["f_input"] is None and result["snapshot_admitted"] is False

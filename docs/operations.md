@@ -39,7 +39,7 @@ Physical service installation remains forbidden. Disposable-VM native start/stop
 virtual-account access, DLL resolution, process-kill and reboot tests remain gates.
 Hard OS CPU/RSS enforcement, real-provider concurrency/network shaping and fairness
 are not established by this revision. The synthetic 10-symbol benchmark in
-docs/evidence/ten-symbol-synthetic.json measures bounded local streaming/queue depth,
+`docs/evidence/ten-symbol-synthetic.json` (removed in PR #102; `git show d6059af:docs/evidence/ten-symbol-synthetic.json`) measures bounded local streaming/queue depth,
 not exchange throughput; total network bytes are unmeasured (null).
 
 Historical prototype requirements (not the final release matrix): Python 3.11+, PostgreSQL 14+ binaries/server, PowerShell 5.1+ or 7,

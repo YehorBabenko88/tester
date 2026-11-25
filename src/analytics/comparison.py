@@ -1,5 +1,7 @@
 """Evidence-gated comparisons of trade candles."""
-from .core import metadata, unique, interval_bounds
+from collections import defaultdict
+from fractions import Fraction
+from .core import metadata, unique, interval_bounds, deduplicate, integer
 from .exact import number, decimal
 
 
@@ -48,3 +50,120 @@ def compare_candles(calculated, official, *, tolerance=None, rounding=None):
             out.append(dict(base,field=field,calculated=av,official=bv,difference=difference,
                 status=field_status,reason=reason,context=context))
     return out
+
+
+MINUTE_MS = 60000
+# Unit of Bybit trade `size` (REST recent-trade and public archive) and of the
+# 1m kline `volume` field (list[5]); both are compared in this unit. Kline
+# `turnover` (list[6]) is the other leg (quote for linear/spot, base for
+# inverse) and is NOT reconciled: per-trade price*size or size/price would need
+# rounding the exchange does not document.
+VOLUME_UNITS = {'linear':'base_coin','inverse':'quote_coin_contracts','spot':'base_coin'}
+VOLUME_STATUSES = ('MATCH','MISMATCH','INCOMPLETE_TRADES','INCOMPLETE_CANDLES','OFF_STEP','UNIT_UNSUPPORTED')
+VOLUME_POLICY = ('exact equality of sum(trade size) and official 1m kline volume per UTC minute '
+    '[m, m+60000); no tolerance (legacy db.reconcile_minute_volume used 1e-6 relative, not adopted). '
+    'MATCH only when the minute is closed, explicit COMPLETE trade coverage with evidence covers it, '
+    'every trade is AVAILABLE with an exchange trade ID, the official_trade candle is closed, '
+    'AVAILABLE and COMPLETE with evidence, and all quantities lie on qty_step. '
+    'Status precedence: UNIT_UNSUPPORTED, INCOMPLETE_TRADES, INCOMPLETE_CANDLES, OFF_STEP, MATCH/MISMATCH.')
+
+
+def _covered(spans, start, end):
+    cursor = start
+    for lo,hi in sorted(spans):
+        if lo <= cursor < hi: cursor = hi
+        if cursor >= end: return True
+    return cursor >= end
+
+
+def reconcile_minute_volume(trades, candles, *, category, symbol, start_ms, end_ms, qty_step,
+                            trade_coverage, as_of_ms):
+    """Tick-trade volume vs official 1m candle volume quality control (#113 GAP-5).
+
+    ``trades`` are canonical Trade records, ``candles`` canonical Candle records
+    of one venue/category/symbol. ``trade_coverage`` lists the coverage
+    mappings ({status,start_ms,end_ms,evidence_refs}) that prove trade
+    completeness, e.g. one per verified archive day: an empty minute is only
+    known to be empty from such evidence, so missing archive days and partially
+    covered boundary minutes are INCOMPLETE_TRADES, never MATCH. ``qty_step`` is
+    the instrument's quantity increment (lotSizeFilter.qtyStep; for spot the
+    caller-declared base precision). See VOLUME_POLICY for the exact rule.
+    Returns {'policy','unit','minutes':[per-minute findings],'summary'}.
+    """
+    start_ms, end_ms, as_of_ms = integer(start_ms), integer(end_ms), integer(as_of_ms)
+    if start_ms % MINUTE_MS or end_ms % MINUTE_MS or start_ms >= end_ms:
+        raise ValueError('Minute-aligned non-empty [start_ms,end_ms) required')
+    step = number(qty_step, positive=True)
+    market = ('bybit', category, symbol)
+    rows = deduplicate(trades)
+    if any((t['venue'],t['category'],t['symbol']) != market for t in rows) or \
+            any((c['venue'],c['category'],c['symbol']) != market for c in candles):
+        raise ValueError('Trade/candle market identity mismatch')
+    by_minute = {}
+    for c in candles:
+        key = integer(c['start_ms'])
+        if key in by_minute: raise ValueError('Duplicate comparison candle key')
+        by_minute[key] = c
+    complete = [(integer(cov['start_ms']), integer(cov['end_ms']), tuple(cov['evidence_refs']))
+                for cov in trade_coverage if cov.get('status') == 'COMPLETE' and cov.get('evidence_refs')]
+    spans = [(lo, hi) for lo, hi, _ in complete]
+    bucket = defaultdict(list)
+    for t in rows: bucket[t['timestamp_ms'] - t['timestamp_ms'] % MINUTE_MS].append(t)
+    unit = VOLUME_UNITS.get(category)
+    out = []
+    for m in range(start_ms, end_ms, MINUTE_MS):
+        e = m + MINUTE_MS
+        ts = bucket.get(m, [])
+        c = by_minute.get(m)
+        reasons = {s: [] for s in VOLUME_STATUSES}
+        if unit is None: reasons['UNIT_UNSUPPORTED'].append('No documented volume unit for category')
+        if c is not None and c.get('kind') != 'official_trade':
+            reasons['UNIT_UNSUPPORTED'].append('Candle kind %r carries no exchange trade volume' % c.get('kind'))
+        if e > as_of_ms: reasons['INCOMPLETE_TRADES'].append('Minute not closed at as_of_ms')
+        if not _covered(spans, m, e):
+            reasons['INCOMPLETE_TRADES'].append('No COMPLETE trade coverage evidence for the whole minute')
+        if any(t['availability']['status'] != 'AVAILABLE' or t['id_origin'] != 'exchange' for t in ts):
+            reasons['INCOMPLETE_TRADES'].append('Trade without AVAILABLE status or exchange trade ID')
+        candle_volume = None
+        if c is None: reasons['INCOMPLETE_CANDLES'].append('No official 1m candle')
+        else:
+            cov = c['coverage']
+            if c.get('interval') != '1' or (c['start_ms'], c['end_ms']) != (m, e):
+                reasons['INCOMPLETE_CANDLES'].append('Candle is not the 1m candle of this UTC minute')
+            if c.get('is_closed') is not True or e > as_of_ms:
+                reasons['INCOMPLETE_CANDLES'].append('Candle not closed')
+            if c['availability']['status'] != 'AVAILABLE' or cov['status'] != 'COMPLETE' or \
+                    not cov['evidence_refs'] or not cov['start_ms'] <= m < e <= cov['end_ms']:
+                reasons['INCOMPLETE_CANDLES'].append('Candle lacks AVAILABLE/COMPLETE evidence for the minute')
+            try:
+                candle_volume = number(c['volume'])
+                if candle_volume < 0: raise ValueError
+            except (KeyError, ValueError, TypeError):
+                candle_volume = None
+                reasons['INCOMPLETE_CANDLES'].append('Candle volume missing or invalid')
+        quantities = [number(t['quantity']) for t in ts]
+        if any(q % step for q in quantities): reasons['OFF_STEP'].append('Trade size not a multiple of qty_step')
+        if candle_volume is not None and candle_volume % step:
+            reasons['OFF_STEP'].append('Candle volume not a multiple of qty_step')
+        trade_volume = sum(quantities, Fraction())
+        status = next((s for s in VOLUME_STATUSES[2:] if reasons[s]), None)
+        if reasons['UNIT_UNSUPPORTED']: status = 'UNIT_UNSUPPORTED'
+        elif status is None: status = 'MATCH' if trade_volume == candle_volume else 'MISMATCH'
+        evidence = sorted({r for lo, hi, refs in complete if lo < e and hi > m for r in refs}
+                          | set(c['coverage']['evidence_refs'] if c else []))
+        out.append(dict(schema_version='1.0', check='minute_trade_volume_vs_kline', venue='bybit',
+            category=category, symbol=symbol, start_ms=m, end_ms=e, status=status,
+            reasons=[r for s in VOLUME_STATUSES for r in reasons[s]], unit=unit, qty_step=decimal(step),
+            tolerance='0', trade_count=len(ts), trade_volume=decimal(trade_volume),
+            candle_volume=None if candle_volume is None else decimal(candle_volume),
+            difference=None if candle_volume is None else decimal(trade_volume - candle_volume),
+            evidence_refs=evidence))
+    summary = {}
+    for r in out:
+        s = summary.setdefault(r['status'], dict(minute_count=0, trade_count=0, largest_abs_difference=None))
+        s['minute_count'] += 1; s['trade_count'] += r['trade_count']
+        if r['difference'] is not None:
+            d = abs(number(r['difference']))
+            if s['largest_abs_difference'] is None or d > number(s['largest_abs_difference']):
+                s['largest_abs_difference'] = decimal(d)
+    return dict(policy=VOLUME_POLICY, unit=unit, minutes=out, summary=summary)

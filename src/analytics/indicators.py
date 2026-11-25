@@ -7,7 +7,7 @@ from decimal import Decimal, localcontext, ROUND_HALF_EVEN
 from fractions import Fraction
 from functools import wraps
 from .exact import number, decimal, total
-from .core import metadata, interval_bounds
+from .core import metadata, interval_bounds, integer
 
 
 def precision(fn):
@@ -202,3 +202,74 @@ def volatility_ranking(markets, *, as_of_ms):
         ranked.sort(key=lambda r:(r['value'] is None,-number(r['value']) if r['value'] is not None else 0,r['market']))
         out[label]=ranked
     return out
+
+
+HOUR_MS = 3600000
+MINUTE_MS = 60000
+RANGE_DEFINITION = ('(max(high) - min(low)) * 100 / open of the first 1m candle; '
+    'all 60 closed 1m candles of the UTC hour [hour_start_ms, hour_start_ms+3600000) required')
+
+
+def hourly_range_percent(candles, *, hour_start_ms, as_of_ms):
+    """Hourly High-Low range in percent (#113 GAP-4); NOT realized volatility.
+
+    Port of the removed legacy screener ``one_hour_range`` (d6059af
+    tests/platform/reference/legacy_screener.py) onto one closed UTC hour:
+
+        range_pct = (max(high_i) - min(low_i)) * 100 / open_0
+
+    over the sixty 1m candles i starting in [H, H+1h), where ``open_0`` is the
+    open of the candle starting exactly at H (the legacy reference price).
+    Arithmetic is exact (Fraction); the value is serialized by ``decimal`` (exact
+    when finite, otherwise 50 significant digits HALF_EVEN). Candles outside the
+    hour are ignored, as in the legacy screener.
+
+    The value is null with a reason, never fabricated, when the hour is not
+    closed at ``as_of_ms``; any in-hour candle is not a 1m candle on its UTC
+    minute boundary, is duplicated, has non-finite/non-positive/invalid OHLC
+    (low <= min(open, close) <= max(open, close) <= high), or is not closed; fewer
+    than all 60 minutes exist; or any candle lacks AVAILABLE/COMPLETE evidence.
+    Rows must share one market identity and one candle kind; the result is per
+    venue/category/symbol (the percentage is unitless, so all categories use the
+    same definition). Malformed calls (unaligned hour, mixed markets/kinds) raise.
+    """
+    hour_start_ms, as_of_ms = integer(hour_start_ms), integer(as_of_ms)
+    if hour_start_ms % HOUR_MS: raise ValueError('hour_start_ms must be a UTC hour boundary')
+    end = hour_start_ms+HOUR_MS
+    if len({(r['venue'],r['category'],r['symbol']) for r in candles})>1:
+        raise ValueError('One market identity per series required')
+    if len({r.get('kind') for r in candles})>1: raise ValueError('One candle kind per series required')
+    rows = sorted((r for r in candles if hour_start_ms<=integer(r['start_ms'])<end), key=lambda r:r['start_ms'])
+    extra = dict(definition=RANGE_DEFINITION,metric='hourly_range_percent',unit='percent',
+        hour_start_ms=hour_start_ms,hour_end_ms=end,reference_price=None,high=None,low=None,
+        minute_count=len(rows),kind=rows[0].get('kind') if rows else None,
+        category=candles[0]['category'] if candles else None)
+
+    def unavailable(reason):
+        if not rows:
+            return {'value':None,'reason':reason,'quality':quality([]),**extra}
+        return result(rows,None,reason,**extra)
+
+    if end > as_of_ms: return unavailable('Hour not closed at as_of_ms')
+    if not rows: return unavailable('Incomplete hour: 0 of 60 one-minute candles')
+    values = {}
+    for r in rows:
+        ts = r['start_ms']
+        if r.get('interval')!='1' or (r.get('start_ms'),r.get('end_ms'))!=(ts-ts%MINUTE_MS,ts-ts%MINUTE_MS+MINUTE_MS):
+            return unavailable('Candle is not a 1m candle on its UTC minute boundary')
+        if ts in values: return unavailable('Duplicate minute candle')
+        try:
+            o,h,l,c = (number(r[k],positive=True) for k in ['open','high','low','close'])
+        except (KeyError,ValueError,TypeError):
+            return unavailable('Invalid OHLC: non-finite, non-positive or not a decimal')
+        if not l<=min(o,c)<=max(o,c)<=h: return unavailable('Invalid OHLC ordering')
+        if r.get('is_closed') is not True: return unavailable('Unclosed candle in hour')
+        values[ts] = (o,h,l,c)
+    if set(values)!=set(range(hour_start_ms,end,MINUTE_MS)):
+        return unavailable('Incomplete hour: %d of 60 one-minute candles'%len(values))
+    if any(r['coverage']['status']!='COMPLETE' or r['availability']['status']!='AVAILABLE' for r in rows):
+        return unavailable('Unverified full-window coverage')
+    high = max(v[1] for v in values.values()); low = min(v[2] for v in values.values())
+    reference = values[hour_start_ms][0]
+    extra.update(reference_price=decimal(reference),high=decimal(high),low=decimal(low))
+    return result(rows,decimal((high-low)*100/reference),**extra)

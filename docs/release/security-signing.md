@@ -24,6 +24,8 @@ provenance review; a Git SHA string alone does not establish GitHub provenance.
 
 ## Exact owner action (not executed by Codex)
 
+Key creation, storage, pin distribution and rotation: [production-keys.md](production-keys.md).
+
 On the owner's offline signing workstation, create or select an encrypted
 Ed25519 PKCS8 PEM key outside this repository and outside the payload directory.
 Review the exact source commit, complete inventory, dependency locks, SBOM and
@@ -107,11 +109,61 @@ exits, the PowerShell controller deletes only the native identities from its
 fsynced creation journal, using the same handle-disposition primitive as the
 Python deletion engine. Unknown files or changed identities preserve the object
 and fail closed. Only after transient cleanup and TrustConfig removal does the
-controller append final `removed` evidence. The metadata-only ownership ledger
-and external nonsecret JSONL removal evidence remain for audit and recovery.
-A durable protected maintenance creation journal permits retry of partially
-removed transient files, including when the installation root is already gone;
-root absence alone never substitutes for native-removal completion evidence.
+controller records a `final-cleanup` entry in its protected recovery journal and
+removes the complete external maintenance directory
+(`TesterReleaseMaintenance_<installation-uuid>`: ownership ledger(s), provisioning
+journal and rollback receipts, removal evidence, trust config, recovery journal)
+by native handles, using a fixed allowlist of metadata names bound to that exact
+installation UUID. An unknown object preserves the directory and fails the
+removal. The per-root lifecycle lock file (`.tester-lifecycle-<sha256>.lock` next
+to the root) is deleted by the staged Python child once the root is gone and no
+other lifecycle operation holds it. Nothing is retained as an archive; the final
+`removed` record is printed to the console.
+
+Deletion order keeps every interruption resumable: audit files and ledgers first,
+then the trust config, the recovery journal, the evidence directory and finally
+the provisioning journal. If interrupted while the trust config still exists,
+re-running the uninstall shortcut finishes the cleanup from the `final-cleanup`
+record (the ledger may already be gone). If interrupted after the trust config is
+gone, the next successful Setup for the same root removes the remainder once it
+proves the journal names that root and UUID, the services are absent and no
+recorded root or shortcut identity still exists. A durable protected maintenance
+creation journal permits retry of partially removed transient files, including
+when the installation root is already gone; root absence alone never substitutes
+for native-removal completion evidence.
+
+Maintenance directories of failed or rolled-back installation attempts are
+removed right after their authenticated rollback, and any remaining provably
+finished attempt for the same root is swept at the end of the next successful
+Setup. Directories with a trust config, an unparseable journal, another root,
+registered services or a still-existing recorded identity are never touched.
+
+A validated Setup re-run that recreates a deleted TESTER desktop shortcut proves
+the link by COM readback (exact PowerShell target, arguments and working
+directory), writes a new ownership ledger that differs only in the external
+shortcut receipts, atomically replaces the protected trust config with its new
+digest and deletes the superseded ledger. Foreign or altered shortcuts are still
+refused. Shortcuts use the PowerShell directory as working directory, never the
+installation root; the uninstaller also moves its own process current directory
+out of the root before deletion.
+
+The documented operator kill switch `runtime\restart.disabled` is accepted by
+removal only as exactly that name in the App writer tree: a regular file (no
+reparse point/hardlink) of at most 4 KiB, owned by Administrators, SYSTEM or the
+App service SID, with the unmodified inherited writer ACL. Any other unknown
+object still fails closed.
+
+Interrupted installation: services are registered DEMAND_START and switched to
+AUTO_START only after the `runtime_exposed` commit record. A crash between commit
+and the switch is completed by the next validated Setup run. Rollback of an
+uncommitted attempt additionally accepts objects created inside `postgres-data`
+by that installation's own UUID-bound PostgreSQL service SID (owner and ACL), and
+nothing else. An existing empty installation root that no TESTER transaction
+claims is never adopted or re-permissioned: it is replaced only when it is owned by
+Administrators or SYSTEM, grants no other principal more than read/traverse
+(inherited and CREATOR OWNER entries included) and can be opened exclusively; it is
+then deleted by handle and created fresh with the TESTER descriptor. Any other
+empty root is refused with an instruction to remove it.
 
 ## Acceptance limits and open release gates
 

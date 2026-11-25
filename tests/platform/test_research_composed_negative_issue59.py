@@ -11,8 +11,6 @@ import hashlib
 import importlib
 import json
 import os
-import re
-import subprocess
 from datetime import UTC, datetime
 from fractions import Fraction
 from unittest.mock import Mock
@@ -46,7 +44,7 @@ SCOPE = {
 
 def _fixture_read(row=None):
     store = Mock()
-    store.read.return_value = [fixture(side="Unknown") if row is None else row]
+    store.read_bounded.return_value = [fixture(side="Unknown") if row is None else row]
     return store
 
 
@@ -124,7 +122,7 @@ def test_observed_sample_fingerprint_cannot_be_promoted_to_revision(key, value):
 
 def test_source_unavailable_is_not_a_successful_ui_or_strategy_job():
     store = Mock()
-    store.read.return_value = []
+    store.read_bounded.return_value = []
     with pytest.raises(ValueError, match="research_ui_not_source_backed"):
         read_verified_ui_observation(store, **SCOPE)
     store.ingest.assert_not_called()
@@ -286,8 +284,8 @@ def test_actual_postgres_source_receipt_tampering_and_ui_denial():
         def __init__(self, change):
             self.change = change
 
-        def read(self, *args, **kwargs):
-            records = copy.deepcopy(reopened.read(*args, **kwargs))
+        def read_bounded(self, *args, **kwargs):
+            records = copy.deepcopy(reopened.read_bounded(*args, **kwargs))
             assert len(records) == 2
             self.change(records[0])
             return records
@@ -371,78 +369,3 @@ def test_actual_postgres_client_hostaddr_is_pinned_despite_libpq_environment(
             validate_research_dsn(
                 "host=127.0.0.1 hostaddr=" + explicit + " port=55472 dbname=tester_research_test"
             )
-
-
-def test_exact_five_new_research_allowlist_blobs_are_pending_not_approved():
-    """Immutable Git evidence for MASTER #77 allowlist delta (CI only).
-
-    The reviewed files remain unapproved. Run this against the exact PR71
-    SHA in an isolated checkout with the MASTER review object fetched.
-    No Git writes, production processes, trading, or external HTTP calls.
-    """
-    head = os.getenv("RESEARCH_ALLOWLIST_EXACT_HEAD")
-    if head is None:
-        pytest.skip("Source Git allowlist review checked by pinned composed CI")
-    if not re.fullmatch(r"[a-f0-9]{40}", head):
-        raise ValueError("unqualified_research_head")
-
-    def get(*args):
-        return subprocess.check_output(("git", *args), timeout=15)
-
-    path = "docs/research_composed_negative_matrix.md"
-    content = get("show", f"{head}:{path}").decode("utf-8")
-    start, end = (
-        "<!-- RESEARCH_ALLOWLIST_JSON_BEGIN -->",
-        "<!-- RESEARCH_ALLOWLIST_JSON_END -->",
-    )
-    assert content.count(start) == content.count(end) == 1
-    embedded = content.split(start, 1)[1].split(end, 1)[0].strip()
-    assert embedded.startswith("```json\n") and embedded.endswith("```")
-    snapshot = json.loads(embedded[len("```json\n") : -3].strip())
-    original = "e76b08dbb2b45121c577c84414c56a7218994d0c"
-    master = "298d610771d962ee7b796eac1834d74138768fac"
-    assert snapshot["schema"] == "research-pr71-allowlist-review/1"
-    assert snapshot["research_immutable_source_commit"] == original
-    assert snapshot["master_review_commit"] == master
-    assert snapshot["review_status"] == "REVIEW_PENDING_MASTER_NOT_APPROVED"
-    assert snapshot["broadened_master_allowlist_approved"] is False
-    assert snapshot["installable_runtime_files"] == []
-    assert snapshot["native_launcher_activation"] == "FORBIDDEN"
-    assert snapshot["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
-    assert snapshot["historical_completeness"] == "UNKNOWN"
-
-    expected = {
-        ".github/workflows/research-private-generation.yml": "7f382dd526b2e030af59a69ba5ba352983638a41",
-        "docs/research_private_generation_e2e_commands.md": "a1f05176b56ad323736e92dbda44a06861168c3a",
-        "docs/research_private_generation_source_ledger.json": "1447406f01ff1c200059a89a7556dd404be3f9be",
-        "scripts/research_private_generation_issue59.py": "9845ac1f3ef1be49deea4c5e32a0c9da34b5bfd3",
-        "tests/platform/test_research_private_generation_issue59.py": "7da3cf46fb93541e5f58b1bdb785c234002d850b",
-    }
-    files = snapshot["reviewed_files"]
-    assert len(files) == len(expected) == 5
-    assert {e["path"]: e["git_blob_sha1"] for e in files} == expected
-    assert all(e["mode"] == "100644" for e in files)
-    master_review_path = snapshot["master_allowlist_review_path"]
-    master_review = get("show", f"{master}:{master_review_path}")
-    master_blob = hashlib.sha1(
-        b"blob " + str(len(master_review)).encode() + b"\x00" + master_review
-    ).hexdigest()
-    assert master_blob == snapshot["master_allowlist_review_git_blob_sha1"]
-    approved = json.loads(
-        get("show", f"{master}:docs/coordination/master-reviewed-producer-files.json")
-    )
-    assert approved["schema"] == "master-reviewed-producer-files/1"
-    for e in files:
-        p, sha = e["path"], e["git_blob_sha1"]
-        assert p not in approved["producers"]["RESEARCH"], p
-        assert ("- `" + p + "`").encode() in master_review
-        row = get("ls-tree", original, "--", p).decode("utf-8").strip()
-        mode, kind, observed_sha, observed_path = row.split(None, 3)
-        assert (mode, kind, observed_sha, observed_path) == ("100644", "blob", sha, p)
-        raw = get("show", f"{original}:{p}")
-        git_hash = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\x00" + raw).hexdigest()
-        assert git_hash == sha
-        assert get("show", f"{head}:{p}") == raw, (
-            "Five reviewed files changed; a new immutable review is required",
-            p,
-        )

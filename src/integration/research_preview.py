@@ -2,9 +2,18 @@
 
 This intentionally does not register an F input, create an execution job or
 upgrade historical visibility. F authorization remains in the reviewed B/F/G path.
+
+New previews are computed with ``tester.execution-metrics/2``.  Inverse stays
+refused here by the B snapshot scope (``SnapshotRequest`` admits only spot and
+linear candles), not by the metrics arithmetic.  That scope is deliberately
+NOT widened: ``SnapshotRequest`` is the typed B->F seam and the F/backtest
+engine has no inverse (coin-margined) PnL arithmetic, so an inverse candle
+request type would invite a unit-wrong F input.  Source-backed inverse
+research uses ``research_ui_projection.read_verified_ui_observation`` (DATA
+execution contract -> adapter -> /2 metrics), which needs no candle snapshot.
 """
 from src.analytics.core import interval_bounds
-from src.analytics.research_metrics import calculate
+from src.analytics.research_metrics import calculate_v2
 from src.integration.qualified_snapshot import (
     QualifiedSnapshot,
     SnapshotRequest,
@@ -37,7 +46,7 @@ def research_preview(store, request: SnapshotRequest, trades, *, tick_size: str)
         "240": 14400000, "360": 21600000, "720": 43200000,
         "D": 86400000, "W": 604800000,
     }[request.interval]
-    result = calculate(
+    result = calculate_v2(
         trades, start_ms=request.start_ms, end_ms=request.end_ms,
         interval_ms=interval_ms, tick_size=tick_size,
     )

@@ -280,7 +280,29 @@ def test_catalog_uses_single_transport_and_preserves_http_rate_limit_mapping():
         source.call("/tickers", {"category": "linear"})
     assert session.request.call_count == 1
     assert source.transport.last_observation.status_code == 429
-    assert session.trust_env is False
+
+
+def test_catalog_never_mutates_caller_session_and_unsafe_session_is_refused():
+    # Audit R5: _public_get used to overwrite trust_env/verify on whatever
+    # session the caller's Transport carried, silently "repairing" it.
+    from src.ingest.transport import UnsafePublicSession
+
+    session = requests.Session()
+    session.request = Mock(side_effect=AssertionError("network must not be reached"))
+    source = BybitCatalogSource(transport=Transport(session=session, attempts=1))
+    with pytest.raises(UnsafePublicSession):
+        source.call("/tickers", {"category": "linear"})
+    assert session.trust_env is True and session.verify is True
+    session.request.assert_not_called()
+
+
+def test_catalog_default_and_pinned_sessions_use_the_canonical_factory():
+    assert BybitCatalogSource().transport.session is None  # Transport-owned public_session()
+    pinned = BybitCatalogSource(verify="/fixture/ca.pem").transport.session
+    assert pinned.trust_env is False and pinned.verify == "/fixture/ca.pem"
+    Transport._validate_session(pinned)
+    with pytest.raises(ValueError):
+        BybitCatalogSource(verify="/fixture/ca.pem", transport=Transport(attempts=1))
 
 
 def test_catalog_forbidden_halt_survives_later_catalog_request():

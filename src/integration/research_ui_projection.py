@@ -4,11 +4,25 @@ This module cannot authorize Strategy Lab F/G/E, install a route, or certify
 historical completeness. Only source-backed DATA72 PostgreSQL readback is
 eligible for a rendered observation; synthetic fixtures remain untrusted.
 A caller-supplied dict is NOT a proof of source authenticity.
+
+Metrics versions: new previews carry ``tester.execution-metrics/2``
+(``metrics_contract.status == "CURRENT"``).  Persisted ``/1`` previews stay
+verifiable under their own unchanged digest rule (``metrics_digest ==
+digest(metrics)``) and are labelled ``HISTORICAL_READ_ONLY``; they are never
+recomputed or relabelled as /2, and ``/1`` inverse results stay refused.
+
+Units: every observation states ``quantity_unit`` (metrics unit: ``base`` for
+linear, ``quote`` = inverse contracts for inverse), ``source_quantity_unit``
+(DATA source-native unit) and ``vwap_unit`` (always quote per base).  Volume,
+delta, CVD and footprint values are never converted between units; a bundle
+of observations with different units is labelled, never summed.
 """
 import re
 from copy import deepcopy
 from fractions import Fraction
 
+from src.analytics.research_metrics import metrics_read_contract
+from src.integration.data_research_adapter import SOURCE_QUANTITY_UNITS
 from src.storage.models import digest
 
 SCHEMA = "tester.research-ui-observation/1"
@@ -78,8 +92,16 @@ def project_source_observation(preview):
     metrics = preview.get("metrics")
     if not isinstance(metrics, dict) or digest(metrics) != preview["metrics_digest"]:
         raise ValueError("research_ui_metric_digest_mismatch")
-    if (metrics.get("method") != "tester.execution-metrics/1"
-            or metrics.get("status") != "DERIVED_UNVERIFIED"
+    try:
+        contract = metrics_read_contract(metrics)
+    except ValueError as exc:
+        raise ValueError(f"research_ui_metric_authority_refused:{exc}") from exc
+    market = metrics.get("market")
+    category = market.get("category") if isinstance(market, dict) else None
+    if (category not in SOURCE_QUANTITY_UNITS
+            or preview.get("quantity_unit") != SOURCE_QUANTITY_UNITS[category]):
+        raise ValueError("research_ui_metric_quantity_unit_mismatch")
+    if (metrics.get("status") != "DERIVED_UNVERIFIED"
             or metrics.get("admitted_to_f") is not False
             or metrics.get("cvd_prior_history_known") is not False
             or metrics.get("cvd_anchor_start_ms") != observed["start_ms"]):
@@ -157,6 +179,10 @@ def project_source_observation(preview):
         "observed_sample_fingerprint": preview["observed_sample_fingerprint"],
         "metrics_digest": preview["metrics_digest"],
         "method": metrics["method"],
+        "metrics_contract": contract,
+        "quantity_unit": contract["quantity_unit"],
+        "source_quantity_unit": preview["quantity_unit"],
+        "vwap_unit": "quote_per_base",
         "utc_window": {"start_ms": observed["start_ms"], "end_ms": observed["end_ms"]},
         "bars": deepcopy(bars),
         "unknown_side_present": has_unknown,
@@ -167,4 +193,37 @@ def project_source_observation(preview):
         "g_e_execution": "NOT_AUTHORIZED",
         "http_route": None,
         "http_route_status": "NOT_REGISTERED",
+    }
+
+
+def combine_observations(observations):
+    """Bundle projected observations; mixed /1 and /2 results are made explicit.
+
+    No value is converted between versions: each item keeps its own
+    ``metrics_contract`` and the bundle states which versions it contains.
+    """
+    if not isinstance(observations, list):
+        raise ValueError("research_ui_observation_list_required")
+    methods = []
+    units = set()
+    for item in observations:
+        contract = item.get("metrics_contract") if isinstance(item, dict) else None
+        if (not isinstance(item, dict) or item.get("schema_version") != SCHEMA
+                or not isinstance(contract, dict)
+                or contract.get("method") != item.get("method")):
+            raise ValueError("research_ui_observation_contract")
+        if item.get("quantity_unit", contract.get("quantity_unit")) != contract.get("quantity_unit"):
+            raise ValueError("research_ui_observation_quantity_unit_mismatch")
+        methods.append(contract["method"])
+        units.add(contract.get("quantity_unit"))
+    return {
+        "observations": deepcopy(observations),
+        "metrics_methods": sorted(set(methods)),
+        "mixed_metrics_versions": len(set(methods)) > 1,
+        # Labelled only: observations in different units are never summed.
+        "quantity_units": sorted(u for u in units if u is not None),
+        "mixed_quantity_units": len(units) > 1,
+        "historical_read_only_count": sum(
+            item["metrics_contract"]["status"] == "HISTORICAL_READ_ONLY"
+            for item in observations),
     }

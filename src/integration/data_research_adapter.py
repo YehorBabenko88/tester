@@ -4,25 +4,43 @@ When composed, DATA alone verifies original HTTP/page/row evidence and performs
 bounded PostgreSQL readback. RESEARCH does not re-invent that proof authority.
 Neither a versioned event nor a successful projection certifies full history,
 publication time, Bid/Ask, or admission to F Strategy Lab.
+
+Metrics are always written with ``tester.execution-metrics/2`` (category
+aware VWAP, explicit ``quantity_unit``).  Previously persisted /1 previews are
+verified read-only by ``research_ui_projection``; they are never recomputed or
+relabelled as /2.  Inverse markets are admitted by the RESEARCH arithmetic
+(``project_events``) because /2 computes the inverse VWAP correctly; the
+source-backed ``read_data_metrics`` path additionally requires DATA to declare
+an inverse research projection (``RESEARCH_CATEGORIES``) with the identical
+source unit (``SOURCE_QUANTITY_UNITS``) and otherwise refuses inverse before
+any read.  DATA src.ingest.execution_contract declares both for linear and
+inverse.  Units per layer: docs/integration/INVERSE_UNITS.md.
 """
 import importlib
 import re
 
 from src.analytics.core import validate_trade
-from src.analytics.research_metrics import calculate
+from src.analytics.research_metrics import calculate_v2
 from src.storage.models import digest
 
 DATA_CONTRACT_VERSION = "tester-public-execution/1"
-REVIEWED_DATA_HEAD = "f78349b1ad7bb754baee380f59bca67f2b1d2009"
 MAX_EVENTS = 100
 MAX_WINDOW_MS = 7 * 86400000
 _HEX = re.compile(r"[a-f0-9]{64}\Z")
 _SYMBOL = re.compile(r"[A-Z0-9]{2,40}\Z")
+# DATA source-native execution unit per category (DATA #72 contract).  The /2
+# metrics report the same quantities as base (linear) or quote (inverse).
+SOURCE_QUANTITY_UNITS = {
+    "linear": "source_native_linear_size",
+    "inverse": "source_native_inverse_contract",
+}
+# DATA modules that predate the declaration only project linear executions.
+_DATA_DEFAULT_RESEARCH_CATEGORIES = ("linear",)
 
 
 def _scope(category, symbol, start_ms, end_ms, limit, as_of_ms):
-    if category != "linear":
-        raise ValueError("inverse_quantity_unit_not_comparable")
+    if category not in SOURCE_QUANTITY_UNITS:
+        raise ValueError("execution_category_not_comparable")
     if not isinstance(symbol, str) or not _SYMBOL.fullmatch(symbol):
         raise ValueError("invalid_market_symbol")
     if any(type(v) is not int for v in (start_ms, end_ms, limit)):
@@ -41,7 +59,7 @@ def _trade(event, *, category, symbol, start_ms, end_ms, as_of_ms):
         raise ValueError("unknown_data_execution_contract")
     if any(event.get(k) != v for k, v in (
         ("venue", "bybit"), ("category", category), ("symbol", symbol),
-        ("quantity_unit", "source_native_linear_size"),
+        ("quantity_unit", SOURCE_QUANTITY_UNITS[category]),
     )):
         raise ValueError("market_or_quantity_unit_mismatch")
     event_ms, observed_ms = event.get("event_ms"), event.get("observed_ms")
@@ -136,8 +154,8 @@ def project_events(events, *, category, symbol, start_ms, end_ms,
         seen.add(identity)
         trades.append(trade)
     trades.sort(key=lambda t: (t["timestamp_ms"], t["trade_id"]))
-    metrics = calculate(trades, start_ms=start_ms, end_ms=end_ms,
-                        interval_ms=interval_ms, tick_size=tick_size)
+    metrics = calculate_v2(trades, start_ms=start_ms, end_ms=end_ms,
+                           interval_ms=interval_ms, tick_size=tick_size)
     observed_bins = sum(bool(bar["trade_count"]) for bar in metrics["bars"])
     window = {
         "start_ms": start_ms, "end_ms": end_ms,
@@ -154,7 +172,7 @@ def project_events(events, *, category, symbol, start_ms, end_ms,
         "schema_version": "tester.data-research-preview/2",
         "data_contract_version": DATA_CONTRACT_VERSION,
         "status": "OBSERVED_UNVERIFIED" if trades else "NO_DATA",
-        "coverage": "UNKNOWN", "quantity_unit": "source_native_linear_size",
+        "coverage": "UNKNOWN", "quantity_unit": SOURCE_QUANTITY_UNITS[category],
         "publication_time": "UNKNOWN", "source_verification": "CALLER_UNATTESTED",
         "observed_window": window,
         "data_execution_digest": digest(trades), "metrics_digest": digest(metrics),
@@ -180,6 +198,17 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
         raise ValueError("data72_versioned_contract_not_composed") from exc
     if data.VERSION != DATA_CONTRACT_VERSION:
         raise ValueError("data_execution_contract_version_skew")
+    # DATA's to_research_trade is the authority for the source-native unit;
+    # until it declares an inverse projection, refuse before reading rows.
+    if category not in getattr(data, "RESEARCH_CATEGORIES", _DATA_DEFAULT_RESEARCH_CATEGORIES):
+        raise ValueError("inverse_quantity_unit_not_comparable")
+    # A declared non-linear projection must name the same source-native unit;
+    # a skewed or missing DATA unit table is refused before any read.
+    data_units = getattr(data, "SOURCE_QUANTITY_UNITS", None)
+    if category != "linear" and (
+            not isinstance(data_units, dict)
+            or data_units.get(category) != SOURCE_QUANTITY_UNITS[category]):
+        raise ValueError("data_source_quantity_unit_skew")
     # The DATA bounded read returns at most `limit` rows. Exactly hitting the
     # cap is ambiguous: another page may exist and the observed sample would
     # otherwise silently omit it. Refuse to label capped results as sourced.
@@ -216,7 +245,7 @@ def read_data_metrics(store, *, category, symbol, start_ms, end_ms, interval_ms,
         "scope": {
             "venue": "bybit", "category": category, "symbol": symbol,
             "start_ms": start_ms, "end_ms": end_ms,
-            "quantity_unit": "source_native_linear_size",
+            "quantity_unit": SOURCE_QUANTITY_UNITS[category],
         },
         "events": preview["data_execution_digest"],
         "receipts": preview["data_source_receipts_digest"],

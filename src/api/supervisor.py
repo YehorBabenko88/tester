@@ -11,14 +11,27 @@ import time
 from .config import load_settings
 from .jobs import JobQueue
 from .logging_setup import configure
-from .restart_budget import BudgetDenied, DatabaseRestartBudget
+from .restart_budget import (
+    KILL_SWITCH_EXIT,
+    BudgetDenied,
+    BudgetUnavailable,
+    DatabaseRestartBudget,
+)
+
+# A transient PostgreSQL outage must not turn into a supervisor exit, which the
+# SCM would answer with a host crash restart. Denied/exhausted policy still drains.
+AUTHORITY_GRACE_SECONDS = 120
 
 
-def launch_component(component, budget=None):
+def launch_component(component, budget=None, *, restart=False):
     if component not in {"main", "worker"}:
         raise ValueError("Unknown supervised component")
     if budget is not None:
-        budget.admit("api" if component == "main" else "worker")
+        role = "api" if component == "main" else "worker"
+        if restart:
+            budget.admit(role)  # Counted crash restart inside the durable window.
+        else:
+            budget.admit_initial(role)  # Kill switch/identity only; never counted.
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
     return subprocess.Popen(
         [sys.executable, "-m", "src.api." + component], creationflags=flags
@@ -58,7 +71,18 @@ def run():
     signal.signal(signal.SIGINT, lambda *_: stopped.set())
     signal.signal(signal.SIGTERM, lambda *_: stopped.set())
     children, restarts = {}, {"api": [], "worker": []}
+    pending = set()  # Exited children whose counted restart awaits durable authority.
+    unavailable_since = None
     code = 0
+
+    def authority_unavailable():
+        nonlocal unavailable_since
+        now = time.monotonic()
+        if unavailable_since is None:
+            unavailable_since = now
+            logger.warning("restart_authority_unavailable")
+        if now - unavailable_since > AUTHORITY_GRACE_SECONDS:
+            raise BudgetUnavailable("Restart authority unavailable beyond grace period")
 
     try:
         for name in ("main", "worker"):
@@ -70,13 +94,30 @@ def run():
         while not stopped.wait(0.25) and not stop_file.exists():
             if budget is not None and (budget.directory / "restart.disabled").exists():
                 logger.error("restart_kill_switch")
-                code = 1
+                code = KILL_SWITCH_EXIT  # Owner-requested drain, not a crash.
                 break
             if budget is not None and time.monotonic() >= next_budget_check:
-                budget.counts()  # Lost authority or SQL kill switch drains existing children.
                 next_budget_check = time.monotonic() + 1
+                try:
+                    budget.counts()  # Lost policy or SQL kill switch drains existing children.
+                    unavailable_since = None
+                except BudgetUnavailable:
+                    authority_unavailable()  # Running children are kept within the grace.
+                except BudgetDenied:
+                    # counts() never fails for an exhausted window: the owner row is
+                    # disabled (or no longer matches). The host re-verifies this.
+                    logger.error("restart_kill_switch")
+                    code = KILL_SWITCH_EXIT
+                    break
+            for name in sorted(pending):
+                try:
+                    children[name] = launch_component(name, budget, restart=True)
+                    pending.discard(name)
+                    unavailable_since = None
+                except BudgetUnavailable:
+                    authority_unavailable()
             for name, child in list(children.items()):
-                if child.poll() is not None:
+                if name not in pending and child.poll() is not None:
                     now = time.monotonic()
                     restarts[name] = [t for t in restarts[name] if now - t < 60]
                     if len(restarts[name]) >= 5:
@@ -88,10 +129,17 @@ def run():
                     restarts[name].append(now)
                     if stopped.wait(min(2 ** len(restarts[name]), 8)) or stop_file.exists():
                         break
-                    children[name] = launch_component(name, budget)
+                    try:
+                        children[name] = launch_component(name, budget, restart=True)
+                    except BudgetUnavailable:
+                        pending.add(name)  # Never spawn unreserved; retry next iteration.
+                        authority_unavailable()
     except BudgetDenied:
         logger.error("durable_restart_budget_denied")
-        code = 1
+        # A denial while the runtime kill switch is present is the owner's drain;
+        # anything else (exhausted child window, lost identity) stays a failure.
+        killed = budget is not None and (budget.directory / "restart.disabled").exists()
+        code = KILL_SWITCH_EXIT if killed else 1
     finally:
         # Linearizes shutdown against both API admission and worker claims.
         try:

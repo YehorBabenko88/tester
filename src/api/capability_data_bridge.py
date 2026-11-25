@@ -11,9 +11,22 @@ import json
 import re
 from decimal import Decimal, InvalidOperation
 
-from .capability_source_contracts import DATA_EXECUTION_VERSION
+from .capability_source_contracts import DATA_EXECUTION_QUANTITY_UNITS, DATA_EXECUTION_VERSION
 
 _MAX_EVENTS = 100
+# /api/capabilities runs this probe per request (issue #104). DATA enforces this
+# resource budget with SQL aggregates before any payload, source or evidence
+# document is transferred (records, bytes, observation fan-out, wall time); an
+# exceeded budget is an observable UNVERIFIED reason, never HTTP 500/OOM.
+_PROBE_BUDGET = {
+    "max_row_bytes": 256 * 1024,
+    "max_source_bytes": 256 * 1024,
+    "max_observations_per_record": 4,
+    "max_observations": 200,
+    "max_evidence_documents": 20,
+    "max_evidence_bytes": 2 * 1024 * 1024,
+    "timeout_ms": 2000,
+}
 _MAX_WINDOW_MS = 7 * 86400000
 _SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 _REQUIRED_RECEIPTS = ("evidence_id", "page_ref", "http_sha256", "page_sha256", "row_sha256")
@@ -32,8 +45,11 @@ def _unverified(reason):
 
 def observed_execution_evidence(reader, query, *, read_events=None):
     """Return only a source-proof summary; never an HTTP resource capability."""
-    if query.category != "linear":
-        return _unverified("linear_quantity_required")
+    # linear (base size) and inverse (quote-denominated contracts) each carry
+    # their own source-native unit; spot has no DATA execution producer.
+    unit = DATA_EXECUTION_QUANTITY_UNITS.get(query.category)
+    if unit is None:
+        return _unverified("execution_category_unit_unsupported")
     if query.symbol is None:
         return _unverified("instrument_required")
     if query.end_ms - query.start_ms > _MAX_WINDOW_MS:
@@ -50,6 +66,9 @@ def observed_execution_evidence(reader, query, *, read_events=None):
             return _unverified("data72_not_composed")
         if getattr(producer, "VERSION", None) != DATA_EXECUTION_VERSION:
             return _unverified("data72_contract_version_mismatch")
+        producer_units = getattr(producer, "SOURCE_QUANTITY_UNITS", None)
+        if not isinstance(producer_units, dict) or producer_units.get(query.category) != unit:
+            return _unverified("data72_quantity_unit_skew")
         read_events = getattr(producer, "read_execution_events", None)
         if not callable(read_events):
             return _unverified("data72_reader_unavailable")
@@ -61,8 +80,16 @@ def observed_execution_evidence(reader, query, *, read_events=None):
             start_ms=query.start_ms,
             end_ms=query.end_ms,
             limit=_MAX_EVENTS,
+            budget=dict(_PROBE_BUDGET),
         )
-    except (ValueError, KeyError, TypeError, AttributeError):
+    except ValueError as error:
+        if getattr(error, "reason", None) == "read_budget_exceeded":
+            return {
+                **_unverified("data72_read_budget_exceeded"),
+                "budget": str(getattr(error, "budget", "unknown")),
+            }
+        return _unverified("data72_source_readback_unverified")
+    except (KeyError, TypeError, AttributeError):
         return _unverified("data72_source_readback_unverified")
     except Exception:
         return _unverified("data72_source_readback_unavailable")
@@ -101,7 +128,7 @@ def observed_execution_evidence(reader, query, *, read_events=None):
             or event.get("venue") != "bybit"
             or event.get("category") != query.category
             or event.get("symbol") != query.symbol
-            or event.get("quantity_unit") != "source_native_linear_size"
+            or event.get("quantity_unit") != unit
             or event.get("taker_side") not in {"Buy", "Sell", "Unknown"}
             or not isinstance(exec_id, str)
             or not exec_id
@@ -157,6 +184,7 @@ def observed_execution_evidence(reader, query, *, read_events=None):
     ).hexdigest()
     return {
         **_unverified("data72_observed_sample_not_historical_visibility"),
+        "quantity_unit": unit,
         "observed_events": len(rows),
         "first_observed_ms": min(observed_times),
         "last_observed_ms": max(observed_times),

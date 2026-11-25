@@ -16,6 +16,33 @@ VERSION = "tester-public-execution/1"
 MAX_ROWS = 100
 MAX_WINDOW_MS = 7 * 86_400_000
 MAX_HTTP_BYTES = 3 * 1024 * 1024
+# Resource budget of one bounded execution read (issue #104). Enforced by SQL
+# aggregates before any payload/source/evidence document is transferred; each
+# distinct page proof is loaded once (not per row). Callers may only tighten it.
+READ_BUDGET = {
+    "max_row_bytes": 1024 * 1024,
+    "max_source_bytes": 1024 * 1024,
+    "max_observations_per_record": 8,
+    "max_observations": 400,
+    "max_evidence_documents": MAX_ROWS,
+    "max_evidence_bytes": 8 * 1024 * 1024,
+    "timeout_ms": 5000,
+}
+# Source-native execution quantity unit per category (single DATA authority).
+# linear: Bybit ``size`` in base coin.  inverse: Bybit ``size`` as a count of
+# inverse contracts; Bybit inverse contracts are quote-denominated (USD), so
+# one contract is 1 quote unit and RESEARCH reports it as ``quote`` (never
+# converted to base outside the VWAP denominator sum(q/p)).  spot has no
+# producer in this contract (public_auxiliary emits linear/inverse only) and
+# is refused fail-closed.  See docs/integration/INVERSE_UNITS.md.
+SOURCE_QUANTITY_UNITS = {
+    "linear": "source_native_linear_size",
+    "inverse": "source_native_inverse_contract",
+}
+# Categories for which to_research_trade/read_research_trades declare a
+# unit-correct RESEARCH projection.  Consumed by
+# src.integration.data_research_adapter.read_data_metrics before any read.
+RESEARCH_CATEGORIES = ("linear", "inverse")
 EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 HEX = re.compile(r"[0-9a-f]{64}\Z")
 SYMBOL = re.compile(r"[A-Z0-9]{2,40}\Z")
@@ -23,6 +50,18 @@ SYMBOL = re.compile(r"[A-Z0-9]{2,40}\Z")
 
 class ExecutionContractError(ValueError):
     """Incomplete or contradictory source proof; refuse projection."""
+
+    reason = "execution_contract_unverified"
+
+
+class ReadBudgetExceeded(ExecutionContractError):
+    """The bounded read refused before transferring documents; .budget names the limit."""
+
+    reason = "read_budget_exceeded"
+
+    def __init__(self, budget):
+        super().__init__("execution read budget exceeded: " + budget)
+        self.budget = budget
 
 
 def _fail(reason):
@@ -65,7 +104,7 @@ def _utc_ms(value):
 
 
 def _bounded_scope(category, symbol, start_ms, end_ms, limit):
-    if category not in {"linear", "inverse"} or not isinstance(symbol, str) or not SYMBOL.fullmatch(symbol):
+    if category not in SOURCE_QUANTITY_UNITS or not isinstance(symbol, str) or not SYMBOL.fullmatch(symbol):
         _fail("invalid market scope")
     if any(type(x) is not int for x in (start_ms, end_ms, limit)) or not (
         0 <= start_ms < end_ms and end_ms - start_ms <= MAX_WINDOW_MS and 1 <= limit <= MAX_ROWS
@@ -113,8 +152,8 @@ def project_storage_execution(row, *, category, symbol, start_ms, end_ms):
     side = fields.get("side") or "Unknown"
     if p.get("side") != side or not p.get("anonymous_public_execution"):
         _fail("fabricated taker side or identity")
-    unit = "source_native_linear_size" if category == "linear" else "source_native_inverse_contract"
-    if p.get("unit") != unit:
+    unit = SOURCE_QUANTITY_UNITS.get(category)
+    if unit is None or p.get("unit") != unit:
         _fail("missing or inconsistent source quantity unit")
     price, quantity = _decimal(p.get("price")), _decimal(p.get("size"))
     provenance = row.get("provenance")
@@ -214,9 +253,18 @@ def project_storage_execution(row, *, category, symbol, start_ms, end_ms):
 
 
 def to_research_trade(event):
-    """Build RESEARCH canonical trade WITHOUT authorizing F or cross-unit metrics."""
-    if not isinstance(event, dict) or event.get("contract_version") != VERSION or event.get("category") != "linear" or event.get("quantity_unit") != "source_native_linear_size":
-        _fail("inverse/cross-unit or unversioned execution not comparable")
+    """Build RESEARCH canonical trade WITHOUT authorizing F or cross-unit metrics.
+
+    The canonical trade keeps the source-native ``quantity`` untouched; its
+    unit is fixed by ``category`` (SOURCE_QUANTITY_UNITS, mirrored by
+    src.analytics.core.QUANTITY_UNITS).  An event whose declared unit does not
+    match its category is refused, so units can never be mixed downstream.
+    """
+    if not isinstance(event, dict) or event.get("contract_version") != VERSION:
+        _fail("unversioned execution not comparable")
+    category = event.get("category")
+    if category not in RESEARCH_CATEGORIES or event.get("quantity_unit") != SOURCE_QUANTITY_UNITS.get(category):
+        _fail("cross-unit execution not comparable")
     scope = event.get("utc_interval")
     if not isinstance(scope, dict) or event.get("source_coverage") != {"status": "UNKNOWN", **scope} or event.get("publication_ms", "MISSING") is not None:
         _fail("missing UTC scope or unknown publication visibility")
@@ -232,11 +280,32 @@ def to_research_trade(event):
                           "evidence_refs": sorted({r["evidence_id"] for r in event["source_receipts"]})})
 
 
-def read_execution_events(store, *, category, symbol, start_ms, end_ms, limit=MAX_ROWS):
+def _budget(overrides):
+    budget = dict(READ_BUDGET)
+    if overrides is not None:
+        if not isinstance(overrides, dict) or set(overrides) - set(READ_BUDGET):
+            _fail("invalid execution read budget")
+        for key, value in overrides.items():
+            if type(value) is not int or not 1 <= value <= READ_BUDGET[key]:
+                _fail("execution read budget may only be tightened")
+            budget[key] = value
+    return budget
+
+
+def read_execution_events(store, *, category, symbol, start_ms, end_ms, limit=MAX_ROWS,
+                          budget=None):
     """Bounded SELECT-only PostgreSQL adapter; caller supplies Store(dsn)."""
     _bounded_scope(category, symbol, start_ms, end_ms, limit)
-    rows = store.read("trades", "bybit", category, symbol, start_ms, end_ms, "",
-                      limit=limit, compact_provenance=False)
+    budget = _budget(budget)
+    read = getattr(store, "read_bounded", None)
+    if not callable(read):
+        _fail("store cannot provide a resource-bounded read")
+    from src.storage.bounded_read import ReadBudgetExceeded as StorageBudget
+    try:
+        rows = read("trades", "bybit", category, symbol, start_ms, end_ms, "",
+                    limit=limit, budget=budget)
+    except StorageBudget as exc:
+        raise ReadBudgetExceeded(exc.budget) from None
     if not isinstance(rows, list) or len(rows) > limit:
         _fail("source read violates row budget")
     seen = {}
@@ -255,9 +324,12 @@ def read_execution_events(store, *, category, symbol, start_ms, end_ms, limit=MA
 
 
 def read_research_trades(store, *, category, symbol, start_ms, end_ms, limit=MAX_ROWS):
-    """Strict read-only RESEARCH projection; always UNKNOWN and never F-admitted."""
-    if category != "linear":
-        _fail("research metrics require comparable linear source-native size")
+    """Strict read-only RESEARCH projection; always UNKNOWN and never F-admitted.
+
+    Every returned trade shares one category and therefore one quantity unit.
+    """
+    if category not in RESEARCH_CATEGORIES:
+        _fail("research metrics require a declared source-native quantity unit")
     events = read_execution_events(
         store, category=category, symbol=symbol, start_ms=start_ms,
         end_ms=end_ms, limit=limit,

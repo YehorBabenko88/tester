@@ -6,7 +6,7 @@ from uuid import UUID
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from src.ingest.public_access import public_endpoint_key
-from src.ingest.transport import SystemTrustAdapter, Transport
+from src.ingest.transport import Transport, public_session
 
 from .db import connect
 
@@ -157,10 +157,5 @@ def configured_public_transport(settings, **kwargs):
 
 
 def native_public_session():
-    """Canonical native OS trust; legacy lab pinning remains a separate opt-in."""
-    import requests
-
-    session = requests.Session()
-    session.mount("https://", SystemTrustAdapter())
-    session.trust_env = False
-    return session
+    """Canonical native OS trust session (src.ingest.transport.public_session)."""
+    return public_session()

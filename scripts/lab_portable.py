@@ -329,9 +329,7 @@ def bootstrap(args):
             c.execute(
                 "GRANT UPDATE ON tester_storage.download_jobs,tester_storage.ingestion_checkpoints TO tester_lab_app"
             )
-            c.execute(
-                "GRANT UPDATE,DELETE ON ALL TABLES IN SCHEMA tester_platform TO tester_lab_app"
-            )
+            c.execute("GRANT UPDATE ON ALL TABLES IN SCHEMA tester_platform TO tester_lab_app")
             c.execute(
                 "GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA tester_storage,tester_platform,tester_lab TO tester_lab_app"
             )
