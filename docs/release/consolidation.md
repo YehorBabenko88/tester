@@ -66,7 +66,7 @@ Source of the behaviours: `git show d6059af:<file>` for `bybit.py`, `engine.py`,
 | 30 | `bybit_history.py` backwards download of kline/mark/index/premium/OI/funding | `Backfill` for the same datasets plus account ratio | rows 1–17 | Equivalent, except GAP-1/GAP-2 |
 | 31 | Hourly high-low range % screener (`one_hour_range`, test_screener) | No canonical metric. `ingest.catalog.volatility` is realized volatility, not range | — | **GAP-4** |
 | 32 | 1m trade-volume vs kline reconciliation (`reconcile_minute_volume`) | No canonical equivalent | — | **GAP-5** |
-| 33 | Data in legacy `raw_market`/`ingest_ranges` and engine `candles/observations/trades/trade_files/coverage/clusters` tables | No importer into `tester_storage` | — | **GAP-6** |
+| 33 | Data in legacy `raw_market`/`ingest_ranges` and engine `candles/observations/trades/trade_files/coverage/clusters` tables | No importer into `tester_storage` | — | **GAP-6: de-scope proposed by owner for this release (pending formal approval in #88)** |
 
 ### De-scope proposals (owner approval required)
 
@@ -77,5 +77,5 @@ None of these is claimed as equivalent. Each stays open until the owner either a
 - **GAP-3** Archive trades are not checked against the file's UTC date. Proposal: bind them to the date in the file name.
 - **GAP-4** The hourly range % screener metric of the removed Streamlit UI. Proposal: de-scope, because the shipped terminal uses verified volatility/turnover metrics.
 - **GAP-5** Minute-volume reconciliation of ticks against klines. Proposal: de-scope, or re-implement as an analytics quality check.
-- **GAP-6** Data in an external legacy prototype database is not imported. Proposal: de-scope; TESTER never adopts foreign databases. A one-off importer would need its own reviewed proposal.
+- **GAP-6** Data in an external legacy prototype database is not imported. **Owner direction (2026-11-25): exclude importing external legacy databases from the current release.** Existing legacy databases are not deleted, modified or adopted by TESTER, and the legacy code stays preserved in Git history and on `archive/branches-20261124`. Any future importer needs its own reviewed proposal (read-only source access, explicit mapping to `tester_storage` provenance, owner approval).
 

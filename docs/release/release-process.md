@@ -41,6 +41,8 @@ The overlay is an already protected owner input, never a trust root obtained fro
 
 ## Existing lab installation upgrades (`C:\TesterLab`)
 
+The exact list of new migrations, their SHA-256, order, compatibility and rollback for the current candidate is in [schema-upgrade-manifest.md](schema-upgrade-manifest.md) (owner approval required). Real-host acceptance follows [vm-acceptance.md](vm-acceptance.md).
+
 `scripts/windows/Update-TesterLabRelease.ps1` is an **app-only** in-place updater for the separately approved legacy lab installation. It is not part of the signed release route. By default it never changes the PostgreSQL schema, and it never changes the Python dependency set. During `NATIVE_AND_SERVICE_PREFLIGHT`, before the owned app service is stopped, it refuses the upgrade (fail-closed, nothing is changed) when:
 
 - the SHA-256 of `requirements-windows-lab.lock` in the new payload differs from the installed payload (`Dependency/schema changes require a separate migration proposal.`), or
