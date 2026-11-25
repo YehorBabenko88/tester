@@ -863,19 +863,25 @@ def test_preshutdown_timeouts_registered_and_verified_for_both_services(monkeypa
 class _RootProbe:
     """Any native open/inspection of the root (or a tree under it) is recorded."""
 
-    def __init__(self, monkeypatch):
+    def __init__(self, monkeypatch, root):
         self.touched = []
+        root = Path(root)
+        native = removal._WindowsObject
 
         def refuse(name):
-            def probe(*args, **kwargs):
-                self.touched.append(name)
-                # What the real Windows proof raises for a user-created folder.
-                raise ReleaseSecurityError("Unknown provisioning object has a foreign creator SID")
+            self.touched.append(name)
+            # What the real Windows proof raises for a user-created folder.
+            raise ReleaseSecurityError("Unknown provisioning object has a foreign creator SID")
 
-            return probe
+        def windows_object(path, *args, **kwargs):
+            # Ancestors (e.g. the parent identity proof) stay native on Windows.
+            if Path(path) == root or root in Path(path).parents:
+                refuse("_WindowsObject")
+            return native(path, *args, **kwargs)
 
-        for name in ("_WindowsObject", "_provisioning_entries", "_locked_tree"):
-            monkeypatch.setattr(removal, name, refuse(name))
+        monkeypatch.setattr(removal, "_WindowsObject", windows_object)
+        for name in ("_provisioning_entries", "_locked_tree"):
+            monkeypatch.setattr(removal, name, lambda *a, _n=name, **k: refuse(_n))
 
 
 @contextmanager
@@ -918,7 +924,7 @@ def _journal_without_root_created(tmp_path):
 def test_rollback_without_root_created_never_touches_the_foreign_root(tmp_path, monkeypatch):
     root, pin, header, rows, journal = _journal_without_root_created(tmp_path)
     monkeypatch.setattr(removal, "_protected_provisioning_journal", _linux_protected_journal)
-    probe = _RootProbe(monkeypatch)
+    probe = _RootProbe(monkeypatch, root)
     resources = _RecordingResources()
     result = removal.rollback_provisioning(
         root,
@@ -944,7 +950,7 @@ def test_rollback_refuses_creation_receipts_without_a_recorded_root(tmp_path, mo
     rows = [row for row in rows if row.get("event") != "root_created"]
     journal.write_bytes(b"".join(removal.canonical_json(row) + b"\n" for row in rows))
     monkeypatch.setattr(removal, "_protected_provisioning_journal", _linux_protected_journal)
-    probe = _RootProbe(monkeypatch)
+    probe = _RootProbe(monkeypatch, root)
     with pytest.raises(ReleaseSecurityError, match="without a recorded root"):
         removal.rollback_provisioning(
             root,
@@ -964,7 +970,7 @@ def test_rollback_after_root_created_still_proves_the_root(tmp_path, monkeypatch
     journal = tmp_path / "journal.jsonl"
     journal.write_bytes(encoded)
     monkeypatch.setattr(removal, "_protected_provisioning_journal", _linux_protected_journal)
-    probe = _RootProbe(monkeypatch)
+    probe = _RootProbe(monkeypatch, root)
     with pytest.raises(ReleaseSecurityError, match="foreign creator"):
         removal.rollback_provisioning(
             root,
@@ -1002,6 +1008,7 @@ def _drive_fresh_install(tmp_path, monkeypatch, *, record_root_created):
     desktop.mkdir()
     root = tmp_path / "TesterLab"
     root.mkdir()  # Empty clean root: routed to replace_empty_root.
+    root_identity = removal._identity(root)
     release = types.SimpleNamespace(
         source_sha="a" * 40, manifest_sha256=template["release_manifest_sha256"]
     )
@@ -1028,7 +1035,7 @@ def _drive_fresh_install(tmp_path, monkeypatch, *, record_root_created):
         def root_created(self, *, replace_empty=False):
             assert replace_empty
             if record_root_created:
-                self.root_identity = removal._identity(self.root)
+                self.root_identity = root_identity
                 self.append(dict(event="root_created", identity=self.root_identity))
                 raise RuntimeError("later provisioning failure")
             # Race: the old root was deleted by handle, then a standard user
@@ -1053,7 +1060,7 @@ def _drive_fresh_install(tmp_path, monkeypatch, *, record_root_created):
     monkeypatch.setattr(ri, "protect_external_bundle", lambda directory: None)
     monkeypatch.setattr(removal, "_protected_provisioning_journal", _linux_protected_journal)
     monkeypatch.setattr(removal, "remove_maintenance_directory", cleanup)
-    probe = _RootProbe(monkeypatch)
+    probe = _RootProbe(monkeypatch, root)
     call = lambda: ri._install_locked(  # noqa: E731
         bundle, root, release, trusted_public_key_sha256=pin, mode="test", desktop=desktop
     )
