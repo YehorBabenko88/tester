@@ -34,7 +34,7 @@ class PipelineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'trades.csv.gz'
             path.write_bytes(gzip.compress(b'timestamp,symbol,side,size,price,trdMatchID\n1704067200.123456789,X,Buy,0.00000001,42000.01,original-id\n'))
-            record=next(iter_trade_records(path,'linear','X',{'url':'https://public.bybit.com/trading/X/a.csv.gz'}))
+            record=next(iter_trade_records(path,'linear','X',{'url':'https://public.bybit.com/trading/X/X2024-01-01.csv.gz'}))
             self.assertEqual(record['schema_version'],'1.0')
             self.assertEqual(record['trade_id'],'original-id')
             self.assertEqual(record['id_origin'],'exchange')
@@ -47,7 +47,7 @@ class PipelineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/'trades.csv.gz'
             path.write_bytes(gzip.compress(b'timestamp,symbol,side,size,price\n1704067200.123,X,Buy,1,2\n'))
-            with self.assertRaises(ValueError): list(iter_trade_records(path,'linear','X',{'url':'url'}))
+            with self.assertRaisesRegex(ValueError,'composite opt-in'): list(iter_trade_records(path,'linear','X',{'url':'https://public.bybit.com/trading/X/X2024-01-01.csv.gz'}))
 
     def test_trade_staging_identity_uses_exchange_id(self):
         with tempfile.TemporaryDirectory() as d:

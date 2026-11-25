@@ -9,6 +9,7 @@ equivalent (de-scope proposals) are listed in docs/release/consolidation.md.
 """
 
 import gzip
+import json
 import tempfile
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -236,12 +237,14 @@ def test_full_regular_observation_history_is_observed(journal):
 
 
 def test_off_grid_observation_does_not_satisfy_the_sampling_grid(journal):
+    # Legacy test_off_grid_timestamp_rejected: state 'error', nothing saved.
     start = ms(2026, 11, 1)
     api = FakeBybit([{"timestamp": str(start + 1), "openInterest": "1"}], field="timestamp")
-    out = Backfill(api, journal).run(
-        "linear", "BTCUSDT", "open_interest", "5min", start, start + 600000
-    )
-    assert out["status"] == "unverified"
+    with pytest.raises(ValueError, match="interval grid"):
+        Backfill(api, journal).run(
+            "linear", "BTCUSDT", "open_interest", "5min", start, start + 600000
+        )
+    assert journal.window_records("linear", "BTCUSDT", "open_interest", "5min", 0, 2**62) == {}
 
 
 @pytest.mark.parametrize(
@@ -282,7 +285,7 @@ def test_previous_unproven_window_is_requeried(journal):
 
 
 def archive(tmp, body):
-    path = Path(tmp) / "BTCUSDT2026-11-01.csv.gz"
+    path = Path(tmp) / "BTCUSDT2025-11-01.csv.gz"  # rows below are 2025-11-01 UTC
     path.write_bytes(body)
     return path
 
@@ -377,41 +380,47 @@ def test_instrument_pagination_rejects_repeated_cursor():
     assert api.call.call_args_list[0].args[1]["limit"] == 1000
 
 
-# --- Behaviours of the removed code WITHOUT a canonical equivalent ----------
-# strict xfail: these document gaps (de-scope proposals in consolidation.md)
-# and turn into failures the moment the canonical code adopts the behaviour.
+# --- Former gaps GAP-1..3, implemented on owner decision (#113) -------------
+# Each fails the affected window/file like the legacy code did (state 'error').
 
 
-@pytest.mark.xfail(strict=True, reason="GAP-1: off-grid observation accepted next to a full grid")
 def test_gap_off_grid_observation_with_full_grid_is_rejected(journal):
     start = ms(2026, 11, 1)
     rows = [{"timestamp": str(t), "openInterest": "1"} for t in (start, start + 300000)]
     api = FakeBybit(rows + [{"timestamp": str(start + 1), "openInterest": "1"}], field="timestamp")
-    out = Backfill(api, journal).run(
-        "linear", "BTCUSDT", "open_interest", "5min", start, start + 600000
+    with pytest.raises(ValueError, match="interval grid"):
+        Backfill(api, journal).run(
+            "linear", "BTCUSDT", "open_interest", "5min", start, start + 600000
+        )
+    key = "rest-v3:" + json.dumps(
+        ["linear", "BTCUSDT", "open_interest", "5min", start, start + 600000]
     )
-    assert out["status"] != "observed"
+    assert journal.task(key)["status"] == "failed"
+    assert journal.window_records("linear", "BTCUSDT", "open_interest", "5min", 0, 2**62) == {}
 
 
-@pytest.mark.xfail(strict=True, reason="GAP-2: conflicting duplicate candle silently collapsed")
 def test_gap_conflicting_duplicate_candle_timestamp_is_rejected(journal):
     start = ms(2026, 11, 1)
     rows = [candle(start), candle(start, h="12"), candle(start + 60000)]
-    out = Backfill(FakeBybit(rows), journal).run(
-        "linear", "BTCUSDT", "kline", "1", start, start + 120000
-    )
-    assert out["status"] != "observed"
+    with pytest.raises(ValueError, match="Conflicting duplicate"):
+        Backfill(FakeBybit(rows), journal).run(
+            "linear", "BTCUSDT", "kline", "1", start, start + 120000
+        )
+    key = "rest-v3:" + json.dumps(["linear", "BTCUSDT", "kline", "1", start, start + 120000])
+    assert journal.task(key)["status"] == "failed"
+    assert journal.window_records("linear", "BTCUSDT", "kline", "1", 0, 2**62) == {}
 
 
-@pytest.mark.xfail(strict=True, reason="GAP-3: archive rows are not bound to the file's UTC date")
 def test_gap_archive_trade_outside_file_utc_date_is_rejected():
     body = gzip.compress(
-        b"timestamp,symbol,side,size,price,trdMatchID\n1700000000.1,BTCUSDT,Buy,1,2,a\n"
+        b"timestamp,symbol,side,size,price,trdMatchID\n"
+        b"1761955200.1,BTCUSDT,Buy,1,2,a\n1700000000.1,BTCUSDT,Buy,1,2,b\n"
     )
     with tempfile.TemporaryDirectory() as tmp:
-        path = archive(tmp, body)  # named 2026-11-01, row is 2023-11-14
-        with pytest.raises(ValueError):
-            list(iter_trade_records(path, "linear", "BTCUSDT", {"url": "u"}))
+        path = archive(tmp, body)  # named 2025-11-01, second row is 2023-11-14
+        records = iter_trade_records(path, "linear", "BTCUSDT", {"url": "u"})
+        with pytest.raises(ValueError, match="outside archive UTC date"):
+            next(records)  # whole file rejected before the in-date first row is yielded
 
 
 # --- engine.build_clusters / db.footprint / db.cluster_totals --------------
