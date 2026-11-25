@@ -73,7 +73,10 @@ Neither case spawns an unreserved child. There is no file-backed production fall
 ## Kill switches
 
 Creating `runtime/restart.disabled` prevents new reservations and asks the running
-supervisor to drain and stop. For a durable owner-controlled kill switch, set the
+supervisor to drain and stop. Create it only with the supported elevated procedure in
+[product-guide.md](product-guide.md) (`New-Item`, owner set to Administrators with
+`icacls /setowner`, folder permissions unchanged); uninstall accepts exactly that file
+and removes it with the installation. For a durable owner-controlled kill switch, set the
 protected row's `disabled` flag using the administrative owner credential
 (`private/database-owner.json`, Administrators/SYSTEM only). The runtime login
 cannot clear it, and the owner reset below never clears it either. The supervisor
