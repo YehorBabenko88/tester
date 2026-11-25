@@ -3,11 +3,21 @@
 DATA #72 owns original public Bybit receipts; RESEARCH #71 owns observed-sample
 metrics. This module describes their exact interfaces without importing or
 silently composing their independent Draft branches.
+
+Execution-metrics versioning: the advertised ``contract_version`` is
+``tester.execution-metrics/2`` (what every writer now produces).  Clients that
+only understand ``/1`` keep working read-only: ``/1`` is listed in
+``read_compatible_versions`` with ``HISTORICAL_READ_ONLY`` semantics, stored
+``/1`` digests verify unchanged, ``/1`` inverse results are refused, and no
+``/1`` result is ever produced or relabelled as ``/2``.  A ``/1``-only client
+must treat ``/2`` (which adds ``quantity_unit``) as unsupported rather than
+guess the units.
 """
 
 PROTOCOL_VERSION = "tester.ui-capabilities/1"
 DATA_EXECUTION_VERSION = "tester-public-execution/1"
-RESEARCH_METRICS_VERSION = "tester.execution-metrics/1"
+RESEARCH_METRICS_VERSION = "tester.execution-metrics/2"
+RESEARCH_METRICS_HISTORICAL_VERSIONS = ("tester.execution-metrics/1",)
 
 # Names and signatures pinned to reviewed DATA #72 and RESEARCH #71.
 DEPENDENCIES = {
@@ -30,8 +40,20 @@ DEPENDENCIES = {
     "observed_execution_metrics": {
         "contract_version": RESEARCH_METRICS_VERSION,
         "consumer": "src.integration.data_research_adapter.read_data_metrics",
-        "pure_calculator": "src.analytics.research_metrics.calculate",
+        "pure_calculator": "src.analytics.research_metrics.calculate_v2",
         "requires": DATA_EXECUTION_VERSION,
+        "write_version": RESEARCH_METRICS_VERSION,
+        "read_compatible_versions": {
+            RESEARCH_METRICS_VERSION: "CURRENT",
+            **{v: "HISTORICAL_READ_ONLY" for v in RESEARCH_METRICS_HISTORICAL_VERSIONS},
+        },
+        "historical_inverse": "REFUSED",
+        "read_contract": "src.analytics.research_metrics.metrics_read_contract",
+        "quantity_unit": {"linear": "base", "spot": "base", "inverse": "quote"},
+        "vwap_unit": "quote_per_base",
+        # Source-backed inverse additionally requires DATA to declare an
+        # inverse research projection; until then read_data_metrics refuses it.
+        "source_backed_categories": ["linear"],
         "scope": [
             "category",
             "symbol",

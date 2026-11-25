@@ -401,6 +401,15 @@ def test_disposable_postgres_actual_data72_source_to_research():
     )
     assert outcome["metrics"]["bars"][0]["vwap"] == "10234.56"
     assert outcome["metrics"]["bars"][0]["delta_known"] == "0.125"
+    # Real PostgreSQL DATA readback now writes execution-metrics/2.
+    assert outcome["metrics"]["method"] == "tester.execution-metrics/2"
+    assert outcome["metrics"]["quantity_unit"] == "base"
+    assert outcome["metrics_digest"] == digest(outcome["metrics"])
+    assert project_source_observation(outcome)["metrics_contract"] == {
+        "method": "tester.execution-metrics/2",
+        "quantity_unit": "base",
+        "status": "CURRENT",
+    }
     assert outcome["observed_window"]["observed_unique_trades"] == 1
     assert outcome["coverage"] == "UNKNOWN"
     assert outcome["admitted_to_f"] is False
@@ -1090,8 +1099,299 @@ def test_research_ui_verified_entrypoint_reads_composed_data_only():
         limit=10,
     )
     assert observation["bars"][0]["unknown_side_volume"] == "0.125"
+    assert observation["method"] == "tester.execution-metrics/2"
+    assert observation["metrics_contract"]["status"] == "CURRENT"
     assert observation["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
     assert observation["g_e_execution"] == "NOT_AUTHORIZED"
     assert observation["http_route"] is None
     store.read_bounded.assert_called_once()
     store.ingest.assert_not_called()
+
+
+# --- execution-metrics/2 consumers (issue #112 follow-up) -------------------
+# Golden digests over the _research_ui_contract_fixture() executions.  The /1
+# value was produced by the pre-migration adapter (base 8f6a85e) and must stay
+# verifiable unchanged; the /2 value pins the new write contract.
+GOLDEN_V1_METRICS_DIGEST = "8d83a9b26fd0825aa609dd246f47e028d4a9c7ec395c437edca8b5bd776d32b8"
+GOLDEN_V2_METRICS_DIGEST = "ed12ad36cc7c78949df10d35ea173cda996a66cc3777557fabb296a6950046e0"
+UI_EXEC_IDS = ("ui-buy", "ui-sell", "ui-unknown")
+
+
+def _historical_v1_preview():
+    """A persisted /1 preview exactly as the pre-migration adapter stored it."""
+    from src.analytics.research_metrics import calculate
+    from src.integration.data_research_adapter import _trade
+
+    source = _research_ui_contract_fixture()
+    trades = sorted(
+        (
+            _trade(
+                e, category="linear", symbol="BTCUSDT", start_ms=START, end_ms=END, as_of_ms=None
+            )
+            for e in (
+                event("ui-buy", price="100", quantity="2", side="Buy"),
+                event("ui-sell", price="102", quantity="1", side="Sell"),
+                event("ui-unknown", price="100", quantity="0.25", side="Unknown"),
+            )
+        ),
+        key=lambda t: (t["timestamp_ms"], t["trade_id"]),
+    )
+    source["metrics"] = calculate(
+        trades, start_ms=START, end_ms=END, interval_ms=60000, tick_size="0.5"
+    )
+    source["metrics_digest"] = digest(source["metrics"])
+    return source
+
+
+def test_new_previews_are_written_with_execution_metrics_v2_golden():
+    # Before the migration project_events wrote tester.execution-metrics/1
+    # (digest GOLDEN_V1_METRICS_DIGEST, no quantity_unit) and the projection
+    # had no metrics_contract: both assertions below failed.
+    source = _research_ui_contract_fixture()
+    assert source["metrics"]["method"] == "tester.execution-metrics/2"
+    assert source["metrics"]["quantity_unit"] == "base"
+    assert source["quantity_unit"] == "source_native_linear_size"
+    assert source["metrics_digest"] == GOLDEN_V2_METRICS_DIGEST
+    projected = project_source_observation(source)
+    assert projected["metrics_contract"] == {
+        "method": "tester.execution-metrics/2",
+        "quantity_unit": "base",
+        "status": "CURRENT",
+    }
+    assert projected["bars"][0]["vwap"].startswith("100.615384615")
+
+
+def test_historical_v1_preview_stays_verifiable_read_only_with_unchanged_digest():
+    stored = _historical_v1_preview()
+    assert stored["metrics"]["method"] == "tester.execution-metrics/1"
+    assert "quantity_unit" not in stored["metrics"]
+    assert stored["metrics_digest"] == GOLDEN_V1_METRICS_DIGEST
+    projected = project_source_observation(stored)
+    assert projected["method"] == "tester.execution-metrics/1"
+    assert projected["metrics_digest"] == GOLDEN_V1_METRICS_DIGEST
+    assert projected["metrics_contract"] == {
+        "method": "tester.execution-metrics/1",
+        "quantity_unit": "base",
+        "status": "HISTORICAL_READ_ONLY",
+    }
+    # Never silently reinterpreted: relabelling /1 as /2 breaks the digest,
+    # and a re-hashed relabel without quantity_unit is refused.
+    relabelled = _historical_v1_preview()
+    relabelled["metrics"]["method"] = "tester.execution-metrics/2"
+    with pytest.raises(ValueError, match="research_ui_metric_digest_mismatch"):
+        project_source_observation(relabelled)
+    relabelled["metrics_digest"] = digest(relabelled["metrics"])
+    with pytest.raises(
+        ValueError, match="research_ui_metric_authority_refused:v2_quantity_unit_mismatch"
+    ):
+        project_source_observation(relabelled)
+    # /1 never carried v2 fields.
+    hybrid = _historical_v1_preview()
+    hybrid["metrics"]["quantity_unit"] = "base"
+    hybrid["metrics_digest"] = digest(hybrid["metrics"])
+    with pytest.raises(ValueError, match="v1_metrics_with_v2_fields"):
+        project_source_observation(hybrid)
+
+
+def _inverse_event(trade_id, *, price, quantity, side):
+    inverse = event(trade_id, price=price, quantity=quantity, side=side)
+    inverse.update(
+        category="inverse", symbol="BTCUSD", quantity_unit="source_native_inverse_contract"
+    )
+    return inverse
+
+
+INVERSE_EVENTS = (
+    ("inv-a", "100", "100", "Buy"),
+    ("inv-b", "200", "100", "Sell"),
+)
+
+
+def _inverse_events():
+    return [_inverse_event(i, price=p, quantity=q, side=s) for i, p, q, s in INVERSE_EVENTS]
+
+
+def _expected_inverse_vwap():
+    from fractions import Fraction
+
+    from src.analytics.exact import decimal
+
+    return decimal(Fraction(400, 3))
+
+
+def test_inverse_v2_vwap_through_adapter_and_ui_projection():
+    # Before: _scope refused every inverse request
+    # ("inverse_quantity_unit_not_comparable") and /1 could not compute it.
+    source = project_events(
+        _inverse_events(),
+        category="inverse",
+        symbol="BTCUSD",
+        start_ms=START,
+        end_ms=END,
+        interval_ms=60000,
+        tick_size="1",
+    )
+    assert source["quantity_unit"] == "source_native_inverse_contract"
+    metrics = source["metrics"]
+    assert metrics["method"] == "tester.execution-metrics/2"
+    assert metrics["quantity_unit"] == "quote"
+    bar = metrics["bars"][0]
+    # 100 contracts @100 + 100 contracts @200 -> 200 / (1 + 0.5) = 400/3.
+    assert bar["vwap"] == _expected_inverse_vwap()
+    assert bar["vwap"] != "150"
+    assert bar["volume"] == "200"
+    assert bar["delta_known"] == "0"
+    source["source_verification"] = "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
+    source["persisted_dataset_revision"] = None
+    source["historical_known_at_ms"] = None
+    source["data_source_receipts_digest"] = digest(["test-shape-only"])
+    source["observed_sample_fingerprint"] = digest({"test": "shape-only"})
+    projected = project_source_observation(source)
+    assert projected["bars"][0]["vwap"] == _expected_inverse_vwap()
+    assert projected["metrics_contract"] == {
+        "method": "tester.execution-metrics/2",
+        "quantity_unit": "quote",
+        "status": "CURRENT",
+    }
+    # The preview's source unit must match the metrics market category.
+    source["quantity_unit"] = "source_native_linear_size"
+    with pytest.raises(ValueError, match="research_ui_metric_quantity_unit_mismatch"):
+        project_source_observation(source)
+    # A /1 inverse result (old arithmetic VWAP) stays refused, never upgraded.
+    source["quantity_unit"] = "source_native_inverse_contract"
+    source["metrics"]["method"] = "tester.execution-metrics/1"
+    del source["metrics"]["quantity_unit"]
+    source["metrics_digest"] = digest(source["metrics"])
+    with pytest.raises(ValueError, match="v1_inverse_vwap_invalid_recompute_as_v2"):
+        project_source_observation(source)
+
+
+def test_inverse_event_unit_must_be_inverse_contract():
+    wrong = _inverse_event("inv-a", price="100", quantity="100", side="Buy")
+    wrong["quantity_unit"] = "source_native_linear_size"
+    with pytest.raises(ValueError, match="market_or_quantity_unit_mismatch"):
+        project_events(
+            [wrong],
+            category="inverse",
+            symbol="BTCUSD",
+            start_ms=START,
+            end_ms=END,
+            interval_ms=60000,
+            tick_size="1",
+        )
+    with pytest.raises(ValueError, match="execution_category_not_comparable"):
+        project_events(
+            [],
+            category="spot",
+            symbol="BTCUSDT",
+            start_ms=START,
+            end_ms=END,
+            interval_ms=60000,
+            tick_size="1",
+        )
+
+
+def test_inverse_read_path_when_data_declares_inverse_projection(monkeypatch):
+    """read_data_metrics -> read_verified_ui_observation for inverse, DATA stubbed.
+
+    The real DATA module does not declare RESEARCH_CATEGORIES yet, so inverse
+    stays refused before any read (test_inverse_rejected_before_any_data_read).
+    """
+    from types import SimpleNamespace
+
+    import src.integration.data_research_adapter as adapter
+
+    events = _inverse_events()
+
+    def to_research_trade(e):
+        return adapter._trade(
+            e, category="inverse", symbol="BTCUSD", start_ms=START, end_ms=END, as_of_ms=None
+        )
+
+    store = Mock()
+    fake = SimpleNamespace(
+        VERSION=DATA_CONTRACT_VERSION,
+        RESEARCH_CATEGORIES=("linear", "inverse"),
+        read_execution_events=lambda store, **kw: (store.read_bounded(**kw), events)[1],
+        to_research_trade=to_research_trade,
+    )
+    monkeypatch.setattr(adapter.importlib, "import_module", lambda name: fake)
+    observation = read_verified_ui_observation(
+        store,
+        category="inverse",
+        symbol="BTCUSD",
+        start_ms=START,
+        end_ms=END,
+        interval_ms=60000,
+        tick_size="1",
+        limit=10,
+    )
+    assert observation["bars"][0]["vwap"] == _expected_inverse_vwap()
+    assert observation["metrics_contract"]["quantity_unit"] == "quote"
+    assert observation["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
+    store.read_bounded.assert_called_once()
+    store.ingest.assert_not_called()
+
+
+def test_inverse_still_refused_before_read_without_data_declaration(monkeypatch):
+    from types import SimpleNamespace
+
+    import src.integration.data_research_adapter as adapter
+
+    monkeypatch.setattr(
+        adapter.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(VERSION=DATA_CONTRACT_VERSION),
+    )
+    store = Mock()
+    with pytest.raises(ValueError, match="inverse_quantity_unit_not_comparable"):
+        read_data_metrics(
+            store,
+            category="inverse",
+            symbol="BTCUSD",
+            start_ms=START,
+            end_ms=END,
+            interval_ms=60000,
+            tick_size="1",
+        )
+    store.read_bounded.assert_not_called()
+
+
+def test_mixed_metrics_versions_in_one_response_are_explicit():
+    from src.integration.research_ui_projection import combine_observations
+
+    current = project_source_observation(_research_ui_contract_fixture())
+    historical = project_source_observation(_historical_v1_preview())
+    bundle = combine_observations([current, historical])
+    assert bundle["mixed_metrics_versions"] is True
+    assert bundle["metrics_methods"] == ["tester.execution-metrics/1", "tester.execution-metrics/2"]
+    assert bundle["historical_read_only_count"] == 1
+    assert [o["metrics_contract"]["status"] for o in bundle["observations"]] == [
+        "CURRENT",
+        "HISTORICAL_READ_ONLY",
+    ]
+    single = combine_observations([current])
+    assert single["mixed_metrics_versions"] is False
+    unlabelled = dict(current)
+    del unlabelled["metrics_contract"]
+    with pytest.raises(ValueError, match="research_ui_observation_contract"):
+        combine_observations([unlabelled])
+
+
+def test_capability_contracts_advertise_v2_with_v1_read_only():
+    from src.analytics.research_metrics import CURRENT_METHOD, METHOD_V1
+    from src.api.capability_source_contracts import RESEARCH_METRICS_VERSION, manifest
+
+    assert RESEARCH_METRICS_VERSION == CURRENT_METHOD == "tester.execution-metrics/2"
+    contracts = manifest()["source_contracts"]
+    metrics = contracts["observed_execution_metrics"]
+    assert metrics["contract_version"] == metrics["write_version"] == CURRENT_METHOD
+    assert metrics["read_compatible_versions"] == {
+        CURRENT_METHOD: "CURRENT",
+        METHOD_V1: "HISTORICAL_READ_ONLY",
+    }
+    assert metrics["historical_inverse"] == "REFUSED"
+    assert metrics["quantity_unit"]["inverse"] == "quote"
+    assert metrics["source_backed_categories"] == ["linear"]
+    assert CURRENT_METHOD in contracts["research_ui_observation"]["requires"]
+    assert METHOD_V1 not in contracts["research_ui_observation"]["requires"]

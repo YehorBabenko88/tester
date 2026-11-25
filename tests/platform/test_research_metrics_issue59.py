@@ -11,6 +11,7 @@ from src.analytics.research_metrics import (
     METHOD_V2,
     calculate,
     calculate_v2,
+    metrics_read_contract,
     stored_metrics_status,
 )
 from src.strategy.dsl import digest
@@ -341,3 +342,25 @@ def test_mixed_categories_rejected_in_both_versions():
 def test_unknown_method_refused():
     with pytest.raises(ValueError, match="unknown_execution_metrics_method"):
         calculate([], **WINDOW, method="tester.execution-metrics/0")
+
+
+def test_read_contract_labels_v1_historical_and_v2_current():
+    from src.analytics.research_metrics import CURRENT_METHOD
+
+    assert CURRENT_METHOD == METHOD_V2
+    v1 = calculate(mixed("linear"), **WINDOW)
+    assert metrics_read_contract(v1) == {
+        "method": METHOD_V1,
+        "quantity_unit": "base",
+        "status": "HISTORICAL_READ_ONLY",
+    }
+    v2 = calculate_v2(mixed("inverse"), **WINDOW)
+    assert metrics_read_contract(v2) == {
+        "method": METHOD_V2,
+        "quantity_unit": "quote",
+        "status": "CURRENT",
+    }
+    v2["method"] = METHOD_V1
+    del v2["quantity_unit"]
+    with pytest.raises(ValueError, match="v1_inverse_vwap_invalid_recompute_as_v2"):
+        metrics_read_contract(v2)

@@ -90,6 +90,8 @@ class ComposedDataResearchPostgresTests(unittest.TestCase):
         self.assertIs(preview["admitted_to_f"], False)
         self.assertIsNone(preview["f_input"])
         self.assertIsNone(preview["g_e_result"])
+        self.assertEqual(preview["metrics"]["method"], "tester.execution-metrics/2")
+        self.assertEqual(preview["metrics"]["quantity_unit"], "base")
         bar = preview["metrics"]["bars"][0]
         self.assertEqual(bar["trade_count"], 1)
         self.assertEqual(bar["volume"], "0.125")
@@ -177,6 +179,8 @@ class ComposedDataResearchPostgresTests(unittest.TestCase):
         self.assertFalse(preview["admitted_to_f"])
         with self.assertRaisesRegex(ValueError, "real_historical_visibility_unknown_f_denied"):
             require_strategy_lab_f_input(preview)
+        self.assertEqual(preview["metrics"]["method"], "tester.execution-metrics/2")
+        self.assertEqual(preview["metrics"]["quantity_unit"], "base")
         bar = preview["metrics"]["bars"][0]
         self.assertEqual(bar["trade_count"], 1)
         self.assertEqual(bar["unknown_side_volume"], "0.00005")

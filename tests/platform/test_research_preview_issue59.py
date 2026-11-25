@@ -17,7 +17,7 @@ def test_preview_refuses_f_and_binds_digests(monkeypatch):
     monkeypatch.setattr(bridge, "read_canonical_snapshot", lambda store, req: snapshot)
     monkeypatch.setattr(
         bridge,
-        "calculate",
+        "calculate_v2",
         lambda *args, **kwargs: {
             "market": {"venue": "bybit", "category": "linear", "symbol": "BTCUSDT"},
             "reasons": ["no_complete_range_proof"],
@@ -42,7 +42,7 @@ def test_cross_market_rejected(monkeypatch):
     )
     monkeypatch.setattr(
         bridge,
-        "calculate",
+        "calculate_v2",
         lambda *args, **kwargs: {
             "market": {"venue": "bybit", "category": "spot", "symbol": "BTCUSDT"},
             "reasons": [],
@@ -88,14 +88,33 @@ def test_weekly_interval_uses_monday_utc(monkeypatch):
     assert result["f_input"] is None
 
 
-def test_preview_refuses_inverse_under_frozen_v1_issue112(monkeypatch):
-    # The preview contract stays tester.execution-metrics/1 (digests of stored
-    # linear/spot previews unchanged).  /1 never had a correct inverse VWAP,
-    # so inverse executions are refused rather than reinterpreted.
+def _inverse_rows():
     from src.analytics.core import normalize_trade
 
-    with pytest.raises(ValueError, match="unsupported_snapshot_scope"):
-        SnapshotRequest("bybit", "inverse", "BTCUSD", "1", 0, 60000)
+    return [
+        normalize_trade(
+            {"time": "1", "price": price, "size": "100", "side": "Buy", "execId": exec_id},
+            category="inverse",
+            symbol="BTCUSD",
+            source_ref={
+                "source_kind": "bybit_rest",
+                "source_ref": "fixture-rest",
+                "source_hash": None,
+                "ingestion_run": "test-run",
+                "timestamp_precision": "ms",
+                "source_timestamp": "1",
+            },
+        )
+        for price, exec_id in (("100", "a"), ("200", "b"))
+    ]
+
+
+def test_preview_writes_execution_metrics_v2(monkeypatch):
+    # Before the consumer migration the preview wrote tester.execution-metrics/1
+    # (no quantity_unit).  New writes are /2 only.
+    from src.analytics.core import normalize_trade
+    from src.analytics.research_metrics import METHOD_V2, metrics_read_contract
+
     monkeypatch.setattr(
         bridge,
         "read_canonical_snapshot",
@@ -103,8 +122,8 @@ def test_preview_refuses_inverse_under_frozen_v1_issue112(monkeypatch):
     )
     rows = [
         normalize_trade(
-            {"time": "1", "price": "100", "size": "100", "side": "Buy", "execId": "a"},
-            category="inverse",
+            {"time": "1", "price": "100", "size": "2", "side": "Buy", "execId": "a"},
+            category="linear",
             symbol="BTCUSDT",
             source_ref={
                 "source_kind": "bybit_rest",
@@ -116,5 +135,23 @@ def test_preview_refuses_inverse_under_frozen_v1_issue112(monkeypatch):
             },
         )
     ]
-    with pytest.raises(ValueError, match="inverse_requires_execution_metrics_v2"):
-        bridge.research_preview(object(), request(), rows, tick_size="1")
+    result = bridge.research_preview(object(), request(), rows, tick_size="1")
+    assert result["metrics"]["method"] == METHOD_V2
+    assert result["metrics"]["quantity_unit"] == "base"
+    assert metrics_read_contract(result["metrics"])["status"] == "CURRENT"
+    assert result["proof"]["metrics_digest"] == bridge.digest(result["metrics"])
+
+
+def test_preview_inverse_refused_by_snapshot_scope_not_metrics(monkeypatch):
+    # The metrics are /2 (inverse-correct); inverse is refused by the B
+    # snapshot scope (spot/linear candles only), and an inverse execution set
+    # can never be bound to a linear candle snapshot.
+    with pytest.raises(ValueError, match="unsupported_snapshot_scope"):
+        SnapshotRequest("bybit", "inverse", "BTCUSD", "1", 0, 60000)
+    monkeypatch.setattr(
+        bridge,
+        "read_canonical_snapshot",
+        lambda *args: QualifiedSnapshot("REAL", "r", None, "e", False, (), None, "{}"),
+    )
+    with pytest.raises(ValueError, match="execution_candle_scope_mismatch"):
+        bridge.research_preview(object(), request(), _inverse_rows(), tick_size="1")
