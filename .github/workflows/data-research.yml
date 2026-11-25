@@ -6,6 +6,12 @@ on:
     paths:
       - 'src/ingest/execution_contract.py'
       - 'src/ingest/public_auxiliary*.py'
+      - 'src/ingest/public_access.py'
+      - 'src/ingest/rest.py'
+      - 'src/ingest/transport.py'
+      - 'src/api/release_database.py'
+      - 'src/api/migrations/**'
+      - 'src/api/transport_policy.py'
       - 'src/storage/**'
       - 'src/analytics/research_metrics.py'
       - 'src/integration/data_research_adapter.py'
@@ -16,6 +22,8 @@ on:
       - 'tests/test_public_auxiliary*.py'
       - 'tests/test_composed_data_research_postgres.py'
       - 'tests/platform/test_*issue59.py'
+      - 'tests/platform/test_capability_data_bridge_issue104.py'
+      - 'tests/platform/test_runtime_privileges_issue114.py'
       - '.github/workflows/data-research.yml'
   workflow_dispatch:
 permissions:
@@ -56,6 +64,7 @@ jobs:
           tests/platform/test_research_preview_adapter_issue59.py
           tests/platform/test_research_composed_negative_issue59.py
           tests/platform/test_data_research_adapter_issue59.py
+          tests/platform/test_capability_data_bridge_issue104.py
       - name: PostgreSQL DATA roundtrip (dedicated database)
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_roundtrip"
@@ -71,3 +80,9 @@ jobs:
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
           TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
             python -m pytest -q -rs tests/platform/test_data_research_adapter_issue59.py
+      - name: Release grants and DATA paths as NON-superuser tester_app (#104, #114)
+        # provision_release_databases creates tester_owner-owned databases and the
+        # restricted runtime role; every DATA/queue flow then runs as tester_app.
+        env:
+          TESTER_PRIVILEGE_TEST_ADMIN_DSN: host=127.0.0.1 port=55479 dbname=tester_aux_ci user=tester_aux_ci password=disposable-only
+        run: python -m pytest -q -rs tests/platform/test_runtime_privileges_issue114.py

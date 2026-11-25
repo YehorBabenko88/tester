@@ -7,29 +7,23 @@ from urllib.parse import urlencode
 
 import requests
 
-from src.ingest.transport import SystemTrustAdapter, Transport
+from src.ingest.transport import Transport, public_session
 
 
 @contextmanager
 def _public_get(url, **kwargs):
+    """Delegate to the canonical Transport; never reconfigure its session.
+
+    TLS trust, proxy isolation and retries are owned by the Transport session
+    (src.ingest.transport.public_session). A caller-supplied unsafe session is
+    refused by Transport._validate_session instead of being mutated here.
+    """
     transport = kwargs.pop("transport")
-    verify = kwargs.pop("verify", True)
-    if verify is not True and (type(verify) is not str or not verify):
-        raise ValueError("TLS verification required")
     params = kwargs.pop("params", None)
     if params:
         if type(params) is not dict:
             raise ValueError("Public query mapping required")
         url += "?" + urlencode(params)
-    if transport.session is None:
-        if not hasattr(transport.local, "session"):
-            transport.local.session = requests.Session()
-            transport.local.session.mount("https://", SystemTrustAdapter())
-        session = transport.local.session
-    else:
-        session = transport.session
-    session.trust_env = False
-    session.verify = verify
     try:
         with transport.get(url, **kwargs) as response:
             yield response
@@ -53,8 +47,15 @@ class BybitCatalogSource:
     def __init__(self, *, verify=True, transport=None):
         if verify is not True and (not isinstance(verify, str) or not verify):
             raise ValueError("TLS verification must use system trust or an explicit CA bundle")
+        if transport is not None and verify is not True:
+            # Never retrofit trust onto a caller-owned session/transport.
+            raise ValueError("Explicit CA bundle requires the source-owned public session")
         self.verify = verify
-        self.transport = transport if transport is not None else Transport(attempts=1)
+        self.transport = (
+            transport
+            if transport is not None
+            else Transport(attempts=1, session=None if verify is True else public_session(verify))
+        )
 
     def call(self, endpoint, params, *, cancel=None):
         if endpoint not in {"/instruments-info", "/tickers"}:
@@ -66,7 +67,6 @@ class BybitCatalogSource:
                 params=params,
                 timeout=(5, 15),
                 stream=True,
-                verify=self.verify,
                 transport=self.transport,
                 cancel=cancel,
             ) as response:

@@ -17,6 +17,7 @@ REST_PATHS = frozenset(
         "funding/history",
         "account-ratio",
         "orderbook",
+        "recent-trade",
     )
 )
 QUERY_KEYS = frozenset(
@@ -36,6 +37,31 @@ QUERY_KEYS = frozenset(
         "baseCoin",
     )
 )
+# Endpoint-specific narrowing of QUERY_KEYS. /v5/market/recent-trade is a public
+# anonymous snapshot (no time range, no cursor): only an explicit derivative or
+# spot instrument and the documented page limit (spot 1-60, others 1-1000).
+RECENT_TRADE_PATH = "/v5/market/recent-trade"
+RECENT_TRADE_LIMITS = {"spot": 60, "linear": 1000, "inverse": 1000}
+
+
+def _recent_trade_query(pairs):
+    if not pairs:
+        return  # Bare endpoint identity (policy/guardian scope key), never a request.
+    query = dict(pairs)
+    if (
+        set(query) - {"category", "symbol", "limit"}
+        or query.get("category") not in RECENT_TRADE_LIMITS
+        or not re.fullmatch(r"[A-Z0-9]{1,40}", query.get("symbol", ""))
+    ):
+        raise ValueError("unapproved_query")
+    if "limit" in query:
+        limit = query["limit"]
+        if not re.fullmatch(r"[1-9][0-9]{0,3}", limit) or not (
+            1 <= int(limit) <= RECENT_TRADE_LIMITS[query["category"]]
+        ):
+            raise ValueError("unapproved_query")
+
+
 ARCHIVE_ROOTS = frozenset(
     ("trading", "spot", "premium_index", "spot_index", "kline_for_metatrader4")
 )
@@ -69,6 +95,8 @@ def public_endpoint_key(url):
             for k, v in pairs
         ):
             raise ValueError("unapproved_query")
+        if p.path == RECENT_TRADE_PATH:
+            _recent_trade_query(pairs)
     else:
         parts = p.path.strip("/").split("/")
         if p.query or (
