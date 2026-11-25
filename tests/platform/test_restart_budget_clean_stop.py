@@ -60,4 +60,4 @@ def test_kill_switch_file_still_denies_every_start_without_io(tmp_path, monkeypa
             action()
     # Without an admitted run there is nothing to stop; no SQL either.
     with pytest.raises(BudgetDenied, match="No admitted host run"):
-        budget.record_clean_stop()
+        DatabaseRestartBudget(DSN, tmp_path, IDENT, "a" * 40).record_clean_stop()
