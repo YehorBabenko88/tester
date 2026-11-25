@@ -775,10 +775,48 @@ class ReleaseService(LabService):
         self.ReportServiceStatus(win32service.SERVICE_START_PENDING, waitHint=60000)
         return win32event.WaitForSingleObject(event, 2000) == win32event.WAIT_OBJECT_0
 
+    # A transient PostgreSQL outage while the clean stop is recorded is retried for
+    # this long. The PostgreSQL host keeps the cluster up until this App host has
+    # stopped (``ReleasePostgresService.await_dependent_stop``), so during a Windows
+    # shutdown the record no longer races ``pg_ctl stop``.
+    clean_stop_retry_seconds = 6
+
     def record_clean_stop(self, root):
+        import time
+
+        from .restart_budget import BudgetUnavailable
+
         budget = getattr(self, "_restart_budget", None)
-        if budget is not None:
-            budget.record_clean_stop()  # Exact host-run token; children never hold it.
+        if budget is None:
+            return
+        deadline = time.monotonic() + self.clean_stop_retry_seconds
+        while True:
+            try:
+                budget.record_clean_stop()  # Exact host-run token; children never hold it.
+                return
+            except BudgetUnavailable:
+                # Same token: a retry after an ambiguous commit is denied, never doubled.
+                if time.monotonic() >= deadline:
+                    raise
+                self._stop_retry_pause()
+
+    def _stop_retry_pause(self):
+        import time
+
+        if getattr(self, "stop_event", None) is not None:
+            import win32service
+
+            self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING, waitHint=10000)
+        time.sleep(0.5)
+
+    def policy_drain(self, root, exit_code):
+        from .restart_budget import KILL_SWITCH_EXIT
+
+        budget = getattr(self, "_restart_budget", None)
+        # The supervisor's exit status alone is not trusted: the host re-verifies the
+        # owner switch with its own authority. A forged status only stops the service
+        # (normal STOPPED, no SCM recovery); it can never start or restart anything.
+        return exit_code == KILL_SWITCH_EXIT and budget is not None and budget.kill_switch_engaged()
 
     def create_job(self, marker):
         return create_owned_job(marker)
@@ -867,8 +905,58 @@ class ReleasePostgresService(ReleaseService):
     def signal_stop(self, root):
         pass  # SCM handler only signals; verified pg_ctl runs in the service thread.
 
+    # Windows does not honour service dependencies at shutdown: both hosts receive
+    # PRESHUTDOWN concurrently (App 60 s, PostgreSQL 90 s). PostgreSQL therefore waits
+    # for its dependent App host to report STOPPED (it records its clean stop before
+    # draining) before the fast stop, bounded so that wait + pg_ctl (28 s) + checks
+    # stay inside the 90 s PostgreSQL preshutdown timeout.
+    dependent_stop_wait_seconds = 55
+
+    def dependent_state(self, marker):
+        """SCM state of the dependent App host: stopped, absent, active or unknown."""
+        import pywintypes
+        import win32service as ws
+
+        try:
+            manager = ws.OpenSCManager(None, None, ws.SC_MANAGER_CONNECT)
+        except pywintypes.error:
+            return "unknown"
+        try:
+            handle = ws.OpenService(manager, marker["services"]["app"], ws.SERVICE_QUERY_STATUS)
+            try:
+                state = ws.QueryServiceStatus(handle)[1]
+            finally:
+                ws.CloseServiceHandle(handle)
+        except pywintypes.error as exc:
+            return "absent" if exc.winerror == 1060 else "unknown"
+        finally:
+            ws.CloseServiceHandle(manager)
+        return "stopped" if state == ws.SERVICE_STOPPED else "active"
+
+    def await_dependent_stop(self, root):
+        import time
+
+        marker = load_marker(root)
+        deadline = time.monotonic() + self.dependent_stop_wait_seconds
+        waited = False
+        while True:
+            state = self.dependent_state(marker)
+            # "unknown": the App host cannot be observed; do not delay shutdown blindly.
+            if state in ("stopped", "absent", "unknown"):
+                break
+            if time.monotonic() >= deadline:
+                state = "stop-timeout"
+                break
+            if not waited:
+                self.record_phase("awaiting-dependent-stop")
+                waited = True
+            self._stop_retry_pause()
+        self.record_phase("dependent-" + state)  # Lifecycle evidence for every stop.
+        return state
+
     def graceful_stop(self, root):
         preflight(root, api_config=False)
+        self.await_dependent_stop(root)
         result = subprocess.run(
             [
                 str(root / "dependencies/postgres/bin/pg_ctl.exe"),

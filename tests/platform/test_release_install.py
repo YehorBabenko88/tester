@@ -595,6 +595,17 @@ def test_full_native_installer_lifecycle(tmp_path):
         with NativeController(marker) as controller:
             controller.apply("restart")
         native = ready(different_instance=native["instance_id"])
+        # The PostgreSQL host observed its dependent App host through the SCM under its
+        # own service SID before the fast stop (shutdown ordering guard, not "unknown").
+        pg_phases = [
+            row["phase"]
+            for row in json.loads(
+                (root / "postgres-data/service-lifecycle.json").read_text(encoding="utf-8")
+            )["transitions"]
+        ]
+        assert "dependent-stopped" in pg_phases, pg_phases
+        assert "dependent-unknown" not in pg_phases, pg_phases
+        evidence["checks"].append(dict(phase="postgres-stop-observed-app-stopped"))
         # Kill a real API and worker child, authenticated by unique service SID.
         for component in ("worker", "main"):
             leaves = component_leaves(component)

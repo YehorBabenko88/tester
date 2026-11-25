@@ -7,7 +7,7 @@ import types
 import pytest
 
 from src.api import supervisor
-from src.api.restart_budget import BudgetDenied, BudgetUnavailable
+from src.api.restart_budget import KILL_SWITCH_EXIT, BudgetDenied, BudgetUnavailable
 
 
 class Child:
@@ -143,8 +143,32 @@ def test_denied_policy_still_drains_immediately(monkeypatch, tmp_path):
     budget = Budget(tmp_path, deny_counts=True)
     _harness(monkeypatch, tmp_path, budget, [])
     started = time.monotonic()
-    assert _run_for(8, tmp_path) == 1
+    # counts() never fails for an exhausted window: a definite denial is the owner's
+    # SQL kill switch, reported distinctly (before: 1, recorded as a host crash).
+    assert _run_for(8, tmp_path) == KILL_SWITCH_EXIT
     assert time.monotonic() - started < 6
+
+
+def test_runtime_kill_switch_file_drain_reports_kill_switch_exit(monkeypatch, tmp_path):
+    budget = Budget(tmp_path)
+    _harness(monkeypatch, tmp_path, budget, [])
+    threading.Timer(0.5, lambda: (tmp_path / "restart.disabled").touch()).start()
+    started = time.monotonic()
+    assert _run_for(8, tmp_path) == KILL_SWITCH_EXIT
+    assert time.monotonic() - started < 6
+
+
+def test_exhausted_child_window_stays_a_failure_exit(monkeypatch, tmp_path):
+    budget = Budget(tmp_path)
+    spawned = _harness(monkeypatch, tmp_path, budget, [Child(), Child(exits_after=0.3)])
+
+    def admit(role):
+        budget.calls.append(("restart", role))
+        raise BudgetDenied("restart reservation denied")  # Window exhausted.
+
+    budget.admit = admit
+    assert _run_for(8, tmp_path) == 1
+    assert spawned == ["src.api.main", "src.api.worker"]
 
 
 def test_launch_component_rejects_unknown_role():
