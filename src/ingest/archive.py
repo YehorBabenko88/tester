@@ -96,6 +96,23 @@ def validate(path,source_url=None):
         if not count: raise ValueError('Empty CSV')
     return {'sha256':digest.hexdigest(),'bytes':path.stat().st_size,'rows':count,'columns':columns,'header_present':header_present,'first_timestamp_ms':first,'last_timestamp_ms':last}
 
+def archive_utc_day(path,source_url=None):
+    """UTC [start,end) ms bounds of the single date encoded in the archive name.
+
+    The local file name and the source URL name are both consulted; a name may carry
+    at most one date, they must agree, and at least one must carry it (fail closed).
+    """
+    found=set()
+    for name in (Path(path).name,unquote(urlsplit(source_url or '').path).rsplit('/',1)[-1]):
+        dates=set(re.findall(r'(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)',name))
+        if len(dates)>1: raise ValueError('Archive name carries more than one UTC date')
+        found|=dates
+    if not found: raise ValueError('Archive name carries no UTC date')
+    if len(found)>1: raise ValueError('Archive file name and source URL disagree on UTC date')
+    day=date.fromisoformat(found.pop())
+    start=int(datetime(day.year,day.month,day.day,tzinfo=timezone.utc).timestamp()*1000)
+    return start,start+86400000
+
 def iter_trade_records(path,category,symbol,provenance,allow_composite=False):
     """Stream B v1.0 trade envelopes after whole-file validation.
 
@@ -107,6 +124,9 @@ def iter_trade_records(path,category,symbol,provenance,allow_composite=False):
     checked=validate(path)
     if provenance.get('sha256') and provenance['sha256']!=checked['sha256']: raise ValueError('Provenance hash mismatch')
     if 'timestamp' not in checked['columns'] or not checked['header_present']: raise ValueError('Not a recognized trade archive')
+    # Whole-file check before the first yield: one row outside the file's UTC date rejects the file.
+    day_start,day_end=archive_utc_day(path,provenance.get('url'))
+    if not day_start<=checked['first_timestamp_ms']<=checked['last_timestamp_ms']<day_end: raise ValueError('Trade is outside archive UTC date')
     source={**provenance,**checked,'fetched_at':provenance.get('fetched_at') or utcnow(),'source_kind':'bybit_archive','ingestion_run':provenance.get('ingestion_run') or 'run:'+uuid.uuid4().hex}
     source['artifact_validation']={'kind':'archive_validation','ingestion_run':source['ingestion_run'],'url':source.get('url'),'validation_time':utcnow(),'checked':checked,'storage_uri':str(Path(path).resolve()),'hash_scope':'original_archive_bytes','declared_download_run':provenance.get('ingestion_run')}
     with open(path,'rb') as raw: magic=raw.read(2)
@@ -115,6 +135,7 @@ def iter_trade_records(path,category,symbol,provenance,allow_composite=False):
         for row in csv.DictReader(f):
             if row.get('symbol',symbol)!=symbol: raise ValueError('Archive symbol mismatch')
             timestamp_ms,timestamp_ns,precision=timestamp_fields(row['timestamp'])
+            if not day_start<=timestamp_ms<day_end: raise ValueError('Trade is outside archive UTC date')
             trade_id=row.get('trdMatchID') or row.get('id')
             origin='exchange'
             if not trade_id:

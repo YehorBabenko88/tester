@@ -66,6 +66,15 @@ def expected_times(start, end, interval):
         ts = next_time(ts, interval)
 
 
+def on_grid(ts, interval):
+    """True when ``ts`` is a start time of the UTC interval grid used by ``expected_times``."""
+    return next(expected_times(ts, ts + 1, interval), None) == ts
+
+
+def payload_identity(row):
+    return json.dumps(row, sort_keys=True, separators=(",", ":"))
+
+
 class API:
     def __init__(self, transport=None):
         self.transport = transport or Transport()
@@ -194,6 +203,9 @@ class Backfill:
             requests_made = []
             unresolved = []
             evidence_refs = []
+            # Payload identity per timestamp for rows returned in THIS attempt of the
+            # window: a timestamp may repeat only with an identical payload.
+            fresh = {}
 
             def query(a, b, token=None):
                 p = {**params, sk: a, ek: b - 1}
@@ -279,13 +291,34 @@ class Backfill:
                 )
                 accepted = []
                 published = []
+                unique = []
+                seen = {}
+                # Whole-response integrity check before any row of it is staged: one
+                # bad row rejects the response and fails the window (no partial publish).
                 for row in result.get("list", []):
                     ts = int(row[0] if field is None else row[field])
                     if not a <= ts < b:
                         raise ValueError("Endpoint returned rows outside requested window")
+                    if periodkey and not on_grid(ts, interval):
+                        raise ValueError("Endpoint returned a timestamp outside the interval grid")
                     accepted.append(ts)
+                    identity = payload_identity(row)
+                    staged = field is not None or next_time(ts, interval) <= server_ms
+                    earlier = seen.get(ts)
+                    if earlier is None and staged:
+                        # Still-open candles are never staged and may legitimately change
+                        # between requests; only staged rows join the window-level check.
+                        earlier = fresh.get(ts)
+                    if earlier is not None:
+                        if earlier != identity:
+                            raise ValueError("Conflicting duplicate timestamp in endpoint response")
+                        continue  # identical duplicate: deduplicated, never overwritten
+                    seen[ts] = identity
+                    unique.append((ts, row))
+                for ts, row in unique:
                     if field is None and next_time(ts, interval) > server_ms:
                         continue
+                    fresh[ts] = payload_identity(row)
                     record = {
                         "schema_version": "1.0",
                         "venue": "bybit",

@@ -140,7 +140,7 @@ class PinnedPairTests(unittest.TestCase):
                 path=directory/(str(index)+'.csv.gz')
                 body='timestamp,symbol,side,size,price,trdMatchID\n'+''.join(','.join(row)+'\n' for row in rows)
                 path.write_bytes(gzip.compress(body.encode()))
-                source={'url':f'https://public.bybit.com/trading/BTCUSDT/synthetic-pair-{index}.csv.gz','ingestion_run':run}
+                source={'url':f'https://public.bybit.com/trading/BTCUSDT/synthetic-pair-{index}-BTCUSDT2024-01-01.csv.gz','ingestion_run':run}
                 j.save(str(index),'observed',{},self.archive.iter_trade_records(path,'linear','BTCUSDT',source),run_id=run)
             j.finish_run(run,'PARTIAL'); j.export(directory/'handoff.json')
         finally: j.close()
