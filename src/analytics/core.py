@@ -324,6 +324,20 @@ def price_levels(trades, *, interval, price_step):
     return out
 
 
+# Venue-native execution quantity unit per category (single canonical table).
+# spot/linear: base asset.  inverse: Bybit inverse contracts, quote-denominated
+# (1 contract = 1 USD), i.e. quote units.  Volume, buy/sell volume, delta, CVD
+# and footprint levels are summed in this unit within ONE market only; base
+# quantity of an inverse trade exists only as the VWAP denominator q/p.
+QUANTITY_UNITS = {'spot':'base','linear':'base','inverse':'quote'}
+
+
+def quantity_unit(category):
+    """Canonical quantity unit of a category; unknown categories fail closed."""
+    if category not in QUANTITY_UNITS: raise ValueError('Unknown quantity unit for category')
+    return QUANTITY_UNITS[category]
+
+
 def trade_notional(t):
     validate_trade(t)
     p,q = number(t['price']),number(t['quantity'])

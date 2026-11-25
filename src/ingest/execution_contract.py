@@ -28,6 +28,21 @@ READ_BUDGET = {
     "max_evidence_bytes": 8 * 1024 * 1024,
     "timeout_ms": 5000,
 }
+# Source-native execution quantity unit per category (single DATA authority).
+# linear: Bybit ``size`` in base coin.  inverse: Bybit ``size`` as a count of
+# inverse contracts; Bybit inverse contracts are quote-denominated (USD), so
+# one contract is 1 quote unit and RESEARCH reports it as ``quote`` (never
+# converted to base outside the VWAP denominator sum(q/p)).  spot has no
+# producer in this contract (public_auxiliary emits linear/inverse only) and
+# is refused fail-closed.  See docs/integration/INVERSE_UNITS.md.
+SOURCE_QUANTITY_UNITS = {
+    "linear": "source_native_linear_size",
+    "inverse": "source_native_inverse_contract",
+}
+# Categories for which to_research_trade/read_research_trades declare a
+# unit-correct RESEARCH projection.  Consumed by
+# src.integration.data_research_adapter.read_data_metrics before any read.
+RESEARCH_CATEGORIES = ("linear", "inverse")
 EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 HEX = re.compile(r"[0-9a-f]{64}\Z")
 SYMBOL = re.compile(r"[A-Z0-9]{2,40}\Z")
@@ -89,7 +104,7 @@ def _utc_ms(value):
 
 
 def _bounded_scope(category, symbol, start_ms, end_ms, limit):
-    if category not in {"linear", "inverse"} or not isinstance(symbol, str) or not SYMBOL.fullmatch(symbol):
+    if category not in SOURCE_QUANTITY_UNITS or not isinstance(symbol, str) or not SYMBOL.fullmatch(symbol):
         _fail("invalid market scope")
     if any(type(x) is not int for x in (start_ms, end_ms, limit)) or not (
         0 <= start_ms < end_ms and end_ms - start_ms <= MAX_WINDOW_MS and 1 <= limit <= MAX_ROWS
@@ -137,8 +152,8 @@ def project_storage_execution(row, *, category, symbol, start_ms, end_ms):
     side = fields.get("side") or "Unknown"
     if p.get("side") != side or not p.get("anonymous_public_execution"):
         _fail("fabricated taker side or identity")
-    unit = "source_native_linear_size" if category == "linear" else "source_native_inverse_contract"
-    if p.get("unit") != unit:
+    unit = SOURCE_QUANTITY_UNITS.get(category)
+    if unit is None or p.get("unit") != unit:
         _fail("missing or inconsistent source quantity unit")
     price, quantity = _decimal(p.get("price")), _decimal(p.get("size"))
     provenance = row.get("provenance")
@@ -238,9 +253,18 @@ def project_storage_execution(row, *, category, symbol, start_ms, end_ms):
 
 
 def to_research_trade(event):
-    """Build RESEARCH canonical trade WITHOUT authorizing F or cross-unit metrics."""
-    if not isinstance(event, dict) or event.get("contract_version") != VERSION or event.get("category") != "linear" or event.get("quantity_unit") != "source_native_linear_size":
-        _fail("inverse/cross-unit or unversioned execution not comparable")
+    """Build RESEARCH canonical trade WITHOUT authorizing F or cross-unit metrics.
+
+    The canonical trade keeps the source-native ``quantity`` untouched; its
+    unit is fixed by ``category`` (SOURCE_QUANTITY_UNITS, mirrored by
+    src.analytics.core.QUANTITY_UNITS).  An event whose declared unit does not
+    match its category is refused, so units can never be mixed downstream.
+    """
+    if not isinstance(event, dict) or event.get("contract_version") != VERSION:
+        _fail("unversioned execution not comparable")
+    category = event.get("category")
+    if category not in RESEARCH_CATEGORIES or event.get("quantity_unit") != SOURCE_QUANTITY_UNITS.get(category):
+        _fail("cross-unit execution not comparable")
     scope = event.get("utc_interval")
     if not isinstance(scope, dict) or event.get("source_coverage") != {"status": "UNKNOWN", **scope} or event.get("publication_ms", "MISSING") is not None:
         _fail("missing UTC scope or unknown publication visibility")
@@ -300,9 +324,12 @@ def read_execution_events(store, *, category, symbol, start_ms, end_ms, limit=MA
 
 
 def read_research_trades(store, *, category, symbol, start_ms, end_ms, limit=MAX_ROWS):
-    """Strict read-only RESEARCH projection; always UNKNOWN and never F-admitted."""
-    if category != "linear":
-        _fail("research metrics require comparable linear source-native size")
+    """Strict read-only RESEARCH projection; always UNKNOWN and never F-admitted.
+
+    Every returned trade shares one category and therefore one quantity unit.
+    """
+    if category not in RESEARCH_CATEGORIES:
+        _fail("research metrics require a declared source-native quantity unit")
     events = read_execution_events(
         store, category=category, symbol=symbol, start_ms=start_ms,
         end_ms=end_ms, limit=limit,

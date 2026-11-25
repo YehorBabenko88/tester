@@ -5,7 +5,7 @@ Pure bounded calculations. This is NOT a real-data F admission authority.
 from collections import defaultdict
 from fractions import Fraction
 
-from src.analytics.core import deduplicate, validate_trade
+from src.analytics.core import QUANTITY_UNITS, deduplicate, quantity_unit, validate_trade
 from src.analytics.exact import decimal, number
 
 # Output contract versions.  /1 is frozen: linear/spot outputs (and digests)
@@ -50,8 +50,7 @@ def stored_metrics_status(metrics):
         if category == "inverse":
             raise ValueError("v1_inverse_vwap_invalid_recompute_as_v2")
         return {"method": method, "quantity_unit": "base" if category else None}
-    if category is not None and metrics.get("quantity_unit") != (
-            "quote" if category == "inverse" else "base"):
+    if category is not None and metrics.get("quantity_unit") != QUANTITY_UNITS.get(category):
         raise ValueError("v2_quantity_unit_mismatch")
     return {"method": method, "quantity_unit": metrics.get("quantity_unit")}
 
@@ -199,5 +198,5 @@ def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size
         "bars": bars,
     }
     if method == METHOD_V2:
-        result["quantity_unit"] = "quote" if inverse else "base"
+        result["quantity_unit"] = quantity_unit(result["market"]["category"])
     return result

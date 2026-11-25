@@ -14,6 +14,8 @@ on:
       - 'src/api/transport_policy.py'
       - 'src/storage/**'
       - 'src/analytics/research_metrics.py'
+      - 'src/analytics/core.py'
+      - 'src/analytics/statistics.py'
       - 'src/integration/data_research_adapter.py'
       - 'src/integration/research_preview.py'
       - 'src/integration/research_ui_projection.py'
@@ -23,6 +25,7 @@ on:
       - 'tests/test_composed_data_research_postgres.py'
       - 'tests/platform/test_*issue59.py'
       - 'tests/platform/test_capability_data_bridge_issue104.py'
+      - 'tests/platform/test_inverse_units_canonical.py'
       - 'tests/platform/test_runtime_privileges_issue114.py'
       - '.github/workflows/data-research.yml'
   workflow_dispatch:
@@ -65,6 +68,7 @@ jobs:
           tests/platform/test_research_composed_negative_issue59.py
           tests/platform/test_data_research_adapter_issue59.py
           tests/platform/test_capability_data_bridge_issue104.py
+          tests/platform/test_inverse_units_canonical.py
       - name: PostgreSQL DATA roundtrip (dedicated database)
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_roundtrip"
@@ -80,7 +84,7 @@ jobs:
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
           TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
             python -m pytest -q -rs tests/platform/test_data_research_adapter_issue59.py
-      - name: Release grants and DATA paths as NON-superuser tester_app (#104, #114)
+      - name: Release grants, DATA paths and spot/linear/inverse units as NON-superuser tester_app (#104, #114)
         # provision_release_databases creates tester_owner-owned databases and the
         # restricted runtime role; every DATA/queue flow then runs as tester_app.
         env:

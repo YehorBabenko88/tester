@@ -46,3 +46,13 @@ Opt-in canonical current instrument export: see [metadata-handoff.md](metadata-h
 - **public_auxiliary** is restricted to anonymous recent-trade executions. Funding and open interest have exactly one producer/normalizer: `rest.Backfill` → journal/`handoff.storage_record` → `Store.ingest`; a second writer with a different payload for the same `record_key` would raise `DataConflict`. The former OI cursor traversal (and its pages[0].cursor receipt, Guardian EX-AUX-05) was removed together with that duplicate writer.
 - **public_auxiliary_runner** refuses to touch the network without the durable policy (`TESTER_AUX_POLICY_DSN` + `TESTER_AUX_POLICY_INSTALLATION_ID`, validated by `PostgresTransportPolicy`) and requires `require_auth=scram-sha-256` on its disposable DSN.
 - **Bounded execution reads.** `execution_contract.read_execution_events` uses `Store.read_bounded` (`src/storage/bounded_read.py`): row/source/evidence bytes, observation fan-out per record and in total, distinct evidence documents and wall time are checked by SQL aggregates before any document is transferred; `/api/capabilities` uses a tighter budget and reports `data72_read_budget_exceeded` with the named budget.
+
+## Inverse executions (units)
+
+`public_auxiliary` stores inverse recent-trade rows through the same canonical
+`Store.ingest` path as linear, with `payload.unit = source_native_inverse_contract`
+(Bybit inverse `size` = contracts of 1 USD, i.e. quote units). The DATA
+execution contract declares `RESEARCH_CATEGORIES = ("linear", "inverse")` and
+`SOURCE_QUANTITY_UNITS`; spot has no execution producer and is refused. Unit
+table per layer and the VWAP/footprint/delta conventions:
+[docs/integration/INVERSE_UNITS.md](../integration/INVERSE_UNITS.md).

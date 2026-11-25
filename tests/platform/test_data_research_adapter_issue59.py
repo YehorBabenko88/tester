@@ -252,12 +252,23 @@ def test_late_observation_as_of_fails_closed():
         )
 
 
-def test_inverse_rejected_before_any_data_read():
+def test_real_data_declares_unit_matched_inverse_projection():
+    # Before: DATA declared no RESEARCH_CATEGORIES, so read_data_metrics refused
+    # inverse with inverse_quantity_unit_not_comparable before any read.
+    import src.ingest.execution_contract as data
+    from src.integration.data_research_adapter import SOURCE_QUANTITY_UNITS
+
+    assert data.RESEARCH_CATEGORIES == ("linear", "inverse")
+    assert data.SOURCE_QUANTITY_UNITS == SOURCE_QUANTITY_UNITS
+    assert "spot" not in data.RESEARCH_CATEGORIES
+
+
+def test_spot_rejected_before_any_data_read():
     store = Mock()
-    with pytest.raises(ValueError, match="inverse_quantity_unit_not_comparable"):
+    with pytest.raises(ValueError, match="execution_category_not_comparable"):
         read_data_metrics(
             store,
-            category="inverse",
+            category="spot",
             symbol="BTCUSDT",
             start_ms=START,
             end_ms=END,
@@ -265,6 +276,32 @@ def test_inverse_rejected_before_any_data_read():
             tick_size="0.5",
         )
     store.read_bounded.assert_not_called()
+
+
+def test_inverse_refused_before_read_when_data_unit_table_skews(monkeypatch):
+    from types import SimpleNamespace
+
+    import src.integration.data_research_adapter as adapter
+
+    for units in (None, {"inverse": "source_native_linear_size"}):
+        fake = SimpleNamespace(
+            VERSION=DATA_CONTRACT_VERSION, RESEARCH_CATEGORIES=("linear", "inverse")
+        )
+        if units is not None:
+            fake.SOURCE_QUANTITY_UNITS = units
+        monkeypatch.setattr(adapter.importlib, "import_module", lambda name, f=fake: f)
+        store = Mock()
+        with pytest.raises(ValueError, match="data_source_quantity_unit_skew"):
+            read_data_metrics(
+                store,
+                category="inverse",
+                symbol="BTCUSD",
+                start_ms=START,
+                end_ms=END,
+                interval_ms=60000,
+                tick_size="1",
+            )
+        store.read_bounded.assert_not_called()
 
 
 def test_bounded_100_event_window_and_no_data():
@@ -1294,8 +1331,9 @@ def test_inverse_event_unit_must_be_inverse_contract():
 def test_inverse_read_path_when_data_declares_inverse_projection(monkeypatch):
     """read_data_metrics -> read_verified_ui_observation for inverse, DATA stubbed.
 
-    The real DATA module does not declare RESEARCH_CATEGORIES yet, so inverse
-    stays refused before any read (test_inverse_rejected_before_any_data_read).
+    The real DATA module declares the same projection (see
+    test_real_data_declares_unit_matched_inverse_projection); the real
+    PostgreSQL chain is exercised in test_runtime_privileges_issue114.
     """
     from types import SimpleNamespace
 
@@ -1312,6 +1350,7 @@ def test_inverse_read_path_when_data_declares_inverse_projection(monkeypatch):
     fake = SimpleNamespace(
         VERSION=DATA_CONTRACT_VERSION,
         RESEARCH_CATEGORIES=("linear", "inverse"),
+        SOURCE_QUANTITY_UNITS=dict(adapter.SOURCE_QUANTITY_UNITS),
         read_execution_events=lambda store, **kw: (store.read_bounded(**kw), events)[1],
         to_research_trade=to_research_trade,
     )
@@ -1328,6 +1367,9 @@ def test_inverse_read_path_when_data_declares_inverse_projection(monkeypatch):
     )
     assert observation["bars"][0]["vwap"] == _expected_inverse_vwap()
     assert observation["metrics_contract"]["quantity_unit"] == "quote"
+    assert observation["quantity_unit"] == "quote"
+    assert observation["source_quantity_unit"] == "source_native_inverse_contract"
+    assert observation["vwap_unit"] == "quote_per_base"
     assert observation["f_admission"] == "DENIED_UNKNOWN_COVERAGE"
     store.read_bounded.assert_called_once()
     store.ingest.assert_not_called()
@@ -1392,6 +1434,14 @@ def test_capability_contracts_advertise_v2_with_v1_read_only():
     }
     assert metrics["historical_inverse"] == "REFUSED"
     assert metrics["quantity_unit"]["inverse"] == "quote"
-    assert metrics["source_backed_categories"] == ["linear"]
+    assert metrics["source_backed_categories"] == ["inverse", "linear"]
+    assert metrics["vwap_formula"]["inverse"] == "sum(q)/sum(q/p)"
+    assert metrics["mixed_unit_aggregation"] == "REFUSED"
+    executions = contracts["public_executions"]
+    assert executions["quantity_unit"] == {
+        "linear": "source_native_linear_size",
+        "inverse": "source_native_inverse_contract",
+    }
+    assert executions["categories"] == ["inverse", "linear"]
     assert CURRENT_METHOD in contracts["research_ui_observation"]["requires"]
     assert METHOD_V1 not in contracts["research_ui_observation"]["requires"]
