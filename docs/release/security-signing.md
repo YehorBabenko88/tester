@@ -24,6 +24,8 @@ provenance review; a Git SHA string alone does not establish GitHub provenance.
 
 ## Exact owner action (not executed by Codex)
 
+Key creation, storage, pin distribution and rotation: [production-keys.md](production-keys.md).
+
 On the owner's offline signing workstation, create or select an encrypted
 Ed25519 PKCS8 PEM key outside this repository and outside the payload directory.
 Review the exact source commit, complete inventory, dependency locks, SBOM and
