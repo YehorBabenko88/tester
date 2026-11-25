@@ -86,3 +86,35 @@ def test_weekly_interval_uses_monday_utc(monkeypatch):
     result = bridge.research_preview(object(), req, [], tick_size="0.5")
     assert result["status"] == "UNVERIFIED"
     assert result["f_input"] is None
+
+
+def test_preview_refuses_inverse_under_frozen_v1_issue112(monkeypatch):
+    # The preview contract stays tester.execution-metrics/1 (digests of stored
+    # linear/spot previews unchanged).  /1 never had a correct inverse VWAP,
+    # so inverse executions are refused rather than reinterpreted.
+    from src.analytics.core import normalize_trade
+
+    with pytest.raises(ValueError, match="unsupported_snapshot_scope"):
+        SnapshotRequest("bybit", "inverse", "BTCUSD", "1", 0, 60000)
+    monkeypatch.setattr(
+        bridge,
+        "read_canonical_snapshot",
+        lambda *args: QualifiedSnapshot("REAL", "r", None, "e", False, (), None, "{}"),
+    )
+    rows = [
+        normalize_trade(
+            {"time": "1", "price": "100", "size": "100", "side": "Buy", "execId": "a"},
+            category="inverse",
+            symbol="BTCUSDT",
+            source_ref={
+                "source_kind": "bybit_rest",
+                "source_ref": "fixture-rest",
+                "source_hash": None,
+                "ingestion_run": "test-run",
+                "timestamp_precision": "ms",
+                "source_timestamp": "1",
+            },
+        )
+    ]
+    with pytest.raises(ValueError, match="inverse_requires_execution_metrics_v2"):
+        bridge.research_preview(object(), request(), rows, tick_size="1")

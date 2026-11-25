@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tester-platform"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.15"
 dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.34,<1", "psycopg[binary]>=3.2,<4", "pydantic-settings>=2.7,<3", "requests>=2.32,<3", "jsonschema>=4.23,<5", "keyring>=25,<26"]
 
 [project.optional-dependencies]
