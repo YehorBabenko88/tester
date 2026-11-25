@@ -709,7 +709,7 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         tx.append(dict(event="phase", phase="completed"))
         _sweep_metadata(root, marker, mode)  # Never raises: the install is committed.
         return marker
-    except BaseException:
+    except BaseException as original:
         tx.append(dict(event="phase", phase="interrupted"))
         tx.release_guards()
         if exposed:
@@ -720,13 +720,29 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
             raise
         # Fresh-install transaction authority permits only proven construction
         # resources. Unknown files make rollback refuse before deleting anything.
-        rollback_provisioning(
-            root,
-            journal_path=tx.path,
-            trusted_public_key_sha256=trusted_public_key_sha256,
-            expected_source_sha=release.source_sha,
-            lifecycle_lock=_held_lock,
-        )
+        # Before root_created TESTER owns no root object: rollback leaves whatever
+        # is there untouched, and the original refusal stays the reported error.
+        owned_root = tx.root_identity is not None
+        try:
+            rollback_provisioning(
+                root,
+                journal_path=tx.path,
+                trusted_public_key_sha256=trusted_public_key_sha256,
+                expected_source_sha=release.source_sha,
+                lifecycle_lock=_held_lock,
+            )
+        except Exception as rollback_error:
+            if owned_root:
+                raise
+            # Metadata is retained (the journal is needed to retry the rollback).
+            original.add_note(
+                "TESTER: rollback of this attempt was refused ("
+                + type(rollback_error).__name__
+                + "); maintenance metadata retained in "
+                + str(maintenance)
+            )
+            tx.close()
+            raise original  # __context__ chains rollback_error; __cause__ is kept.
         tx.close()
         _cleanup_metadata(maintenance, marker["installation_id"])
         raise

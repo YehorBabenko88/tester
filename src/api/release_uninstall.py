@@ -1581,7 +1581,15 @@ def rollback_provisioning(
                 marker = state["header"]["marker"]
                 resources.validate_resources(marker)
                 resources.stop_and_prove_exit(marker)
-                if not root.exists():
+                # Without a durable root_created receipt TESTER never owned a root
+                # object in this attempt (e.g. a third party re-created the folder
+                # between the by-handle delete and CreateDirectory). Whatever now
+                # exists at ``root`` is foreign: it is never opened, inspected or
+                # deleted; only this attempt's own external objects are rolled back.
+                foreign_root = state["root_identity"] is None
+                if foreign_root and (state["entries"] or state["plans"] or state["directories"]):
+                    raise ReleaseSecurityError("Provisioning receipts without a recorded root")
+                if foreign_root or not root.exists():
                     externals = _provisioning_external_entries(state)
                     with _locked_provisioning_externals(state, externals) as held:
                         resources.validate_resources(marker)
@@ -1616,7 +1624,9 @@ def rollback_provisioning(
                             evidence["deleted_count"] += 1
                             _write_evidence(stream, evidence)
                         held[""].delete()
-                if root.exists():
+                if foreign_root:
+                    evidence["root_ownership"] = "never_recorded"
+                elif root.exists():
                     raise ReleaseSecurityError("Provisioning root absence not proven")
                 evidence["status"] = "rolled_back"
                 _write_evidence(stream, evidence)
