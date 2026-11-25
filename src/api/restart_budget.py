@@ -100,7 +100,12 @@ class DatabaseRestartBudget:
 
         from .db import connect
 
-        if (self.directory / "restart.disabled").exists():
+        # A clean-stop record ends the current run and never starts anything, so it
+        # stays possible under the kill switch (migration 008 checks the exact run
+        # token). Otherwise a stop while the switch is set would leave the run open
+        # and the first start after the switch is removed would count as a crash.
+        clean_stop = role is not None and role.startswith("host-stop:")
+        if not clean_stop and (self.directory / "restart.disabled").exists():
             raise BudgetDenied("Restarts explicitly disabled")
         try:
             with connect(self.dsn) as conn:

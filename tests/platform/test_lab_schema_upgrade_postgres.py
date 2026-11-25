@@ -74,6 +74,17 @@ CREATE TABLE tester_lab.projections(record_key text PRIMARY KEY,record jsonb NOT
 INSERT INTO tester_lab.projections VALUES('research-1','{"kind":"research_result","sharpe":"1.25","trades":42}');
 """
 
+# Exact runtime grants of the d6059af lab installer (git show d6059af:scripts/lab_portable.py).
+LAB_APP = "tester_lab_app"
+D6059AF_LAB_GRANTS = """
+GRANT USAGE ON SCHEMA tester_storage,tester_platform,tester_lab TO tester_lab_app;
+GRANT SELECT,INSERT ON ALL TABLES IN SCHEMA tester_storage,tester_platform,tester_lab TO tester_lab_app;
+REVOKE INSERT ON tester_storage.schema_migrations,tester_platform.migrations FROM tester_lab_app;
+GRANT UPDATE ON tester_storage.download_jobs,tester_storage.ingestion_checkpoints TO tester_lab_app;
+GRANT UPDATE,DELETE ON ALL TABLES IN SCHEMA tester_platform TO tester_lab_app;
+GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA tester_storage,tester_platform,tester_lab TO tester_lab_app;
+"""
+
 DATASETS = ("trades", "candles", "mark", "index", "premium", "open_interest", "funding", "ratio")
 
 
@@ -95,6 +106,20 @@ def legacy(tmp_path):
     name = "lab_upg_" + uuid.uuid4().hex[:12]
     with psycopg.connect(ADMIN, autocommit=True) as c:
         c.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+        # Cluster-wide lab App role of the disposable cluster (never dropped: other
+        # fixture databases may still hold its grants).
+        if not c.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (LAB_APP,)).fetchone():
+            c.execute(
+                sql.SQL(
+                    "CREATE ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION "
+                    "NOBYPASSRLS"
+                ).format(sql.Identifier(LAB_APP))
+            )
+        c.execute(
+            sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
+                sql.Identifier(name), sql.Identifier(LAB_APP)
+            )
+        )
     dsn = make_conninfo(ADMIN, dbname=name)
     storage, platform = baseline_dirs(tmp_path)
     with psycopg.connect(dsn) as c:
@@ -103,6 +128,7 @@ def legacy(tmp_path):
             lab.apply_platform(c, platform)
         with c.transaction():
             c.execute(SEED)
+            c.execute(D6059AF_LAB_GRANTS)
     try:
         yield dsn
     finally:
@@ -126,6 +152,33 @@ def side_constraints(conn):
                AND conname IN ('raw_records_check2','trade_side_required')"""
         ).fetchall()
     )
+
+
+def database_exists(name):
+    with psycopg.connect(ADMIN) as c:
+        return bool(c.execute("SELECT 1 FROM pg_database WHERE datname=%s", (name,)).fetchone())
+
+
+def assert_owner_only(dbname):
+    with psycopg.connect(ADMIN) as c:
+        assert c.execute(
+            "SELECT has_database_privilege(%s,%s,'CONNECT'), "
+            "has_database_privilege('public',%s,'CONNECT')",
+            (LAB_APP, dbname, dbname),
+        ).fetchone() == (False, False)
+    with pytest.raises(psycopg.OperationalError, match="permission denied"):
+        psycopg.connect(make_conninfo(ADMIN, dbname=dbname, user=LAB_APP)).close()
+
+
+def as_lab_app(dsn, statement):
+    with psycopg.connect(make_conninfo(dsn, user=LAB_APP)) as c:
+        c.execute(statement)
+        c.rollback()
+
+
+def lab_app_destructive(dsn):
+    with psycopg.connect(dsn) as c:
+        return lab.lab_app_destructive_tables(c)
 
 
 def test_baseline_is_exact_d6059af_schema(legacy):
@@ -175,32 +228,47 @@ def test_upgrade_applies_new_migrations_and_preserves_all_data(legacy, tmp_path)
         migrate_storage(c)
     platform_migrate(legacy)
     assert state(legacy)[1] == migrations_after
-    # Backup is verified and restorable at the pre-upgrade state.
+    # Backup is verified, its verified digest recorded, and the scratch copy dropped.
     dump = Path(report["backup"]["path"])
     assert lab.file_sha256(dump) == report["backup"]["sha256"]
     assert report["backup"]["restore_verified"] is True
-    restored = make_conninfo(legacy, dbname=report["backup"]["restore_database"])
-    restored_content, restored_migrations, _ = state(restored)
-    assert restored_content == before and restored_migrations == migrations_before
+    assert report["backup"]["restore_database_dropped"] is True
+    assert report["backup"]["restore_content_sha256"] == lab.content_digest(
+        before, migrations_before
+    )
+    assert not database_exists(report["backup"]["restore_database"])
     # Explicit restore never targets an existing database.
     with pytest.raises(lab.UpgradeRefused, match="restore_target_must_be_new"):
         lab.restore(
             legacy,
             dump,
-            report["backup"]["restore_database"],
+            conninfo_to_dict(legacy)["dbname"],
             PG_BIN,
             expected_sha256=report["backup"]["sha256"],
         )
     new_db = conninfo_to_dict(legacy)["dbname"] + "_rs"
-    lab.restore(legacy, dump, new_db, PG_BIN, expected_sha256=report["backup"]["sha256"])
-    assert state(make_conninfo(legacy, dbname=new_db))[0] == before
+    result = lab.restore(legacy, dump, new_db, PG_BIN, expected_sha256=report["backup"]["sha256"])
+    assert result["access"] == "owner-only"
+    restored_content, restored_migrations, _ = state(make_conninfo(legacy, dbname=new_db))
+    assert restored_content == before and restored_migrations == migrations_before
+    # The restored full copy is owner-only: the lab App role cannot even connect.
+    assert_owner_only(new_db)
 
 
 @pytest.mark.parametrize(
-    "stage", ["before_migrate", "after_storage_migrate", "after_migrate", "before_commit"]
+    "stage",
+    [
+        "before_migrate",
+        "after_storage_migrate",
+        "after_migrate",
+        "after_privileges",
+        "before_commit",
+    ],
 )
 def test_fault_injection_rolls_back_schema_and_data(legacy, tmp_path, stage):
     before = state(legacy)
+    destructive = lab_app_destructive(legacy)
+    assert "tester_platform.jobs" in destructive
 
     def fault(at, conn):
         if at == stage:
@@ -211,6 +279,7 @@ def test_fault_injection_rolls_back_schema_and_data(legacy, tmp_path, stage):
     assert caught.value.upgrade_report["status"] == "ROLLED_BACK"
     assert caught.value.upgrade_report["failure_stage"] == "MIGRATE"
     assert state(legacy) == before
+    assert lab_app_destructive(legacy) == destructive  # Privilege change rolled back too.
 
 
 def test_failing_later_migration_rolls_back_earlier_ones(legacy, tmp_path):
@@ -319,3 +388,70 @@ def test_additional_platform_and_storage_migrations_are_applied_generically(lega
     assert "tester_platform.future_probe" in report["new_tables"]
     with psycopg.connect(legacy) as c:
         assert lab.snapshot(c, {k: v["columns"] for k, v in before.items()}) == before
+
+
+def test_lab_app_role_loses_delete_and_truncate_after_upgrade(legacy, tmp_path):
+    """#114 for labs: 009 only reaches transport-enrolled roles, never tester_lab_app."""
+    # Before: the d6059af grant lets the lab App role delete durable platform jobs.
+    as_lab_app(legacy, "DELETE FROM tester_platform.jobs WHERE false")
+    report = lab.upgrade(legacy, backup_dir=tmp_path / "backup", pg_bin=PG_BIN)
+    assert report["status"] == "SCHEMA_UPGRADE_PASS"
+    assert report["lab_app_privileges"] == {"role": LAB_APP, "delete_truncate_revoked": True}
+    assert lab_app_destructive(legacy) == []
+    for statement in (
+        "DELETE FROM tester_platform.jobs WHERE false",
+        "DELETE FROM tester_storage.download_jobs WHERE false",
+        "DELETE FROM tester_storage.raw_records WHERE false",
+        "TRUNCATE tester_platform.jobs",
+        "UPDATE tester_storage.raw_records SET symbol=symbol WHERE false",
+    ):
+        with pytest.raises(psycopg.errors.InsufficientPrivilege) as denied:
+            as_lab_app(legacy, statement)
+        assert denied.value.sqlstate == "42501", statement
+    # Runtime writes of the current lab installer still work.
+    for statement in (
+        "UPDATE tester_platform.jobs SET attempts=attempts WHERE false",
+        "UPDATE tester_storage.download_jobs SET state=state WHERE false",
+        "UPDATE tester_storage.ingestion_checkpoints SET checkpoint=checkpoint WHERE false",
+        "SELECT count(*) FROM tester_storage.raw_records",
+    ):
+        as_lab_app(legacy, statement)
+    # Idempotent: a second run on the upgraded database keeps the restricted model.
+    lab.upgrade(legacy, backup_dir=tmp_path / "backup2", pg_bin=PG_BIN, verify_restore=False)
+    assert lab_app_destructive(legacy) == []
+
+
+def test_restore_verify_copy_is_owner_only_and_dropped(legacy, tmp_path, monkeypatch):
+    seen = []
+    original = lab._drop_database
+
+    def inspect_then_drop(dsn, name):
+        # The full copy carries the restored table grants of the lab App role; the
+        # database itself must not be reachable by it or by PUBLIC.
+        assert_owner_only(name)
+        seen.append(name)
+        return original(dsn, name)
+
+    monkeypatch.setattr(lab, "_drop_database", inspect_then_drop)
+    report = lab.upgrade(legacy, backup_dir=tmp_path / "backup", pg_bin=PG_BIN)
+    assert seen == [report["backup"]["restore_database"]]
+    assert not database_exists(seen[0])
+
+
+def test_write_between_backup_and_migration_is_refused(legacy, tmp_path, monkeypatch):
+    """The single source pass proves the backup equals the migrated state."""
+    original = lab.backup
+
+    def backup_then_write(*args, **kwargs):
+        result = original(*args, **kwargs)
+        with psycopg.connect(legacy) as c:
+            c.execute("UPDATE tester_platform.jobs SET attempts=attempts+1")
+        return result
+
+    monkeypatch.setattr(lab, "backup", backup_then_write)
+    before_migrations = state(legacy)[1]
+    with pytest.raises(RuntimeError, match="backup_restore_content_mismatch") as caught:
+        lab.upgrade(legacy, backup_dir=tmp_path / "backup", pg_bin=PG_BIN)
+    assert caught.value.upgrade_report["status"] == "ROLLED_BACK"
+    assert caught.value.upgrade_report["backup"]["restore_verified"] is False
+    assert state(legacy)[1] == before_migrations

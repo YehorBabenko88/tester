@@ -411,8 +411,11 @@ state before selecting endpoint-only or whole-scope recovery.
 
 Restart admission counts only crash restarts inside a one-hour sliding window
 (host 3, API 6, worker 6); clean boots, OS auto-start and operator starts after a
-recorded stop are not counted. See [restart policy](restart-policy.md) for the
-authority, kill switches and the owner-only `status`/`reset` diagnosis.
+recorded stop are not counted. A stop while a kill switch is set still records the
+clean stop of the exact run. Untokenized starts of pre-008 code are each counted as a
+crash restart (bounded, never refused outright). See [restart policy](restart-policy.md)
+for the authority, kill switches, the owner-only `status`/`reset` diagnosis and why
+an exhausted pre-008 installation is recovered by reinstall.
 
 Both release services (App host and PostgreSQL host, and the legacy lab host)
 accept SCM STOP, SHUTDOWN and PRESHUTDOWN. Shutdown and preshutdown run the same

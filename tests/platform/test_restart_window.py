@@ -213,7 +213,7 @@ def test_actual_pg_app_role_cannot_forge_reset_or_disable(authority):
             with pytest.raises(psycopg.errors.InsufficientPrivilege):
                 conn.execute(statement)
     with psycopg.connect(app_dsn) as conn:
-        for role in ("host", "host-stop:zz", "host-crash:" + "a" * 32, "api-reset", ""):
+        for role in ("host:", "host-stop:zz", "host-crash:" + "a" * 32, "api-reset", "", "Host"):
             with pytest.raises(psycopg.errors.RaiseException):
                 conn.execute(
                     "SELECT tester_platform.reserve_restart(%s,%s,%s)", (ident, "a" * 40, role)
@@ -241,6 +241,56 @@ def test_actual_pg_app_role_cannot_forge_reset_or_disable(authority):
 
 
 @pytest.mark.integration
+def test_actual_pg_clean_stop_is_recorded_under_both_kill_switches(authority, tmp_path):
+    """D3: a stop while a kill switch is set must not turn the next start into a crash.
+
+    Before the fix both the runtime file and the owner flag refused 'host-stop', so
+    the run stayed open and the first start after the switch was removed counted.
+    """
+    from src.api.restart_budget import BudgetDenied
+
+    owner, _, ident, budget = authority
+    running = budget()
+    running.admit("host")
+    (tmp_path / "restart.disabled").touch()
+    running.record_clean_stop()
+    with pytest.raises(BudgetDenied, match="disabled"):
+        budget().admit("host")
+    (tmp_path / "restart.disabled").unlink()
+    second = budget()
+    second.admit("host")
+    assert budget().counts()["host"] == 0  # Clean start: not counted as a crash.
+    _owner(
+        owner,
+        "UPDATE tester_platform.restart_budgets SET disabled=true WHERE installation_id=%s "
+        "RETURNING 1",
+        ident,
+    )
+    forged = budget()
+    forged.host_token = secrets.token_hex(16)
+    with pytest.raises(BudgetDenied):
+        forged.record_clean_stop()  # Identity is still checked under the switch.
+    second.record_clean_stop()
+    for action in (
+        lambda: budget().admit("host"),
+        lambda: budget().admit_initial("worker"),
+        lambda: budget().admit("api"),
+    ):
+        with pytest.raises(BudgetDenied):
+            action()
+    with pytest.raises(BudgetDenied):
+        second.record_clean_stop()  # Token already consumed.
+    _owner(
+        owner,
+        "UPDATE tester_platform.restart_budgets SET disabled=false WHERE installation_id=%s "
+        "RETURNING 1",
+        ident,
+    )
+    budget().admit("host")
+    assert budget().counts()["host"] == 0
+
+
+@pytest.mark.integration
 def test_actual_pg_runtime_kill_switch_file_denies_without_sql(authority, tmp_path):
     from src.api.restart_budget import BudgetDenied
 
@@ -249,22 +299,17 @@ def test_actual_pg_runtime_kill_switch_file_denies_without_sql(authority, tmp_pa
         authority[3]().admit_initial("api")
 
 
-@pytest.mark.integration
-def test_actual_pg_existing_installation_upgrade_applies_008(tmp_path):
-    """An installation migrated before 008 is repaired by the owner migrate path."""
-    admin = _admin_dsn("(rolcreaterole AND rolcreatedb)")
+@contextmanager
+def pre008_database(admin):
+    """Fresh database migrated with exactly platform 001-007 (pre-008 installation)."""
     import psycopg
     from psycopg import sql
     from psycopg.conninfo import conninfo_to_dict, make_conninfo
-
-    from src.api.db import migrate
-    from src.api.restart_budget import DatabaseRestartBudget
 
     name = "tester_upgrade_" + secrets.token_hex(5)
     with psycopg.connect(admin, autocommit=True) as conn:
         conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
     target = make_conninfo(**{**conninfo_to_dict(admin), "dbname": name})
-    ident = str(uuid.uuid4())
     try:
         with psycopg.connect(target) as conn:
             conn.execute("CREATE SCHEMA tester_platform")
@@ -279,17 +324,43 @@ def test_actual_pg_existing_installation_upgrade_applies_008(tmp_path):
                     "INSERT INTO tester_platform.migrations(version,checksum) VALUES(%s,%s)",
                     (path.name, hashlib.sha256(content.encode()).hexdigest()),
                 )
+        yield target
+    finally:
+        with psycopg.connect(admin, autocommit=True) as conn:
+            conn.execute(
+                sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(name))
+            )
+
+
+def _legacy_reserve(app_dsn, ident, sha, role):
+    """Exactly what pre-008 code (a1d38d0/d6059af restart_budget.py) sends."""
+    import psycopg
+
+    with psycopg.connect(app_dsn) as conn:
+        conn.execute("SELECT tester_platform.reserve_restart(%s,%s,%s)", (ident, sha, role))
+
+
+@pytest.mark.integration
+def test_actual_pg_existing_installation_upgrade_applies_008(tmp_path):
+    """An installation migrated before 008 is repaired by the owner migrate path."""
+    admin = _admin_dsn("(rolcreaterole AND rolcreatedb)")
+    import psycopg
+
+    from src.api.db import migrate
+    from src.api.restart_budget import DatabaseRestartBudget
+
+    ident = str(uuid.uuid4())
+    with pre008_database(admin) as target:
+        with psycopg.connect(target) as conn:
             conn.execute(
                 "INSERT INTO tester_platform.restart_budgets"
                 "(installation_id,source_sha,host_starts) VALUES(%s,%s,3)",
                 (ident, "b" * 40),
             )
         with restricted_role(target) as app_dsn:
-            with psycopg.connect(app_dsn) as conn:
-                with pytest.raises(psycopg.errors.RaiseException):
-                    conn.execute(  # The pre-008 lifetime counter refuses a 4th start.
-                        "SELECT tester_platform.reserve_restart(%s,%s,'host')", (ident, "b" * 40)
-                    )
+            with pytest.raises(psycopg.errors.RaiseException):
+                # The pre-008 lifetime counter refuses a 4th start.
+                _legacy_reserve(app_dsn, ident, "b" * 40, "host")
             migrate(target)
             budget = DatabaseRestartBudget(VALID_DSN, tmp_path, ident, "b" * 40)
             budget.dsn = app_dsn
@@ -304,8 +375,85 @@ def test_actual_pg_existing_installation_upgrade_applies_008(tmp_path):
                     "SELECT count(*) FROM tester_platform.migrations WHERE version=%s",
                     ("008_restart_window.sql",),
                 ).fetchone() == (1,)
-    finally:
-        with psycopg.connect(admin, autocommit=True) as conn:
+
+
+@pytest.mark.integration
+def test_actual_pg_legacy_untokenized_roles_are_windowed_after_008(tmp_path):
+    """D2: pre-008 code restored on an upgraded schema starts, bounded by the window.
+
+    Before the fix 008 denied the untokenized legacy role 'host' outright, so a
+    pre-008 application could never start again on the upgraded database.
+    """
+    admin = _admin_dsn("(rolcreaterole AND rolcreatedb)")
+    import psycopg
+
+    from src.api.db import migrate
+    from src.api.restart_budget import BudgetDenied, DatabaseRestartBudget
+
+    ident, sha = str(uuid.uuid4()), "c" * 40
+    with pre008_database(admin) as target:
+        with psycopg.connect(target) as conn:
             conn.execute(
-                sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(name))
+                "INSERT INTO tester_platform.restart_budgets(installation_id,source_sha) "
+                "VALUES(%s,%s)",
+                (ident, sha),
             )
+        with restricted_role(target) as app_dsn:
+            # Pre-008 behaviour: three lifetime host starts, then exhausted forever.
+            for _ in range(3):
+                _legacy_reserve(app_dsn, ident, sha, "host")
+                _legacy_reserve(app_dsn, ident, sha, "api")  # Initial launch, pre-008 style.
+            with pytest.raises(psycopg.errors.RaiseException):
+                _legacy_reserve(app_dsn, ident, sha, "host")
+            migrate(target)
+
+            def counts():
+                with psycopg.connect(app_dsn) as conn:
+                    return conn.execute(
+                        "SELECT tester_platform.restart_counts(%s,%s)", (ident, sha)
+                    ).fetchone()[0]
+
+            assert counts() == {"host": 0, "api": 0, "worker": 0}
+            # Every legacy start is one windowed host crash restart: at most 3 per hour.
+            for crash in range(1, 4):
+                _legacy_reserve(app_dsn, ident, sha, "host")
+                assert counts()["host"] == crash
+            with pytest.raises(psycopg.errors.RaiseException):
+                _legacy_reserve(app_dsn, ident, sha, "host")
+            assert counts()["host"] == 3  # Denial rolled back; never exceeds the bound.
+            # Legacy child launches (initial ones included) count in the child window.
+            for _ in range(6):
+                _legacy_reserve(app_dsn, ident, sha, "worker")
+            with pytest.raises(psycopg.errors.RaiseException):
+                _legacy_reserve(app_dsn, ident, sha, "worker")
+            # Crashes that left the window admit legacy starts again.
+            with psycopg.connect(target) as conn:
+                conn.execute(
+                    "UPDATE tester_platform.restart_budgets SET host_crashes="
+                    "ARRAY[now()-interval '3 hours',now()-interval '2 hours',"
+                    "now()-interval '61 minutes'] WHERE installation_id=%s",
+                    (ident,),
+                )
+            _legacy_reserve(app_dsn, ident, sha, "host")
+            assert counts()["host"] == 1
+            # A legacy run can never be ended cleanly: the next tokenized start after
+            # it is counted, and tokenized clean stop/start cycles then stay free.
+            budget = DatabaseRestartBudget(VALID_DSN, tmp_path, ident, sha)
+            budget.dsn = app_dsn
+            budget.admit("host")
+            assert budget.counts()["host"] == 2
+            budget.record_clean_stop()
+            for _ in range(5):
+                clean = DatabaseRestartBudget(VALID_DSN, tmp_path, ident, sha)
+                clean.dsn = app_dsn
+                clean.admit("host")
+                clean.admit_initial("api")
+                clean.record_clean_stop()
+            assert budget.counts()["host"] == 2
+            # The owner kill switch still denies legacy starts.
+            with psycopg.connect(target) as conn:
+                conn.execute("UPDATE tester_platform.restart_budgets SET disabled=true")
+            with pytest.raises(psycopg.errors.RaiseException):
+                _legacy_reserve(app_dsn, ident, sha, "host")
+            with pytest.raises(BudgetDenied):
+                budget.counts()

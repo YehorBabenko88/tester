@@ -36,9 +36,18 @@ $$;
 -- p_role grammar (all other values are denied):
 --   host:<32 hex>        service-host start; crash restart iff the previous host run
 --                        never recorded a clean stop (crash/kill/power loss)
---   host-stop:<32 hex>   requested (operator/SCM/OS shutdown) stop of that exact run
+--   host-stop:<32 hex>   requested (operator/SCM/OS shutdown) stop of that exact run;
+--                        the only kind still admitted while the owner kill switch is set
+--                        (it ends a run, never starts anything)
 --   api-start|worker-start  initial child launch of a supervisor run (not counted)
 --   api|worker           child crash restart (counted)
+--   host                 legacy untokenized start of pre-008 code (e.g. an old app
+--                        restored on an upgraded schema). It can never record a clean
+--                        stop, so every legacy start is conservatively counted as a host
+--                        crash restart inside the same window (never unbounded), and it
+--                        leaves a run marker no token matches, so the next tokenized
+--                        start after it is counted too. Pre-008 code also sends api/worker
+--                        for initial launches; those stay counted in the child window.
 CREATE OR REPLACE FUNCTION tester_platform.reserve_restart(p_id uuid,p_sha text,p_role text)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE
@@ -49,17 +58,17 @@ DECLARE
 BEGIN
     IF p_role IS NULL OR NOT (
         p_role ~ '^(host|host-stop):[0-9a-f]{32}$'
-        OR p_role IN ('api','worker','api-start','worker-start')
+        OR p_role IN ('host','api','worker','api-start','worker-start')
     ) THEN
         RAISE EXCEPTION 'restart reservation denied';
     END IF;
+    kind := CASE WHEN p_role='host' THEN 'host-legacy' ELSE split_part(p_role, ':', 1) END;
     SELECT * INTO budget FROM tester_platform.restart_budgets
-    WHERE installation_id=p_id AND source_sha=p_sha AND NOT disabled
+    WHERE installation_id=p_id AND source_sha=p_sha
     FOR UPDATE;
-    IF NOT FOUND THEN
+    IF NOT FOUND OR (budget.disabled AND kind <> 'host-stop') THEN
         RAISE EXCEPTION 'restart reservation denied';
     END IF;
-    kind := split_part(p_role, ':', 1);
     IF kind IN ('host','host-stop') THEN
         digest := encode(sha256(convert_to(split_part(p_role, ':', 2), 'UTF8')), 'hex');
     END IF;
@@ -71,6 +80,18 @@ BEGIN
         END IF;
         UPDATE tester_platform.restart_budgets
         SET host_run_digest=NULL, host_run_started_at=NULL
+        WHERE installation_id=p_id;
+    ELSIF kind='host-legacy' THEN
+        recent := tester_platform.restart_window_recent(budget.host_crashes);
+        IF cardinality(recent) >= 3 THEN
+            RAISE EXCEPTION 'restart reservation denied';
+        END IF;
+        -- sha256('legacy-host'): no 32-hex run token hashes to it, so no host-stop
+        -- can end a legacy run and the next tokenized start is a counted crash.
+        UPDATE tester_platform.restart_budgets
+        SET host_crashes=recent || now(),
+            host_run_digest=encode(sha256(convert_to('legacy-host', 'UTF8')), 'hex'),
+            host_run_started_at=now()
         WHERE installation_id=p_id;
     ELSIF kind='host' THEN
         IF budget.host_run_digest = digest THEN
