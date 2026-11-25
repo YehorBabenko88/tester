@@ -14,8 +14,12 @@ from src.analytics.exact import decimal, number
 # /2 adds ``quantity_unit`` and the quote/base VWAP for every category.
 METHOD_V1 = "tester.execution-metrics/1"
 METHOD_V2 = "tester.execution-metrics/2"
-METHOD = METHOD_V1  # default of calculate(); existing /1 consumers stay unchanged
+METHOD = METHOD_V1  # default of calculate(); kept for /1 golden re-verification only
 METHODS = (METHOD_V1, METHOD_V2)
+# Every production writer (data_research_adapter, research_preview) emits
+# CURRENT_METHOD.  /1 is accepted by readers only as historical read-only.
+CURRENT_METHOD = METHOD_V2
+HISTORICAL_METHODS = (METHOD_V1,)
 MAX_TRADES = 100_000
 MAX_BARS = 1000
 
@@ -50,6 +54,17 @@ def stored_metrics_status(metrics):
             "quote" if category == "inverse" else "base"):
         raise ValueError("v2_quantity_unit_mismatch")
     return {"method": method, "quantity_unit": metrics.get("quantity_unit")}
+
+
+def metrics_read_contract(metrics):
+    """Explicit read contract of a persisted result: CURRENT or HISTORICAL_READ_ONLY.
+
+    Wraps ``stored_metrics_status`` (same refusals, incl. /1 inverse) and
+    labels /1 as historical so a reader can never present it as a /2 result.
+    """
+    status = stored_metrics_status(metrics)
+    return {**status, "status": (
+        "CURRENT" if status["method"] == CURRENT_METHOD else "HISTORICAL_READ_ONLY")}
 
 
 def calculate(trades, *, start_ms: int, end_ms: int, interval_ms: int, tick_size: str,
