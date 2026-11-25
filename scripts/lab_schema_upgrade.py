@@ -11,16 +11,26 @@ Sequence (``upgrade``):
    unmodified (the runners' checksum checks).
 2. Backup: ``pg_dump -Fc`` to a new file in a new backup directory, SHA-256
    recorded, archive listed with ``pg_restore --list`` and, by default, restored
-   into a NEW scratch database whose content snapshot must equal the source.
-   The scratch database is retained (no DROP).
+   into a NEW owner-only scratch database (CONNECT revoked from PUBLIC before the
+   restore) whose content snapshot and migration state are recorded as a digest
+   in the report. The scratch database is then dropped: it is a full copy that
+   would double the disk use and must not stay reachable.
 3. One transaction: content snapshot (row count and SHA-256 of every row of
-   every base table in every non-system schema), forward storage and platform
-   migrations as owner, second snapshot of the pre-existing columns of every
-   pre-existing table. Any difference, missing table/column, error or injected
-   fault rolls the whole transaction back, so no partial schema is committed.
-4. After commit the snapshot and migration state are verified again. If that
-   post-commit check fails the database is left as committed and the report
-   names the verified backup to restore with ``restore`` into a NEW database.
+   every base table in every non-system schema), which must equal the restored
+   backup's snapshot (so the backup is proven to be exactly the pre-migration
+   state), forward storage and platform migrations as owner, second snapshot of
+   the pre-existing columns of every pre-existing table, and (issue #114) the
+   lab App role ``tester_lab_app``, when it exists, loses DELETE/TRUNCATE on the
+   platform/storage/lab schemas. Any difference, missing table/column, error or
+   injected fault rolls the whole transaction back, so no partial schema is
+   committed.
+4. After commit the snapshot, migration state and App-role privileges are
+   verified again. If that post-commit check fails the database is left as
+   committed and the report names the verified backup to restore with
+   ``restore`` into a NEW, owner-only database.
+
+Each content snapshot reads every row once; there are four passes (restored
+copy, before, after migration, post-commit) instead of a separate source pass.
 """
 
 from __future__ import annotations
@@ -45,6 +55,11 @@ LOOPBACK = {"127.0.0.1", "localhost", "::1"}
 SCHEMA = "tester-lab-schema-upgrade/v1"
 LAB_PORT = 55470
 LAB_PGBIN = Path("C:/Program Files/PostgreSQL/18/bin")
+LAB_APP_ROLE = "tester_lab_app"
+# Same runtime write model as scripts/lab_portable.py: storage UPDATE only on the
+# job claim/checkpoint tables; platform UPDATE stays as granted; never DELETE.
+LAB_APP_STORAGE_UPDATE = ("download_jobs", "ingestion_checkpoints")
+LAB_APP_SCHEMAS = ("tester_platform", "tester_storage", "tester_lab")
 
 
 class UpgradeRefused(RuntimeError):
@@ -146,6 +161,73 @@ def migration_state(conn):
     return state
 
 
+def content_digest(content, state):
+    """Stable digest of a snapshot plus migration state (recorded in the report)."""
+    data = json.dumps({"content": content, "migrations": state}, sort_keys=True)
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
+def lab_app_destructive_tables(conn, role=LAB_APP_ROLE):
+    """Tables in the lab schemas on which ``role`` may still DELETE or TRUNCATE."""
+    return [
+        name
+        for (name,) in conn.execute(
+            """SELECT n.nspname||'.'||c.relname FROM pg_class c
+               JOIN pg_namespace n ON n.oid=c.relnamespace
+               WHERE c.relkind IN ('r','p') AND n.nspname::text = ANY(%s::text[])
+                 AND (has_table_privilege(%s::name, c.oid, 'DELETE')
+                      OR has_table_privilege(%s::name, c.oid, 'TRUNCATE'))
+               ORDER BY 1""",
+            (list(LAB_APP_SCHEMAS), role, role),
+        ).fetchall()
+    ]
+
+
+def restrict_lab_app(conn, role=LAB_APP_ROLE):
+    """Issue #114 for labs, on the caller's (migration) transaction.
+
+    Migration 009 only reaches roles enrolled in transport_policy_scopes; the lab
+    App role was granted UPDATE,DELETE ON ALL TABLES IN SCHEMA tester_platform by
+    the d6059af lab installer. Revoke every destructive table privilege; keep only
+    the UPDATE grants the current lab installer issues. Fail closed if any remain
+    (e.g. granted by another grantor), which rolls the whole upgrade back.
+    """
+    from psycopg import sql
+
+    if conn.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (role,)).fetchone() is None:
+        return None
+    for schema in LAB_APP_SCHEMAS:
+        if conn.execute("SELECT to_regnamespace(%s::text)", (schema,)).fetchone()[0] is None:
+            continue
+        conn.execute(
+            sql.SQL(
+                "REVOKE DELETE,TRUNCATE,REFERENCES,TRIGGER ON ALL TABLES IN SCHEMA {} FROM {}"
+            ).format(sql.Identifier(schema), sql.Identifier(role))
+        )
+    if conn.execute("SELECT to_regnamespace('tester_storage')").fetchone()[0] is not None:
+        conn.execute(
+            sql.SQL("REVOKE UPDATE ON ALL TABLES IN SCHEMA tester_storage FROM {}").format(
+                sql.Identifier(role)
+            )
+        )
+        for table in LAB_APP_STORAGE_UPDATE:
+            qualified = "tester_storage." + table
+            if conn.execute(
+                "SELECT CASE WHEN to_regclass(%s::text) IS NULL THEN false "
+                "ELSE has_table_privilege(%s::name,%s::text,'INSERT') END",
+                (qualified, role, qualified),
+            ).fetchone()[0]:
+                conn.execute(
+                    sql.SQL("GRANT UPDATE ON {} TO {}").format(
+                        sql.Identifier("tester_storage", table), sql.Identifier(role)
+                    )
+                )
+    remaining = lab_app_destructive_tables(conn, role)
+    if remaining:
+        raise RuntimeError("lab_app_destructive_privilege_remains:" + ",".join(remaining))
+    return {"role": role, "delete_truncate_revoked": True}
+
+
 def apply_platform(conn, directory=PLATFORM_MIGRATIONS):
     """Same versions/checksums as ``src.api.db.migrate`` but on the caller's transaction."""
     conn.execute("SELECT pg_advisory_xact_lock(725281346)")
@@ -207,9 +289,41 @@ def file_sha256(path):
     return h.hexdigest()
 
 
-def backup(dsn, backup_dir, pg_bin, *, verify_restore=True, timeout=3600):
+def _create_owner_only_database(dsn, name):
+    """CREATE DATABASE grants CONNECT/TEMP to PUBLIC; revoke before any data arrives."""
     import psycopg
     from psycopg import sql
+    from psycopg.conninfo import make_conninfo
+
+    with psycopg.connect(make_conninfo(dsn, dbname="postgres"), autocommit=True) as c:
+        c.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+        c.execute(sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(sql.Identifier(name)))
+
+
+def _drop_database(dsn, name):
+    """Drop the verification copy; ``False`` (never an exception) if it remains."""
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import make_conninfo
+
+    try:
+        with psycopg.connect(make_conninfo(dsn, dbname="postgres"), autocommit=True) as c:
+            c.execute(sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(name)))
+            return (
+                c.execute("SELECT 1 FROM pg_database WHERE datname=%s", (name,)).fetchone() is None
+            )
+    except psycopg.Error:
+        return False
+
+
+def backup(dsn, backup_dir, pg_bin, *, verify_restore=True, timeout=3600):
+    """Dump, list and (by default) restore into a dropped owner-only scratch database.
+
+    Returns ``(report, restored)``; ``restored`` is ``(snapshot, migration_state)``
+    of the restored copy, or ``None`` without restore verification. The caller
+    must compare it with the source inside the migration transaction.
+    """
+    import psycopg
     from psycopg.conninfo import make_conninfo
 
     values = safe_conninfo(dsn)
@@ -227,34 +341,34 @@ def backup(dsn, backup_dir, pg_bin, *, verify_restore=True, timeout=3600):
     if not listing.strip():
         raise RuntimeError("empty_backup_archive")
     report = {"path": str(dump), "sha256": file_sha256(dump), "restore_verified": False}
+    restored = None
     if verify_restore:
         scratch = (values["dbname"][:30] + "_upgrade_verify_" + stamp.lower())[:63]
-        with psycopg.connect(make_conninfo(dsn, dbname="postgres"), autocommit=True) as c:
-            c.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(scratch)))
-        _run(
-            [
-                _tool(pg_bin, "pg_restore"),
-                *_pg_flags(values),
-                "--exit-on-error",
-                "-d",
-                scratch,
-                str(dump),
-            ],
-            env,
-            timeout,
-        )
-        with (
-            psycopg.connect(dsn) as source,
-            psycopg.connect(make_conninfo(dsn, dbname=scratch)) as copy,
-        ):
-            if snapshot(source) != snapshot(copy) or migration_state(source) != migration_state(
-                copy
-            ):
-                raise RuntimeError("backup_restore_content_mismatch")
-        report.update(restore_verified=True, restore_database=scratch)
+        _create_owner_only_database(dsn, scratch)
+        report["restore_database"] = scratch
+        try:
+            _run(
+                [
+                    _tool(pg_bin, "pg_restore"),
+                    *_pg_flags(values),
+                    "--exit-on-error",
+                    "-d",
+                    scratch,
+                    str(dump),
+                ],
+                env,
+                timeout,
+            )
+            with psycopg.connect(make_conninfo(dsn, dbname=scratch)) as copy:
+                restored = (snapshot(copy), migration_state(copy))
+        finally:
+            report["restore_database_dropped"] = _drop_database(dsn, scratch)
+        if not report["restore_database_dropped"]:
+            raise RuntimeError("restore_verify_database_not_dropped")
+        report["restore_content_sha256"] = content_digest(*restored)
     if file_sha256(dump) != report["sha256"]:
         raise RuntimeError("backup_changed_during_verification")
-    return report
+    return report, restored
 
 
 def _require_owner(conn):
@@ -291,7 +405,7 @@ def upgrade(
         conn.rollback()
     report["migrations_before"] = state_before
     report["stage"] = "BACKUP"
-    report["backup"] = backup(dsn, backup_dir, pg_bin, verify_restore=verify_restore)
+    report["backup"], restored = backup(dsn, backup_dir, pg_bin, verify_restore=verify_restore)
     conn = psycopg.connect(dsn)
     committed = False
     try:
@@ -300,6 +414,12 @@ def upgrade(
             conn.execute("SET LOCAL lock_timeout = '30s'")
             inventory = tables(conn)
             before = snapshot(conn)
+            if restored is not None:
+                # One pass over the source: the restored backup must be exactly the
+                # state being migrated (no write between backup and migration).
+                if restored != (before, migration_state(conn)):
+                    raise RuntimeError("backup_restore_content_mismatch")
+                report["backup"]["restore_verified"] = True
             fault("before_migrate", conn)
             migrate_storage(conn, directory=storage_dir)
             fault("after_storage_migrate", conn)
@@ -309,12 +429,18 @@ def upgrade(
             if after != before:
                 changed = sorted(k for k in before if before[k] != after.get(k))
                 raise RuntimeError("existing_data_changed:" + ",".join(changed))
+            report["lab_app_privileges"] = restrict_lab_app(conn)
+            fault("after_privileges", conn)
             state_after = migration_state(conn)
             fault("before_commit", conn)
         committed = True
         report["stage"] = "POST_COMMIT_VERIFY"
         with conn.transaction():
-            if snapshot(conn, inventory) != before or migration_state(conn) != state_after:
+            if (
+                snapshot(conn, inventory) != before
+                or migration_state(conn) != state_after
+                or (report["lab_app_privileges"] and lab_app_destructive_tables(conn))
+            ):
                 report["status"] = "POST_COMMIT_VERIFY_FAILED_RESTORE_FROM_BACKUP"
                 raise RuntimeError("post_commit_verification_failed")
             report["new_tables"] = sorted(set(tables(conn)) - set(inventory) - BOOKKEEPING)
@@ -344,9 +470,13 @@ def upgrade(
 
 
 def restore(dsn, dump, target_db, pg_bin, *, expected_sha256, timeout=3600):
-    """Restore a verified backup into a NEW database; never over an existing one."""
+    """Restore a verified backup into a NEW, owner-only database; never over an existing one.
+
+    CONNECT is revoked from PUBLIC before the restore; ``pg_restore`` of a single
+    database archive carries no database-level ACL, so App roles cannot connect
+    until the owner grants it explicitly.
+    """
     import psycopg
-    from psycopg import sql
     from psycopg.conninfo import make_conninfo
 
     values = safe_conninfo(dsn)
@@ -355,7 +485,8 @@ def restore(dsn, dump, target_db, pg_bin, *, expected_sha256, timeout=3600):
     with psycopg.connect(make_conninfo(dsn, dbname="postgres"), autocommit=True) as c:
         if c.execute("SELECT 1 FROM pg_database WHERE datname=%s", (target_db,)).fetchone():
             raise UpgradeRefused("restore_target_must_be_new")
-        c.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(target_db)))
+    # Owner-only until the owner deliberately grants CONNECT to an App role.
+    _create_owner_only_database(dsn, target_db)
     _run(
         [
             _tool(pg_bin, "pg_restore"),
@@ -368,7 +499,7 @@ def restore(dsn, dump, target_db, pg_bin, *, expected_sha256, timeout=3600):
         _pg_env(values),
         timeout,
     )
-    return {"status": "RESTORED_INTO_NEW_DATABASE", "database": target_db}
+    return {"status": "RESTORED_INTO_NEW_DATABASE", "database": target_db, "access": "owner-only"}
 
 
 def lab_dsn(root):
