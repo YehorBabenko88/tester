@@ -62,6 +62,8 @@ END $migration$;
 CREATE UNIQUE INDEX transport_policy_one_installation_per_runtime_role
     ON tester_platform.transport_policy_scopes (runtime_role);
 
+-- Validate the unique role binding on every policy call. SQL GRANT of the
+-- policy functions remains unchanged and a caller UUID is never a capability.
 -- Preserve all the original 004 validation: endpoint identity, advisory
 -- transaction lock, row lock, corruption checks, capacity, halt policy.
 -- Narrow ONLY the SQL authenticated-session principal decision.
