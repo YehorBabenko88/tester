@@ -134,16 +134,18 @@ test("connected observed-only route displays bounded exact values without claimi
 });
 test("async stale selection and resetting inputs cannot display an old source sample", async () => {
   const { root, node } = fixture();
-  let resolve, current = fields();
+  let resolve, entered, current = fields();
+  const readStarted = new Promise(done => { entered = done; });
   const viewer = mountObservedReadback(root, {
     getScope: () => current,
     fetchCapabilities: async () => capability(),
-    fetchReadback: () => new Promise(done => { resolve = done; }),
+    fetchReadback: () => {
+      entered();
+      return new Promise(done => { resolve = done; });
+    },
   });
   const pending = viewer.inspect();
-  // Wait until the capability microtask has run and readback is pending.
-  await Promise.resolve();
-  await Promise.resolve();
+  await readStarted;
   current = { ...current, symbol: "ETHUSD" };
   resolve(sample(observedScope(fields())));
   await pending;
