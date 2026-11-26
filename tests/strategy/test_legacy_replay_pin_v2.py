@@ -37,7 +37,7 @@ def _assert_legacy_files_pinned():
             assert hashlib.sha256(data).hexdigest() == entry["sha256"], relative
     # SHA-1 is the Git object identity, not a signature or security primitive.
     raw = (ROOT / "src/backtest/engine.py").read_bytes()
-    git_blob = b"blob " + str(len(raw)).encode("ascii") + b"\\0" + raw
+    git_blob = b"blob " + str(len(raw)).encode("ascii") + bytes([0]) + raw
     assert hashlib.sha1(git_blob).hexdigest() == (
         "30b5f60736e1df738793598441142a6aad54e079"
     )
