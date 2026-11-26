@@ -46,15 +46,13 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'transport runtime principal enrolled by multiple installations';
     END IF;
-    -- A runtime's effective privileges must not be inherited from any role.
-    -- Use pg_has_role, which is valid on supported PostgreSQL versions and
-    -- rejects both explicit and indirect inherited memberships.
+    -- Reject runtime membership in any explicit inherited role. No grant
+    -- widening; owner-only enrollment requires a dedicated login.
     IF EXISTS (
-        SELECT 1
-        FROM tester_platform.transport_policy_scopes AS s
-        JOIN pg_catalog.pg_roles AS runtime ON runtime.rolname=s.runtime_role
-        JOIN pg_catalog.pg_roles AS granted ON granted.oid<>runtime.oid
-        WHERE pg_catalog.pg_has_role(runtime.oid,granted.oid,'USAGE')
+        SELECT 1 FROM pg_catalog.pg_auth_members AS m
+        JOIN pg_catalog.pg_roles AS runtime ON runtime.oid = m.member
+        JOIN tester_platform.transport_policy_scopes AS s ON s.runtime_role = runtime.rolname
+        WHERE m.inherit_option
     ) THEN
         RAISE EXCEPTION 'transport runtime principal inherits another role';
     END IF;
