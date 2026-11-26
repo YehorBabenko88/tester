@@ -12,6 +12,30 @@ from pydantic import ValidationError
 from src.api.analytics_readback import ReadbackScope, create_readback_router, observed_readback
 
 
+def valid_source_observation(category="inverse", *, start_ms=0, end_ms=60_000):
+    return {
+        "schema_version": "tester.research-ui-observation/1",
+        "status": "OBSERVED_UNVERIFIED",
+        "f_admission": "DENIED_UNKNOWN_COVERAGE",
+        "source_coverage": "UNKNOWN",
+        "publication_time": "UNKNOWN",
+        "method": "tester.execution-metrics/2",
+        "metrics_contract": {"status": "CURRENT"},
+        "g_e_execution": "NOT_AUTHORIZED",
+        "cvd_prior_history_known": False,
+        "http_route_status": "NOT_REGISTERED",
+        "quantity_unit": "quote" if category == "inverse" else "base",
+        "source_quantity_unit": ("source_native_inverse_contract" if category == "inverse" else "source_native_linear_size"),
+        "utc_window": {"start_ms": start_ms, "end_ms": end_ms},
+        "source_receipts_digest": "a" * 64,
+        "data_execution_digest": "b" * 64,
+        "metrics_digest": "c" * 64,
+        "observed_sample_fingerprint": "d" * 64,
+        "bars": [{"start_ms": start_ms, "end_ms": end_ms, "volume": "100", "vwap": "100"}],
+    }
+
+
+
 def scope(**overrides):
     args = dict(category="inverse", symbol="BTCUSD", start_ms=0, end_ms=60_000,
                 interval_ms=60_000, tick_size="1", as_of_ms=60_000, limit=99)
@@ -78,17 +102,7 @@ def test_trusted_but_incomplete_canonical_readback_never_grants_f(monkeypatch):
     seen = []
     def source(store, **kwargs):
         seen.append((store, kwargs))
-        return dict(schema_version="tester.research-ui-observation/1",
-                    status="OBSERVED_UNVERIFIED",
-                    f_admission="DENIED_UNKNOWN_COVERAGE",
-                    source_coverage="UNKNOWN", publication_time="UNKNOWN",
-                    method="tester.execution-metrics/2", quantity_unit="quote",
-                    source_quantity_unit="source_native_inverse_contract",
-                    utc_window={"start_ms": 0, "end_ms": 60_000},
-                    source_receipts_digest="b" * 64,
-                    observed_sample_fingerprint="c" * 64,
-                    bars=[{"start_ms": 0, "end_ms": 60_000,
-                           "volume": "100", "vwap": "100"}])
+        return valid_source_observation()
     monkeypatch.setattr(module, "read_verified_ui_observation", source)
     class StubStore:
         def read_bounded(self, *args, **kwargs):
@@ -157,23 +171,7 @@ def test_valid_scoped_route_can_only_return_unverified_source_observation(monkey
         def read_bounded(self, *args, **kwargs):
             return []
     def canonical(store, **kwargs):
-        return {
-            "schema_version": "tester.research-ui-observation/1",
-            "status": "OBSERVED_UNVERIFIED",
-            "f_admission": "DENIED_UNKNOWN_COVERAGE",
-            "source_coverage": "UNKNOWN",
-            "publication_time": "UNKNOWN",
-            "method": "tester.execution-metrics/2",
-            "quantity_unit": "quote",
-            "source_quantity_unit": "source_native_inverse_contract",
-            "utc_window": {"start_ms": 0, "end_ms": 60_000},
-            "source_receipts_digest": "b" * 64,
-            "observed_sample_fingerprint": "c" * 64,
-            "bars": [{
-                "start_ms": 0, "end_ms": 60_000,
-                "volume": "100", "vwap": "100",
-            }],
-        }
+        return valid_source_observation()
     monkeypatch.setattr(module, "read_verified_ui_observation", canonical)
     app = FastAPI()
     app.include_router(create_readback_router(
@@ -254,18 +252,7 @@ def test_readback_wall_deadline_is_fail_closed(monkeypatch):
     monkeypatch.setattr(module, "_clock", iter([0., 11.]).__next__)
 
     def observed(store, **kwargs):
-        return dict(
-            schema_version="tester.research-ui-observation/1",
-            status="OBSERVED_UNVERIFIED",
-            f_admission="DENIED_UNKNOWN_COVERAGE",
-            source_coverage="UNKNOWN", publication_time="UNKNOWN",
-            method="tester.execution-metrics/2", quantity_unit="quote",
-            source_quantity_unit="source_native_inverse_contract",
-            utc_window={"start_ms": 0, "end_ms": 60_000},
-            source_receipts_digest="b" * 64,
-            observed_sample_fingerprint="c" * 64,
-            bars=[{"start_ms": 0, "end_ms": 60_000, "volume": "100", "vwap": "100"}],
-        )
+        return valid_source_observation()
     monkeypatch.setattr(module, "read_verified_ui_observation", observed)
     app = FastAPI()
     app.include_router(create_readback_router(
@@ -274,3 +261,49 @@ def test_readback_wall_deadline_is_fail_closed(monkeypatch):
     response = TestClient(app).get("/api/analytics/readback", params=scope().model_dump())
     assert response.status_code == 503
     assert response.json()["detail"] == "analytics_readback_timeout"
+
+
+@pytest.mark.parametrize("alteration", [
+    lambda d: d.update(bars=[]),
+    lambda d: d["bars"][0].update(end_ms=120_000),
+    lambda d: d["bars"][0].update(start_ms=1),
+    lambda d: d.update(source_receipts_digest="not_a_sha"),
+    lambda d: d.update(data_execution_digest="A" * 64),
+    lambda d: d.update(metrics_digest="b" * 63),
+    lambda d: d.update(observed_sample_fingerprint="c" * 65),
+    lambda d: d.update(g_e_execution="AUTHORIZED"),
+    lambda d: d.update(http_route_status="REGISTERED"),
+    lambda d: d.update(cvd_prior_history_known=True),
+    lambda d: d["metrics_contract"].update(status="HISTORICAL_READ_ONLY"),
+])
+def test_round4_readback_rejects_forged_or_incomplete_evidence(monkeypatch, alteration):
+    from src.api import analytics_readback as module
+    class StubStore:
+        def read_bounded(self, *args, **kwargs):
+            return []
+    def synthetic(store, **kwargs):
+        proof = valid_source_observation()
+        alteration(proof)
+        return proof
+    monkeypatch.setattr(module, "read_verified_ui_observation", synthetic)
+    rejected = observed_readback(scope(), trusted_store=StubStore(), trusted_identity=identity())
+    assert rejected["status"] == "UNVERIFIED"
+    assert rejected["admitted_to_f"] is False
+
+
+def test_round4_canonical_metadata_is_explicit_and_non_admitting(monkeypatch):
+    from src.api import analytics_readback as module
+    class StubStore:
+        def read_bounded(self, *args, **kwargs):
+            return []
+    monkeypatch.setattr(module, "read_verified_ui_observation", lambda *a, **k: valid_source_observation())
+    result = observed_readback(scope(), trusted_store=StubStore(), trusted_identity=identity())
+    assert result["status"] == "OBSERVED_UNVERIFIED"
+    assert result["metric_kind"] == "execution_metrics"
+    assert result["metric_method_version"] == "2"
+    assert result["strategy_admission"] == "DENIED"
+    assert result["historical_data_complete"] is False
+    assert result["http_route_registered"] is False
+    assert result["source"]["dataset_revision"] is None
+    assert result["source"]["historical_coverage"] == "UNKNOWN"
+    assert result["quality"]["reasons"] == ["historical_coverage_unknown", "publication_time_unknown"]
