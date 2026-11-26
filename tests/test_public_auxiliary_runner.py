@@ -38,31 +38,96 @@ class AuxiliaryRunnerTests(unittest.TestCase):
         # Before #105 run() built API() -> Transport() without policy_store,
         # bypassing installation-wide dispatch, 429 cooldown and 403 halt.
         store = Mock()
-        with self.assertRaisesRegex(ValueError, "durable public transport policy"):
+        with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
             run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", store=store)
         for unsafe in (API(), API(Transport()), API(Mock())):
             with self.subTest(api=unsafe), self.assertRaisesRegex(ValueError, "durable"):
                 run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", api=unsafe, store=store)
         store.ingest.assert_not_called()
-        with self.assertRaisesRegex(ValueError, "durable"):
+        with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
             policy_api(None, None)
 
-    def test_policy_api_binds_canonical_transport_to_postgres_policy(self):
+    def test_policy_api_rejects_caller_owned_database_and_installation_identity(self):
         policy_dsn = ("host=127.0.0.1 port=55480 dbname=tester user=tester_app "
                       "password=x require_auth=scram-sha-256")
-        api = policy_api(policy_dsn, str(uuid4()))
-        self.assertIsInstance(api, API)
-        self.assertIsInstance(api.transport, Transport)
-        self.assertEqual(type(api.transport.policy_store).__name__, "PostgresTransportPolicy")
-        with self.assertRaises(ValueError):
-            policy_api(policy_dsn.replace(" require_auth=scram-sha-256", ""), str(uuid4()))
+        with patch("src.api.transport_policy.PostgresTransportPolicy") as policy:
+            for supplied in (
+                (policy_dsn, str(uuid4())),
+                (policy_dsn.replace("55480", "5432"), str(uuid4())),
+                (policy_dsn, None),
+                (None, str(uuid4())),
+            ):
+                with self.subTest(supplied=supplied), self.assertRaisesRegex(
+                    ValueError, "trusted release transport identity"
+                ):
+                    policy_api(*supplied)
+            policy.assert_not_called()
 
-    def test_policy_bound_api_is_accepted(self):
+    def test_policy_bound_api_without_authenticated_release_is_denied(self):
         api = API(Transport(policy_store=Mock()))
-        with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest",
-                   return_value={"records": 1, "coverage": "UNKNOWN"}) as acquire:
-            run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", api=api, store=Mock())
-        self.assertIs(acquire.call_args.args[1], api)
+        with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest") as acquire:
+            with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
+                run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", api=api, store=Mock())
+        acquire.assert_not_called()
+
+    def test_cross_install_cloned_pin_and_replayed_identity_fail_before_http(self):
+        """E-owned NO_HTTP seam: claimed static owner data is never authority.
+
+        PostgreSQL principal isolation is independently A-owned. This test
+        ensures that runner cannot be opened using a copied signed marker,
+        a foreign UUID or a replayed callback / offline identity dictionary.
+        """
+        from types import SimpleNamespace
+
+        foreign_id, own_id = str(uuid4()), str(uuid4())
+        policy = Mock()
+        policy.installation_id = foreign_id
+        transport = Transport(policy_store=policy, session=Mock())
+        foreign = API(transport)
+        copied = SimpleNamespace(
+            installation_id=foreign_id, source_sha="a" * 40,
+            marker_sha256="b" * 64, pg_system_identifier="12345",
+            service_identity=("foreign-app", "foreign-pg", "S-1-5-80-1", "S-1-5-80-2"),
+            policy_state_at_check="CLEAR",
+        )
+        # A copied/replayed attribute or arbitrary verified=True payload does
+        # not represent a Windows process token or authenticated PG session.
+        foreign.release_authority = copied
+        foreign.trusted_identity = {"verified": True,
+                                    "installation_id": own_id,
+                                    "source_sha": "a" * 40}
+        store = Mock()
+        with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest") as ingest:
+            with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
+                run(dsn=GOOD, symbols=["BTCUSDT"], category="linear",
+                    api=foreign, store=store,
+                    policy_dsn=GOOD, installation_id=own_id)
+        ingest.assert_not_called()
+        transport.session.request.assert_not_called()
+        store.ingest.assert_not_called()
+        policy.reserve.assert_not_called()
+        policy.reserve_dispatch.assert_not_called()
+
+    def test_denial_survives_restart_and_revoked_policy_claims(self):
+        """Neither an old service instance nor policy-clear string permits HTTP."""
+        for status in ("CLEAR", "PENDING", "HALTED", "REVOKED"):
+            with self.subTest(policy_status=status):
+                fake_policy = Mock()
+                fake_policy.policy_state_at_check = status
+                fake_policy.installation_id = str(uuid4())
+                session = Mock()
+                api = API(Transport(policy_store=fake_policy, session=session))
+                api.release_authority = {
+                    "verified": True, "boot_id": "previous-boot",
+                    "signed_static_installation": "copied", "policy_status": status,
+                }
+                with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest") as ingest:
+                    with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
+                        run(dsn=GOOD, symbols=["BTCUSDT"], category="linear",
+                            api=api, store=Mock())
+                ingest.assert_not_called()
+                session.request.assert_not_called()
+                fake_policy.reserve.assert_not_called()
 
     def test_refuse_more_than_ten_duplicates_and_metrics_before_network(self):
         api, store = Mock(), Mock()

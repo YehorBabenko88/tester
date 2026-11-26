@@ -24,6 +24,86 @@ class AuxiliaryPostgresTests(unittest.TestCase):
         with psycopg.connect(DSN) as conn:
             migrate(conn)
 
+    def test_store_transaction_fault_after_checkpoint_rolls_back_all_pg_publication(self):
+        """E-ROUND4: real disposable PostgreSQL SQL failure after the checkpoint write.
+
+        This proves the shared PostgreSQL Store transaction, distinct from the
+        SQLite REST acquisition journal. The fault is raised by PostgreSQL
+        itself (division by zero) after all raw/evidence/checkpoint statements
+        but before commit. It must preserve the previous committed window.
+        """
+        from uuid import uuid4
+        from psycopg.conninfo import conninfo_to_dict
+        from tests.storage.test_models import trade
+
+        config = conninfo_to_dict(DSN)
+        if (config.get("host") != "127.0.0.1"
+                or config.get("port") != "55479"
+                or config.get("dbname") != "tester_aux_roundtrip"):
+            self.skipTest("only dedicated disposable CI PostgreSQL 55479 is permitted")
+        symbol = "E" + uuid4().hex[:15].upper()
+        key = "E-R4-atomic-" + symbol
+        start, end = 1700000000000, 1700000060000
+        def record(n):
+            r = trade(symbol=symbol, timestamp_ms=start + n * 1000)
+            r["payload"]["trade_id"] = "exchange-" + str(n)
+            return r
+        def evidence(count):
+            return {
+                "venue": "bybit", "category": "linear", "symbol": symbol,
+                "dataset": "trades", "interval": "",
+                "start_ms": start, "end_ms": end, "status": "EXHAUSTED",
+                "pages": [{"params": {"category": "linear", "symbol": symbol},
+                           "cursor": None, "next_cursor": None, "count": count}],
+            }
+        store = Store(DSN)
+        store.ingest([record(1)], evidence(1), key, checkpoint={"sequence": 1})
+
+        def snapshot():
+            with store.connect() as c:
+                counts = {}
+                for table in ("raw_records", "record_sources", "source_observations",
+                              "pagination_evidence", "coverage_intervals",
+                              "ingestion_checkpoints", "download_jobs"):
+                    counts[table] = c.execute(
+                        "SELECT count(*) AS n FROM tester_storage." + table +
+                        " WHERE " + ("job_key" if table in (
+                            "source_observations", "pagination_evidence",
+                            "ingestion_checkpoints", "download_jobs"
+                        ) else "symbol") + " = %s",
+                        (key if table in ("source_observations", "pagination_evidence",
+                                          "ingestion_checkpoints", "download_jobs") else symbol,),
+                    ).fetchone()["n"]
+                return counts
+
+        before = snapshot()
+        assert store.checkpoint(key) == {"sequence": 1}
+
+        class InjectedSqlFaultStore(Store):
+            @staticmethod
+            def _audit(c, e, action, detail):
+                # The transaction already wrote checkpoint and source rows.
+                # This is a real PostgreSQL statement exception, not a mock.
+                c.execute("SELECT 1 / 0")
+
+        with self.assertRaises(psycopg.errors.DivisionByZero):
+            InjectedSqlFaultStore(DSN).ingest(
+                [record(2), record(3)], evidence(2), key,
+                checkpoint={"sequence": 2},
+            )
+        assert snapshot() == before
+        assert store.checkpoint(key) == {"sequence": 1}
+        rows = store.read("trades", "bybit", "linear", symbol, start, end)
+        assert len(rows) == 1
+        assert rows[0]["trade_id"] == "exchange-1"
+
+        # A clean retry succeeds without rewriting earlier confirmed data.
+        result = store.ingest([record(2), record(3)], evidence(2), key,
+                              checkpoint={"sequence": 2})
+        assert result["count"] == 2
+        assert store.checkpoint(key) == {"sequence": 2}
+        assert len(store.read("trades", "bybit", "linear", symbol, start, end)) == 3
+
     def test_atomic_exact_readback_and_idempotent_replay(self):
         store = Store(DSN)
         row = {"symbol": "BTCUSDT", "execId": "ci-aux-unique-001",

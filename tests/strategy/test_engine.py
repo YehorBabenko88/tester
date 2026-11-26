@@ -52,6 +52,41 @@ class EngineTests(unittest.TestCase):
         self.assertEqual({m['fill_id'] for m in r['overlays']}, {f['id'] for f in r['fills']})
         self.assertEqual(r['metrics']['trade_count'], 1)
 
+    def test_frozen_engine_result_identical_to_parent_implementation(self):
+        # The v2 standalone mark API must not change the old F engine's
+        # byte-for-byte logic or stored replay digest.
+        import hashlib
+        import inspect
+        from pathlib import Path
+        import src.backtest.engine as engine
+        src = Path(inspect.getfile(engine)).read_bytes().replace(b"\r\n", b"\n")
+        # Pin the actual historical Git blob, not just two runs with the
+        # same potentially changed engine. Normalize checkout CRLF on Windows.
+        blob = b"blob " + str(len(src)).encode("ascii") + b"\0" + src
+        self.assertEqual(
+            hashlib.sha1(blob).hexdigest(),
+            "30b5f60736e1df738793598441142a6aad54e079",
+        )
+        self.assertNotIn(b"hypothetical_mark", src)
+        for category in ("spot", "linear"):
+            c=config()
+            if category == "linear":
+                c["costs"]["funding_policy"]="ignore_exploratory"
+            sample=snapshot()
+            sample["category"]=category
+            for bar in sample["candles"]:
+                bar["category"]=category
+            result=run(c,sample)
+            self.assertEqual(result["engine_version"], "strategy-bar-1.1.0")
+            self.assertTrue(result["replay_digest"])
+            self.assertEqual(result, run(c,sample))
+        sample=snapshot()
+        sample["category"]="inverse"
+        for bar in sample["candles"]:
+            bar["category"]="inverse"
+        with self.assertRaisesRegex(ValueError, "only spot and linear payoff supported"):
+            run(config(),sample)
+
     def test_deterministic_resume_and_concurrency(self):
         c=config(); s=snapshot(); expected=run(c,s)
         b=Backtest(c,s); b.step(); checkpoint=json.loads(json.dumps(b.checkpoint()))

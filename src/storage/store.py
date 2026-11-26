@@ -83,7 +83,32 @@ class Store:
         return StorageLifecycle(self,self._storage_root).acquisition_gate(self._min_free_bytes)
 
     def connect(self):
-        return psycopg.connect(self._dsn,connect_timeout=8,options='-c timezone=UTC',row_factory=dict_row)
+        # The default remains the existing eight-second bound. A trusted,
+        # stricter analytics DSN may shorten it and set *only* bounded SQL
+        # startup timeouts; unrecognized startup options are ignored rather
+        # than weakening the canonical Store connection policy.
+        import re
+        from psycopg.conninfo import conninfo_to_dict
+        config = conninfo_to_dict(self._dsn)
+        raw_timeout = config.get('connect_timeout')
+        if raw_timeout is None:
+            timeout = 8
+        elif not str(raw_timeout).isdecimal() or not 2 <= int(raw_timeout) <= 8:
+            raise ValueError('invalid_store_connection_timeout')
+        else:
+            timeout = int(raw_timeout)
+        options = '-c timezone=UTC'
+        requested = config.get('options')
+        if requested is not None:
+            match = re.fullmatch(
+                r'-c timezone=UTC -c statement_timeout=([0-9]+) -c lock_timeout=([0-9]+)',
+                requested,
+            )
+            if match and all(1 <= int(v) <= 5000 for v in match.groups()):
+                options = requested
+        return psycopg.connect(
+            self._dsn, connect_timeout=timeout, options=options, row_factory=dict_row
+        )
 
     @staticmethod
     def _lock(c,key):

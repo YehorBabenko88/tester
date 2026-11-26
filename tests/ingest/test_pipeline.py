@@ -71,6 +71,185 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(API(t).call('/kline',{})[0],{'list':[]})
         t.defer.assert_called_once()
 
+    def test_api_http_body_byte_budget_precedes_json_parse_and_evidence(self):
+        from src.ingest.rest import MAX_HTTP_BODY_BYTES
+
+        t = Mock()
+        t.get.return_value = response(b"x" * (MAX_HTTP_BODY_BYTES + 1))
+        with self.assertRaisesRegex(ValueError, "HTTP body byte budget exceeded"):
+            API(t).call("/kline", {})
+        self.assertEqual(t.get.call_count, 1)
+        t.defer.assert_not_called()
+
+    def test_canonical_transport_streams_bounded_http_before_json_decode(self):
+        from src.ingest.rest import MAX_HTTP_BODY_BYTES
+
+        class TrackedBody(io.BytesIO):
+            def __init__(self, value):
+                super().__init__(value)
+                self.read_bytes = 0
+            def read(self, amount=-1):
+                piece = super().read(amount)
+                self.read_bytes += len(piece)
+                return piece
+
+        raw = TrackedBody(b"x" * (MAX_HTTP_BODY_BYTES + 512 * 1024))
+        reply = response()
+        reply._content = False  # Requests must not preload this payload.
+        reply.raw = raw
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        with self.assertRaisesRegex(ValueError, "REST HTTP body byte budget exceeded"):
+            API(transport).call("/kline", {})
+        self.assertTrue(session.request.call_args.kwargs["stream"])
+        self.assertEqual(
+            session.request.call_args.kwargs["headers"]["accept-encoding"], "identity"
+        )
+        # The client must stop consuming at the first over-budget chunk,
+        # rather than downloading and buffering the entire response.
+        self.assertLessEqual(raw.read_bytes, MAX_HTTP_BODY_BYTES + 65536)
+        self.assertTrue(raw.closed)
+
+    def test_canonical_rest_slow_trickle_stops_on_deadline_and_closes(self):
+        """Small HTTP chunks cannot reset the total monotonic operation budget."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        total_reads = [0]
+        raw_bytes = b'{"retCode":0,"result":{"list":[]}}'
+        class TrickleBody(io.BytesIO):
+            def read(self, amount=-1):
+                # Even if the caller asks for 64 KiB, a server may trickle
+                # individual bytes. After three reads the deadline has expired.
+                total_reads[0] += 1
+                return super().read(1 if amount != -1 else amount)
+        raw = TrickleBody(raw_bytes)
+        reply = response()
+        reply._content = False
+        reply.raw = raw
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        def clock():
+            return 2.0 if total_reads[0] >= 3 else 0.0
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
+            with patch.object(rest.time, "monotonic", side_effect=clock):
+                with self.assertRaisesRegex(InterruptedError, "(deadline/cancellation|Public request cancelled)"):
+                    API(transport).call("/kline", {})
+        self.assertEqual(total_reads[0], 3)
+        self.assertTrue(raw.closed)
+        self.assertLessEqual(total_reads[0], 4)
+
+    def test_canonical_rest_rejects_compressed_body_before_iteration(self):
+        """Identity encoding request does not authorize gzip/br response decoding."""
+        reply = response(b"not-json", headers={"Content-Encoding": "gzip"})
+        reply._content = False
+        raw = io.BytesIO(b"not-json")
+        reply.raw = raw
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        with self.assertRaisesRegex(ValueError, "Unsupported REST content encoding"):
+            API(transport).call("/kline", {})
+        self.assertTrue(raw.closed)
+        session.request.assert_called_once()
+        self.assertEqual(
+            session.request.call_args.kwargs["headers"]["accept-encoding"], "identity"
+        )
+
+    def test_canonical_rest_expired_deadline_refuses_before_network(self):
+        """An expired operation cannot begin a network request."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        response_count = [0]
+        ticks = iter([0.0, 100.0, 100.0, 100.0])
+        session = Mock()
+        def unsafe_request(*args, **kwargs):
+            response_count[0] += 1
+            return response(b'{"retCode":0,"result":{"list":[]}}')
+        session.request.side_effect = unsafe_request
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        with patch.object(rest.time, "monotonic", side_effect=lambda: next(ticks, 100.0)):
+            with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1):
+                with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
+                    API(transport).call("/kline", {})
+        self.assertEqual(response_count[0], 0)
+
+    def test_canonical_rest_socket_timeouts_follow_remaining_total_budget(self):
+        """The canonical Transport cannot retain its 60s read wait for a 1s budget."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        reply = response(b'{"retCode":0,"result":{"list":[]}}')
+        reply._content = False
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
+            with patch.object(rest.time, "monotonic", return_value=0.0):
+                result, _ = API(transport).call("/kline", {})
+        self.assertEqual(result, {"list": []})
+        self.assertEqual(session.request.call_args.kwargs["timeout"], (1.0, 1.0))
+
+    def test_canonical_rest_deadline_interrupts_durable_policy_wait(self):
+        """A stalled policy cannot hold a REST operation past its time budget."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        entered = [False]
+
+        class PendingPolicy:
+            def reserve(self, _endpoint):
+                entered[0] = True
+                return "PENDING", None
+
+        session = Mock()
+        transport = Transport(
+            session=session, policy_store=PendingPolicy(),
+            rate=1000000, sleep=Mock()
+        )
+        def monotonic():
+            return 2.0 if entered[0] else 0.0
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
+            with patch.object(rest.time, "monotonic", side_effect=monotonic):
+                with self.assertRaisesRegex(InterruptedError, "(deadline/cancellation|Public request cancelled)"):
+                    API(transport).call("/kline", {})
+        self.assertTrue(entered[0])
+        session.request.assert_not_called()
+
+    def test_canonical_rest_deadline_during_stream_closes_response(self):
+        """A deadline crossed on the first streamed read closes the guarded lease."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        expired = [False]
+
+        class TrackedBody(io.BytesIO):
+            def read(self, size=-1):
+                block = super().read(size)
+                expired[0] = True
+                return block
+
+        raw = TrackedBody(b'{"retCode":0,"result":{"list":[]}}')
+        reply = response()
+        reply._content = False
+        reply.raw = raw
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        # The shared monotonic clock is consulted by Transport as well. Hold
+        # steady until actual socket consumption, then cross the deadline.
+        def monotonic():
+            return 2.0 if expired[0] else 0.0
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
+            with patch.object(rest.time, "monotonic", side_effect=monotonic):
+                with self.assertRaisesRegex(InterruptedError, "(deadline/cancellation|Public request cancelled)"):
+                    API(transport).call("/kline", {})
+        self.assertTrue(expired[0])
+        self.assertTrue(raw.closed)
+
     def test_calendar_month_spacing(self):
         self.assertEqual(list(expected_times(1704067200000,1711929600000,'M')),[1704067200000,1706745600000,1709251200000])
 
