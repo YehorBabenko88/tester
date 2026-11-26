@@ -348,42 +348,27 @@ s.request.assert_not_called()
 def test_actual_pg_foreign_installation_scope_same_principal_is_not_authorized(
     durable_policy,
 ):
-    """P0 admission probe: UUID alone must not authorize another installation.
+    """Shared LOGIN must not enroll a second installation or borrow its UUID."""
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict
 
-    The separate scope has the exact SAME app login as this installation.
-    A negative assertion detects cross-install UUID substitution on the
-    owner-protected PostgreSQL policy boundary before any network call.
-    """
     from src.api.db import connect
     from src.api.transport_policy import PostgresTransportPolicy
-    from psycopg.conninfo import conninfo_to_dict
 
     policy, owner, _ = durable_policy
     foreign_scope = uuid4()
     user = conninfo_to_dict(policy.dsn)["user"]
-    with connect(owner.dsn) as conn:
+    with pytest.raises(psycopg.errors.UniqueViolation), connect(owner.dsn) as conn:
         conn.execute(
             "INSERT INTO tester_platform.transport_policy_scopes"
             "(installation_id,runtime_role,owner_role) VALUES(%s,%s,current_user)",
             (foreign_scope, user),
         )
-    try:
-        foreign = PostgresTransportPolicy(policy.dsn, foreign_scope)
-        # A DB login that owns installation A must NEVER be able to reserve
-        # installation B's authority merely by changing the scope UUID.
-        with pytest.raises(Exception):
-            foreign.reserve_dispatch()
-        assert policy.read(URL.removeprefix("https://")) == "CLEAR"
-    finally:
-        with connect(owner.dsn) as conn:
-            conn.execute(
-                "DELETE FROM tester_platform.transport_policy_entries "
-                "WHERE installation_id=%s", (foreign_scope,),
-            )
-            conn.execute(
-                "DELETE FROM tester_platform.transport_policy_scopes "
-                "WHERE installation_id=%s", (foreign_scope,),
-            )
+    # A forged UUID cannot authorize dispatch, even if the attacker knows it.
+    foreign = PostgresTransportPolicy(policy.dsn, foreign_scope)
+    with pytest.raises(Exception):
+        foreign.reserve_dispatch()
+    assert policy.read(URL.removeprefix("https://")) == "CLEAR"
 
 
 @pytest.mark.integration
