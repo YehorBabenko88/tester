@@ -61,7 +61,9 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r requirements-dev.txt
       - name: Install isolated Chromium for PG→API→browser acceptance
-        run: python -m playwright install --with-deps chromium
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
       - name: Offline DATA and RESEARCH contracts
         run: >-
           python -m pytest -q
