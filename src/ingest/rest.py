@@ -347,19 +347,9 @@ class Backfill:
                         record.update(is_closed=True, closure_server_ms=server_ms)
                     rows[ts] = record
                     published.append(record)
-                self.journal.save(
-                    key,
-                    "running",
-                    {
-                        "start_ms": lo,
-                        "end_ms": hi,
-                        "requests": [requests_made[-1]],
-                        "evidence_refs": [ref],
-                        "unique_published_rows": len({r["timestamp_ms"] for r in published}),
-                    },
-                    published,
-                    run_id=run_id,
-                )
+                # Responses are staged in memory until the *entire* window has
+                # passed pagination, conflict and gap checks. Persisting page
+                # rows here would leak data from a subsequently failed window.
                 return result, accepted
 
             class Paused(Exception):
@@ -454,17 +444,18 @@ class Backfill:
                     {
                         "start_ms": lo,
                         "end_ms": hi,
-                        "records": len(rows),
+                        # No unverified page rows are made visible on pause.
+                        "records": 0,
+                        "staged_records": len(fresh),
                         "requests": requests_made,
                         "evidence_refs": evidence_refs,
                     },
-                    rows.values(),
                     run_id=run_id,
                 )
                 self.journal.finish_run(run_id, "PARTIAL")
                 return {
                     "status": "paused",
-                    "records": count + len(rows),
+                    "records": count,
                     "observations": observations,
                 }
             except Exception as exc:
@@ -475,11 +466,11 @@ class Backfill:
                         "start_ms": lo,
                         "end_ms": hi,
                         "error": str(exc),
+                        "staged_records": len(fresh),
                         "requests": requests_made,
                         "pagination_status": "FAILED",
                         "evidence_refs": evidence_refs,
                     },
-                    rows.values(),
                     run_id=run_id,
                 )
                 self.journal.finish_run(run_id, "FAILED")
