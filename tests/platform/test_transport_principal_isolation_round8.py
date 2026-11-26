@@ -30,8 +30,7 @@ def enrolled(tmp_path):
         raise ValueError("Reserved disposable PG port 55820..55827 required")
     if own.get("dbname") != app.get("dbname"):
         raise ValueError("Owner and App must use same disposable database")
-    # Bootstrap only this explicitly reserved disposable fixture, then verify
-    # the committed migration chain. Never migrate other databases.
+    # Bootstrap only this explicitly reserved disposable fixture.
     from src.api.db import migrate
     migrate(owner_dsn)
     with connect(owner_dsn) as conn:
