@@ -96,7 +96,8 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
     The identity must be injected by server-side owner-verified runtime code,
     never from the request; no ambient DSN or self-authentication fallback.
     """
-    if trusted_store is None or not callable(getattr(trusted_store, "read_bounded", None)) or not isinstance(trusted_identity, dict):
+    if (trusted_store is None or not callable(getattr(trusted_store, "read_bounded", None))
+            or not isinstance(trusted_identity, dict)):
         return _not_ready("trusted_storage_binding_unavailable")
     if trusted_identity.get("verified") is not True:
         return _not_ready("trusted_storage_binding_unavailable")
@@ -121,6 +122,10 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
                 or observed.get("f_admission") != "DENIED_UNKNOWN_COVERAGE"
                 or observed.get("source_coverage") != "UNKNOWN"
                 or observed.get("publication_time") != "UNKNOWN"
+                or observed.get("source_verification") != "DATA72_PERSISTED_HTTP_ROW_PAGE_RECEIPTS"
+                or observed.get("historical_known_at_ms", "MISSING") is not None
+                or observed.get("delta_complete") is not False
+                or observed.get("http_route") is not None
                 or observed.get("method") != CURRENT_METHOD
                 or observed.get("quantity_unit") != quantity_unit(scope.category)
                 or observed.get("source_quantity_unit") != SOURCE_QUANTITY_UNITS[scope.category]
