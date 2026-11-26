@@ -134,7 +134,46 @@ def test_conflict_across_pages_of_one_window_is_not_overwritten(journal):
     api = api_with({**first, "nextPageCursor": "c1"}, second)
     with pytest.raises(ValueError, match="Conflicting duplicate"):
         Backfill(api, journal).run("linear", "BTCUSDT", "funding", "", START, START + 100)
-    assert stored(journal, "funding", "")[START]["payload"]["fundingRate"] == "1"
+    assert stored(journal, "funding", "") == {}
+    assert journal.task(key("funding", "", START, START + 100))["status"] == "failed"
+    # The HTTP receipts remain auditable without publishing the rejected rows.
+    assert journal.db.execute("SELECT COUNT(*) FROM evidence").fetchone()[0] >= 2
+
+
+@pytest.mark.parametrize("kind, interval", [("kline", "1"), ("open_interest", "5min")])
+def test_failed_later_page_never_exposes_earlier_valid_rows(journal, kind, interval):
+    if kind == "kline":
+        first = {"list": [candle(START)]}
+        second = {"list": [candle(START, h="12")]}
+    else:
+        first = {"list": [{"timestamp": str(START), "openInterest": "1"}]}
+        second = {"list": [{"timestamp": str(START), "openInterest": "2"}]}
+    api = api_with({**first, "nextPageCursor": "page2"}, second)
+    with pytest.raises(ValueError, match="Conflicting duplicate"):
+        Backfill(api, journal).run(
+            "linear", "BTCUSDT", kind, interval, START,
+            START + (60000 if kind == "kline" else 300000),
+        )
+    assert stored(journal, kind, interval) == {}
+    assert journal.db.execute("SELECT COUNT(*) FROM record_versions").fetchone()[0] == 0
+
+
+def test_cancel_after_first_page_leaves_only_request_evidence(journal):
+    api = api_with({"list": [candle(START)], "nextPageCursor": "next"})
+    cancelled = [False]
+
+    def cancel():
+        # After first page is fetched, block further pagination.
+        return api.call.call_count >= 1
+
+    result = Backfill(api, journal).run(
+        "linear", "BTCUSDT", "kline", "1", START, START + 60000,
+        cancel=cancel,
+    )
+    assert result["status"] == "paused"
+    assert result["records"] == 0
+    assert stored(journal, "kline", "1") == {}
+    assert journal.task(key("kline", "1", START, START + 60000))["status"] == "paused"
 
 
 def test_still_open_candle_may_change_between_requests(journal):
