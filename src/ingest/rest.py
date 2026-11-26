@@ -206,8 +206,19 @@ class Backfill:
             # Payload identity per timestamp for rows returned in THIS attempt of the
             # window: a timestamp may repeat only with an identical payload.
             fresh = {}
+            # A seven-day 1m candle window normally fits in memory, but an
+            # adversarial cursor stream can be unbounded.  Refuse the window
+            # before staging beyond this finite budget; do not publish a
+            # partial prefix or advance the checkpoint.
+            MAX_STAGED_RECORDS = 12000
+            MAX_WINDOW_PAGES = 500
+            page_count = 0
 
             def query(a, b, token=None):
+                nonlocal page_count
+                if page_count >= MAX_WINDOW_PAGES:
+                    raise ValueError("Window pagination budget exceeded")
+                page_count += 1
                 p = {**params, sk: a, ek: b - 1}
                 if token:
                     p["cursor"] = token
@@ -290,7 +301,6 @@ class Backfill:
                     }
                 )
                 accepted = []
-                published = []
                 unique = []
                 seen = {}
                 # Whole-response integrity check before any row of it is staged: one
@@ -318,6 +328,8 @@ class Backfill:
                 for ts, row in unique:
                     if field is None and next_time(ts, interval) > server_ms:
                         continue
+                    if ts not in rows and len(rows) >= MAX_STAGED_RECORDS:
+                        raise ValueError("Window staging record budget exceeded")
                     fresh[ts] = payload_identity(row)
                     record = {
                         "schema_version": "1.0",
@@ -346,7 +358,6 @@ class Backfill:
                     if field is None:
                         record.update(is_closed=True, closure_server_ms=server_ms)
                     rows[ts] = record
-                    published.append(record)
                 # Responses are staged in memory until the *entire* window has
                 # passed pagination, conflict and gap checks. Persisting page
                 # rows here would leak data from a subsequently failed window.
