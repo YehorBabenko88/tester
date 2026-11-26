@@ -345,6 +345,33 @@ s.request.assert_not_called()
 
 
 @pytest.mark.integration
+def test_actual_pg_foreign_installation_scope_same_principal_is_not_authorized(
+    durable_policy,
+):
+    """Shared LOGIN must not enroll a second installation or borrow its UUID."""
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict
+
+    from src.api.db import connect
+    from src.api.transport_policy import PostgresTransportPolicy
+
+    policy, owner, _ = durable_policy
+    foreign_scope = uuid4()
+    user = conninfo_to_dict(policy.dsn)["user"]
+    with pytest.raises(psycopg.errors.UniqueViolation), connect(owner.dsn) as conn:
+        conn.execute(
+            "INSERT INTO tester_platform.transport_policy_scopes"
+            "(installation_id,runtime_role,owner_role) VALUES(%s,%s,current_user)",
+            (foreign_scope, user),
+        )
+    # A forged UUID cannot authorize dispatch, even if the attacker knows it.
+    foreign = PostgresTransportPolicy(policy.dsn, foreign_scope)
+    with pytest.raises(Exception):
+        foreign.reserve_dispatch()
+    assert policy.read(URL.removeprefix("https://")) == "CLEAR"
+
+
+@pytest.mark.integration
 def test_actual_pg_stream_tls_and_owner_only_reset(durable_policy):
     import psycopg
 
