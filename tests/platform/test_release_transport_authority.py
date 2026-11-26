@@ -70,7 +70,7 @@ def test_release_authority_rejects_caller_selected_production_root_before_io(tmp
 def test_rejected_scope_does_not_connect_or_open_http(tmp_path, monkeypatch, field, replacement):
     marker, config = _fixture(tmp_path)
     config[field] = replacement
-    monkeypatch.setattr(auth, "_trusted_release_context", lambda *a, **kw: (marker, config))
+    monkeypatch.setattr(auth, "_trusted_release_context", lambda *a, **kw: (marker, config, ("b" * 64, "123456789012345")))
     calls = []
 
     class Policy:
@@ -89,7 +89,7 @@ def test_rejected_scope_does_not_connect_or_open_http(tmp_path, monkeypatch, fie
 
 def test_owner_verified_scope_uses_existing_policy_read_once(tmp_path, monkeypatch):
     marker, config = _fixture(tmp_path)
-    monkeypatch.setattr(auth, "_trusted_release_context", lambda *a, **kw: (marker, config))
+    monkeypatch.setattr(auth, "_trusted_release_context", lambda *a, **kw: (marker, config, ("b" * 64, "123456789012345")))
     calls = []
 
     class Policy:
@@ -109,6 +109,9 @@ def test_owner_verified_scope_uses_existing_policy_read_once(tmp_path, monkeypat
         marker["services"]["app"], marker["services"]["postgres"]
     )
     assert authority.policy_state_at_check == "PENDING"
+    assert authority.marker_sha256 == "b" * 64
+    assert authority.pg_system_identifier == "123456789012345"
+    assert authority.db_hostaddr == "127.0.0.1"
     assert [call[0] for call in calls] == ["construct", "read"]
     assert calls[-1][1] == "api.bybit.com/v5/market/kline"
     assert "fixture" not in repr(authority)  # No accidental DSN credential logging.
@@ -116,7 +119,7 @@ def test_owner_verified_scope_uses_existing_policy_read_once(tmp_path, monkeypat
 
 def test_owner_policy_row_missing_fails_closed(tmp_path, monkeypatch):
     marker, config = _fixture(tmp_path)
-    monkeypatch.setattr(auth, "_trusted_release_context", lambda *a, **kw: (marker, config))
+    monkeypatch.setattr(auth, "_trusted_release_context", lambda *a, **kw: (marker, config, ("b" * 64, "123456789012345")))
 
     class Policy:
         def __init__(self, *args):
@@ -145,6 +148,9 @@ def test_bounded_store_binding_requires_exact_owner_dsn(tmp_path):
         db_identity=("127.0.0.1", 55432, "tester", "tester_app"),
         service_identity=("a", "p", "app_sid", "pg_sid"),
         policy_state_at_check="CLEAR",
+        marker_sha256="b" * 64,
+        pg_system_identifier="123456789012345",
+        db_hostaddr="127.0.0.1",
     )
     correct = Store(config["database_url"])
     original, identity = authority.checked_readback_binding(correct)
