@@ -53,8 +53,6 @@ def check_legacy_upgrades(admin_dsn, owner_dsn, app_dsn):
     migration_dir = ROOT / "src" / "api" / "migrations"
     old_files = sorted(p for p in migration_dir.glob("*.sql") if p.name < "012_")
     assert len(old_files) == 11, "Expected exact historic 001..011 migration sequence"
-    admin_fields = conninfo_to_dict(admin_dsn)
-    owner_fields = conninfo_to_dict(owner_dsn)
     for ambiguous in (False, True):
         dbname = "tester_ci_legacy_bad" if ambiguous else "tester_ci_legacy_clean"
         with psycopg.connect(admin_dsn, autocommit=True) as admin:
