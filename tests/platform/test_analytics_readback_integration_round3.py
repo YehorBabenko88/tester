@@ -172,6 +172,8 @@ process.stdout.write("PG_API_FRONTEND_CONTRACT_OK");
     # and fulfilled by the same TestClient; no public network/Bybit API.
     browser_enabled = os.getenv("TESTER_RESEARCH_BROWSER_E2E") == "1"
     if browser_enabled:
+        # CI must opt in and have Chromium installed. Never silently SKIP
+        # missing Playwright once the disposable PG + browser gate is enabled.
         from playwright.sync_api import sync_playwright
 
         html = """<!doctype html><html><body>
