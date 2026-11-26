@@ -129,7 +129,11 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
                 or observed.get("method") != CURRENT_METHOD
                 or observed.get("quantity_unit") != quantity_unit(scope.category)
                 or observed.get("source_quantity_unit") != SOURCE_QUANTITY_UNITS[scope.category]
-                or observed.get("metrics_contract", {}).get("status") != "CURRENT"
+                or observed.get("vwap_unit") != "quote_per_base"
+                or not isinstance(observed.get("metrics_contract"), dict)
+                or observed["metrics_contract"].get("status") != "CURRENT"
+                or observed["metrics_contract"].get("method") != CURRENT_METHOD
+                or observed["metrics_contract"].get("quantity_unit") != quantity_unit(scope.category)
                 or observed.get("g_e_execution") != "NOT_AUTHORIZED"
                 or observed.get("cvd_prior_history_known") is not False
                 or observed.get("http_route_status") != "NOT_REGISTERED"
@@ -171,8 +175,10 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
             "http_route_registered": False,
             "quantity_unit": observed["quantity_unit"],
             "source_quantity_unit": observed["source_quantity_unit"],
-            "source": {"installation_id": ident, "source_sha": source_sha,
-                       "reader": "src.integration.research_ui_projection.read_verified_ui_observation",
+            # The synthetic callback UUID/SHA are *not* source-attestation
+            # evidence. Do not expose them as trusted identity in this wire
+            # contract; owner-side D verification stays out of this readback.
+            "source": {"reader": "src.integration.research_ui_projection.read_verified_ui_observation",
                        "observed_sample_fingerprint": observed["observed_sample_fingerprint"],
                        "sample_sha256": observed["observed_sample_fingerprint"],
                        "source_receipts_digest": observed["source_receipts_digest"],
