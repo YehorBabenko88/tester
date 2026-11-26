@@ -1178,6 +1178,7 @@ def test_root_creation_rollback_refusal_preserves_primary_failure(tmp_path, monk
     (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
     assert (maintenance / "provisioning.jsonl").is_file()
 
+
 def test_guard_release_failure_does_not_hide_original_refusal(tmp_path, monkeypatch):
     """A guard error must not silently change fail-closed rollback decisions."""
     from src.api import release_provision as rp
