@@ -212,6 +212,58 @@ def test_pg_foreign_uuid_rejected_with_two_distinct_valid_logins(enrolled):
             )
 
 
+
+def test_pg_principal_revocation_denies_outstanding_leases(enrolled):
+    """Owner revocation must not allow a new reservation or completion."""
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict
+
+    from src.api.db import connect
+    from src.api.transport_policy import PostgresTransportPolicy, PublicPolicyUnavailable
+
+    owner, app, scope = enrolled
+    principal = conninfo_to_dict(app)["user"]
+    policy = PostgresTransportPolicy(app, scope)
+    state, token = policy.reserve("api.bybit.com/v5/market/kline")
+    assert state == "GRANTED"
+    assert token
+    with connect(owner) as conn:
+        conn.execute(
+            sql.SQL("REVOKE EXECUTE ON FUNCTION tester_platform.read_public_transport(uuid,text), "
+                    "tester_platform.reserve_public_transport(uuid,text), "
+                    "tester_platform.finish_public_transport(uuid,text,uuid,text), "
+                    "tester_platform.reserve_public_dispatch(uuid), "
+                    "tester_platform.finish_public_dispatch(uuid,uuid,double precision) FROM {}").format(
+                sql.Identifier(principal)
+            )
+        )
+    try:
+        with pytest.raises(PublicPolicyUnavailable):
+            policy.read("api.bybit.com/v5/market/kline")
+        with pytest.raises(PublicPolicyUnavailable):
+            policy.reserve("api.bybit.com/v5/market/kline")
+        with pytest.raises(PublicPolicyUnavailable):
+            policy.finish("api.bybit.com/v5/market/kline", token, "allow")
+        with connect(owner) as conn:
+            assert conn.execute(
+                "SELECT state FROM tester_platform.transport_policy_entries "
+                "WHERE installation_id=%s AND endpoint_key=%s",
+                (scope, "api.bybit.com/v5/market/kline"),
+            ).fetchone() == ("PENDING",)
+    finally:
+        # Restore only the original test-runtime grants, never expand them.
+        with connect(owner) as conn:
+            conn.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION tester_platform.read_public_transport(uuid,text), "
+                        "tester_platform.reserve_public_transport(uuid,text), "
+                        "tester_platform.finish_public_transport(uuid,text,uuid,text), "
+                        "tester_platform.reserve_public_dispatch(uuid), "
+                        "tester_platform.finish_public_dispatch(uuid,uuid,double precision) TO {}").format(
+                    sql.Identifier(principal)
+                )
+            )
+
+
 def test_pg_policy_halt_persists_and_dispatch_remains_fenced(enrolled):
     from src.api.db import connect
     from src.api.transport_policy import PostgresTransportPolicy
