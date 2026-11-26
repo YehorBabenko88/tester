@@ -20,3 +20,5 @@ jobs:
       - run: python -m compileall -q .
       - run: python -m pytest tests/unit -v
       - run: python scripts/acceptance.py
+      - name: Historical F998 source vs current F full-result replay gate
+        run: python scripts/verify_legacy_f_replay.py

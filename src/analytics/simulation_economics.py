@@ -24,6 +24,53 @@ def _signed(side):
     raise ValueError("unsupported_position_side")
 
 
+def hypothetical_mark(category, side, quantity, entry_price, mark_price,
+                      *, leverage, contract_quote_value="1"):
+    """Versioned hypothetical mark and entry-margin estimate.
+
+    Does not liquidate, settle, certify a source mark, or admit a strategy.
+    Exact rational calculation is serialized with the canonical /2 helper.
+    Quote-settled spot/linear: sign*base_qty*(mark-entry).
+    Base-settled inverse: sign*contracts*face*(1/entry-1/mark).
+    The initial margin is a static estimate, NOT a maintenance threshold:
+    inverse quote contract face / entry / leverage, linear base*entry/leverage,
+    spot total cost of unleveraged base position.
+    """
+    if category not in SETTLEMENT:
+        raise ValueError("unsupported_category")
+    sign = _signed(side)
+    if category == "spot" and sign != 1:
+        raise ValueError("spot_short_requires_borrow_model")
+    q = number(quantity, positive=True)
+    p = number(entry_price, positive=True)
+    mark = number(mark_price, positive=True)
+    lev = number(leverage, positive=True)
+    face = number(contract_quote_value, positive=True)
+    if face != 1:
+        raise ValueError("contract_face_not_pinned")
+    if category == "spot" and lev != 1:
+        raise ValueError("spot_leverage_requires_borrow_model")
+    if category == "inverse":
+        unrealized = sign * q * face * (1 / p - 1 / mark)
+        initial_margin = q * face / p / lev
+    else:
+        unrealized = sign * q * (mark - p)
+        initial_margin = q * p / lev
+    return {
+        "contract_version": CONTRACT,
+        "category": category,
+        "quantity_unit": SIZE_UNITS[category],
+        "settlement_unit": SETTLEMENT[category],
+        "unrealized_pnl": decimal(unrealized),
+        "initial_margin_estimate": decimal(initial_margin),
+        "maintenance_margin": None,
+        "liquidation_price": None,
+        "liquidation_status": "NOT_MODELED",
+        "source_certified": False,
+        "admitted_to_f": False,
+    }
+
+
 def hypothetical_fill(category, side, quantity, entry_price, exit_price,
                       *, fee_rate="0", entry_funding_rates=(),
                       contract_quote_value="1"):
