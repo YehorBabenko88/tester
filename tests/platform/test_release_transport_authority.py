@@ -132,3 +132,32 @@ def test_owner_policy_row_missing_fails_closed(tmp_path, monkeypatch):
     monkeypatch.setattr("src.api.transport_policy.PostgresTransportPolicy", Policy)
     with pytest.raises(Exception, match="policy enrollment denied"):
         auth.release_transport_authority(root=marker["root"], allow_test=True)
+
+
+def test_bounded_store_binding_requires_exact_owner_dsn(tmp_path):
+    """Source-backed readback cannot silently swap in another PostgreSQL role."""
+    from src.storage.store import Store
+
+    marker, config = _fixture(tmp_path)
+    authority = auth.ReleaseTransportAuthority(
+        installation_id=marker["installation_id"],
+        source_sha=marker["source_sha"],
+        root=marker["root"],
+        dsn=config["database_url"],
+        db_identity=("127.0.0.1", 55432, "tester", "tester_app"),
+        service_identity=("a", "p", "app_sid", "pg_sid"),
+        policy_state_at_check="CLEAR",
+    )
+    correct = Store(config["database_url"])
+    original, identity = authority.checked_readback_binding(correct)
+    assert original is correct
+    assert identity == {
+        "verified": True,
+        "installation_id": marker["installation_id"],
+        "source_sha": marker["source_sha"],
+    }
+    wrong = Store(config["database_url"].replace("port=55432", "port=55433"))
+    with pytest.raises(ReleaseSecurityError, match="owner-bound"):
+        authority.checked_readback_binding(wrong)
+    with pytest.raises(ReleaseSecurityError, match="Canonical storage"):
+        authority.checked_readback_binding(object())
