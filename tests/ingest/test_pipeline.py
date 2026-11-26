@@ -147,6 +147,22 @@ class PipelineTests(unittest.TestCase):
                     API(transport).call("/kline", {})
         self.assertEqual(response_count[0], 0)
 
+    def test_canonical_rest_socket_timeouts_follow_remaining_total_budget(self):
+        """The canonical Transport cannot retain its 60s read wait for a 1s budget."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        reply = response(b'{"retCode":0,"result":{"list":[]}}')
+        reply._content = False
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
+            with patch.object(rest.time, "monotonic", return_value=0.0):
+                result, _ = API(transport).call("/kline", {})
+        self.assertEqual(result, {"list": []})
+        self.assertEqual(session.request.call_args.kwargs["timeout"], (1.0, 1.0))
+
     def test_canonical_rest_deadline_interrupts_durable_policy_wait(self):
         """A stalled policy cannot hold a REST operation past its time budget."""
         from unittest.mock import patch
