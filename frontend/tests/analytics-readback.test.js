@@ -115,7 +115,7 @@ test("disabled advertised route never sends analytics readback", async () => {
   });
   await viewer.inspect();
   assert.equal(backendReads, 0);
-  assert.match(node("status").textContent, /verified_analytics_route_not_registered/);
+  assert.match(node("status").textContent, /DATA_UNAVAILABLE/);
   assert.equal(node("submit").disabled, false);
 });
 test("connected observed-only route displays bounded exact values without claiming completeness", async () => {
@@ -134,6 +134,16 @@ test("connected observed-only route displays bounded exact values without claimi
   });
   await viewer.inspect();
   assert.deepEqual(calls.map(x => x[0]), ["capabilities", "readback"]);
+  assert.deepEqual(calls[0][1], {
+    category: "inverse", symbol: "BTCUSD",
+    start_ms: Date.parse("2026-11-25T00:00Z"),
+    end_ms: Date.parse("2026-11-25T01:00Z"),
+    interval: "60",
+  });
+  assert.equal(calls[1][1].interval_ms, 3600000);
+  assert.equal(calls[1][1].tick_size, "0.5");
+  assert.ok(!Object.hasOwn(calls[0][1], "as_of_ms"));
+  assert.ok(!Object.hasOwn(calls[0][1], "tick_size"));
   assert.match(node("status").textContent, /OBSERVED_UNVERIFIED/);
   assert.match(node("status").textContent, /historical coverage UNKNOWN/);
   assert.match(node("status").textContent, /strategy admission DENIED/);
