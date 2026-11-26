@@ -122,7 +122,10 @@ class API:
                 # application byte budget can be checked. Offline Mock
                 # transports retain their legacy response/content fixture seam.
                 streamed = isinstance(self.transport, Transport)
-                options = {"stream": True} if streamed else {}
+                # Request uncompressed bytes so an oversized compressed
+                # exchange body cannot expand unexpectedly inside Requests.
+                # The decoded streaming cap remains mandatory if ignored.
+                options = {"stream": True, "headers": {"accept-encoding": "identity"}} if streamed else {}
                 if cancel is not None:
                     options["cancel"] = cancel
                 with self.transport.get(url, **options) as r:
