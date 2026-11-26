@@ -311,6 +311,7 @@ def test_final_window_save_rollback_is_atomic_and_retryable(tmp_path):
         # The incomplete transaction must not create a row/version/link.
         assert j.db.execute("SELECT COUNT(*) FROM record_versions").fetchone()[0] == 1
         assert j.db.execute("SELECT COUNT(*) FROM record_links").fetchone()[0] == 1
+        j.db.rollback()
         j.db.execute("DROP TRIGGER reject_second_version")
         j.db.commit()
         j.close()
