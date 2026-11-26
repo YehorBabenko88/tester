@@ -822,9 +822,9 @@ class ProvisioningTransaction:
 
         if self.closed:
             return
-        # Restore the installer's token even if releasing a journal/guard fails.
-        # An unsuccessful operation remains retryable; never mark it closed
-        # before all cleanup steps have been attempted.
+        # Release guards before changing the installer token. If closing a
+        # guard fails, still restore the original privileges and close the
+        # token: failure must not leave elevated creator privileges active.
         failure = None
         try:
             self.release_guards()
