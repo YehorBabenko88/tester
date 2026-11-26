@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import re
+import time
+from threading import BoundedSemaphore
 from uuid import UUID
 from typing import Literal
 
@@ -20,6 +22,8 @@ MAX_WINDOW_MS = 7 * 86_400_000
 MAX_ROWS = 99  # Below DATA's 100-row cap; exactly full page is not complete.
 MAX_INTERVAL_MS = 86_400_000
 MAX_RESPONSE_BYTES = 512 * 1024
+MAX_WALL_MS = 10_000
+MAX_CONCURRENT_READS = 2
 _HEX = re.compile(r"[0-9a-f]{40}\Z")
 
 
@@ -156,6 +160,7 @@ def create_readback_router(*, trusted_binding=None):
     Do not mount in production until D/A authorize a protected runtime binding.
     """
     router = APIRouter()
+    slots = BoundedSemaphore(MAX_CONCURRENT_READS)
 
     @router.get("/api/analytics/readback", include_in_schema=False)
     def readback(request: Request, category: str, symbol: str,
@@ -165,7 +170,9 @@ def create_readback_router(*, trusted_binding=None):
         # Unexpected fields, including a client-supplied DSN/UUID, are refused.
         allowed = {"category", "symbol", "start_ms", "end_ms",
                    "interval_ms", "tick_size", "as_of_ms", "limit"}
-        if set(request.query_params) - allowed:
+        if (set(request.query_params) - allowed or
+                any(len(request.query_params.getlist(key)) != 1
+                    for key in request.query_params)):
             raise HTTPException(422, detail="invalid_readback_scope")
         try:
             scope = ReadbackScope(
@@ -176,16 +183,24 @@ def create_readback_router(*, trusted_binding=None):
             raise HTTPException(422, detail="invalid_readback_scope") from None
         if trusted_binding is None:
             raise HTTPException(503, detail="analytics_source_not_configured")
+        if not slots.acquire(blocking=False):
+            raise HTTPException(429, detail="analytics_readback_concurrency_limit")
+        started = time.monotonic()
         try:
-            binding = trusted_binding()
-        except Exception:
-            raise HTTPException(503, detail="trusted_storage_binding_unavailable") from None
-        if not isinstance(binding, tuple) or len(binding) != 2:
-            raise HTTPException(503, detail="trusted_storage_binding_unavailable")
-        store, identity = binding
-        result = observed_readback(scope, trusted_store=store, trusted_identity=identity)
-        if result["status"] != "OBSERVED_UNVERIFIED":
-            raise HTTPException(503, detail="source_readback_not_verified")
-        return {"schema_version": "1.0", "data": result}
+            try:
+                binding = trusted_binding()
+            except Exception:
+                raise HTTPException(503, detail="trusted_storage_binding_unavailable") from None
+            if not isinstance(binding, tuple) or len(binding) != 2:
+                raise HTTPException(503, detail="trusted_storage_binding_unavailable")
+            store, identity = binding
+            result = observed_readback(scope, trusted_store=store, trusted_identity=identity)
+            if (time.monotonic() - started) * 1000 > MAX_WALL_MS:
+                raise HTTPException(503, detail="analytics_readback_timeout")
+            if result["status"] != "OBSERVED_UNVERIFIED":
+                raise HTTPException(503, detail="source_readback_not_verified")
+            return {"schema_version": "1.0", "data": result}
+        finally:
+            slots.release()
 
     return router
