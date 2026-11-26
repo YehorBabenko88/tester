@@ -187,3 +187,88 @@ def test_valid_scoped_route_can_only_return_unverified_source_observation(monkey
     assert data["metrics"]["admitted_to_f"] is False
     assert data["admitted_to_f"] is False
     assert data["method"] == "tester.execution-metrics/2"
+
+
+def test_normal_product_app_has_no_readback_route_or_enabled_capability(tmp_path):
+    from src.api.main import create_app
+    from src.api.config import Settings
+    from src.api.providers import UnavailableReader
+    app = create_app(Settings(frontend_dir=tmp_path / "not-installed"),
+                     provider=UnavailableReader())
+    assert not any(getattr(route, "path", "") == "/api/analytics/readback"
+                   for route in app.routes)
+    client = TestClient(app, base_url="http://localhost")
+    response = client.get("/api/capabilities", params={
+        "category": "linear", "symbol": "BTCUSDT", "start_ms": 0, "end_ms": 60_000,
+    })
+    assert response.status_code == 200
+    feature = response.json()["data"]["features"]["analytics_readback"]
+    assert feature["enabled"] is False
+    assert feature["resource"] is None
+    assert feature["status"] == "NOT_REGISTERED"
+
+
+def test_duplicate_query_pollution_is_rejected_before_binding():
+    from src.api import analytics_readback as module
+    app = FastAPI()
+    app.include_router(create_readback_router(
+        trusted_binding=lambda: (_ for _ in ()).throw(
+            AssertionError("No binding should be called")
+        )))
+    good = list(scope().model_dump().items())
+    repeated = good + [("category", "linear")]
+    result = TestClient(app).get("/api/analytics/readback", params=repeated)
+    assert result.status_code == 422
+    assert result.json()["detail"] == "invalid_readback_scope"
+
+
+def test_concurrent_capacity_refuses_without_touching_storage(monkeypatch):
+    from src.api import analytics_readback as module
+
+    class Exhausted:
+        def acquire(self, blocking=False):
+            assert blocking is False
+            return False
+        def release(self):
+            raise AssertionError("Never acquired")
+
+    monkeypatch.setattr(module, "BoundedSemaphore", lambda count: Exhausted())
+    app = FastAPI()
+    app.include_router(create_readback_router(
+        trusted_binding=lambda: (_ for _ in ()).throw(
+            AssertionError("No binding should be called")
+        )))
+    result = TestClient(app).get("/api/analytics/readback", params=scope().model_dump())
+    assert result.status_code == 429
+    assert result.json()["detail"] == "analytics_readback_concurrency_limit"
+
+
+def test_readback_wall_deadline_is_fail_closed(monkeypatch):
+    from src.api import analytics_readback as module
+
+    class Store:
+        def read_bounded(self, *args, **kwargs):
+            return []
+    monkeypatch.setattr(module.time, "monotonic", iter([0., 11.]).__next__)
+
+    def observed(store, **kwargs):
+        return dict(
+            schema_version="tester.research-ui-observation/1",
+            status="OBSERVED_UNVERIFIED",
+            f_admission="DENIED_UNKNOWN_COVERAGE",
+            source_coverage="UNKNOWN", publication_time="UNKNOWN",
+            method="tester.execution-metrics/2", quantity_unit="quote",
+            source_quantity_unit="source_native_inverse_contract",
+            utc_window={"start_ms": 0, "end_ms": 60_000},
+            source_receipts_digest="b" * 64,
+            observed_sample_fingerprint="c" * 64,
+            bars=[{"start_ms": 0, "end_ms": 60_000, "volume": "100", "vwap": "100"}],
+        )
+    monkeypatch.setattr(module, "read_verified_ui_observation", observed)
+    app = FastAPI()
+    app.include_router(create_readback_router(
+        trusted_binding=lambda: (Store(), identity())
+    ))
+    response = TestClient(app).get("/api/analytics/readback", params=scope().model_dump())
+    assert response.status_code == 503
+    assert response.json()["detail"] == "analytics_readback_timeout"
