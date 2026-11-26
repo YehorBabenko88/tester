@@ -358,7 +358,7 @@ def test_actual_pg_foreign_installation_scope_same_principal_is_not_authorized(
     from src.api.transport_policy import PostgresTransportPolicy
     from psycopg.conninfo import conninfo_to_dict
 
-    policy, owner, scope = durable_policy
+    policy, owner, _ = durable_policy
     foreign_scope = uuid4()
     user = conninfo_to_dict(policy.dsn)["user"]
     with connect(owner.dsn) as conn:
