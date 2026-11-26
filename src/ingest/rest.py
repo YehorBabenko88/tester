@@ -76,6 +76,7 @@ def payload_identity(row):
 
 
 MAX_DECODED_PAGE_BYTES = 4 * 1024 * 1024
+MAX_HTTP_BODY_BYTES = 4 * 1024 * 1024
 MAX_BACKFILL_WINDOW_MS = 7 * 86400000
 
 
@@ -118,6 +119,9 @@ class API:
                 with self.transport.get(
                     url, **({"cancel": cancel} if cancel is not None else {})
                 ) as r:
+                    wire_bytes = r.content
+                    if not isinstance(wire_bytes, bytes) or len(wire_bytes) > MAX_HTTP_BODY_BYTES:
+                        raise ValueError("REST HTTP body byte budget exceeded")
                     body = r.json()
                     if cancel and cancel():
                         raise InterruptedError("Public request cancelled")
@@ -129,8 +133,8 @@ class API:
                             raise ValueError("Malformed Bybit result")
                         self.last_response = {
                             "url": url,
-                            "bytes_base64": base64.b64encode(r.content).decode(),
-                            "sha256": hashlib.sha256(r.content).hexdigest(),
+                            "bytes_base64": base64.b64encode(wire_bytes).decode(),
+                            "sha256": hashlib.sha256(wire_bytes).hexdigest(),
                             "hash_scope": "original_http_body",
                             "status_code": r.status_code,
                         }
