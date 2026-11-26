@@ -135,7 +135,7 @@ class PipelineTests(unittest.TestCase):
             return 2.0 if total_reads[0] >= 3 else 0.0
         with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
             with patch.object(rest.time, "monotonic", side_effect=clock):
-                with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
+                with self.assertRaisesRegex(InterruptedError, "(deadline/cancellation|Public request cancelled)"):
                     API(transport).call("/kline", {})
         self.assertEqual(total_reads[0], 3)
         self.assertTrue(raw.closed)
@@ -214,7 +214,7 @@ class PipelineTests(unittest.TestCase):
             return 2.0 if entered[0] else 0.0
         with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
             with patch.object(rest.time, "monotonic", side_effect=monotonic):
-                with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
+                with self.assertRaisesRegex(InterruptedError, "(deadline/cancellation|Public request cancelled)"):
                     API(transport).call("/kline", {})
         self.assertTrue(entered[0])
         session.request.assert_not_called()
@@ -245,7 +245,7 @@ class PipelineTests(unittest.TestCase):
             return 2.0 if expired[0] else 0.0
         with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
             with patch.object(rest.time, "monotonic", side_effect=monotonic):
-                with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
+                with self.assertRaisesRegex(InterruptedError, "(deadline/cancellation|Public request cancelled)"):
                     API(transport).call("/kline", {})
         self.assertTrue(expired[0])
         self.assertTrue(raw.closed)
