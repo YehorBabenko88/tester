@@ -201,7 +201,7 @@ def test_actual_pg_backward_clock_jump_preserves_crash_slots(authority):
     assert budget().counts()["host"] == 3
     with psycopg.connect(app_dsn) as conn:
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
-            conn.execute("SELECT tester_platform.restart_window_recent('{}')")
+            conn.execute("SELECT tester_platform.restart_window_recent(ARRAY[]::timestamptz[])")
     # Clean-stop still releases this active run without burning additional
     # crash slots, but does not reset the protected historical receipts.
     previous.record_clean_stop()
