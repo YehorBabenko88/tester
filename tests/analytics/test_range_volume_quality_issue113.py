@@ -281,6 +281,43 @@ class MinuteVolume(unittest.TestCase):
         self.assertEqual(status(reconcile([], [candle(0, volume='1')])), 'MISMATCH')
         self.assertEqual(status(reconcile([], [candle(0, volume='0')], coverage=[])), 'INCOMPLETE_TRADES')
 
+
+    def test_minute_volume_rejects_outside_window_evidence_instead_of_false_match(self):
+        # Previously, a tick outside [start,end) was silently omitted while
+        # its matching candle still returned MATCH.
+        in_window = trade(1, 5, '0.003')
+        extra = trade(2, M + 5, '8')
+        with self.assertRaisesRegex(ValueError, 'trade_outside_reconciliation_window'):
+            reconcile([in_window, extra], [candle(0, volume='0.003')])
+        with self.assertRaisesRegex(ValueError, 'candle_outside_reconciliation_window'):
+            reconcile([in_window], [candle(0, volume='0.003'), candle(M, volume='8')])
+
+    def test_minute_volume_as_of_event_time_is_not_knowledge_time(self):
+        # At as_of=M-1 the candle is not closed, so numeric equality fails
+        # the availability gate; at M it can MATCH but cannot prove that the
+        # exchange observation was historically visible at that timestamp.
+        t = [trade(1, M - 1, '0.003')]
+        report = reconcile(t, [candle(0, volume='0.003')], as_of=M-1)
+        self.assertEqual(status(report), 'INCOMPLETE_TRADES')
+        self.assertEqual(status(reconcile(t, [candle(0, volume='0.003')], as_of=M)), 'MATCH')
+        self.assertEqual(report['knowledge_time_status'], 'NOT_PROVEN')
+        self.assertIs(report['historical_completeness_certified'], False)
+        self.assertIs(report['strategy_admission'], False)
+
+    def test_minute_volume_match_not_historical_completeness(self):
+        result = reconcile([trade(1, 5, '0.003')], [candle(0, volume='0.003')])
+        self.assertEqual(status(result), 'MATCH')
+        self.assertEqual(result['historical_visibility'], 'UNKNOWN')
+        self.assertFalse(result['historical_completeness_certified'])
+        self.assertFalse(result['strategy_admission'])
+
+    def test_minute_volume_shared_canonical_units(self):
+        from src.analytics.core import quantity_unit
+        from src.analytics.comparison import VOLUME_UNITS
+        for category, expected in [('spot','base_coin'),('linear','base_coin'),
+                                   ('inverse','quote_coin_contracts')]:
+            self.assertEqual(VOLUME_UNITS[quantity_unit(category)], expected)
+
     def test_minute_volume_window_summary_and_identity(self):
         trades = [trade(1, 5, '1'), trade(2, M + 5, '2'), trade(3, 3 * M + 1, '9')]
         candles = [candle(0, volume='1'), candle(M, volume='3'), candle(3 * M, volume='9')]

@@ -20,6 +20,10 @@ on:
       - 'src/integration/research_preview.py'
       - 'src/integration/research_ui_projection.py'
       - 'src/api/capability_*.py'
+      - 'src/api/analytics_readback.py'
+      - 'src/api/main.py'
+      - 'tests/api/test_analytics_readback_round3.py'
+      - 'tests/platform/test_analytics_readback_integration_round3.py'
       - 'tests/test_execution_contract_*.py'
       - 'tests/test_public_auxiliary*.py'
       - 'tests/test_composed_data_research_postgres.py'
@@ -33,11 +37,16 @@ permissions:
   contents: read
 jobs:
   contract:
+    name: contract-pg${{ matrix.postgres }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16', '18']
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: tester_aux_ci
           POSTGRES_PASSWORD: disposable-only
@@ -55,7 +64,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Prove actual disposable PostgreSQL server major
+        run: |
+          server_num="$(psql "$TESTER_AUX_TEST_DSN" -tAc 'SHOW server_version_num' | tr -d '[:space:]')"
+          test "$((server_num / 10000))" -eq "${{ matrix.postgres }}"
+          echo "Verified actual PostgreSQL major ${{ matrix.postgres }} on disposable 127.0.0.1:55479"
       - run: python -m pip install -r requirements-dev.txt
+      - name: Install isolated Chromium for PG→API→browser acceptance
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
       - name: Offline DATA and RESEARCH contracts
         run: >-
           python -m pytest -q
@@ -69,6 +87,8 @@ jobs:
           tests/platform/test_data_research_adapter_issue59.py
           tests/platform/test_capability_data_bridge_issue104.py
           tests/platform/test_inverse_units_canonical.py
+          tests/api/test_analytics_readback_round3.py
+          tests/platform/test_analytics_readback_integration_round3.py
       - name: PostgreSQL DATA roundtrip (dedicated database)
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_roundtrip"
@@ -82,8 +102,8 @@ jobs:
       - name: RESEARCH adapter against real PostgreSQL (dedicated database)
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
-          TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
-            python -m pytest -q -rs tests/platform/test_data_research_adapter_issue59.py
+          TESTER_RESEARCH_BROWSER_E2E=1 TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
+            python -m pytest -vv -rs tests/platform/test_data_research_adapter_issue59.py tests/platform/test_analytics_readback_integration_round3.py
       - name: Release grants, DATA paths and spot/linear/inverse units as NON-superuser tester_app (#104, #114)
         # provision_release_databases creates tester_owner-owned databases and the
         # restricted runtime role; every DATA/queue flow then runs as tester_app.

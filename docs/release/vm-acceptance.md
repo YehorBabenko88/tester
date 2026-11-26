@@ -50,7 +50,38 @@ Restart-budget state comes from the owner command documented in `restart-policy.
 
 Revert to `C0-clean` between independent scenarios unless a step says otherwise.
 
-## 3. Evidence to publish in #88
+## 3. Agent D reproducible V1–V12 evidence ledger (unexecuted baseline)
+
+This ledger does **not** represent a test run. A dry-run, hosted Windows runner, static
+source review or scripted simulation cannot be promoted to a physical reboot or abrupt
+hypervisor power-off PASS. Record `BLOCKED` where no disposable VM exists and
+`NOT RUN` for scenarios for which an execution environment exists but a run has not
+occurred. Every evidence folder must be outside TESTER ownership boundaries and contain
+no credentials or connection strings.
+
+| Scenario | Baseline outcome | Required independent evidence |
+|---|---|---|
+| V1 clean install | BLOCKED | exact signed bundle/package hash, service SIDs, PG port, ACLs, one completed download, both shortcut hashes |
+| V2 reboots | BLOCKED | 10 sequential reboot logs, 3 burst reboot logs, durable restart-window counters and PG shutdown markers |
+| V3 shutdown under load | BLOCKED | SCM event chronology, live job checkpoint before/after, WAL replay, no PG5432 change |
+| V4 hard power cut | BLOCKED | hypervisor actions with monotonic timestamps, 3 admitted/4th denied budget, owner-authorized reset |
+| V5 interrupted install | BLOCKED | snapshot for every durable phase, DEMAND_START before commit, no unattended unowned startup |
+| V6 kill switch | BLOCKED | refusal while active, authenticated clean stop, removal and subsequent 0 crash-budget consumption |
+| V7 shortcut replacement | BLOCKED | exactly two TESTER names, re-enrolment proof, uninstall execution and foreign shortcut preservation |
+| V8 non-admin root race | BLOCKED | standard-user account, path/handle identity, fail-closed refusal and clean maintenance state |
+| V9 stale PG PID | BLOCKED | unrelated process creation evidence, untouched foreign PID and completed owned uninstall |
+| V10 uninstall | BLOCKED | before/after ownership inventory: services, registry, root, dedicated DB, candles, test results, archives, maintenance, locks, shortcuts; none remaining |
+| V11 PG coexistence | BLOCKED | independent PG5432 service/data fingerprint before/after with unrelated data unchanged |
+| V12 lab upgrade | BLOCKED | old schema inventory, approved ordered migration SHA256, verified backup/scratch restore, schema upgrade, interruption/recovery, runtime grants |
+
+V1–V12 additionally require evidence for cleanup low-disk, temporary-file corruption and
+connection loss where relevant. Collect these as *negative subcases* rather than claiming
+that an unrelated baseline scenario covers them. Never delete an unknown file to make
+acceptance pass. A successful uninstall must prove no owned TESTER data survives; a
+foreign sentinel must remain byte-identical. Failure or uncertainty must stop before
+any potentially destructive operation. Record actual SHA and each execution timestamp.
+
+## 4. Evidence to publish in #88
 
 For every scenario, publish:
 

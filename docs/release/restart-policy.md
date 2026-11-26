@@ -42,9 +42,23 @@ Reservations are serialized by PostgreSQL row locking and synchronously committe
 before spawn; a denied reservation rolls back, so the stored history never exceeds
 the bound. A crash after reservation can waste a slot but cannot gain one. The
 existing supervisor five-per-minute retry limit and the SCM two failure-restart
-actions (24 hour reset period) remain additional bounds. Crash timestamps more than
-one window in the future (wall clock moved backwards) are discarded rather than
-blocking forever; a forward clock jump only expires history early.
+actions (24 hour reset period) remain additional bounds. Migration 010 preserves crash timestamps lying in the future after a backwards
+wall-clock change; they remain charged until the database clock catches up and
+the normal sliding window expires, or the owner explicitly diagnoses and resets
+the budget. This deliberately favors fail-closed crash-loop protection over
+unattended restart availability when wall time cannot be trusted. A forward clock
+jump still expires old timestamps early, so physical clock-change acceptance
+remains required.
+
+Migration 011 adds owner-protected `host_last_stop_digest` and replaces only the
+existing `reserve_restart` function signature. A retried `host-stop:<token>`
+succeeds after an ambiguous committed ACK **only** when no host run remains
+active and the token matches the latest durably completed stop. A new host
+start invalidates this acknowledgment digest. Arbitrary/stale tokens cannot
+end an active run, and crash-restart limits are unchanged. Migration 008/009/010
+files remain immutable; existing App EXECUTE grants remain on the same function
+signature. Verify the real PostgreSQL role grants, ordered migration SHA256,
+lost-ACK test and physical SCM/DB-loss handling before release.
 
 Migration 003 is unchanged; its lifetime `*_starts` columns are retained only as
 legacy evidence and are no longer incremented or read by the reservation functions.

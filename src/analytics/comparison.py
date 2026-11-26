@@ -1,7 +1,7 @@
 """Evidence-gated comparisons of trade candles."""
 from collections import defaultdict
 from fractions import Fraction
-from .core import metadata, unique, interval_bounds, deduplicate, integer
+from .core import metadata, unique, interval_bounds, deduplicate, integer, quantity_unit
 from .exact import number, decimal
 
 
@@ -58,14 +58,15 @@ MINUTE_MS = 60000
 # `turnover` (list[6]) is the other leg (quote for linear/spot, base for
 # inverse) and is NOT reconciled: per-trade price*size or size/price would need
 # rounding the exchange does not document.
-VOLUME_UNITS = {'linear':'base_coin','inverse':'quote_coin_contracts','spot':'base_coin'}
+VOLUME_UNITS = {'base': 'base_coin', 'quote': 'quote_coin_contracts'}  # Labels only; canonical category authority is core.quantity_unit.
 VOLUME_STATUSES = ('MATCH','MISMATCH','INCOMPLETE_TRADES','INCOMPLETE_CANDLES','OFF_STEP','UNIT_UNSUPPORTED')
 VOLUME_POLICY = ('exact equality of sum(trade size) and official 1m kline volume per UTC minute '
     '[m, m+60000); no tolerance (legacy db.reconcile_minute_volume used 1e-6 relative, not adopted). '
     'MATCH only when the minute is closed, explicit COMPLETE trade coverage with evidence covers it, '
     'every trade is AVAILABLE with an exchange trade ID, the official_trade candle is closed, '
     'AVAILABLE and COMPLETE with evidence, and all quantities lie on qty_step. '
-    'Status precedence: UNIT_UNSUPPORTED, INCOMPLETE_TRADES, INCOMPLETE_CANDLES, OFF_STEP, MATCH/MISMATCH.')
+    'Status precedence: UNIT_UNSUPPORTED, INCOMPLETE_TRADES, INCOMPLETE_CANDLES, OFF_STEP, MATCH/MISMATCH. '
+    'MATCH is a numeric consistency finding only; no proof that a trade was known at as_of_ms.')
 
 
 def _covered(spans, start, end):
@@ -99,17 +100,37 @@ def reconcile_minute_volume(trades, candles, *, category, symbol, start_ms, end_
     if any((t['venue'],t['category'],t['symbol']) != market for t in rows) or \
             any((c['venue'],c['category'],c['symbol']) != market for c in candles):
         raise ValueError('Trade/candle market identity mismatch')
+    # Out-of-window rows fail closed. A trade's event timestamp is NOT its
+    # availability/observation timestamp: canonical Trade has no known_at_ms.
+    # Consequently MATCH is equality of two sourced values, never historical
+    # visibility, no-lookahead proof or completeness certification.
+    for t in rows:
+        ts = integer(t['timestamp_ms'])
+        if not start_ms <= ts < end_ms:
+            raise ValueError('trade_outside_reconciliation_window')
+    for cov in trade_coverage:
+        if not isinstance(cov, dict):
+            raise ValueError('invalid_trade_coverage_record')
+        if cov.get('status') == 'COMPLETE':
+            lo, hi = integer(cov['start_ms']), integer(cov['end_ms'])
+            if lo >= hi:
+                raise ValueError('invalid_trade_coverage_window')
     by_minute = {}
     for c in candles:
         key = integer(c['start_ms'])
         if key in by_minute: raise ValueError('Duplicate comparison candle key')
+        if key < start_ms or key >= end_ms:
+            raise ValueError('candle_outside_reconciliation_window')
         by_minute[key] = c
     complete = [(integer(cov['start_ms']), integer(cov['end_ms']), tuple(cov['evidence_refs']))
                 for cov in trade_coverage if cov.get('status') == 'COMPLETE' and cov.get('evidence_refs')]
-    spans = [(lo, hi) for lo, hi, _ in complete]
+    spans = [(lo, min(hi, as_of_ms)) for lo, hi, _ in complete]
     bucket = defaultdict(list)
     for t in rows: bucket[t['timestamp_ms'] - t['timestamp_ms'] % MINUTE_MS].append(t)
-    unit = VOLUME_UNITS.get(category)
+    try:
+        unit = VOLUME_UNITS[quantity_unit(category)]
+    except (ValueError, KeyError):
+        unit = None
     out = []
     for m in range(start_ms, end_ms, MINUTE_MS):
         e = m + MINUTE_MS
@@ -166,4 +187,8 @@ def reconcile_minute_volume(trades, candles, *, category, symbol, start_ms, end_
             d = abs(number(r['difference']))
             if s['largest_abs_difference'] is None or d > number(s['largest_abs_difference']):
                 s['largest_abs_difference'] = decimal(d)
-    return dict(policy=VOLUME_POLICY, unit=unit, minutes=out, summary=summary)
+    return dict(policy=VOLUME_POLICY, unit=unit, minutes=out, summary=summary,
+                historical_visibility='UNKNOWN',
+                historical_completeness_certified=False,
+                strategy_admission=False,
+                knowledge_time_status='NOT_PROVEN')

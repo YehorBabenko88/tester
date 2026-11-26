@@ -174,6 +174,161 @@ def test_actual_pg_crash_restarts_are_windowed_and_exhaustion_is_policy(authorit
 
 
 @pytest.mark.integration
+def test_actual_pg_backward_clock_jump_preserves_crash_slots(authority):
+    """No crash-budget bypass when wall time moves backwards by several hours.
+
+    Owner injects persisted future timestamps, the equivalent of setting the
+    system clock backwards after three crashes. The runtime App role must see
+    those entries and deny a fourth crash restart. Old 008 dropped the entries.
+    """
+    import psycopg
+    from src.api.restart_budget import BudgetDenied
+
+    owner, app_dsn, ident, budget = authority
+    previous = budget()
+    previous.admit("host")
+    _owner(
+        owner,
+        "UPDATE tester_platform.restart_budgets SET "
+        "host_crashes=ARRAY[now()+interval '3 hours',now()+interval '4 hours',"
+        "now()+interval '5 hours'] "
+        "WHERE installation_id=%s RETURNING 1",
+        ident,
+    )
+    assert budget().counts()["host"] == 3
+    with pytest.raises(BudgetDenied):
+        budget().admit("host")
+    assert budget().counts()["host"] == 3
+    with psycopg.connect(app_dsn) as conn:
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            conn.execute("SELECT tester_platform.restart_window_recent(ARRAY[]::timestamptz[])")
+    # Clean-stop still releases this active run without burning additional
+    # crash slots, but does not reset the protected historical receipts.
+    previous.record_clean_stop()
+    assert budget().counts()["host"] == 3
+    fresh = budget()
+    fresh.admit("host")
+    fresh.record_clean_stop()
+    assert budget().counts()["host"] == 3
+
+
+@pytest.mark.integration
+def test_actual_pg_clean_stop_lost_ack_retry_is_idempotent_and_token_bound(authority):
+    """SQL 011: an acknowledged/lost-ACK stop has the same durable outcome.
+
+    Retry is permitted only for the most recent stop token, while no host run
+    is active. Any new host run clears this acknowledgment receipt.
+    """
+    from src.api.restart_budget import BudgetDenied
+
+    owner, _, ident, budget = authority
+    first = budget()
+    first.admit("host")
+    assert first.host_token is not None
+    token = first.host_token
+    first.record_clean_stop()
+    assert first.host_token is None
+    # Simulate lost network acknowledgement: original host object still retains
+    # the same token, and repeats the already committed owner-protected stop.
+    first.host_token = token
+    first.record_clean_stop()
+    # A repeated network ACK ambiguity must not restore a token or start a run.
+    first.host_token = token
+    first.record_clean_stop()
+    assert budget().counts()["host"] == 0
+    state = _owner(owner, "SELECT tester_platform.restart_window_status(%s)", ident)[0]
+    assert state["host_run_active"] is False
+    second = budget()
+    second.host_token = "f" * 32
+    with pytest.raises(BudgetDenied):
+        second.record_clean_stop()
+    next_host = budget()
+    next_host.admit("host")
+    # A new host invalidates the old stop receipt; stale ACK cannot mark it clean.
+    old = budget()
+    old.host_token = token
+    with pytest.raises(BudgetDenied):
+        old.record_clean_stop()
+    # An active run not recording clean stop is still charged next launch.
+    after_crash = budget()
+    after_crash.admit("host")
+    assert budget().counts()["host"] == 1
+    after_crash.record_clean_stop()
+    assert budget().counts()["host"] == 1
+
+
+@pytest.mark.integration
+def test_actual_pg_host_stop_replay_cannot_erase_a_new_run(authority):
+    """A committed clean stop can be retried but cannot end the next run."""
+    import psycopg
+    from src.api.restart_budget import BudgetDenied
+
+    _, app_dsn, ident, budget = authority
+    first = budget()
+    first.admit("host")
+    token = first.host_token
+    first.record_clean_stop()
+    with psycopg.connect(app_dsn) as conn:
+        conn.execute(
+            "SELECT tester_platform.reserve_restart(%s::uuid,%s,%s)",
+            (ident, "a" * 40, "host-stop:" + token),
+        )
+    assert budget().counts()["host"] == 0
+    newer = budget()
+    newer.admit("host")
+    # A stale replay must not stop the replacement run.
+    with psycopg.connect(app_dsn) as conn:
+        with pytest.raises(psycopg.errors.RaiseException):
+            conn.execute(
+                "SELECT tester_platform.reserve_restart(%s::uuid,%s,%s)",
+                (ident, "a" * 40, "host-stop:" + token),
+            )
+    crash = budget()
+    crash.admit("host")
+    assert budget().counts()["host"] == 1
+    crash.record_clean_stop()
+
+
+@pytest.mark.integration
+def test_actual_pg_concurrent_host_reservations_are_charged_under_lock(authority):
+    """Two distinct tokens racing to start must charge one crash restart."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from src.api.restart_budget import BudgetDenied
+
+    owner, _, ident, budget = authority
+    barrier = Barrier(2)
+
+    def start():
+        instance = budget()
+        barrier.wait(timeout=10)
+        instance.admit("host")
+        return instance
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        pending = [workers.submit(start) for _ in range(2)]
+        hosts = [future.result(timeout=20) for future in pending]
+    assert hosts[0].host_token != hosts[1].host_token
+    assert budget().counts()["host"] == 1
+    row = _owner(
+        owner,
+        "SELECT host_run_digest FROM tester_platform.restart_budgets "
+        "WHERE installation_id=%s", ident,
+    )
+    assert row[0] is not None
+    # A competing old run must not be able to mark the new run clean, even
+    # though only the latest token was stored in the protected owner row.
+    denied = 0
+    for candidate in hosts:
+        try:
+            candidate.record_clean_stop()
+        except BudgetDenied:
+            denied += 1
+    assert denied == 1
+    assert budget().counts()["host"] == 1
+
+
+@pytest.mark.integration
 def test_actual_pg_child_restarts_windowed_initial_launches_free(authority):
     from src.api.restart_budget import BudgetDenied
 

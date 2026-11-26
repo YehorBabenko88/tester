@@ -5,6 +5,7 @@ import json
 import os
 import re
 import socket
+import sys
 import uuid
 from pathlib import Path
 
@@ -710,19 +711,46 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         _sweep_metadata(root, marker, mode)  # Never raises: the install is committed.
         return marker
     except BaseException as original:
-        tx.append(dict(event="phase", phase="interrupted"))
-        tx.release_guards()
+        # Failure handling is best-effort evidence collection, never a replacement
+        # for the original provisioning/SCM exception. An interrupted journal or
+        # guard release must not prevent a fail-closed authenticated rollback.
+        def record_secondary(stage, exc, primary=original):
+            primary.add_note(
+                "TESTER: " + stage + " failed (" + type(exc).__name__
+                + "); maintenance metadata retained in " + str(maintenance)
+            )
+
+        journal_valid = True
+        try:
+            tx.append(dict(event="phase", phase="interrupted"))
+        except Exception as journal_error:
+            journal_valid = False
+            record_secondary("interrupted journal append", journal_error)
+        guards_released = True
+        try:
+            tx.release_guards()
+        except Exception as guard_error:
+            guards_released = False
+            journal_valid = False
+            record_secondary("provisioning guard release", guard_error)
         if exposed:
-            # A user may have submitted data as soon as the API became reachable.
-            # Preserve this installed root; reruns authenticate and resume it.
-            with NativeController(marker) as controller:
-                controller.apply("stop")
+            # Once exposed, user data may exist; never attempt fresh rollback.
+            # A failed emergency stop remains an explicit secondary failure.
+            try:
+                with NativeController(marker) as controller:
+                    controller.apply("stop")
+            except Exception as stop_error:
+                record_secondary("exposed service stop", stop_error)
             raise
-        # Fresh-install transaction authority permits only proven construction
-        # resources. Unknown files make rollback refuse before deleting anything.
-        # Before root_created TESTER owns no root object: rollback leaves whatever
-        # is there untouched, and the original refusal stays the reported error.
-        owned_root = tx.root_identity is not None
+        # Never delete while a protection handle may still be live or unsafe
+        # to release. Retain authority records for an operator-reviewed retry.
+        if not guards_released:
+            raise original
+        # Missing journal evidence cannot authorize deletion of an owned root.
+        if not journal_valid:
+            raise original
+        # Authenticated provisioning rollback must verify journal and FileIDs.
+        # Any failure retains evidence and never permits deleting a foreign root.
         try:
             rollback_provisioning(
                 root,
@@ -732,22 +760,26 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
                 lifecycle_lock=_held_lock,
             )
         except Exception as rollback_error:
-            if owned_root:
-                raise
-            # Metadata is retained (the journal is needed to retry the rollback).
-            original.add_note(
-                "TESTER: rollback of this attempt was refused ("
-                + type(rollback_error).__name__
-                + "); maintenance metadata retained in "
-                + str(maintenance)
-            )
-            tx.close()
-            raise original  # __context__ chains rollback_error; __cause__ is kept.
-        tx.close()
+            record_secondary("authenticated rollback", rollback_error)
+            raise original from rollback_error
+        # Metadata is deleted only after a verified authenticated rollback.
         _cleanup_metadata(maintenance, marker["installation_id"])
         raise
     finally:
-        tx.close()
+        # A secondary native handle/token close may fail while a provisioning
+        # exception is already propagating. Keep the primary error authoritative
+        # and attach a bounded diagnostic; a successful install still fails if
+        # cleanup cannot complete. Never authorize deletion in this handler.
+        active_error = sys.exc_info()[1]
+        try:
+            tx.close()
+        except BaseException as close_error:
+            if active_error is None:
+                raise
+            active_error.add_note(
+                "TESTER: transaction close failed (" + type(close_error).__name__
+                + "); maintenance metadata retained in " + str(maintenance)
+            )
 
 
 def protect_external_bundle(bundle):
