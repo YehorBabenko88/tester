@@ -1206,3 +1206,93 @@ def test_guard_release_failure_does_not_hide_original_refusal(tmp_path, monkeypa
     # Abnormal guard failure retains the journal for separately authenticated retry.
     assert cleaned == []
     assert len(list(tmp_path.glob("TesterReleaseMaintenance_*"))) == 1
+
+
+def test_provisioning_guard_cleanup_attempts_all_handles_after_failure():
+    """Partial close failure never short-circuits independent guards."""
+    from src.api.release_provision import ProvisioningTransaction
+
+    class Handle:
+        def __init__(self, *, fails=False):
+            self.fails = fails
+            self.calls = 0
+
+        def Close(self):
+            self.calls += 1
+            if self.fails:
+                raise OSError("simulated pinned handle close failure")
+
+    tx = object.__new__(ProvisioningTransaction)
+    journal = Handle(fails=True)
+    external = Handle()
+    root_guard = Handle()
+    tx.journal = journal
+    tx.external_leases = {"owned-shortcut": external}
+    tx.root_guard = root_guard
+    with pytest.raises(OSError, match="simulated pinned handle"):
+        tx.release_guards()
+    assert journal.calls == external.calls == root_guard.calls == 1
+    # Successful independent guards were cleared, failed journal stays tracked.
+    assert tx.journal is journal
+    assert tx.external_leases == {}
+    assert tx.root_guard is None
+
+
+def test_provisioning_close_restores_token_after_guard_error(monkeypatch):
+    """Token rights are restored even if native guard release fails."""
+    from src.api.release_provision import ProvisioningTransaction
+
+    calls = []
+
+    class Token:
+        def Close(self):
+            calls.append("token.Close")
+
+    def restore(token, disable, privileges):
+        calls.append("restore")
+        assert disable is False and privileges == ["original"]
+
+    monkeypatch.setitem(
+        sys.modules, "win32security", types.SimpleNamespace(AdjustTokenPrivileges=restore)
+    )
+    tx = object.__new__(ProvisioningTransaction)
+    tx.closed = False
+    tx.token = Token()
+    tx.previous_privileges = ["original"]
+
+    def bad_guards():
+        calls.append("release_guards")
+        raise OSError("simulated guard failure")
+
+    tx.release_guards = bad_guards
+    with pytest.raises(OSError, match="simulated guard failure"):
+        tx.close()
+    assert calls == ["release_guards", "restore", "token.Close"]
+    assert tx.closed is True
+
+
+def test_provisioning_close_does_not_mark_closed_if_token_handle_close_fails(monkeypatch):
+    """A failed token close remains visible and retryable."""
+    from src.api.release_provision import ProvisioningTransaction
+
+    calls = []
+
+    class Token:
+        def Close(self):
+            calls.append("token.Close")
+            raise OSError("token close refused")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "win32security",
+        types.SimpleNamespace(AdjustTokenPrivileges=lambda *args: calls.append("restore")),
+    )
+    tx = object.__new__(ProvisioningTransaction)
+    tx.closed = False
+    tx.token = Token()
+    tx.previous_privileges = []
+    tx.release_guards = lambda: calls.append("release_guards")
+    with pytest.raises(OSError, match="token close refused"):
+        tx.close()
+    assert calls == ["release_guards", "restore", "token.Close"]
+    assert tx.closed is False
