@@ -36,8 +36,8 @@ def enrolled(tmp_path):
             "SELECT checksum FROM tester_platform.migrations WHERE version=%s",
             ("012_transport_installation_principal.sql",),
         ).fetchone()
-        if record is None:
-            pytest.skip("Migration 012 missing from disposable fixture")
+        # Missing migration is a failing E2E gate, not a skipped success.
+        assert record is not None, "Migration 012 absent from disposable PG fixture"
     scope = uuid.uuid4()
     with connect(owner_dsn) as conn:
         conn.execute(
