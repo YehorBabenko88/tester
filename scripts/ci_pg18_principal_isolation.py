@@ -18,6 +18,8 @@ from src.api.db import migrate
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_FILE = "tests/platform/test_transport_principal_isolation_round8.py"
+EXTRA_CASE = ("tests/platform/test_public_transport_policy.py"
+              "::test_actual_pg_foreign_installation_scope_same_principal_is_not_authorized")
 TESTS = [
     "test_pg_runtime_principal_unique_and_scope_forgery_denied",
     "test_pg_runtime_cannot_delete_enrollment_or_reset_foreign_owner",
@@ -42,7 +44,6 @@ ENDPOINT_FUNCTIONS = (
     "tester_platform.reserve_public_dispatch(uuid), "
     "tester_platform.finish_public_dispatch(uuid,uuid,double precision)"
 )
-
 
 
 def check_legacy_upgrades(admin_dsn, owner_dsn, app_dsn):
@@ -171,7 +172,10 @@ def main():
     raw = os.environ.get("TESTER_PG18_SECURITY_ADMIN_DSN", "")
     parts = conninfo_to_dict(raw)
     if (
-        parts.get("host") != "127.0.0.1"
+        set(parts) - {"host", "hostaddr", "port", "dbname", "user", "password", "require_auth"}
+        or parts.get("host") != "127.0.0.1"
+        or parts.get("hostaddr", "127.0.0.1") != "127.0.0.1"
+        or parts.get("password") != "disposable-admin-only"
         or parts.get("port") != "55820"
         or parts.get("dbname") != "postgres"
         or parts.get("user") != "tester_ci_admin"
@@ -233,7 +237,7 @@ def main():
         TEST_PUBLIC_POLICY_DSN=app_dsn,
         TEST_PUBLIC_POLICY_SECOND_APP_ROLE=USER_B,
     )
-    nodes = [TEST_FILE + "::" + test for test in TESTS]
+    nodes = [TEST_FILE + "::" + test for test in TESTS] + [EXTRA_CASE]
     command = [
         sys.executable, "-m", "pytest", "-vv", "-rs", "--strict-markers",
         "--timeout=40", "-p", "no:cacheprovider", *nodes,
@@ -244,14 +248,17 @@ def main():
         print(result.stderr, file=sys.stderr, flush=True)
     if result.returncode != 0:
         raise SystemExit(f"Mandatory PostgreSQL18 security pytest FAILED with code {result.returncode}")
-    passed = set(re.findall(r"test_(pg_[A-Za-z0-9_]+)\s+PASSED", result.stdout))
+    passed = set(re.findall(r"::(test_[A-Za-z0-9_]+)\s+PASSED", result.stdout))
     # Explicit nodes are selected, and a skipped/xfail result cannot pass.
-    expected = {name.removeprefix("test_") for name in TESTS}
+    expected = set(TESTS) | {EXTRA_CASE.rsplit("::", 1)[1]}
     if passed != expected:
         raise SystemExit(f"Mandatory PG18 cases did not all PASS: expected={sorted(expected)}, got={sorted(passed)}")
     if re.search(r"\b(?:SKIPPED|XFAIL|XPASS|ERROR|FAILED)\b", result.stdout):
         raise SystemExit("Non-PASS status in mandatory PostgreSQL18 security suite")
-    print(f"PASS: PostgreSQL {version} / {len(TESTS)} mandatory executed principal-isolation checks", flush=True)
+    print(
+        f"PASS: PostgreSQL {version} / {len(expected)} mandatory executed principal-isolation checks",
+        flush=True,
+    )
 
 
 if __name__ == "__main__":
