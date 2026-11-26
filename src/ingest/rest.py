@@ -78,9 +78,10 @@ def payload_identity(row):
 MAX_DECODED_PAGE_BYTES = 4 * 1024 * 1024
 MAX_HTTP_BODY_BYTES = 4 * 1024 * 1024
 MAX_BACKFILL_WINDOW_MS = 7 * 86400000
+MAX_WINDOW_EVIDENCE_BYTES = 32 * 1024 * 1024
 
 
-def bounded_result_hash(result, max_bytes=MAX_DECODED_PAGE_BYTES):
+def bounded_result_hash(result, max_bytes=MAX_DECODED_PAGE_BYTES, *, return_size=False):
     """Hash canonical decoded JSON with a strict serialized byte ceiling.
 
     The HTTP Transport must enforce its own raw-body limit before JSON
@@ -95,7 +96,7 @@ def bounded_result_hash(result, max_bytes=MAX_DECODED_PAGE_BYTES):
         if size > max_bytes:
             raise ValueError("Decoded REST page byte budget exceeded")
         digest.update(chunk)
-    return digest.hexdigest()
+    return (digest.hexdigest(), size) if return_size else digest.hexdigest()
 
 
 class API:
@@ -266,9 +267,10 @@ class Backfill:
             MAX_STAGED_RECORDS = 12000
             MAX_WINDOW_PAGES = 500
             page_count = 0
+            evidence_bytes = 0
 
             def query(a, b, token=None):
-                nonlocal page_count
+                nonlocal page_count, evidence_bytes
                 if page_count >= MAX_WINDOW_PAGES:
                     raise ValueError("Window pagination budget exceeded")
                 page_count += 1
@@ -303,7 +305,15 @@ class Backfill:
                 try:
                     if not isinstance(result, dict) or not isinstance(result.get("list"), list):
                         raise ValueError("Malformed REST page")
-                    raw_hash = bounded_result_hash(result)
+                    raw_hash, decoded_bytes = bounded_result_hash(result, return_size=True)
+                    original = getattr(self.api, "last_response", None)
+                    b64 = original.get("bytes_base64") if isinstance(original, dict) else None
+                    # Charge both retained canonical JSON and its original
+                    # base64 HTTP receipt to the same finite window budget.
+                    retained_bytes = decoded_bytes + (len(b64) if isinstance(b64, str) else 0)
+                    if evidence_bytes + retained_bytes > MAX_WINDOW_EVIDENCE_BYTES:
+                        raise ValueError("Window evidence byte budget exceeded")
+                    evidence_bytes += retained_bytes
                 except (ValueError, TypeError, OverflowError) as exc:
                     evidence_refs.append(self.journal.add_evidence({
                         "kind": "rest_response_rejected",
