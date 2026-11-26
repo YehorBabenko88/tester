@@ -118,6 +118,18 @@ def check_legacy_upgrades(admin_dsn, owner_dsn, app_dsn):
             before_versions = conn.execute(
                 "SELECT count(*) FROM tester_platform.migrations"
             ).fetchone()[0]
+            before_acl = conn.execute(
+                "SELECT oid::regprocedure::text,proacl FROM pg_proc "
+                "WHERE oid IN ("
+                "'tester_platform._check_public_transport(uuid,text)'::regprocedure,"
+                "'tester_platform.read_public_transport(uuid,text)'::regprocedure,"
+                "'tester_platform.reserve_public_transport(uuid,text)'::regprocedure,"
+                "'tester_platform.finish_public_transport(uuid,text,uuid,text)'::regprocedure,"
+                "'tester_platform.reserve_public_dispatch(uuid)'::regprocedure,"
+                "'tester_platform.finish_public_dispatch(uuid,uuid,double precision)'::regprocedure"
+                ") ORDER BY oid::regprocedure::text"
+            ).fetchall()
+            assert len(before_acl) == 6
             assert before_versions == 11
         if ambiguous:
             try:
@@ -151,6 +163,17 @@ def check_legacy_upgrades(admin_dsn, owner_dsn, app_dsn):
                 "'tester_platform._check_public_transport(uuid,text)'::regprocedure))"
             ).fetchone()[0]
             assert (changed_guard == before_guard) == ambiguous
+            assert conn.execute(
+                "SELECT oid::regprocedure::text,proacl FROM pg_proc "
+                "WHERE oid IN ("
+                "'tester_platform._check_public_transport(uuid,text)'::regprocedure,"
+                "'tester_platform.read_public_transport(uuid,text)'::regprocedure,"
+                "'tester_platform.reserve_public_transport(uuid,text)'::regprocedure,"
+                "'tester_platform.finish_public_transport(uuid,text,uuid,text)'::regprocedure,"
+                "'tester_platform.reserve_public_dispatch(uuid)'::regprocedure,"
+                "'tester_platform.finish_public_dispatch(uuid,uuid,double precision)'::regprocedure"
+                ") ORDER BY oid::regprocedure::text"
+            ).fetchall() == before_acl, "012 modified existing policy function grants"
         # The two legacy databases deny cross-install logins and cannot be
         # mistaken for a fresh runtime route or cloned DSN.
         with psycopg.connect(legacy) as conn:
