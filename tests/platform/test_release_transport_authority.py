@@ -1,8 +1,6 @@
 """D/E owner-bound public Transport scope tests (no network or host mutation)."""
 
-import types
 import uuid
-from pathlib import Path
 
 import pytest
 
