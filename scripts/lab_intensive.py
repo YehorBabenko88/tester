@@ -221,7 +221,10 @@ if (-not @($Bindings|Where-Object {$_.group -eq 'app' -and $_.pid -eq SEED}).Cou
     raw = subprocess.run(
         ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps],
         capture_output=True,
-        timeout=10,
+        # PowerShell startup on a busy CI runner can exceed 10 seconds even when
+        # the bounded CIM inventory finishes successfully. Keep a finite timeout;
+        # a timeout remains a hard failure, never partial success.
+        timeout=30,
         check=True,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
