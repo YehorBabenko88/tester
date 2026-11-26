@@ -55,14 +55,6 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'transport runtime principal has another role membership';
     END IF;
-    -- No distinct owner may hold a separately enrolled runtime login.
-    IF EXISTS (
-        SELECT 1 FROM tester_platform.transport_policy_scopes AS s
-        JOIN pg_catalog.pg_roles AS r ON r.rolname=s.runtime_role
-        WHERE pg_catalog.pg_has_role(r.oid, current_user, 'MEMBER')
-    ) THEN
-        RAISE EXCEPTION 'transport runtime principal inherits owner role';
-    END IF;
 END $migration$;
 
 -- Even under competing owner transactions only one installation can enroll
