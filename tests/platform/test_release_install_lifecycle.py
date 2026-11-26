@@ -1141,8 +1141,10 @@ def test_interrupted_journal_append_never_masks_original_root_refusal(tmp_path, 
     assert any("interrupted journal append failed" in n for n in info.value.__notes__)
     assert probe.touched == []
     assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
-    assert not list(tmp_path.glob("TesterReleaseMaintenance_*"))
-    assert len(cleaned) == 1
+    assert cleaned == []
+    # Incomplete journal evidence is retained for authenticated recovery.
+    (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
+    assert (maintenance / "provisioning.jsonl").is_file()
 
 
 def test_root_creation_rollback_refusal_preserves_primary_failure(tmp_path, monkeypatch):
@@ -1169,10 +1171,9 @@ def test_root_creation_rollback_refusal_preserves_primary_failure(tmp_path, monk
     monkeypatch.setattr(rp, "ProvisioningTransaction", transaction)
     with pytest.raises(RuntimeError, match="later provisioning failure") as info:
         call()
-    assert isinstance(info.value.__cause__, ReleaseSecurityError)
     assert any("interrupted journal append failed" in n for n in info.value.__notes__)
-    assert any("authenticated rollback failed" in n for n in info.value.__notes__)
-    assert probe.touched == ["_provisioning_entries"]
+    # No deletion when the interruption journal did not persist.
+    assert probe.touched == []
     assert root.is_dir() and cleaned == []
     (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
     assert (maintenance / "provisioning.jsonl").is_file()
