@@ -48,11 +48,11 @@ BEGIN
     END IF;
     IF EXISTS (
         SELECT 1 FROM pg_catalog.pg_auth_members AS m
-        JOIN pg_catalog.pg_roles AS runtime ON runtime.oid = m.roleid
+        JOIN pg_catalog.pg_roles AS runtime ON runtime.oid = m.member
         JOIN tester_platform.transport_policy_scopes AS s ON s.runtime_role = runtime.rolname
         WHERE m.inherit_option
     ) THEN
-        RAISE EXCEPTION 'transport runtime principal permits inherited role';
+        RAISE EXCEPTION 'transport runtime principal inherits another role';
     END IF;
 END $migration$;
 
