@@ -328,6 +328,37 @@ def _offline_pg_policy_read(authority):
     return policy.read("api.bybit.com/v5/market/kline") == "CLEAR"
 
 
+
+def _offline_fresh_pg_identity(authority, *, cluster_probe=None):
+    """Offline/disposable physical cluster + SQL principal check (NO HTTP).
+
+    Probe must supply verified physical system identifier and SQL session
+    identity on the same dedicated endpoint. A policy read or caller UUID
+    is not a proof. No default probe: without owner attestation fail closed.
+    """
+    if not isinstance(authority, ReleaseTransportAuthority):
+        raise ReleaseSecurityError("Owner-authenticated installation authority required")
+    if cluster_probe is None:
+        raise ReleaseSecurityError("Fresh PostgreSQL physical/principal attestation unavailable")
+    evidence = cluster_probe(authority)
+    if not isinstance(evidence, dict) or set(evidence) != {
+        "system_identifier", "host", "port", "database", "session_user",
+        "installation_id", "scope_count",
+    }:
+        raise ReleaseSecurityError("Unexpected PostgreSQL identity evidence")
+    if (evidence["system_identifier"] != authority.pg_system_identifier
+            or evidence["host"] != authority.db_hostaddr
+            or type(evidence["port"]) is not int
+            or evidence["port"] != authority.db_identity[1]
+            or evidence["database"] != "tester"
+            or evidence["session_user"] != "tester_app"
+            or evidence["installation_id"] != authority.installation_id
+            or type(evidence["scope_count"]) is not int
+            or evidence["scope_count"] != 1):
+        raise ReleaseSecurityError("PostgreSQL physical or principal isolation mismatch")
+    return True
+
+
 def verify_offline_service_identity(authority, *, pin=None, pinned_public_key_sha256=None,
                                     token_checker=None, pg_checker=None):
     """Round7 OFFLINE/DISPOSABLE verification; never grants runtime HTTP.
