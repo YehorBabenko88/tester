@@ -49,7 +49,7 @@ jobs:
       - name: Reject forged JUnit identity, suite counters and skip status
         run: |
           mkdir -p .scratch/mandatory-evidence/pg18
-          python -m pytest -q -o xfail_strict=true --timeout=30 -p no:cacheprovider --junitxml=.scratch/mandatory-evidence/pg18/validator-negative.xml tests/platform/test_ci_named_junit_gate_round14.py
+          python -m pytest -q -o xfail_strict=true --timeout=30 -p no:cacheprovider --junitxml=${RUNNER_TEMP}/validator-negative-pg18.xml tests/platform/test_ci_named_junit_gate_round14.py
       - name: Mandatory REAL PostgreSQL18 principal isolation E2E (zero SKIP)
         run: python scripts/ci_pg18_principal_isolation.py
       - name: Retain sanitized exact-source PG18 security JUnit evidence

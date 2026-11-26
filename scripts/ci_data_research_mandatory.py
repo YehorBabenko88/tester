@@ -12,7 +12,10 @@ from pathlib import Path
 import psycopg
 from psycopg.conninfo import conninfo_to_dict
 
-from ci_named_junit_gate import assert_ci_source, safe_artifact
+from ci_named_junit_gate import (
+    assert_ci_source, safe_artifact, reset_artifact,
+    initialize_repetition_manifest, complete_repetition_manifest,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {"16", "18"}
@@ -47,6 +50,12 @@ def main():
     env["TESTER_RESEARCH_BROWSER_E2E"] = "1"
     evidence = ROOT / ".scratch" / "mandatory-evidence" / f"pg{expected}"
     evidence.mkdir(parents=True, exist_ok=True)
+    aggregate = evidence / f"pg{expected}-two-repetitions.json"
+    initialize_repetition_manifest(
+        aggregate, head_sha=head_sha, postgres_major=str(actual),
+        expected_repetitions=2,
+    )
+    artifacts = []
     # Broad CI suites already populated these dedicated DBs: repeat EXACTLY
     # the five finite mandatory tests twice against the SAME DB identities.
     # An unrepeatable database test is a release failure, not a false PASS.
@@ -58,25 +67,39 @@ def main():
                 "--strict-markers", "-o", "xfail_strict=true", "--timeout=60",
                 "-p", "no:cacheprovider", f"--junitxml={raw}", *MANDATORY,
             ]
-            result = subprocess.run(command, cwd=ROOT, env=env,
-                                    capture_output=True, text=True, timeout=500)
-            for line in result.stdout.splitlines():
+            artifact = evidence / f"pg{expected}-mandatory-{repetition}.xml"
+            reset_artifact(artifact)
+            timed_out = False
+            result = None
+            try:
+                result = subprocess.run(command, cwd=ROOT, env=env,
+                                        capture_output=True, text=True, timeout=500)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+            for line in (result.stdout if result else "").splitlines():
                 if ("::test_" in line and any(t in line for t in
                         (" PASSED", " FAILED", " SKIPPED", " XFAIL", " XPASS"))):
                     print(line[:250], flush=True)
             try:
                 safe_artifact(
-                    raw, evidence / f"pg{expected}-mandatory-{repetition}.xml",
+                    raw, artifact,
                     MANDATORY, head_sha=head_sha, postgres_major=str(actual),
                     suite_name=f"data-research-pg{expected}-repeat{repetition}",
+                    process_returncode=(result.returncode if result else None),
+                    timed_out=timed_out,
                 )
             except ValueError as exc:
                 raise SystemExit(f"Mandatory PG{expected} JUnit rejected: {exc}") from None
-            if result.returncode != 0:
-                raise SystemExit(f"Mandatory PG{expected} pytest returned {result.returncode}")
+            if result is None or result.returncode != 0:
+                raise SystemExit(f"Mandatory PG{expected} pytest process NOT_VERIFIED")
+            artifacts.append(artifact)
             print(f"PASS: PG{actual}, exact SHA {head_sha}, 5/5 named cases "
                   f"(repeat {repetition}/2, PG concurrent backend and HTTP slots independent)",
                   flush=True)
+    complete_repetition_manifest(
+        aggregate, artifacts, head_sha=head_sha, postgres_major=str(actual),
+    )
+    print(f"PASS: exactly two PG{expected} five-case repetitions, SHA={head_sha}", flush=True)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ from pathlib import Path
 import psycopg
 from psycopg.conninfo import conninfo_to_dict
 
-from ci_named_junit_gate import assert_ci_source, safe_artifact
+from ci_named_junit_gate import assert_ci_source, safe_artifact, reset_artifact
 
 ROOT = Path(__file__).resolve().parents[1]
 FILE = "tests/ingest/test_pipeline.py::PipelineTests::"
@@ -46,23 +46,32 @@ def main():
             "-p", "no:cacheprovider", f"--junitxml={raw}",
             *(FILE + name for name in TEST_NAMES),
         ]
-        proc = subprocess.run(cmd, cwd=ROOT, env=dict(os.environ), text=True,
-                              capture_output=True, timeout=340)
-        for line in proc.stdout.splitlines():
+        artifact = evidence / f"pg{major}-e-rest-six.xml"
+        reset_artifact(artifact)
+        proc = None
+        timed_out = False
+        try:
+            proc = subprocess.run(cmd, cwd=ROOT, env=dict(os.environ), text=True,
+                                  capture_output=True, timeout=340)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        for line in (proc.stdout if proc else "").splitlines():
             if "::test_" in line and any(t in line for t in
                     (" PASSED", " FAILED", " SKIPPED", " XPASS", " XFAIL")):
                 print(line[:250], flush=True)
         try:
             safe_artifact(
-                raw, evidence / f"pg{major}-e-rest-six.xml",
+                raw, artifact,
                 tuple(FILE + name for name in TEST_NAMES),
                 head_sha=head_sha, postgres_major=major,
                 suite_name=f"e-rest-six-pg{major}",
+                process_returncode=(proc.returncode if proc else None),
+                timed_out=timed_out,
             )
         except ValueError as exc:
             raise SystemExit(f"Six mandatory E JUnit cases rejected: {exc}") from None
-        if proc.returncode != 0:
-            raise SystemExit(f"Mandatory E pytest failed ({proc.returncode})")
+        if proc is None or proc.returncode != 0:
+            raise SystemExit("Mandatory E pytest process NOT_VERIFIED")
         print(f"PASS: six E offline REST regression cases on PG{major} "
               f"matrix job, exact checkout {head_sha}", flush=True)
 

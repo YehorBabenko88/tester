@@ -115,7 +115,7 @@ jobs:
       - name: Reject altered, incomplete, skipped or XPASS JUnit evidence
         run: |
           mkdir -p .scratch/mandatory-evidence/pg${{ matrix.postgres }}
-          python -m pytest -q -o xfail_strict=true --timeout=30 -p no:cacheprovider --junitxml=.scratch/mandatory-evidence/pg${{ matrix.postgres }}/validator-negative.xml tests/platform/test_ci_named_junit_gate_round14.py
+          python -m pytest -q -o xfail_strict=true --timeout=30 -p no:cacheprovider --junitxml=${RUNNER_TEMP}/validator-negative-pg${{ matrix.postgres }}.xml tests/platform/test_ci_named_junit_gate_round14.py
       - name: Strict mandatory PG16/18 research E2E and E rollback (JUnit exact inventory, NO SKIP)
         run: |
           python scripts/ci_data_research_mandatory.py

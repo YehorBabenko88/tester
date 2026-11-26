@@ -15,7 +15,7 @@ from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from src.api.db import migrate
-from ci_named_junit_gate import assert_ci_source, safe_artifact
+from ci_named_junit_gate import assert_ci_source, safe_artifact, reset_artifact
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_FILE = "tests/platform/test_transport_principal_isolation_round8.py"
@@ -279,24 +279,33 @@ def main():
             "-o", "xfail_strict=true", "--timeout=40", "-p", "no:cacheprovider",
             f"--junitxml={report}", *nodes,
         ]
-        result = subprocess.run(command, cwd=ROOT, env=env, text=True,
-                                capture_output=True, timeout=330)
-        for line in result.stdout.splitlines():
+        artifact = evidence / "pg18-security-13.xml"
+        reset_artifact(artifact)
+        result = None
+        timed_out = False
+        try:
+            result = subprocess.run(command, cwd=ROOT, env=env, text=True,
+                                    capture_output=True, timeout=330)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        for line in (result.stdout if result else "").splitlines():
             if "::test_" in line and any(t in line for t in
                     (" PASSED", " FAILED", " SKIPPED", " XFAIL", " XPASS")):
                 print(line[:250], flush=True)
         try:
             safe_artifact(
-                report, evidence / "pg18-security-13.xml", tuple(nodes),
+                report, artifact, tuple(nodes),
                 head_sha=head_sha, postgres_major="18",
                 suite_name="pg18-principal-security-13",
+                process_returncode=(result.returncode if result else None),
+                timed_out=timed_out,
             )
         except ValueError as exc:
             raise SystemExit(f"Mandatory PG18 JUnit rejected: {exc}") from None
-        if result.returncode != 0:
-            raise SystemExit(f"Mandatory PostgreSQL18 pytest exited {result.returncode}")
+        if result is None or result.returncode != 0:
+            raise SystemExit("Mandatory PostgreSQL18 pytest process NOT_VERIFIED")
     print(
-        f"PASS: PostgreSQL {version} / {len(expected)} mandatory executed principal-isolation checks",
+        f"PASS: PostgreSQL {version} / {len(nodes)} mandatory executed principal-isolation checks",
         flush=True,
     )
 
