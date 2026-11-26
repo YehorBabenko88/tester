@@ -361,3 +361,100 @@ def test_analytics_readback_rejects_untrusted_host_before_binding(tmp_path):
         "/api/analytics/readback", params=scope().model_dump())
     assert response.status_code == 400
     assert touched == []
+
+
+def test_round7_readback_tightens_existing_store_connection_no_new_reader(monkeypatch):
+    """A real Store instance stays canonical; only its disposable connection budget tightens."""
+    from psycopg.conninfo import conninfo_to_dict
+    from src.api import analytics_readback as module
+    from src.storage.store import Store
+
+    source = Store(
+        "host=127.0.0.1 port=55479 dbname=tester_research_data_disposable user=tester_aux_ci"
+    )
+    observed = []
+
+    def read(scope_value, *, trusted_store, trusted_identity):
+        observed.append((trusted_store, trusted_identity))
+        return {"status": "OBSERVED_UNVERIFIED", "admitted_to_f": False}
+
+    monkeypatch.setattr(module, "observed_readback", read)
+    app = FastAPI()
+    app.include_router(create_readback_router(trusted_binding=lambda: (source, identity())))
+    response = TestClient(app).get("/api/analytics/readback", params=scope().model_dump())
+    assert response.status_code == 200
+    assert len(observed) == 1
+    clone, supplied_identity = observed[0]
+    assert type(clone) is Store
+    assert clone is not source
+    assert supplied_identity["verified"] is True  # Test seam only, not production.
+    assert source._dsn == (
+        "host=127.0.0.1 port=55479 dbname=tester_research_data_disposable user=tester_aux_ci"
+    )
+    conn = conninfo_to_dict(clone._dsn)
+    assert conn["host"] == "127.0.0.1"
+    assert conn["port"] == "55479"
+    assert conn["dbname"] == "tester_research_data_disposable"
+    assert conn["user"] == "tester_aux_ci"
+    assert conn["connect_timeout"] in ("2", "3", "4", "5")
+    assert conn["options"].startswith("-c timezone=UTC -c statement_timeout=")
+    assert " -c lock_timeout=" in conn["options"]
+
+
+def test_round7_deadline_after_binding_refuses_before_data_read(monkeypatch):
+    from src.api import analytics_readback as module
+    from src.storage.store import Store
+
+    monkeypatch.setattr(module, "_clock", iter([0.0, 11.0]).__next__)
+    monkeypatch.setattr(
+        module,
+        "observed_readback",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("No read after deadline")),
+    )
+    app = FastAPI()
+    app.include_router(
+        create_readback_router(
+            trusted_binding=lambda: (
+                Store("host=127.0.0.1 port=55479 dbname=tester_research_data_disposable"),
+                identity(),
+            )
+        )
+    )
+    response = TestClient(app).get("/api/analytics/readback", params=scope().model_dump())
+    assert response.status_code == 503
+    assert response.json()["detail"] == "analytics_readback_timeout"
+
+
+def test_round7_store_connection_startup_policy_is_bounded(monkeypatch):
+    import psycopg
+    from src.storage.store import Store
+
+    calls = []
+
+    def fake_connect(dsn, **kwargs):
+        calls.append((dsn, kwargs))
+        return object()
+
+    monkeypatch.setattr(psycopg, "connect", fake_connect)
+    prefix = (
+        "host=127.0.0.1 port=55479 dbname=tester_research_data_disposable "
+        "user=tester_aux_ci"
+    )
+    configured = Store(
+        prefix
+        + " connect_timeout=2 options='-c timezone=UTC -c statement_timeout=250"
+        + " -c lock_timeout=250'"
+    )
+    configured.connect()
+    assert calls[-1][1]["connect_timeout"] == 2
+    assert calls[-1][1]["options"] == (
+        "-c timezone=UTC -c statement_timeout=250 -c lock_timeout=250"
+    )
+    assert calls[-1][1]["row_factory"] is not None
+    normal = Store(prefix)
+    normal.connect()
+    assert calls[-1][1]["connect_timeout"] == 8
+    assert calls[-1][1]["options"] == "-c timezone=UTC"
+    unrecognized = Store(prefix + " options='-c unsafe_setting=on'")
+    unrecognized.connect()
+    assert calls[-1][1]["options"] == "-c timezone=UTC"
