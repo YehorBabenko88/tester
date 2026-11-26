@@ -249,7 +249,7 @@ def test_readback_wall_deadline_is_fail_closed(monkeypatch):
     class Store:
         def read_bounded(self, *args, **kwargs):
             return []
-    monkeypatch.setattr(module.time, "monotonic", iter([0., 11.]).__next__)
+    monkeypatch.setattr(module, "_clock", iter([0., 11.]).__next__)
 
     def observed(store, **kwargs):
         return dict(
