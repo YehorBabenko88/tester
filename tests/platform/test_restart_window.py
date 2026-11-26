@@ -258,6 +258,75 @@ def test_actual_pg_clean_stop_lost_ack_retry_is_idempotent_and_token_bound(autho
 
 
 @pytest.mark.integration
+def test_actual_pg_host_stop_replay_cannot_erase_a_new_run(authority):
+    """A committed clean stop can be retried but cannot end the next run."""
+    import psycopg
+    from src.api.restart_budget import BudgetDenied
+
+    owner, app_dsn, ident, budget = authority
+    first = budget()
+    first.admit("host")
+    token = first.host_token
+    first.record_clean_stop()
+    with psycopg.connect(app_dsn) as conn:
+        conn.execute(
+            "SELECT tester_platform.reserve_restart(%s::uuid,%s,%s)",
+            (ident, "a" * 40, "host-stop:" + token),
+        )
+    assert budget().counts()["host"] == 0
+    newer = budget()
+    newer.admit("host")
+    # A stale replay must not stop the replacement run.
+    with psycopg.connect(app_dsn) as conn:
+        with pytest.raises(psycopg.errors.RaiseException):
+            conn.execute(
+                "SELECT tester_platform.reserve_restart(%s::uuid,%s,%s)",
+                (ident, "a" * 40, "host-stop:" + token),
+            )
+    crash = budget()
+    crash.admit("host")
+    assert budget().counts()["host"] == 1
+    crash.record_clean_stop()
+
+
+@pytest.mark.integration
+def test_actual_pg_concurrent_host_reservations_are_charged_under_lock(authority):
+    """Two distinct tokens racing to start must charge one crash restart."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from src.api.restart_budget import BudgetDenied
+
+    owner, _, ident, budget = authority
+    barrier = Barrier(2)
+
+    def start():
+        instance = budget()
+        barrier.wait(timeout=10)
+        instance.admit("host")
+        return instance
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        pending = [workers.submit(start) for _ in range(2)]
+        hosts = [future.result(timeout=20) for future in pending]
+    assert hosts[0].host_token != hosts[1].host_token
+    assert budget().counts()["host"] == 1
+    row = _owner(
+        owner,
+        "SELECT host_run_digest FROM tester_platform.restart_budgets "
+        "WHERE installation_id=%s", ident,
+    )
+    assert row[0] is not None
+    denied = 0
+    for candidate in hosts:
+        try:
+            candidate.record_clean_stop()
+        except BudgetDenied:
+            denied += 1
+    assert denied == 1
+    assert budget().counts()["host"] == 1
+
+
+@pytest.mark.integration
 def test_actual_pg_child_restarts_windowed_initial_launches_free(authority):
     from src.api.restart_budget import BudgetDenied
 
