@@ -34,6 +34,27 @@ class ReleaseTransportAuthority:
 
         return PostgresTransportPolicy(self.dsn, self.installation_id)
 
+    def checked_readback_binding(self, store):
+        """Explicit B #139 seam: no new Store/DB client or ownerless DSN.
+
+        Call from an owner-verified server-side factory, never a request. The
+        existing Store.read_bounded is the canonical PostgreSQL REPEATABLE READ
+        READ ONLY snapshot with pre-transfer SQL budget and statement timeout.
+        This check is not an unforgeable runtime credential and must NOT make
+        an unprivileged service able to mint a verified identity independently.
+        """
+        from src.storage.store import Store
+
+        if not isinstance(store, Store) or not isinstance(getattr(store, "_dsn", None), str):
+            raise ReleaseSecurityError("Canonical storage binding required")
+        if conninfo_to_dict(store._dsn) != conninfo_to_dict(self.dsn):
+            raise ReleaseSecurityError("Readback Store must use owner-bound PostgreSQL DSN")
+        return store, {
+            "verified": True,
+            "installation_id": self.installation_id,
+            "source_sha": self.source_sha,
+        }
+
 
 def _trusted_release_context(root, *, allow_test):
     """Validate OS-owned trust, signed ledger, SCM registration and PG cluster.
