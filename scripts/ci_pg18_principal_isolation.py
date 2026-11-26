@@ -44,6 +44,131 @@ ENDPOINT_FUNCTIONS = (
 )
 
 
+
+def check_legacy_upgrades(admin_dsn, owner_dsn, app_dsn):
+    """Actually run 004..011 -> 012 on disposable legacy singleton/ambiguous DBs."""
+    import hashlib
+    from uuid import uuid4
+
+    migration_dir = ROOT / "src" / "api" / "migrations"
+    old_files = sorted(p for p in migration_dir.glob("*.sql") if p.name < "012_")
+    assert len(old_files) == 11, "Expected exact historic 001..011 migration sequence"
+    admin_fields = conninfo_to_dict(admin_dsn)
+    owner_fields = conninfo_to_dict(owner_dsn)
+    for ambiguous in (False, True):
+        dbname = "tester_ci_legacy_bad" if ambiguous else "tester_ci_legacy_clean"
+        with psycopg.connect(admin_dsn, autocommit=True) as admin:
+            assert not admin.execute(
+                "SELECT 1 FROM pg_database WHERE datname=%s", (dbname,)
+            ).fetchone()
+            admin.execute(sql.SQL("CREATE DATABASE {} OWNER {}").format(
+                sql.Identifier(dbname), sql.Identifier(OWNER)
+            ))
+            admin.execute(sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(
+                sql.Identifier(dbname)
+            ))
+        legacy = make_conninfo(owner_dsn, dbname=dbname)
+        with psycopg.connect(legacy) as conn:
+            conn.execute("CREATE SCHEMA tester_platform")
+            conn.execute(
+                "CREATE TABLE tester_platform.migrations("
+                "version text PRIMARY KEY, checksum text NOT NULL, "
+                "applied_at timestamptz DEFAULT now())"
+            )
+            for migration in old_files:
+                body = migration.read_text(encoding="utf-8")
+                conn.execute(body)
+                conn.execute(
+                    "INSERT INTO tester_platform.migrations(version,checksum) VALUES(%s,%s)",
+                    (migration.name, hashlib.sha256(body.encode()).hexdigest()),
+                )
+            ids = [uuid4(), uuid4()]
+            for scope in ids[:2 if ambiguous else 1]:
+                conn.execute(
+                    "INSERT INTO tester_platform.transport_policy_scopes"
+                    "(installation_id,runtime_role,owner_role) VALUES(%s,%s,current_user)",
+                    (scope, USER_A),
+                )
+            conn.execute(
+                "UPDATE tester_platform.transport_policy_scopes "
+                "SET globally_halted=true,dispatch_token=%s WHERE installation_id=%s",
+                (uuid4(), ids[0]),
+            )
+            conn.execute(
+                "INSERT INTO tester_platform.transport_policy_entries"
+                "(installation_id,endpoint_key,request_token,state,reason)"
+                " VALUES(%s,%s,%s,'HALTED','tls_failure')",
+                (ids[0], "api.bybit.com/v5/market/kline", uuid4()),
+            )
+        with psycopg.connect(legacy) as conn:
+            before_scope = conn.execute(
+                "SELECT installation_id,runtime_role,globally_halted,dispatch_token,"
+                "dispatch_not_before FROM tester_platform.transport_policy_scopes "
+                "ORDER BY installation_id"
+            ).fetchall()
+            before_entries = conn.execute(
+                "SELECT installation_id,endpoint_key,request_token,state,reason "
+                "FROM tester_platform.transport_policy_entries ORDER BY installation_id"
+            ).fetchall()
+            before_guard = conn.execute(
+                "SELECT md5(pg_get_functiondef("
+                "'tester_platform._check_public_transport(uuid,text)'::regprocedure))"
+            ).fetchone()[0]
+            before_versions = conn.execute(
+                "SELECT count(*) FROM tester_platform.migrations"
+            ).fetchone()[0]
+            assert before_versions == 11
+        if ambiguous:
+            try:
+                migrate(legacy)
+            except psycopg.Error as exc:
+                # Must be the explicit fail-closed duplicate-enrollment guard,
+                # not a silent partial migration or an unrelated syntax error.
+                assert "enrolled by multiple installations" in str(exc), str(exc)
+            else:
+                raise AssertionError("Ambiguous legacy DB unexpectedly upgraded")
+        else:
+            migrate(legacy)
+        with psycopg.connect(legacy) as conn:
+            assert conn.execute(
+                "SELECT installation_id,runtime_role,globally_halted,dispatch_token,"
+                "dispatch_not_before FROM tester_platform.transport_policy_scopes "
+                "ORDER BY installation_id"
+            ).fetchall() == before_scope
+            assert conn.execute(
+                "SELECT installation_id,endpoint_key,request_token,state,reason "
+                "FROM tester_platform.transport_policy_entries ORDER BY installation_id"
+            ).fetchall() == before_entries
+            n = conn.execute("SELECT count(*) FROM tester_platform.migrations").fetchone()[0]
+            assert n == (11 if ambiguous else 12), (ambiguous, n)
+            idx = conn.execute(
+                "SELECT to_regclass('tester_platform.transport_policy_one_installation_per_runtime_role')"
+            ).fetchone()[0]
+            assert (idx is None) == ambiguous
+            changed_guard = conn.execute(
+                "SELECT md5(pg_get_functiondef("
+                "'tester_platform._check_public_transport(uuid,text)'::regprocedure))"
+            ).fetchone()[0]
+            assert (changed_guard == before_guard) == ambiguous
+        # The two legacy databases deny cross-install logins and cannot be
+        # mistaken for a fresh runtime route or cloned DSN.
+        with psycopg.connect(legacy) as conn:
+            assert conn.execute("SELECT current_user").fetchone() == (OWNER,)
+        try:
+            psycopg.connect(make_conninfo(app_dsn, dbname=dbname), connect_timeout=3).close()
+        except psycopg.OperationalError:
+            pass
+        else:
+            raise AssertionError("Foreign runtime CONNECT unexpectedly accepted")
+        print(
+            "PASS: real PG18 legacy {} upgrade; unchanged durable halt/lease; "
+            "cross-database CONNECT denied".format(
+                "ambiguous rollback" if ambiguous else "singleton"
+            ),
+            flush=True,
+        )
+
+
 def main():
     raw = os.environ.get("TESTER_PG18_SECURITY_ADMIN_DSN", "")
     parts = conninfo_to_dict(raw)
@@ -99,6 +224,7 @@ def main():
             "SELECT checksum FROM tester_platform.migrations WHERE version=%s",
             ("012_transport_installation_principal.sql",),
         ).fetchone() is not None
+    check_legacy_upgrades(raw, owner_dsn, app_dsn)
     for dsn, role in ((app_dsn, USER_A), (second_dsn, USER_B)):
         with psycopg.connect(dsn) as app:
             assert app.execute("SELECT session_user,current_user").fetchone() == (role, role)
