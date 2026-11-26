@@ -1083,8 +1083,11 @@ def test_failure_after_root_created_keeps_fail_closed_rollback(tmp_path, monkeyp
     root, call, probe, cleaned = _drive_fresh_install(
         tmp_path, monkeypatch, record_root_created=True
     )
-    with pytest.raises(ReleaseSecurityError, match="foreign creator"):
+    with pytest.raises(RuntimeError, match="later provisioning failure") as info:
         call()
+    assert isinstance(info.value.__cause__, ReleaseSecurityError)
+    assert "foreign creator" in str(info.value.__cause__)
+    assert any("authenticated rollback failed" in n for n in info.value.__notes__)
     assert probe.touched == ["_provisioning_entries"]
     assert root.is_dir() and cleaned == []
     (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
@@ -1105,8 +1108,104 @@ def test_refused_rollback_before_root_created_never_masks_original(tmp_path, mon
     with pytest.raises(ValueError, match="Remove the empty folder and run Setup again") as info:
         call()
     assert isinstance(info.value.__context__, ReleaseSecurityError)
-    assert any("rollback of this attempt was refused" in n for n in info.value.__notes__)
+    assert any("authenticated rollback failed" in n for n in info.value.__notes__)
     assert probe.touched == [] and cleaned == []
     assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
     (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
     assert (maintenance / "provisioning.jsonl").is_file()
+
+
+def test_interrupted_journal_append_never_masks_original_root_refusal(tmp_path, monkeypatch):
+    """C1: even a failed interrupted-phase receipt preserves the foreign root."""
+    from src.api import release_provision as rp
+
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=False
+    )
+    # The helper owns its private FakeTransaction type. Patch the injected
+    # constructor so a journal write failure can be simulated deterministically.
+    saved = rp.ProvisioningTransaction
+
+    def transaction(*args, **kwargs):
+        tx = saved(*args, **kwargs)
+        append = tx.append
+
+        def inject(row):
+            if row.get("event") == "phase" and row.get("phase") == "interrupted":
+                raise OSError("injected journal disk failure")
+            return append(row)
+
+        tx.append = inject
+        return tx
+
+    monkeypatch.setattr(rp, "ProvisioningTransaction", transaction)
+    with pytest.raises(ValueError, match="Remove the empty folder and run Setup again") as info:
+        call()
+    assert any("interrupted journal append failed" in n for n in info.value.__notes__)
+    assert probe.touched == []
+    assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
+    assert cleaned == []
+    # Incomplete journal evidence is retained for authenticated recovery.
+    (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
+    assert (maintenance / "provisioning.jsonl").is_file()
+
+
+def test_root_creation_rollback_refusal_preserves_primary_failure(tmp_path, monkeypatch):
+    """C1: owned-root rollback refusal remains secondary to original failure."""
+    from src.api import release_provision as rp
+
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=True
+    )
+    saved = rp.ProvisioningTransaction
+
+    def transaction(*args, **kwargs):
+        tx = saved(*args, **kwargs)
+        append = tx.append
+
+        def inject(row):
+            if row.get("event") == "phase" and row.get("phase") == "interrupted":
+                raise OSError("injected journal disk failure")
+            return append(row)
+
+        tx.append = inject
+        return tx
+
+    monkeypatch.setattr(rp, "ProvisioningTransaction", transaction)
+    with pytest.raises(RuntimeError, match="later provisioning failure") as info:
+        call()
+    assert any("interrupted journal append failed" in n for n in info.value.__notes__)
+    # No deletion when the interruption journal did not persist.
+    assert probe.touched == []
+    assert root.is_dir() and cleaned == []
+    (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
+    assert (maintenance / "provisioning.jsonl").is_file()
+
+
+def test_guard_release_failure_does_not_hide_original_refusal(tmp_path, monkeypatch):
+    """A guard error must not silently change fail-closed rollback decisions."""
+    from src.api import release_provision as rp
+
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=False
+    )
+    saved = rp.ProvisioningTransaction
+
+    def transaction(*args, **kwargs):
+        tx = saved(*args, **kwargs)
+
+        def broken_release():
+            raise OSError("injected guard close failure")
+
+        tx.release_guards = broken_release
+        return tx
+
+    monkeypatch.setattr(rp, "ProvisioningTransaction", transaction)
+    with pytest.raises(ValueError, match="Remove the empty folder and run Setup again") as info:
+        call()
+    assert any("provisioning guard release failed" in n for n in info.value.__notes__)
+    assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
+    assert probe.touched == []
+    # Abnormal guard failure retains the journal for separately authenticated retry.
+    assert cleaned == []
+    assert len(list(tmp_path.glob("TesterReleaseMaintenance_*"))) == 1
