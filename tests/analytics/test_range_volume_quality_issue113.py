@@ -292,13 +292,24 @@ class MinuteVolume(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'candle_outside_reconciliation_window'):
             reconcile([in_window], [candle(0, volume='0.003'), candle(M, volume='8')])
 
-    def test_minute_volume_future_trade_never_passes_as_of_gate(self):
-        # This timestamp is within the chosen window but the source is not
-        # known at as_of_ms.  Even equal sums cannot authorize MATCH.
+    def test_minute_volume_as_of_event_time_is_not_knowledge_time(self):
+        # At as_of=M-1 the candle is not closed, so numeric equality fails
+        # the availability gate; at M it can MATCH but cannot prove that the
+        # exchange observation was historically visible at that timestamp.
         t = [trade(1, M - 1, '0.003')]
         report = reconcile(t, [candle(0, volume='0.003')], as_of=M-1)
         self.assertEqual(status(report), 'INCOMPLETE_TRADES')
-        self.assertNotEqual(status(report), 'MATCH')
+        self.assertEqual(status(reconcile(t, [candle(0, volume='0.003')], as_of=M)), 'MATCH')
+        self.assertEqual(report['knowledge_time_status'], 'NOT_PROVEN')
+        self.assertIs(report['historical_completeness_certified'], False)
+        self.assertIs(report['strategy_admission'], False)
+
+    def test_minute_volume_match_not_historical_completeness(self):
+        result = reconcile([trade(1, 5, '0.003')], [candle(0, volume='0.003')])
+        self.assertEqual(status(result), 'MATCH')
+        self.assertEqual(result['historical_visibility'], 'UNKNOWN')
+        self.assertFalse(result['historical_completeness_certified'])
+        self.assertFalse(result['strategy_admission'])
 
     def test_minute_volume_shared_canonical_units(self):
         from src.analytics.core import quantity_unit
