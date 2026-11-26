@@ -126,7 +126,15 @@ export function mountObservedReadback(root, { getScope, fetchCapabilities, fetch
       const selection = () => ({ ...getScope(), as_of: asOf.value, tick_size: tick.value });
       const scope = observedScope(selection());
       status.textContent = "Checking source route and bounded readback…";
-      const features = (await fetchCapabilities(scope, controller.signal))?.data?.features;
+      // Capability discovery uses the public Query schema, not the separate
+      // analytics readback schema. Never send readback-only as_of_ms,
+      // interval_ms, tick_size or source-owned identity to /api/capabilities.
+      const discoveryScope = Object.freeze({
+        category: scope.category, symbol: scope.symbol,
+        start_ms: scope.start_ms, end_ms: scope.end_ms,
+        interval: String(scope.interval_ms / 60000),
+      });
+      const features = (await fetchCapabilities(discoveryScope, controller.signal))?.data?.features;
       if (token !== generation || controller.signal.aborted) return;
       if (features?.analytics_readback?.enabled !== true ||
           features.analytics_readback.resource !== READBACK ||
