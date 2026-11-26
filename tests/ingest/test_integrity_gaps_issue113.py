@@ -273,6 +273,208 @@ def test_rejected_window_preserves_rows_across_journal_reopen(tmp_path):
         j.close()
 
 
+def test_final_window_save_rollback_is_atomic_and_retryable(tmp_path):
+    """Simulate an actual SQLite statement failure midway through Journal.save.
+
+    The ingestion journal is SQLite; this test verifies its real transaction
+    boundary, not PostgreSQL or physical power-loss behavior.
+    """
+    import sqlite3
+    from src.ingest.journal import Journal
+
+    path = tmp_path / "atomic_journal.db"
+    j = Journal(path)
+    # Establish one previously completed window as a durable control.
+    Backfill(api_with({"list": [candle(START)]}), j).run(
+        "linear", "BTCUSDT", "kline", "1", START, START + 60000
+    )
+    old = stored(j, "kline", "1")[START]
+    previous_key = key("kline", "1", START, START + 60000)
+    failed_key = key("kline", "1", START + 60000, START + 180000)
+    # SQLite trigger fires on the SECOND record_versions insert. All writes
+    # earlier in that same Journal.save must roll back (not become visible).
+    j.db.execute(
+        "CREATE TRIGGER reject_second_version BEFORE INSERT ON record_versions "
+        "WHEN (SELECT COUNT(*) FROM record_versions) >= 2 "
+        "BEGIN SELECT RAISE(ABORT, 'synthetic_disk_write_failure'); END"
+    )
+    j.db.commit()
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="synthetic_disk_write_failure"):
+            Backfill(api_with({"list": [candle(START + 60000), candle(START + 120000)]}), j).run(
+                "linear", "BTCUSDT", "kline", "1",
+                START + 60000, START + 180000,
+            )
+        assert stored(j, "kline", "1") == {START: old}
+        assert j.task(previous_key)["status"] == "observed"
+        assert j.task(failed_key) is None or j.task(failed_key)["status"] == "failed"
+        # The incomplete transaction must not create a row/version/link.
+        assert j.db.execute("SELECT COUNT(*) FROM record_versions").fetchone()[0] == 1
+        assert j.db.execute("SELECT COUNT(*) FROM record_links").fetchone()[0] == 1
+        j.db.rollback()
+        j.db.execute("DROP TRIGGER reject_second_version")
+        j.db.commit()
+        j.close()
+        j = Journal(path)
+        assert stored(j, "kline", "1") == {START: old}
+        # Retrying after reopening still publishes both complete rows.
+        resumed = Backfill(api_with({"list": [candle(START + 60000), candle(START + 120000)]}), j).run(
+            "linear", "BTCUSDT", "kline", "1",
+            START + 60000, START + 180000,
+        )
+        assert resumed["status"] == "observed"
+        assert set(stored(j, "kline", "1")) == {START, START + 60000, START + 120000}
+    finally:
+        j.close()
+
+
+def test_failure_after_first_page_exports_no_unverified_market_records(tmp_path):
+    from src.ingest.journal import Journal
+
+    j = Journal(tmp_path / "acquire.db")
+    export = tmp_path / "handoff.json"
+    first = {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "1"}],
+             "nextPageCursor": "page2"}
+    second = {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "2"}]}
+    try:
+        with pytest.raises(ValueError, match="Conflicting duplicate"):
+            Backfill(api_with(first, second), j).run(
+                "linear", "BTCUSDT", "funding", "", START, START + 100
+            )
+        j.export(export)
+        bundle = json.loads(export.read_text(encoding="utf-8"))
+        assert bundle["records"] == []
+        assert bundle["raw_record_versions"] == []
+        assert all(batch["records"] == [] for batch in bundle["storage_batches"])
+        assert any(v.get("kind") == "rest_response" for v in bundle["evidence"].values())
+        assert j.task(key("funding", "", START, START + 100))["status"] == "failed"
+    finally:
+        j.close()
+
+
+def test_first_page_then_unexpected_crash_keeps_no_checkpoint(tmp_path):
+    from src.ingest.journal import Journal
+
+    file = tmp_path / "crash.db"
+    j = Journal(file)
+    api = api_with({"list": [candle(START)], "nextPageCursor": "page2"})
+    try:
+        # A BaseException deliberately bypasses the regular failure path and
+        # models an abrupt termination after first-page evidence committed.
+        page_number = [0]
+        def crash_call(path, params):
+            page_number[0] += 1
+            if page_number[0] >= 2:
+                raise KeyboardInterrupt("synthetic_crash_after_page_one")
+            return ({"list": [candle(START)], "nextPageCursor": "page2"}, URL)
+        api.call.side_effect = crash_call
+        with pytest.raises(KeyboardInterrupt, match="synthetic_crash_after_page_one"):
+            Backfill(api, j).run(
+                "linear", "BTCUSDT", "kline", "1", START, START + 60000
+            )
+        assert stored(j, "kline", "1") == {}
+        assert j.task(key("kline", "1", START, START + 60000)) is None
+    finally:
+        j.close()
+    j = Journal(file)
+    try:
+        assert stored(j, "kline", "1") == {}
+        replay = Backfill(api_with({"list": [candle(START)]}), j).run(
+            "linear", "BTCUSDT", "kline", "1", START, START + 60000
+        )
+        assert replay["status"] == "observed"
+    finally:
+        j.close()
+
+
+def test_oversized_decoded_rest_page_denied_without_staging_or_export(tmp_path):
+    """A large valid JSON page cannot exhaust unbounded provenance memory."""
+    from src.ingest.rest import MAX_DECODED_PAGE_BYTES, bounded_result_hash
+
+    too_big = {"list": [{"fundingRateTimestamp": str(START),
+                         "fundingRate": "1",
+                         "untrusted": "X" * MAX_DECODED_PAGE_BYTES}]}
+    with pytest.raises(ValueError, match="byte budget exceeded"):
+        bounded_result_hash(too_big)
+    j = Journal(tmp_path / "byte_budget.db")
+    try:
+        api = api_with(too_big)
+        with pytest.raises(ValueError, match="REST page rejected before publication"):
+            Backfill(api, j).run(
+                "linear", "BTCUSDT", "funding", "", START, START + 100
+            )
+        assert stored(j, "funding", "") == {}
+        assert j.task(key("funding", "", START, START + 100))["status"] == "failed"
+        export = tmp_path / "byte_budget_handoff.json"
+        j.export(export)
+        bundle = json.loads(export.read_text(encoding="utf-8"))
+        assert bundle["records"] == []
+        assert bundle["raw_record_versions"] == []
+        assert any(e.get("kind") == "rest_response_rejected"
+                   for e in bundle["evidence"].values())
+    finally:
+        j.close()
+
+
+def test_window_cumulative_evidence_budget_rejects_late_page_without_publication(
+    tmp_path, monkeypatch
+):
+    """Two individually valid pages cannot exceed the total window budget."""
+    import src.ingest.rest as rest
+
+    first = {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "0.001"}],
+             "nextPageCursor": "next"}
+    second = {"list": [{"fundingRateTimestamp": str(START + 1), "fundingRate": "0.002"}]}
+    _, first_bytes = rest.bounded_result_hash(first, return_size=True)
+    monkeypatch.setattr(rest, "MAX_WINDOW_EVIDENCE_BYTES", first_bytes + 10)
+    j = Journal(tmp_path / "cum_evidence.db")
+    try:
+        with pytest.raises(ValueError, match="REST page rejected before publication"):
+            Backfill(api_with(first, second), j).run(
+                "linear", "BTCUSDT", "funding", "", START, START + 100
+            )
+        assert stored(j, "funding", "") == {}
+        assert j.task(key("funding", "", START, START + 100))["status"] == "failed"
+        export = tmp_path / "evidence-rejection.json"
+        j.export(export)
+        bundle = json.loads(export.read_text(encoding="utf-8"))
+        assert bundle["records"] == []
+        assert bundle["raw_record_versions"] == []
+        assert any(value.get("kind") == "rest_response_rejected"
+                   for value in bundle["evidence"].values())
+    finally:
+        j.close()
+
+
+def test_large_backfill_request_splits_into_bounded_seven_day_windows(journal):
+    """Explicit huge caller window must split, never silently truncate a tail."""
+    from src.ingest.rest import MAX_BACKFILL_WINDOW_MS
+
+    api = Mock()
+    calls = []
+    def page(path, params):
+        a = params["startTime"]
+        b = params["endTime"] + 1
+        calls.append((a, b))
+        return ({"list": [{"fundingRateTimestamp": str(a), "fundingRate": "0.001"}]}, URL)
+    api.call.side_effect = page
+    end = START + 20 * 86400000
+    result = Backfill(api, journal).run(
+        "linear", "BTCUSDT", "funding", "", START, end,
+        window_ms=365 * 86400000
+    )
+    assert calls == [
+        (START, START + MAX_BACKFILL_WINDOW_MS),
+        (START + MAX_BACKFILL_WINDOW_MS, START + 2 * MAX_BACKFILL_WINDOW_MS),
+        (START + 2 * MAX_BACKFILL_WINDOW_MS, end),
+    ]
+    assert result["status"] == "observed"
+    assert result["records"] == 3
+    assert len(result["observations"]) == 3
+    assert len(stored(journal, "funding", "")) == 3
+    assert all(o["end_ms"] <= end for o in result["observations"])
+
+
 def test_still_open_candle_may_change_between_requests(journal):
     # Open candles are never staged; a changed open candle on the gap re-query is
     # normal exchange behaviour, not a conflicting duplicate.

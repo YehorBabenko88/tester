@@ -75,6 +75,31 @@ def payload_identity(row):
     return json.dumps(row, sort_keys=True, separators=(",", ":"))
 
 
+MAX_DECODED_PAGE_BYTES = 4 * 1024 * 1024
+MAX_HTTP_BODY_BYTES = 4 * 1024 * 1024
+MAX_BACKFILL_WINDOW_MS = 7 * 86400000
+MAX_WINDOW_EVIDENCE_BYTES = 32 * 1024 * 1024
+MAX_REST_OPERATION_SECONDS = 90
+
+
+def bounded_result_hash(result, max_bytes=MAX_DECODED_PAGE_BYTES, *, return_size=False):
+    """Hash canonical decoded JSON with a strict serialized byte ceiling.
+
+    The HTTP Transport must enforce its own raw-body limit before JSON
+    decoding; this guards retained response evidence and staging memory.
+    """
+    size = 0
+    digest = hashlib.sha256()
+    encoder = json.JSONEncoder(sort_keys=True, separators=(",", ":"))
+    for fragment in encoder.iterencode(result):
+        chunk = fragment.encode("utf-8")
+        size += len(chunk)
+        if size > max_bytes:
+            raise ValueError("Decoded REST page byte budget exceeded")
+        digest.update(chunk)
+    return (digest.hexdigest(), size) if return_size else digest.hexdigest()
+
+
 class API:
     def __init__(self, transport=None):
         self.transport = transport or Transport()
@@ -89,16 +114,70 @@ class API:
         url = "https://api.bybit.com/v5/market" + path + "?" + urlencode(params)
         from contextlib import nullcontext
 
+        # One monotonic budget covers policy admission, network headers, streamed
+        # body, application-level retry defer and final parsing. Unlike a socket
+        # timeout this also bounds slow trickle across successive reads.
+        deadline = time.monotonic() + MAX_REST_OPERATION_SECONDS
+        def bounded_cancel():
+            if time.monotonic() >= deadline:
+                return True
+            return bool(cancel and cancel())
+
         with self.transport.operation() if isinstance(self.transport, Transport) else nullcontext():
             for attempt in range(6):
-                if cancel and cancel():
-                    raise InterruptedError("Public request cancelled")
-                with self.transport.get(
-                    url, **({"cancel": cancel} if cancel is not None else {})
-                ) as r:
-                    body = r.json()
-                    if cancel and cancel():
-                        raise InterruptedError("Public request cancelled")
+                if bounded_cancel():
+                    raise InterruptedError("Public REST operation deadline/cancellation reached")
+                # The canonical Transport supports guarded response streaming.
+                # Never ask Requests to buffer an unbounded body before the
+                # application byte budget can be checked. Offline Mock
+                # transports retain their legacy response/content fixture seam.
+                streamed = isinstance(self.transport, Transport)
+                # Request uncompressed bytes so an oversized compressed
+                # exchange body cannot expand unexpectedly inside Requests.
+                # The decoded streaming cap remains mandatory if ignored.
+                options = {"stream": True, "headers": {"accept-encoding": "identity"}} if streamed else {}
+                # The existing Transport polls this callback while it waits
+                # for durable policy/dispatch and during streaming. Cap each
+                # blocking socket phase by the remaining operation budget too:
+                # a time-limited stream must not retain the default 60s read
+                # timeout when its caller has only a short budget left.
+                if streamed:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise InterruptedError("Public REST operation deadline/cancellation reached")
+                    options["timeout"] = (min(15, remaining), min(60, remaining))
+                    options["cancel"] = bounded_cancel
+                elif cancel is not None:
+                    options["cancel"] = cancel
+                with self.transport.get(url, **options) as r:
+                    if streamed:
+                        encoding = r.headers.get("Content-Encoding", "identity")
+                        if not isinstance(encoding, str) or encoding.strip().lower() not in ("", "identity"):
+                            raise ValueError("Unsupported REST content encoding")
+                        chunks = []
+                        byte_count = 0
+                        for chunk in r.iter_content(chunk_size=65536):
+                            if bounded_cancel():
+                                raise InterruptedError("Public REST operation deadline/cancellation reached")
+                            if not isinstance(chunk, bytes):
+                                raise ValueError("Malformed REST HTTP body chunk")
+                            byte_count += len(chunk)
+                            if byte_count > MAX_HTTP_BODY_BYTES:
+                                raise ValueError("REST HTTP body byte budget exceeded")
+                            chunks.append(chunk)
+                        wire_bytes = b"".join(chunks)
+                    else:
+                        wire_bytes = r.content
+                        if not isinstance(wire_bytes, bytes) or len(wire_bytes) > MAX_HTTP_BODY_BYTES:
+                            raise ValueError("REST HTTP body byte budget exceeded")
+                    if bounded_cancel():
+                        raise InterruptedError("Public REST operation deadline/cancellation reached")
+                    try:
+                        body = json.loads(wire_bytes)
+                    except (ValueError, UnicodeError):
+                        raise ValueError("Malformed Bybit JSON response") from None
+                    if bounded_cancel():
+                        raise InterruptedError("Public REST operation deadline/cancellation reached")
                     if not isinstance(body, dict) or type(body.get("retCode")) is not int:
                         raise ValueError("Malformed Bybit response")
                     code = body["retCode"]
@@ -107,8 +186,8 @@ class API:
                             raise ValueError("Malformed Bybit result")
                         self.last_response = {
                             "url": url,
-                            "bytes_base64": base64.b64encode(r.content).decode(),
-                            "sha256": hashlib.sha256(r.content).hexdigest(),
+                            "bytes_base64": base64.b64encode(wire_bytes).decode(),
+                            "sha256": hashlib.sha256(wire_bytes).hexdigest(),
                             "hash_scope": "original_http_body",
                             "status_code": r.status_code,
                         }
@@ -119,6 +198,8 @@ class API:
                     delay = max(2**attempt, float(reset) / 1000 - time.time() if reset else 0)
                 if attempt == 5:
                     raise RuntimeError(f"Bybit retry exhausted: {code}")
+                if bounded_cancel() or delay >= deadline - time.monotonic():
+                    raise InterruptedError("Public REST operation deadline/cancellation reached")
                 self.transport.defer(delay)
         raise RuntimeError("Unreachable")
 
@@ -146,6 +227,10 @@ class Backfill:
             raise ValueError("Dataset unavailable for category")
         if start < 0 or end <= start or window_ms <= 0:
             raise ValueError("Invalid range")
+        # A caller may request a year, but each independently validated
+        # publication window is bounded. Never drop a tail or publish a
+        # partially checked oversized interval.
+        window_ms = min(window_ms, MAX_BACKFILL_WINDOW_MS)
         path, maxlimit, field, periodkey = SPECS[kind]
         if periodkey == "interval" and interval not in INTERVALS:
             raise ValueError("Invalid candle interval")
@@ -213,9 +298,10 @@ class Backfill:
             MAX_STAGED_RECORDS = 12000
             MAX_WINDOW_PAGES = 500
             page_count = 0
+            evidence_bytes = 0
 
             def query(a, b, token=None):
-                nonlocal page_count
+                nonlocal page_count, evidence_bytes
                 if page_count >= MAX_WINDOW_PAGES:
                     raise ValueError("Window pagination budget exceeded")
                 page_count += 1
@@ -247,7 +333,30 @@ class Backfill:
                     evidence_refs.append(ref)
                     raise
                 stamp = utcnow()
-                response_count = len(result.get("list", []))
+                try:
+                    if not isinstance(result, dict) or not isinstance(result.get("list"), list):
+                        raise ValueError("Malformed REST page")
+                    raw_hash, decoded_bytes = bounded_result_hash(result, return_size=True)
+                    original = getattr(self.api, "last_response", None)
+                    b64 = original.get("bytes_base64") if isinstance(original, dict) else None
+                    # Charge both retained canonical JSON and its original
+                    # base64 HTTP receipt to the same finite window budget.
+                    retained_bytes = decoded_bytes + (len(b64) if isinstance(b64, str) else 0)
+                    if evidence_bytes + retained_bytes > MAX_WINDOW_EVIDENCE_BYTES:
+                        raise ValueError("Window evidence byte budget exceeded")
+                    evidence_bytes += retained_bytes
+                except (ValueError, TypeError, OverflowError) as exc:
+                    evidence_refs.append(self.journal.add_evidence({
+                        "kind": "rest_response_rejected",
+                        "ingestion_run": run_id,
+                        "request_params": p,
+                        "cursor_in": token,
+                        "start_ms": a,
+                        "end_ms": b,
+                        "reason": "page_budget_or_format",
+                    }))
+                    raise ValueError("REST page rejected before publication") from exc
+                response_count = len(result["list"])
                 terminal = (
                     "PARTIAL"
                     if result.get("nextPageCursor") or response_count >= limit
@@ -276,9 +385,7 @@ class Backfill:
                     "pagination": pagination,
                     "cursor_out_field_present": "nextPageCursor" in result,
                     "raw_response": result,
-                    "raw_hash": hashlib.sha256(
-                        json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
-                    ).hexdigest(),
+                    "raw_hash": raw_hash,
                     "hash_scope": "canonical_result_json",
                 }
                 if isinstance(original, dict):

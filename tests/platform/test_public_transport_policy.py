@@ -345,6 +345,114 @@ s.request.assert_not_called()
 
 
 @pytest.mark.integration
+def test_e_round8_foreign_scope_never_gets_dispatch_lease_or_network(durable_policy):
+    """P0: same SQL principal cannot enroll or reserve another installation.
+
+    Prior to additive migration 012, foreign UUID + same app role is accepted
+    by the old guard and this test is DELIBERATELY RED. After 012, duplicate
+    enrollment must fail; on any upgrade where enrollment succeeds, the foreign
+    dispatch must still be denied by policy before any HTTP/network activity.
+    """
+    from src.api.db import connect
+    from src.api.transport_policy import PostgresTransportPolicy
+    from psycopg.conninfo import conninfo_to_dict
+    from psycopg.errors import UniqueViolation
+
+    policy, owner, scope = durable_policy
+    foreign_scope = uuid4()
+    user = conninfo_to_dict(policy.dsn)["user"]
+    enrolled = False
+    session = Mock()
+    try:
+        try:
+            with connect(owner.dsn) as conn:
+                conn.execute(
+                    "INSERT INTO tester_platform.transport_policy_scopes"
+                    "(installation_id,runtime_role,owner_role) VALUES(%s,%s,current_user)",
+                    (foreign_scope, user),
+                )
+            enrolled = True
+        except UniqueViolation:
+            # Additive 012 UNIQUE(runtime_role) rejection is the expected
+            # secure outcome; no alternate scope or lease is materialized.
+            pass
+        if enrolled:
+            foreign = PostgresTransportPolicy(policy.dsn, foreign_scope)
+            with pytest.raises(Exception):
+                Transport(
+                    session=session, policy_store=foreign, sleep=Mock()
+                ).get(URL)
+        session.request.assert_not_called()
+        assert policy.read(URL.removeprefix("https://")) == "CLEAR"
+    finally:
+        if enrolled:
+            with connect(owner.dsn) as conn:
+                conn.execute(
+                    "DELETE FROM tester_platform.transport_policy_entries "
+                    "WHERE installation_id=%s", (foreign_scope,),
+                )
+                conn.execute(
+                    "DELETE FROM tester_platform.transport_policy_scopes "
+                    "WHERE installation_id=%s", (foreign_scope,),
+                )
+
+
+
+
+@pytest.mark.integration
+def test_e_round8_cancelled_stream_closes_real_pg_endpoint_and_dispatch_leases(durable_policy):
+    """An interrupted REST body releases both durable PG leases, not just Python locks.
+
+    Run only with the explicitly disposable policy DSNs (55820..55827).
+    This tests the already-enrolled local scope; it cannot authorize a
+    foreign installation or activate the production runner.
+    """
+    import io
+    from src.ingest.rest import API
+
+    policy, owner, scope = durable_policy
+    cancelled = [False]
+
+    class InterruptingBody(io.BytesIO):
+        def read(self, amount=-1):
+            chunk = super().read(amount)
+            cancelled[0] = True
+            return chunk
+
+    raw = InterruptingBody(b'{"retCode":0,"result":{"list":[]}}')
+    reply = response()
+    reply._content = False
+    reply.raw = raw
+    session = Mock()
+    session.request.return_value = reply
+    transport = Transport(session=session, policy_store=policy,
+                          rate=1000000, sleep=Mock())
+    with pytest.raises(InterruptedError):
+        API(transport).call("/time", {}, cancel=lambda: cancelled[0])
+    assert cancelled[0]
+    assert raw.closed
+    session.request.assert_called_once()
+    assert policy.read(URL.removeprefix("https://")) == "CLEAR"
+
+    # A clean dispatch is intentionally followed by a >=0.5s SQL cooldown,
+    # so WAIT during that cooldown is safe. PENDING (stranded token) is NOT.
+    from time import sleep
+
+    state, token, delay = policy.reserve_dispatch()
+    assert state in {"WAIT", "GRANTED"}, (
+        "Cancelled response left a pending or halted dispatch lease", state
+    )
+    if state == "WAIT":
+        assert token is None and 0 < delay <= 2.0
+        sleep(delay + 0.2)
+        state, token, delay = policy.reserve_dispatch()
+    assert (state, delay) == ("GRANTED", 0)
+    assert token
+    policy.finish_dispatch(token, 0)
+    assert policy.read(URL.removeprefix("https://")) == "CLEAR"
+
+
+@pytest.mark.integration
 def test_actual_pg_stream_tls_and_owner_only_reset(durable_policy):
     import psycopg
 
