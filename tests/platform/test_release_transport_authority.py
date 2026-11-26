@@ -471,3 +471,19 @@ def test_round8_owner_static_pin_remains_network_disabled_even_with_pg_attestati
     )
     assert output["network_eligible"] is False
     assert output["analytics_route_eligible"] is False
+
+
+def test_round8_signed_static_pin_cannot_be_replayed_to_another_root(tmp_path):
+    from dataclasses import replace
+
+    original = _offline_authority(tmp_path)
+    pin, fingerprint = _signed_offline_pin(original)
+    moved = replace(original, root=str(tmp_path / "cloned-installation"))
+    calls = []
+    with pytest.raises(ReleaseSecurityError, match="installation mismatch"):
+        auth.verify_offline_service_identity(
+            moved, pin=pin, pinned_public_key_sha256=fingerprint,
+            token_checker=lambda sid: calls.append("token") or sid,
+            pg_checker=lambda scope: calls.append("pg") or True,
+        )
+    assert calls == []  # No token or PostgreSQL access before signature failure.
