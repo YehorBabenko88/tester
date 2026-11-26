@@ -37,11 +37,16 @@ permissions:
   contents: read
 jobs:
   contract:
+    name: contract-pg${{ matrix.postgres }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16', '18']
     services:
       postgres:
-        image: postgres:16
+        image: postgres:${{ matrix.postgres }}
         env:
           POSTGRES_USER: tester_aux_ci
           POSTGRES_PASSWORD: disposable-only
