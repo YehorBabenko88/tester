@@ -12,6 +12,7 @@ import { progress, connectionNotice, validateSeries, PANELS } from "./model.js";
 import { PanelChart } from "./charts.js";
 import { classifyPanelCapability } from "./capabilities.js";
 import { mountAnalyticsInspector } from "./analytics-inspector.js";
+import { mountObservedReadback } from "./analytics-readback.js";
 const $ = (s) => document.querySelector(s);
 const el = (tag, text, className) => {
   const n = document.createElement(tag);
@@ -90,10 +91,26 @@ const analyticsInspector = mountAnalyticsInspector(document, {
   fetchCapabilities: (params, signal) =>
     request("/api/capabilities", params, { signal }),
 });
+const observedReadback = mountObservedReadback(document, {
+  getScope: () => ({
+    category: state.active?.category || $("#category").value,
+    symbol: state.active?.symbol || $("#manual-symbol").value,
+    interval: $("#interval").value,
+    start: $("#start").value,
+    end: $("#end").value,
+  }),
+  fetchCapabilities: (params, signal) =>
+    request("/api/capabilities", params, { signal }),
+  fetchReadback: (params, signal) =>
+    request("/api/analytics/readback", params, { signal }),
+});
 // Any change to selected scope invalidates previously inspected source metadata.
 for (const id of ["#category", "#manual-symbol", "#interval", "#start", "#end"])
   for (const event of ["input", "change"])
-    $(id).addEventListener(event, () => analyticsInspector.reset());
+    $(id).addEventListener(event, () => {
+      analyticsInspector.reset();
+      observedReadback.reset();
+    });
 
 const jobVersions = new Map(),
   jobControls = new Set();
@@ -908,6 +925,7 @@ function setRange(a, b) {
 }
 async function loadCharts(options = {}) {
   analyticsInspector.reset();
+  observedReadback.reset();
   if (!state.active) {
     $("#chart-status").textContent = "Select an instrument from the screener.";
     return;
