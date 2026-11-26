@@ -686,13 +686,35 @@ class ProvisioningTransaction:
         self._admin_owner(self.root)
 
     def release_guards(self):
-        self.release_journal()
-        for handle in self.external_leases.values():
-            handle.Close()
-        self.external_leases.clear()
+        """Close every owned guard, even when one close raises.
+
+        A failed close must never be mistaken for an authenticated rollback
+        authorization. Preserve the first error but attempt to release all
+        independent handles, leaving failure evidence to the installer.
+        """
+        failure = None
+        try:
+            self.release_journal()
+        except Exception as exc:
+            failure = exc
+        for path, handle in list(self.external_leases.items()):
+            try:
+                handle.Close()
+            except Exception as exc:
+                if failure is None:
+                    failure = exc
+            else:
+                self.external_leases.pop(path, None)
         if self.root_guard is not None:
-            self.root_guard.Close()
-            self.root_guard = None
+            try:
+                self.root_guard.Close()
+            except Exception as exc:
+                if failure is None:
+                    failure = exc
+            else:
+                self.root_guard = None
+        if failure is not None:
+            raise failure
 
     def mkdir(self, path):
         import win32file
@@ -800,10 +822,28 @@ class ProvisioningTransaction:
 
         if self.closed:
             return
-        self.closed = True
-        self.release_guards()
-        win32security.AdjustTokenPrivileges(self.token, False, self.previous_privileges)
-        self.token.Close()
+        # Restore the installer's token even if releasing a journal/guard fails.
+        # An unsuccessful operation remains retryable; never mark it closed
+        # before all cleanup steps have been attempted.
+        failure = None
+        try:
+            self.release_guards()
+        except Exception as exc:
+            failure = exc
+        try:
+            win32security.AdjustTokenPrivileges(self.token, False, self.previous_privileges)
+        except Exception as exc:
+            if failure is None:
+                failure = exc
+        try:
+            self.token.Close()
+        except Exception as exc:
+            if failure is None:
+                failure = exc
+        else:
+            self.closed = True
+        if failure is not None:
+            raise failure
 
 
 def apply_actor_acls(root, marker):
