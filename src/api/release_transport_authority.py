@@ -314,6 +314,20 @@ def _windows_current_service_sid(expected):
     return expected
 
 
+
+def _offline_pg_policy_read(authority):
+    """Consult existing PostgreSQL SECURITY DEFINER role/policy: NO HTTP.
+
+    A policy READ is not a network reservation, revocable handoff or physical
+    database attestation. Only CLEAR is accepted; unknown/paused/revoked
+    states and database failures deny the offline positive identity sample.
+    """
+    from .transport_policy import PostgresTransportPolicy
+
+    policy = PostgresTransportPolicy(authority.dsn, authority.installation_id)
+    return policy.read("api.bybit.com/v5/market/kline") == "CLEAR"
+
+
 def verify_offline_service_identity(authority, *, pin=None, pinned_public_key_sha256=None,
                                     token_checker=None, pg_checker=None):
     """Round7 OFFLINE/DISPOSABLE verification; never grants runtime HTTP.
