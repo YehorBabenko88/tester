@@ -364,6 +364,11 @@ def create_app(settings: Settings | None = None, provider=None, *, analytics_bin
         # instrument was selected. Never force the browser to probe an absent
         # catalog router or a disconnected source list (404/503).
         availability["features"] = {
+            "analytics_readback": {
+                "enabled": analytics_binding_factory is not None,
+                "resource": "/api/analytics/readback" if analytics_binding_factory is not None else None,
+                "status": "OBSERVED_ONLY_NO_F_ADMISSION" if analytics_binding_factory is not None else "NOT_REGISTERED",
+            },
             "market_catalog": {
                 "enabled": catalog is not None,
                 "reason": ("configured" if catalog is not None else "catalog_not_configured"),
