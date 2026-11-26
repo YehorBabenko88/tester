@@ -60,8 +60,8 @@ export function inspectCapabilityPayload(data, scope) {
       ?.quantity_unit?.[scope.category] ?? "UNKNOWN",
     method: data.source_contracts?.observed_execution_metrics
       ?.contract_version ?? "UNKNOWN",
-    historicalCoverage: source?.historical_coverage === "COMPLETE"
-      ? "UNKNOWN" : "UNKNOWN",
+    // An observed recent sample never proves completeness of historical data.
+    historicalCoverage: "UNKNOWN",
     sourceObservation: typeof source?.status === "string"
       ? source.status : "UNKNOWN",
   };
@@ -84,6 +84,7 @@ export function mountAnalyticsInspector(root, { getScope, fetchCapabilities }) {
     generation++;
     abort?.abort();
     abort = null;
+    button.disabled = false;
     render("UNVERIFIED · No verified analytics readback selected.");
   }
   async function inspect() {
