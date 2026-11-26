@@ -285,6 +285,37 @@ def test_pg_policy_halt_persists_and_dispatch_remains_fenced(enrolled):
     # Fixture cleanup must NOT reset globally_halted or silently unlock leased state.
 
 
+
+def test_pg_private_guard_and_runtime_table_privileges(enrolled):
+    """012 must not open private SECURITY DEFINER or protected table DML."""
+    from psycopg.conninfo import conninfo_to_dict
+
+    from src.api.db import connect
+
+    owner, app, _ = enrolled
+    runtime = conninfo_to_dict(app)["user"]
+    with connect(owner) as conn:
+        guard = conn.execute(
+            "SELECT prosecdef,proowner=(SELECT oid FROM pg_roles WHERE rolname=current_user),"
+            "has_function_privilege('public',oid,'EXECUTE') "
+            "FROM pg_proc WHERE oid='tester_platform._check_public_transport(uuid,text)'::regprocedure"
+        ).fetchone()
+        assert guard == (True, True, False)
+        for table in (
+            "tester_platform.transport_policy_scopes",
+            "tester_platform.transport_policy_entries",
+            "tester_platform.restart_budgets",
+        ):
+            assert conn.execute(
+                "SELECT has_table_privilege(%s,%s,'UPDATE'),"
+                "has_table_privilege(%s,%s,'DELETE'),"
+                "has_table_privilege(%s,%s,'TRUNCATE')",
+                (runtime, table, runtime, table, runtime, table),
+            ).fetchone() == (False, False, False)
+    with connect(app) as conn:
+        assert conn.execute("SELECT session_user").fetchone() == (runtime,)
+
+
 def test_pg_duplicate_enrollment_rolls_back_without_mutating_existing_scope(enrolled):
     """Duplicate INSERT must fail without changing prior halt or leases."""
     import psycopg
