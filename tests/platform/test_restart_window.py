@@ -235,9 +235,9 @@ def test_actual_pg_clean_stop_lost_ack_retry_is_idempotent_and_token_bound(autho
     assert budget().counts()["host"] == 0
     state = _owner(owner, "SELECT tester_platform.restart_window_status(%s)", ident)[0]
     assert state["host_run_active"] is False
+    second = budget()
+    second.host_token = "f" * 32
     with pytest.raises(BudgetDenied):
-        second = budget()
-        second.host_token = "f" * 32
         second.record_clean_stop()
     next_host = budget()
     next_host.admit("host")
