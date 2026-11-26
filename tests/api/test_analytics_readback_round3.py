@@ -24,7 +24,9 @@ def valid_source_observation(category="inverse", *, start_ms=0, end_ms=60_000):
         "source_coverage": "UNKNOWN",
         "publication_time": "UNKNOWN",
         "method": "tester.execution-metrics/2",
-        "metrics_contract": {"status": "CURRENT"},
+        "metrics_contract": {"status": "CURRENT", "method": "tester.execution-metrics/2",
+                             "quantity_unit": "quote" if category == "inverse" else "base"},
+        "vwap_unit": "quote_per_base",
         "g_e_execution": "NOT_AUTHORIZED",
         "cvd_prior_history_known": False,
         "http_route_status": "NOT_REGISTERED",
@@ -283,6 +285,9 @@ def test_readback_wall_deadline_is_fail_closed(monkeypatch):
     lambda d: d.update(http_route_status="REGISTERED"),
     lambda d: d.update(cvd_prior_history_known=True),
     lambda d: d["metrics_contract"].update(status="HISTORICAL_READ_ONLY"),
+    lambda d: d["metrics_contract"].update(method="tester.execution-metrics/1"),
+    lambda d: d["metrics_contract"].update(quantity_unit="base"),
+    lambda d: d.update(vwap_unit="quote_per_quote"),
 ])
 def test_round4_readback_rejects_forged_or_incomplete_evidence(monkeypatch, alteration):
     from src.api import analytics_readback as module
@@ -315,6 +320,8 @@ def test_round4_canonical_metadata_is_explicit_and_non_admitting(monkeypatch):
     assert result["source"]["dataset_revision"] is None
     assert result["source"]["historical_coverage"] == "UNKNOWN"
     assert result["quality"]["reasons"] == ["historical_coverage_unknown", "publication_time_unknown"]
+    assert "installation_id" not in result["source"]
+    assert "source_sha" not in result["source"]
 
 
 @pytest.mark.parametrize("headers", [
