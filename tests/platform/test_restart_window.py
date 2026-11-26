@@ -316,6 +316,8 @@ def test_actual_pg_concurrent_host_reservations_are_charged_under_lock(authority
         "WHERE installation_id=%s", ident,
     )
     assert row[0] is not None
+    # A competing old run must not be able to mark the new run clean, even
+    # though only the latest token was stored in the protected owner row.
     denied = 0
     for candidate in hosts:
         try:
