@@ -315,3 +315,42 @@ def test_round4_canonical_metadata_is_explicit_and_non_admitting(monkeypatch):
     assert result["source"]["dataset_revision"] is None
     assert result["source"]["historical_coverage"] == "UNKNOWN"
     assert result["quality"]["reasons"] == ["historical_coverage_unknown", "publication_time_unknown"]
+
+
+@pytest.mark.parametrize("headers", [
+    {"Host": "127.0.0.1:18766", "Origin": "https://hostile.example"},
+    {"Host": "127.0.0.1:18766", "Sec-Fetch-Site": "cross-site"},
+])
+def test_analytics_readback_denies_cross_site_before_binding(headers, tmp_path):
+    from src.api.main import create_app
+    from src.api.config import Settings
+    from src.api.providers import UnavailableReader
+
+    touched = []
+    def binding():
+        touched.append(True)
+        raise AssertionError("Must not bind to storage on cross-origin request")
+    app = create_app(Settings(frontend_dir=tmp_path / "none", port=18766),
+                     provider=UnavailableReader(), analytics_binding_factory=binding)
+    response = TestClient(app, base_url="http://127.0.0.1:18766").get(
+        "/api/analytics/readback", params=scope().model_dump(), headers=headers)
+    assert response.status_code == 403
+    assert response.json()["detail"] == "analytics_cross_origin_denied"
+    assert touched == []
+
+
+def test_analytics_readback_rejects_untrusted_host_before_binding(tmp_path):
+    from src.api.main import create_app
+    from src.api.config import Settings
+    from src.api.providers import UnavailableReader
+
+    touched = []
+    def binding():
+        touched.append(True)
+        raise AssertionError("Must not run")
+    app = create_app(Settings(frontend_dir=tmp_path / "none"),
+                     provider=UnavailableReader(), analytics_binding_factory=binding)
+    response = TestClient(app, base_url="http://evil.example").get(
+        "/api/analytics/readback", params=scope().model_dump())
+    assert response.status_code == 400
+    assert touched == []
