@@ -345,6 +345,50 @@ s.request.assert_not_called()
 
 
 @pytest.mark.integration
+def test_e_round8_foreign_scope_never_gets_dispatch_lease_or_network(durable_policy):
+    """P0: same SQL principal must not reserve a different installation UUID.
+
+    This is a deliberately strict disposable PostgreSQL integration regression.
+    Under the published vulnerable 004 policy it is expected to FAIL until A's
+    additive owner-only principal binding migration is correctly deployed.
+    """
+    from src.api.db import connect
+    from src.api.transport_policy import PostgresTransportPolicy
+    from psycopg.conninfo import conninfo_to_dict
+
+    policy, owner, scope = durable_policy
+    foreign_scope = uuid4()
+    user = conninfo_to_dict(policy.dsn)["user"]
+    with connect(owner.dsn) as conn:
+        conn.execute(
+            "INSERT INTO tester_platform.transport_policy_scopes"
+            "(installation_id,runtime_role,owner_role) VALUES(%s,%s,current_user)",
+            (foreign_scope, user),
+        )
+    session = Mock()
+    try:
+        foreign = PostgresTransportPolicy(policy.dsn, foreign_scope)
+        # A cloned/forged UUID must fail during durable dispatch admission,
+        # BEFORE a single byte goes to the public HTTP transport.
+        with pytest.raises(Exception):
+            Transport(
+                session=session, policy_store=foreign, sleep=Mock()
+            ).get(URL)
+        session.request.assert_not_called()
+        assert policy.read(URL.removeprefix("https://")) == "CLEAR"
+    finally:
+        with connect(owner.dsn) as conn:
+            conn.execute(
+                "DELETE FROM tester_platform.transport_policy_entries "
+                "WHERE installation_id=%s", (foreign_scope,),
+            )
+            conn.execute(
+                "DELETE FROM tester_platform.transport_policy_scopes "
+                "WHERE installation_id=%s", (foreign_scope,),
+            )
+
+
+@pytest.mark.integration
 def test_actual_pg_stream_tls_and_owner_only_reset(durable_policy):
     import psycopg
 
