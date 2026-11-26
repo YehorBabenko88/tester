@@ -16,6 +16,9 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError, model_validator
 
+from src.analytics.core import quantity_unit
+from src.analytics.research_metrics import CURRENT_METHOD
+from src.ingest.execution_contract import SOURCE_QUANTITY_UNITS
 from src.integration.research_ui_projection import read_verified_ui_observation
 
 MAX_WINDOW_MS = 7 * 86_400_000
@@ -115,12 +118,9 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
                 or observed.get("f_admission") != "DENIED_UNKNOWN_COVERAGE"
                 or observed.get("source_coverage") != "UNKNOWN"
                 or observed.get("publication_time") != "UNKNOWN"
-                or observed.get("method") != "tester.execution-metrics/2"
-                or observed.get("quantity_unit") != (
-                    "quote" if scope.category == "inverse" else "base")
-                or observed.get("source_quantity_unit") != (
-                    "source_native_inverse_contract" if scope.category == "inverse"
-                    else "source_native_linear_size")
+                or observed.get("method") != CURRENT_METHOD
+                or observed.get("quantity_unit") != quantity_unit(scope.category)
+                or observed.get("source_quantity_unit") != SOURCE_QUANTITY_UNITS[scope.category])
                 or observed.get("utc_window") != {
                     "start_ms": scope.start_ms, "end_ms": scope.end_ms
                 }):
