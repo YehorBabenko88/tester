@@ -16,8 +16,7 @@ from src.analytics.simulation_economics import hypothetical_fill, CONTRACT
 def test_exact_long_short_realized_pnl(category, side, gross, unit):
     r = hypothetical_fill(category, side, "10", "100", "110")
     if category == "inverse":
-        # 10 * (1/100 - 1/110) = 1/1100;
-        # golden calculation uses exact Fraction.
+        # 10 * (1/100 - 1/110) = 1/1100 (base settlement).
         expected = Fraction(1, 1100) * (1 if side == "long" else -1)
         assert abs(number(r["gross_pnl"]) - expected) < Fraction(1, 10**48)
     else:
