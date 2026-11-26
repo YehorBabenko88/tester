@@ -375,6 +375,54 @@ function Get-CimInstance {
         assert "SECRET" not in json.dumps(result)
 
 
+@pytest.mark.parametrize("elapsed_seconds", [0.05, 0.5, 29.0])
+def test_cim_subprocess_uses_bounded_timeout_and_rejects_missing_evidence(monkeypatch, elapsed_seconds):
+    """CIM collection stays bounded, with no fabricated success for missing rows.
+
+    This verifies the subprocess contract. Real PowerShell cold/warm latency must
+    be measured separately; a larger cap alone is not performance evidence.
+    """
+    import subprocess
+    import types
+
+    m = module()
+    monkeypatch.setattr(m, "is_windows", lambda: True)
+    calls = []
+    def synthetic_run(command, **kwargs):
+        calls.append(kwargs)
+        assert 0 < kwargs["timeout"] <= 30
+        assert kwargs["check"] is True
+        assert kwargs["capture_output"] is True
+        return types.SimpleNamespace(stdout=b'{"rows":[],"bindings":[]}', stderr=b"")
+
+    monkeypatch.setattr(m.subprocess, "run", synthetic_run)
+    with pytest.raises(ValueError, match="process"):
+        m.process_sample(
+            Path("C:/synthetic probe"),
+            {"services": {"app": "TesterLabApp_" + "a" * 32,
+                          "postgres": "TesterLabPG_" + "a" * 32}},
+            11,
+        )
+    assert len(calls) == 1
+
+
+def test_cim_subprocess_timeout_is_propagated_and_never_returns_zero(monkeypatch):
+    import subprocess
+
+    m = module()
+    monkeypatch.setattr(m, "is_windows", lambda: True)
+    def timed_out(command, **kwargs):
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+    monkeypatch.setattr(m.subprocess, "run", timed_out)
+    with pytest.raises(subprocess.TimeoutExpired):
+        m.process_sample(
+            Path("C:/synthetic probe"),
+            {"services": {"app": "TesterLabApp_" + "a" * 32,
+                          "postgres": "TesterLabPG_" + "a" * 32}},
+            11,
+        )
+
+
 def test_resources_only_cli_never_starts_load_or_database_probe(monkeypatch, tmp_path, capsys):
     import json
     import types
