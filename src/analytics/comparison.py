@@ -111,8 +111,8 @@ def reconcile_minute_volume(trades, candles, *, category, symbol, start_ms, end_
             raise ValueError('invalid_trade_coverage_record')
         if cov.get('status') == 'COMPLETE':
             lo, hi = integer(cov['start_ms']), integer(cov['end_ms'])
-            if lo >= hi or hi > as_of_ms:
-                raise ValueError('future_or_invalid_trade_coverage')
+            if lo >= hi:
+                raise ValueError('invalid_trade_coverage_window')
     by_minute = {}
     for c in candles:
         key = integer(c['start_ms'])
@@ -122,7 +122,7 @@ def reconcile_minute_volume(trades, candles, *, category, symbol, start_ms, end_
         by_minute[key] = c
     complete = [(integer(cov['start_ms']), integer(cov['end_ms']), tuple(cov['evidence_refs']))
                 for cov in trade_coverage if cov.get('status') == 'COMPLETE' and cov.get('evidence_refs')]
-    spans = [(lo, hi) for lo, hi, _ in complete]
+    spans = [(lo, min(hi, as_of_ms)) for lo, hi, _ in complete]
     bucket = defaultdict(list)
     for t in rows: bucket[t['timestamp_ms'] - t['timestamp_ms'] % MINUTE_MS].append(t)
     try:
