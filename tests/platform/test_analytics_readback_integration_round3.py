@@ -167,4 +167,81 @@ process.stdout.write("PG_API_FRONTEND_CONTRACT_OK");
         category="linear", symbol=symbol, start_ms=start, end_ms=start + 60_000))
     assert catalog.status_code == 200
     assert catalog.json()["data"]["features"]["analytics_readback"]["enabled"] is True
+    # Browser consumer against the *real* FastAPI TestClient responses,
+    # not separately invented route fixtures. Browser requests are intercepted
+    # and fulfilled by the same TestClient; no public network/Bybit API.
+    browser_enabled = os.getenv("TESTER_RESEARCH_BROWSER_E2E") == "1"
+    if browser_enabled:
+        from playwright.sync_api import sync_playwright
+
+        html = """<!doctype html><html><body>
+          <form id="analytics-readback-form">
+            <input id="analytics-readback-tick" value="0.5">
+            <input id="analytics-readback-as-of" value="2026-11-26T00:00">
+            <button id="analytics-readback-submit" type="submit">Read sample</button>
+          </form>
+          <p id="analytics-readback-status"></p>
+          <pre id="analytics-readback-data"></pre>
+          <script type="module">
+            import {mountObservedReadback} from "/analytics-readback.js";
+            import {request} from "/api.js";
+            window.viewer = mountObservedReadback(document, {
+              getScope: () => ({
+                category: "linear", symbol: "ADAUSDT", interval: "1",
+                start: "2020-09-13T12:38", end: "2020-09-13T12:39",
+              }),
+              fetchCapabilities: (p, signal) =>
+                request("/api/capabilities", p, {signal}),
+              fetchReadback: (p, signal) =>
+                request("/api/analytics/readback", p, {signal}),
+            });
+          </script>
+        </body></html>"""
+        # Keep page's UTC scope *exact* to the persisted epoch fixture. Derive
+        # the HTML from the already-validated DB timestamps rather than hardcoding.
+        from datetime import datetime as _dt
+        starts = _dt.fromtimestamp(start / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M")
+        ends = _dt.fromtimestamp((start + 60_000) / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M")
+        html = html.replace('2020-09-13T12:38', starts).replace('2020-09-13T12:39', ends)
+        # The fixture's original HTTP was observed after its event time and
+        # before the UI's explicit 2026 cutoff. No history proof is implied.
+        seen_paths = []
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
+            try:
+                page = browser.new_page()
+                def route_request(route):
+                    from urllib.parse import urlsplit
+                    from pathlib import Path as _Path
+                    target = urlsplit(route.request.url)
+                    if target.path == "/":
+                        return route.fulfill(status=200, content_type="text/html", body=html)
+                    if target.path in ("/api/capabilities", "/api/analytics/readback"):
+                        seen_paths.append(target.path)
+                        response = client.get(target.path + ("?" + target.query if target.query else ""))
+                        return route.fulfill(
+                            status=response.status_code, content_type="application/json",
+                            body=response.text,
+                        )
+                    if target.path in ("/analytics-readback.js", "/api.js"):
+                        filepath = _Path(__file__).resolve().parents[2] / "frontend" / target.path.lstrip("/")
+                        return route.fulfill(
+                            status=200, content_type="text/javascript",
+                            body=filepath.read_text(encoding="utf-8"),
+                        )
+                    return route.abort()
+                page.route("http://terminal.test/**", route_request)
+                page.goto("http://terminal.test/")
+                page.locator("#analytics-readback-submit").click()
+                page.locator("#analytics-readback-status").filter(
+                    has_text="OBSERVED_UNVERIFIED"
+                ).wait_for(timeout=10_000)
+                status = page.locator("#analytics-readback-status").inner_text()
+                assert "historical coverage UNKNOWN" in status
+                assert "strategy admission DENIED" in status
+                assert "observed volume 2" in page.locator("#analytics-readback-data").inner_text()
+                assert "sample VWAP 1.5" in page.locator("#analytics-readback-data").inner_text()
+                assert seen_paths == ["/api/capabilities", "/api/analytics/readback"]
+            finally:
+                browser.close()
     # No mutation of source data/credentials, no F execute path.
