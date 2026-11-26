@@ -21,6 +21,9 @@ const sample = (scope) => ({
   data: {
     schema_version: "tester.analytics-readback/1",
     status: "OBSERVED_UNVERIFIED",
+    metric_kind: "execution_metrics", metric_method: "tester.execution-metrics/2",
+    metric_method_version: "2", historical_data_complete: false,
+    strategy_admission: "DENIED", http_route_registered: false,
     reason: "historical_completeness_not_proven",
     admitted_to_f: false,
     market: { venue: "bybit", category: scope.category, symbol: scope.symbol },
@@ -30,8 +33,13 @@ const sample = (scope) => ({
       ? "source_native_inverse_contract" : "source_native_linear_size",
     window: { start_ms: scope.start_ms, end_ms: scope.end_ms,
       interval_ms: scope.interval_ms, as_of_ms: scope.as_of_ms },
-    source: { publication_time: "UNKNOWN" },
-    quality: { status: "UNVERIFIED", coverage: "UNKNOWN", admitted_to_f: false },
+    source: { publication_time: "UNKNOWN", historical_coverage: "UNKNOWN",
+      dataset_revision: null, receipts_sha256: "a".repeat(64),
+      data_sha256: "b".repeat(64), metrics_sha256: "c".repeat(64),
+      sample_sha256: "d".repeat(64) },
+    quality: { status: "UNVERIFIED", coverage: "UNKNOWN", admitted_to_f: false,
+      historical_data_complete: false,
+      reasons: ["historical_coverage_unknown", "publication_time_unknown"] },
     metrics: {
       method: "tester.execution-metrics/2",
       status: "DERIVED_UNVERIFIED", admitted_to_f: false,
@@ -151,4 +159,32 @@ test("async stale selection and resetting inputs cannot display an old source sa
   await pending;
   assert.doesNotMatch(node("status").textContent, /OBSERVED_UNVERIFIED/);
   assert.equal(node("submit").disabled, false);
+});
+
+test("readback rejects altered envelope evidence and method identity", () => {
+  const scope = observedScope(fields());
+  for (const mutate of [
+    data => { data.metric_kind = "hourly_range_percent"; },
+    data => { data.metric_method_version = "1"; },
+    data => { data.strategy_admission = "ALLOWED"; },
+    data => { data.http_route_registered = true; },
+    data => { data.source.dataset_revision = "untrusted"; },
+    data => { data.source.metrics_sha256 = "not-a-digest"; },
+    data => { data.quality.reasons = ["historical_data_complete"]; },
+    data => { data.quality.historical_data_complete = true; },
+  ]) {
+    const response = sample(scope);
+    mutate(response.data);
+    assert.throws(() => validatedObservedReadback(response, scope));
+  }
+});
+test("source error body is never copied into the terminal", async () => {
+  const { root, node } = fixture();
+  const viewer = mountObservedReadback(root, {
+    getScope: fields, fetchCapabilities: async () => capability(),
+    fetchReadback: async () => { throw Error("postgres://user:SECRET@127.0.0.1"); },
+  });
+  await viewer.inspect();
+  assert.match(node("status").textContent, /DATA_UNAVAILABLE/);
+  assert.doesNotMatch(node("status").textContent, /SECRET/);
 });
