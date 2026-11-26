@@ -356,3 +356,44 @@ def test_round7_offline_signed_pin_alone_is_not_a_network_permission(tmp_path):
             scope, pin=pin, pinned_public_key_sha256=fingerprint,
             token_checker=lambda sid: sid,
         )
+
+
+@pytest.mark.parametrize("state,eligible", [
+    ("CLEAR", True), ("PENDING", False), ("HALTED", False), ("CAPACITY", False),
+])
+def test_round7_offline_pg_authorization_uses_existing_policy_and_denies_revocation(
+    tmp_path, monkeypatch, state, eligible
+):
+    scope = _offline_authority(tmp_path)
+    calls = []
+    class Policy:
+        def __init__(self, dsn, installation_id):
+            calls.append(("construct", dsn, str(installation_id)))
+        def read(self, endpoint):
+            calls.append(("read", endpoint))
+            return state
+    monkeypatch.setattr("src.api.transport_policy.PostgresTransportPolicy", Policy)
+    assert auth._offline_pg_policy_read(scope) is eligible
+    assert calls == [
+        ("construct", scope.dsn, scope.installation_id),
+        ("read", "api.bybit.com/v5/market/kline"),
+    ]
+
+
+def test_round7_offline_pg_unreachable_denies_before_network(tmp_path, monkeypatch):
+    scope = _offline_authority(tmp_path)
+    pin, fingerprint = _signed_offline_pin(scope)
+    class Unavailable:
+        def __init__(self, *a):
+            pass
+        def read(self, endpoint):
+            from src.api.transport_policy import PublicPolicyUnavailable
+            raise PublicPolicyUnavailable("disposable PG offline")
+    monkeypatch.setattr("src.api.transport_policy.PostgresTransportPolicy", Unavailable)
+    from src.api.transport_policy import PublicPolicyUnavailable
+    with pytest.raises(PublicPolicyUnavailable, match="disposable PG offline"):
+        auth.verify_offline_service_identity(
+            scope, pin=pin, pinned_public_key_sha256=fingerprint,
+            token_checker=lambda sid: sid,
+            pg_checker=auth._offline_pg_policy_read,
+        )
