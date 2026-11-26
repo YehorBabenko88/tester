@@ -46,15 +46,14 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'transport runtime principal enrolled by multiple installations';
     END IF;
-    -- Reject runtime membership in any explicit inherited role. No grant
-    -- widening; owner-only enrollment requires a dedicated login.
+    -- A runtime may not be a member of another role: direct or indirect
+    -- impersonation undermines the uniqueness of session principal identity.
     IF EXISTS (
         SELECT 1 FROM pg_catalog.pg_auth_members AS m
         JOIN pg_catalog.pg_roles AS runtime ON runtime.oid = m.member
         JOIN tester_platform.transport_policy_scopes AS s ON s.runtime_role = runtime.rolname
-        WHERE m.inherit_option
     ) THEN
-        RAISE EXCEPTION 'transport runtime principal inherits another role';
+        RAISE EXCEPTION 'transport runtime principal has another role membership';
     END IF;
 END $migration$;
 
