@@ -3,9 +3,10 @@
 const READBACK = "/api/analytics/readback";
 const CONTRACT = "tester.analytics-readback/1";
 const METHOD = "tester.execution-metrics/2";
-const MAX_BYTES = 512 * 1024;
+const MAX_BYTES = 128 * 1024;
 const MAX_BARS = 100;
 const MAX_RANGE_MS = 7 * 86400000;
+const SHA256 = /^[0-9a-f]{64}$/;
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const DECIMAL = /^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/;
 const UNIT = { linear: "base", inverse: "quote" };
@@ -52,8 +53,13 @@ export function validatedObservedReadback(payload, scope) {
   const data = payload.data;
   if (JSON.stringify(data).length > MAX_BYTES) throw Error("observation_exceeds_budget");
   if (data.schema_version !== CONTRACT || data.status !== "OBSERVED_UNVERIFIED" ||
-      data.method !== METHOD || data.admitted_to_f !== false ||
+      data.method !== METHOD || data.metric_kind !== "execution_metrics" ||
+      data.metric_method !== METHOD || data.metric_method_version !== "2" ||
+      data.historical_data_complete !== false || data.strategy_admission !== "DENIED" ||
+      data.http_route_registered !== false || data.admitted_to_f !== false ||
       data.quality?.status !== "UNVERIFIED" ||
+      data.quality?.historical_data_complete !== false ||
+      JSON.stringify(data.quality?.reasons) !== JSON.stringify(["historical_coverage_unknown", "publication_time_unknown"]) ||
       data.quality?.coverage !== "UNKNOWN" ||
       data.quality?.admitted_to_f !== false ||
       data.metrics?.method !== METHOD ||
@@ -63,6 +69,9 @@ export function validatedObservedReadback(payload, scope) {
       data.quantity_unit !== UNIT[scope.category] ||
       data.source_quantity_unit !== SOURCE_UNIT[scope.category] ||
       data.source?.publication_time !== "UNKNOWN" ||
+      data.source?.dataset_revision !== null ||
+      data.source?.historical_coverage !== "UNKNOWN" ||
+      ![data.source?.receipts_sha256, data.source?.data_sha256, data.source?.metrics_sha256, data.source?.sample_sha256].every(x => SHA256.test(x)) ||
       data.market?.venue !== "bybit" ||
       data.market?.category !== scope.category ||
       data.market?.symbol !== scope.symbol ||
@@ -137,7 +146,7 @@ export function mountObservedReadback(root, { getScope, fetchCapabilities, fetch
         lines.join("\n") + (data.metrics.bars.length > 20 ? "\nAdditional sample bars omitted from display." : "");
     } catch (error) {
       if (token === generation && !controller.signal.aborted) {
-        status.textContent = `DATA_UNAVAILABLE · ${String(error?.message || "unverified").slice(0, 120)} · no strategy admission`;
+        status.textContent = "DATA_UNAVAILABLE · source_unverified · no strategy admission";
       }
     } finally {
       if (token === generation) {
