@@ -171,6 +171,14 @@ def test_pg_foreign_uuid_rejected_with_two_distinct_valid_logins(enrolled):
     assert foreign_login != login
     foreign_scope = uuid.uuid4()
     with connect(owner) as conn:
+        foreign = conn.execute(
+            "SELECT rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls "
+            "FROM pg_roles WHERE rolname=%s",
+            (foreign_login,),
+        ).fetchone()
+        assert foreign == (True, False, False, False, False, False), (
+            "Second runtime must be a real restricted PostgreSQL LOGIN"
+        )
         conn.execute(
             "INSERT INTO tester_platform.transport_policy_scopes"
             "(installation_id,runtime_role,owner_role) VALUES(%s,%s,current_user)",
