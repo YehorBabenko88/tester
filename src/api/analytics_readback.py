@@ -7,12 +7,12 @@ validated ownership/DB binding. Until then a 503 response is required.
 from __future__ import annotations
 
 import re
+from uuid import UUID
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
-from src.analytics.research_metrics import calculate_v2  # canonical version reference only
 from src.integration.research_ui_projection import read_verified_ui_observation
 
 MAX_WINDOW_MS = 7 * 86_400_000
@@ -74,7 +74,11 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
         return _not_ready("trusted_storage_binding_unavailable")
     ident = trusted_identity.get("installation_id")
     source_sha = trusted_identity.get("source_sha")
-    if not isinstance(ident, str) or len(ident) > 64 or not isinstance(
+    try:
+        canonical_uuid = str(UUID(ident))
+    except (TypeError, ValueError, AttributeError):
+        return _not_ready("trusted_storage_binding_unavailable")
+    if (ident != canonical_uuid or not isinstance(
             source_sha, str) or not _HEX.fullmatch(source_sha):
         return _not_ready("trusted_storage_binding_unavailable")
     try:
