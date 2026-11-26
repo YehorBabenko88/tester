@@ -26,6 +26,8 @@ TESTS = [
     "test_pg_concurrent_same_login_enrollment_serialized",
     "test_pg_foreign_uuid_rejected_with_two_distinct_valid_logins",
     "test_pg_principal_revocation_denies_outstanding_leases",
+    "test_pg_post_migration_role_membership_revokes_policy",
+    "test_pg_post_migration_login_revocation_denies_policy",
     "test_pg_policy_halt_persists_and_dispatch_remains_fenced",
     "test_pg_private_guard_and_runtime_table_privileges",
     "test_pg_duplicate_enrollment_rolls_back_without_mutating_existing_scope",
