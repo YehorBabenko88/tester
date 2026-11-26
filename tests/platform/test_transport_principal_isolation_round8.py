@@ -107,12 +107,14 @@ def test_pg_runtime_cannot_delete_enrollment_or_reset_foreign_owner(enrolled):
 
 
 def test_pg_concurrent_same_login_enrollment_serialized(enrolled):
+    """First-time racing enrollments must yield exactly one winner."""
     import psycopg
-    from psycopg.conninfo import conninfo_to_dict
+
     from src.api.db import connect
 
-    owner, app, _ = enrolled
-    login = conninfo_to_dict(app)["user"]
+    owner, _, _ = enrolled
+    login = os.environ.get("TEST_PUBLIC_POLICY_SECOND_APP_ROLE")
+    assert login, "Second disposable runtime LOGIN not provisioned"
     identities = [uuid.uuid4(), uuid.uuid4()]
     gate = Barrier(2)
 
@@ -129,10 +131,25 @@ def test_pg_concurrent_same_login_enrollment_serialized(enrolled):
             return "DENIED"
         return "INSERTED"
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        outcomes = list(executor.map(attempt, identities))
-    # Fixture's installation already owns this runtime principal.
-    assert outcomes == ["DENIED", "DENIED"]
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            outcomes = list(executor.map(attempt, identities))
+        assert sorted(outcomes) == ["DENIED", "INSERTED"]
+        with connect(owner) as conn:
+            assert conn.execute(
+                "SELECT count(*) FROM tester_platform.transport_policy_scopes "
+                "WHERE runtime_role=%s", (login,),
+            ).fetchone()[0] == 1
+    finally:
+        with connect(owner) as conn:
+            conn.execute(
+                "DELETE FROM tester_platform.transport_policy_entries "
+                "WHERE installation_id=ANY(%s)", (identities,),
+            )
+            conn.execute(
+                "DELETE FROM tester_platform.transport_policy_scopes "
+                "WHERE installation_id=ANY(%s)", (identities,),
+            )
 
 
 
