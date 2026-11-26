@@ -232,6 +232,9 @@ def test_actual_pg_clean_stop_lost_ack_retry_is_idempotent_and_token_bound(autho
     # the same token, and repeats the already committed owner-protected stop.
     first.host_token = token
     first.record_clean_stop()
+    # A repeated network ACK ambiguity must not restore a token or start a run.
+    first.host_token = token
+    first.record_clean_stop()
     assert budget().counts()["host"] == 0
     state = _owner(owner, "SELECT tester_platform.restart_window_status(%s)", ident)[0]
     assert state["host_run_active"] is False
