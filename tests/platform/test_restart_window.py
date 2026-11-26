@@ -213,6 +213,48 @@ def test_actual_pg_backward_clock_jump_preserves_crash_slots(authority):
 
 
 @pytest.mark.integration
+def test_actual_pg_clean_stop_lost_ack_retry_is_idempotent_and_token_bound(authority):
+    """SQL 011: an acknowledged/lost-ACK stop has the same durable outcome.
+
+    Retry is permitted only for the most recent stop token, while no host run
+    is active. Any new host run clears this acknowledgment receipt.
+    """
+    from src.api.restart_budget import BudgetDenied
+
+    owner, _, ident, budget = authority
+    first = budget()
+    first.admit("host")
+    assert first.host_token is not None
+    token = first.host_token
+    first.record_clean_stop()
+    assert first.host_token is None
+    # Simulate lost network acknowledgement: original host object still retains
+    # the same token, and repeats the already committed owner-protected stop.
+    first.host_token = token
+    first.record_clean_stop()
+    assert budget().counts()["host"] == 0
+    state = _owner(owner, "SELECT tester_platform.restart_window_status(%s)", ident)[0]
+    assert state["host_run_active"] is False
+    with pytest.raises(BudgetDenied):
+        second = budget()
+        second.host_token = "f" * 32
+        second.record_clean_stop()
+    next_host = budget()
+    next_host.admit("host")
+    # A new host invalidates the old stop receipt; stale ACK cannot mark it clean.
+    with pytest.raises(BudgetDenied):
+        old = budget()
+        old.host_token = token
+        old.record_clean_stop()
+    # An active run not recording clean stop is still charged next launch.
+    after_crash = budget()
+    after_crash.admit("host")
+    assert budget().counts()["host"] == 1
+    after_crash.record_clean_stop()
+    assert budget().counts()["host"] == 1
+
+
+@pytest.mark.integration
 def test_actual_pg_child_restarts_windowed_initial_launches_free(authority):
     from src.api.restart_budget import BudgetDenied
 
