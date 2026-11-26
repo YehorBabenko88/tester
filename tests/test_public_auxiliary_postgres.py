@@ -68,10 +68,11 @@ class AuxiliaryPostgresTests(unittest.TestCase):
                     counts[table] = c.execute(
                         "SELECT count(*) AS n FROM tester_storage." + table +
                         " WHERE " + ("job_key" if table in (
-                            "pagination_evidence", "ingestion_checkpoints", "download_jobs"
+                            "source_observations", "pagination_evidence",
+                            "ingestion_checkpoints", "download_jobs"
                         ) else "symbol") + " = %s",
-                        (key if table in ("pagination_evidence", "ingestion_checkpoints",
-                                          "download_jobs") else symbol,),
+                        (key if table in ("source_observations", "pagination_evidence",
+                                          "ingestion_checkpoints", "download_jobs") else symbol,),
                     ).fetchone()["n"]
                 return counts
 
