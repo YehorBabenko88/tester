@@ -246,6 +246,25 @@
           </p>
           <p id="analytics-inspector-evidence"></p>
         </section>
+        <section id="analytics-readback" aria-label="Observed sample analytics">
+          <h3>Source-backed execution sample (not complete history)</h3>
+          <p class="muted">This read-only observed sample requires a server-authorized
+            DATA source and exact source receipts. Missing history remains UNKNOWN.
+            Strategy admission is always DENIED.</p>
+          <form id="analytics-readback-form" class="toolbar">
+            <label>Explicit instrument tick size
+              <input id="analytics-readback-tick" aria-label="Instrument tick size"
+                inputmode="decimal" maxlength="32" placeholder="e.g. 0.5" />
+            </label>
+            <label>Knowledge cutoff UTC
+              <input id="analytics-readback-as-of" aria-label="Knowledge cutoff UTC"
+                type="datetime-local" />
+            </label>
+            <button id="analytics-readback-submit" type="submit">Inspect observed execution sample</button>
+          </form>
+          <p id="analytics-readback-status" role="status">UNVERIFIED · No qualified observation loaded</p>
+          <pre id="analytics-readback-data" class="panel-evidence"></pre>
+        </section>
         <div id="quality-data">
           Select an instrument to inspect coverage. Raw records, derived
           aggregates and verified coverage are distinct.
