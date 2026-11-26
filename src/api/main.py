@@ -54,7 +54,7 @@ def error(status, code, message):
     )
 
 
-def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
+def create_app(settings: Settings | None = None, provider=None, *, analytics_binding_factory=None) -> FastAPI:
     settings = settings or load_settings()
     service_instance = os.environ.get("TESTER_SERVICE_INSTANCE")
     reader = provider or load_factory(settings.provider_factory, UnavailableReader())
@@ -408,6 +408,14 @@ def create_app(settings: Settings | None = None, provider=None) -> FastAPI:
             response_model=Envelope[Job],
             operation_id=action + "_download",
         )
+
+    # Explicit server-owned binding only. Default production startup intentionally
+    # has no analytics readback route until A/D approve installation/DB authority.
+    # The factory must be installed by trusted composition code, not HTTP input.
+    if analytics_binding_factory is not None:
+        from .analytics_readback import create_readback_router
+
+        app.include_router(create_readback_router(trusted_binding=analytics_binding_factory))
 
     if settings.frontend_dir.is_dir() and (settings.frontend_dir / "index.html").is_file():
         app.mount("/", StaticFiles(directory=settings.frontend_dir, html=True), name="frontend")
