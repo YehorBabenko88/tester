@@ -269,6 +269,81 @@ def test_pg_principal_revocation_denies_outstanding_leases(enrolled):
             )
 
 
+
+def test_pg_post_migration_role_membership_revokes_policy(enrolled):
+    """A fresh owner grant of any role membership must fail closed at SQL."""
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict
+
+    from src.api.transport_policy import PostgresTransportPolicy, PublicPolicyUnavailable
+
+    owner, app, scope = enrolled
+    runtime = conninfo_to_dict(app)["user"]
+    admin_dsn = os.environ.get("TESTER_PG18_SECURITY_ADMIN_DSN")
+    assert admin_dsn, "Mandatory PG18 test admin DSN missing"
+    policy = PostgresTransportPolicy(app, scope)
+    endpoint = "api.bybit.com/v5/market/kline"
+    assert policy.read(endpoint) == "CLEAR"
+    inert = "tester_ci_role_membership_probe"
+    with psycopg.connect(admin_dsn, autocommit=True) as admin:
+        assert admin.execute("SHOW server_version_num").fetchone()[0].startswith("18")
+        assert admin.execute(
+            "SELECT rolsuper FROM pg_roles WHERE rolname=current_user"
+        ).fetchone() == (True,)
+        assert not admin.execute(
+            "SELECT 1 FROM pg_roles WHERE rolname=%s", (inert,)
+        ).fetchone()
+        admin.execute(
+            sql.SQL("CREATE ROLE {} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE").format(
+                sql.Identifier(inert)
+            )
+        )
+        admin.execute(
+            sql.SQL("GRANT {} TO {}").format(sql.Identifier(inert), sql.Identifier(runtime))
+        )
+    try:
+        with pytest.raises(PublicPolicyUnavailable):
+            policy.read(endpoint)
+        with pytest.raises(PublicPolicyUnavailable):
+            policy.reserve_dispatch()
+    finally:
+        with psycopg.connect(admin_dsn, autocommit=True) as admin:
+            admin.execute(
+                sql.SQL("REVOKE {} FROM {}").format(
+                    sql.Identifier(inert), sql.Identifier(runtime)
+                )
+            )
+            admin.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(inert)))
+    assert policy.read(endpoint) == "CLEAR"
+
+
+def test_pg_post_migration_login_revocation_denies_policy(enrolled):
+    """Owner-disabled LOGIN must not leave a fresh App session usable."""
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import conninfo_to_dict
+
+    from src.api.transport_policy import PostgresTransportPolicy, PublicPolicyUnavailable
+
+    _, app, scope = enrolled
+    runtime = conninfo_to_dict(app)["user"]
+    admin_dsn = os.environ.get("TESTER_PG18_SECURITY_ADMIN_DSN")
+    assert admin_dsn, "Mandatory PG18 test admin DSN missing"
+    policy = PostgresTransportPolicy(app, scope)
+    endpoint = "api.bybit.com/v5/market/kline"
+    assert policy.read(endpoint) == "CLEAR"
+    with psycopg.connect(admin_dsn, autocommit=True) as admin:
+        admin.execute(sql.SQL("ALTER ROLE {} NOLOGIN").format(sql.Identifier(runtime)))
+    try:
+        with pytest.raises(PublicPolicyUnavailable):
+            policy.read(endpoint)
+    finally:
+        with psycopg.connect(admin_dsn, autocommit=True) as admin:
+            admin.execute(sql.SQL("ALTER ROLE {} LOGIN").format(sql.Identifier(runtime)))
+    assert policy.read(endpoint) == "CLEAR"
+
+
 def test_pg_policy_halt_persists_and_dispatch_remains_fenced(enrolled):
     from src.api.db import connect
     from src.api.transport_policy import PostgresTransportPolicy
