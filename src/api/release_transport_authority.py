@@ -12,7 +12,7 @@ from contextlib import ExitStack
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from psycopg.conninfo import conninfo_to_dict
+from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from .lab_install import plain
 from .release_security import ReleaseSecurityError, _unique_object
@@ -27,6 +27,9 @@ class ReleaseTransportAuthority:
     db_identity: tuple[str, int, str, str]
     service_identity: tuple[str, str, str, str]
     policy_state_at_check: str
+    marker_sha256: str
+    pg_system_identifier: str
+    db_hostaddr: str
 
     def public_policy(self):
         """Existing durable policy only; every reservation rechecks its own state."""
@@ -124,7 +127,22 @@ def _trusted_release_context(root, *, allow_test):
             (root / "config.json").read_text(encoding="utf-8"),
             object_pairs_hook=_unique_object,
         )
-        return marker, config
+        from .release_install import MARKER
+
+        marker_digest = ledger["entries"].get(MARKER, {}).get("sha256")
+        if not isinstance(marker_digest, str) or len(marker_digest) != 64:
+            raise ReleaseSecurityError("Authenticated marker digest unavailable")
+        cluster = json.loads(
+            (root / "state/postgres-identity.json").read_text(encoding="utf-8"),
+            object_pairs_hook=_unique_object,
+        )
+        if (
+            cluster.get("installation_id") != marker["installation_id"]
+            or not isinstance(cluster.get("system_identifier"), str)
+            or not cluster["system_identifier"].isdecimal()
+        ):
+            raise ReleaseSecurityError("Validated PostgreSQL cluster receipt unavailable")
+        return marker, config, (marker_digest, cluster["system_identifier"])
 
 
 def _bind_identity(marker, config):
@@ -176,9 +194,10 @@ def release_transport_authority(*, root=None, allow_test=False):
     if root is not None and not allow_test:
         raise ReleaseSecurityError("Caller-supplied installation root refused")
     target = CANONICAL_ROOT if root is None else Path(root)
-    marker, config = _trusted_release_context(target, allow_test=allow_test)
+    marker, config, proof = _trusted_release_context(target, allow_test=allow_test)
     db_identity, service_identity = _bind_identity(marker, config)
-    policy = PostgresTransportPolicy(config["database_url"], marker["installation_id"])
+    owned_dsn = make_conninfo(config["database_url"], hostaddr="127.0.0.1")
+    policy = PostgresTransportPolicy(owned_dsn, marker["installation_id"])
     # This SECURITY DEFINER read checks the enrolled installation and runtime
     # role. It is *not* read-only SQL internally (it takes a scoped row lock);
     # it has no persistent mutation and is never a second network client.
@@ -189,8 +208,11 @@ def release_transport_authority(*, root=None, allow_test=False):
         installation_id=marker["installation_id"],
         source_sha=marker["source_sha"],
         root=marker["root"],
-        dsn=config["database_url"],
+        dsn=owned_dsn,
         db_identity=db_identity,
         service_identity=service_identity,
         policy_state_at_check=state,
+        marker_sha256=proof[0],
+        pg_system_identifier=proof[1],
+        db_hostaddr="127.0.0.1",
     )
