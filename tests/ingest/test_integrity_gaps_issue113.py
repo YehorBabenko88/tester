@@ -358,8 +358,10 @@ def test_first_page_then_unexpected_crash_keeps_no_checkpoint(tmp_path):
     try:
         # A BaseException deliberately bypasses the regular failure path and
         # models an abrupt termination after first-page evidence committed.
+        page_number = [0]
         def crash_call(path, params):
-            if api.call.call_count >= 2:
+            page_number[0] += 1
+            if page_number[0] >= 2:
                 raise KeyboardInterrupt("synthetic_crash_after_page_one")
             return ({"list": [candle(START)], "nextPageCursor": "page2"}, URL)
         api.call.side_effect = crash_call
