@@ -267,19 +267,35 @@ def create_readback_router(*, trusted_binding=None):
                 from psycopg.conninfo import conninfo_to_dict, make_conninfo
                 elapsed_ms = int((_clock() - started) * 1000)
                 remaining_ms = MAX_WALL_MS - elapsed_ms
-                if remaining_ms <= 0:
+                if remaining_ms < 2000:
+                    # libpq rounds its connect_timeout to whole seconds and
+                    # cannot honor a sub-two-second remaining admission slot.
                     raise HTTPException(503, detail="analytics_readback_timeout")
-                parts = conninfo_to_dict(store._dsn)
-                # PostgreSQL startup's connect_timeout is whole seconds, with
-                # libpq's minimum-second granularity. SQL statement and lock
-                # timeouts prevent an unbounded database operation.
-                parts["connect_timeout"] = str(max(2, min(5, remaining_ms // 1000)))
-                parts["options"] = (
-                    "-c timezone=UTC -c statement_timeout="
-                    + str(min(remaining_ms, 5000))
-                    + " -c lock_timeout=" + str(min(remaining_ms, 5000))
-                )
-                store = Store(make_conninfo(**parts))
+                try:
+                    parts = conninfo_to_dict(store._dsn)
+                    port = parts.get("port", "")
+                    if (
+                        parts.get("host") != "127.0.0.1"
+                        or parts.get("hostaddr", "127.0.0.1") != "127.0.0.1"
+                        or not port.isdecimal()
+                        or not 1024 <= int(port) <= 65535
+                        or int(port) == 5432
+                        or not parts.get("dbname")
+                    ):
+                        raise ValueError("untrusted_local_storage_endpoint")
+                    # Store.connect enforces these very same strict budgets;
+                    # no SQL/reader implementation is duplicated here.
+                    parts["connect_timeout"] = str(min(5, remaining_ms // 1000))
+                    parts["options"] = (
+                        "-c timezone=UTC -c statement_timeout="
+                        + str(min(remaining_ms, 5000))
+                        + " -c lock_timeout=" + str(min(remaining_ms, 5000))
+                    )
+                    store = Store(make_conninfo(**parts))
+                except Exception:
+                    raise HTTPException(
+                        503, detail="trusted_storage_binding_unavailable"
+                    ) from None
             result = observed_readback(scope, trusted_store=store, trusted_identity=identity)
             if (_clock() - started) * 1000 > MAX_WALL_MS:
                 raise HTTPException(503, detail="analytics_readback_timeout")
