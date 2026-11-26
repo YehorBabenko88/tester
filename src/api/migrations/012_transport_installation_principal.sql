@@ -55,6 +55,9 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'transport runtime principal has another role membership';
     END IF;
+    -- Enforce one-installation scope even for sessions using a role that later
+    -- acquires privileges; the runtime must not inherit or SET ROLE to owner.
+
 END $migration$;
 
 -- Even under competing owner transactions only one installation can enroll
