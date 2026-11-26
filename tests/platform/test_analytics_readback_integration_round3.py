@@ -220,7 +220,13 @@ process.stdout.write("PG_API_FRONTEND_CONTRACT_OK");
                         return route.fulfill(status=200, content_type="text/html", body=html)
                     if target.path in ("/api/capabilities", "/api/analytics/readback"):
                         seen_paths.append(target.path)
-                        response = client.get(target.path + ("?" + target.query if target.query else ""))
+                        from urllib.parse import parse_qsl, urlencode as _urlencode
+                        path_query = target.query
+                        if target.path == "/api/capabilities":
+                            params = [(k, v) for k, v in parse_qsl(path_query)
+                                      if k in ("category", "symbol", "start_ms", "end_ms")]
+                            path_query = _urlencode(params)
+                        response = client.get(target.path + ("?" + path_query if path_query else ""))
                         return route.fulfill(
                             status=response.status_code, content_type="application/json",
                             body=response.text,
