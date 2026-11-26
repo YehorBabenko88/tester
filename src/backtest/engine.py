@@ -4,7 +4,6 @@ from decimal import Decimal, localcontext, ROUND_FLOOR
 from src.strategy.dsl import validate_strategy, evaluate, decimal, digest
 from .quality import validate_snapshot
 from .metrics import scorecard
-from src.analytics.simulation_economics import hypothetical_mark
 
 ENGINE_VERSION='strategy-bar-1.1.0'
 ZERO=Decimal(0)
@@ -225,15 +224,13 @@ class Backtest:
         unreal=ZERO; margin=ZERO
         if self.position:
             p=self.position
-            # Category-aware canonical /2 economic projection, with exact
-            # fraction arithmetic. For legacy spot/linear, the formulas are
-            # mathematically identical to the frozen engine expressions.
-            projected=hypothetical_mark(
-                self.snapshot['category'],p['side'],str(p['quantity']),
-                str(p['entry_price']),b['close'],
-                leverage=str(self.strategy['risk']['leverage']))
-            unreal=Decimal(projected['unrealized_pnl'])
-            margin=Decimal(projected['initial_margin_estimate'])
+            # Preserve the historical strategy-bar-1.1.0 spot/linear
+            # calculations exactly: Decimal rounding and replay digests are
+            # part of their persisted contract, not just algebraic formulae.
+            # Inverse cannot reach this legacy engine: validate_snapshot
+            # rejects its settlement and liquidation assumptions.
+            unreal=p['sign']*p['quantity']*(decimal(b['close'])-p['entry_price'])
+            margin=p['quantity']*p['entry_price']/decimal(self.strategy['risk']['leverage'])
         self.curve.append({'timestamp_ms':b['end_ms'],'cash':str(self.cash),'equity':str(self.cash+unreal),'margin':str(margin)})
         self.index+=1
         if self.index==len(self.snapshot['candles']) and self.pending:
