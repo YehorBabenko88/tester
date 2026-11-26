@@ -28,7 +28,9 @@ def identity(**overrides):
 @pytest.mark.parametrize("overrides", [
     {"category": "spot"}, {"symbol": "A"}, {"symbol": "BTC-USD"},
     {"start_ms": -1}, {"start_ms": 60_000}, {"end_ms": 2 * 86_400_000 * 7},
-    {"interval_ms": 90_000}, {"interval_ms": 0}, {"as_of_ms": 59_999},
+    {"interval_ms": 90_000}, {"interval_ms": 0},
+    {"interval_ms": 120_000, "end_ms": 120_000, "as_of_ms": 120_000},
+    {"as_of_ms": 59_999},
     {"tick_size": "0"}, {"tick_size": "NaN"}, {"tick_size": "1e-8"},
     {"limit": 100}, {"limit": 0}, {"limit": True},
 ])
