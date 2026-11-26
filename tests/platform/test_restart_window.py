@@ -242,9 +242,9 @@ def test_actual_pg_clean_stop_lost_ack_retry_is_idempotent_and_token_bound(autho
     next_host = budget()
     next_host.admit("host")
     # A new host invalidates the old stop receipt; stale ACK cannot mark it clean.
+    old = budget()
+    old.host_token = token
     with pytest.raises(BudgetDenied):
-        old = budget()
-        old.host_token = token
         old.record_clean_stop()
     # An active run not recording clean stop is still charged next launch.
     after_crash = budget()
