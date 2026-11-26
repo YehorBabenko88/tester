@@ -32,6 +32,7 @@ def enrolled(tmp_path):
         raise ValueError("Owner and App must use same disposable database")
     # Bootstrap only this explicitly reserved disposable fixture.
     from src.api.db import migrate
+
     migrate(owner_dsn)
     with connect(owner_dsn) as conn:
         record = conn.execute(
