@@ -458,3 +458,32 @@ def test_round7_store_connection_startup_policy_is_bounded(monkeypatch):
     unrecognized = Store(prefix + " options='-c unsafe_setting=on'")
     unrecognized.connect()
     assert calls[-1][1]["options"] == "-c timezone=UTC"
+
+
+@pytest.mark.parametrize(
+    "dsn",
+    [
+        "host=127.0.0.1 port=5432 dbname=tester",
+        "host=localhost port=55479 dbname=tester_research_data_disposable",
+        "host=127.0.0.1 hostaddr=192.0.2.10 port=55479 dbname=tester",
+        "host=127.0.0.1 port=55479",
+        "host=127.0.0.1 port=invalid dbname=tester",
+    ],
+)
+def test_round7_refuses_unauthorized_postgres_endpoint_without_a_read(monkeypatch, dsn):
+    from src.api import analytics_readback as module
+    from src.storage.store import Store
+
+    invoked = []
+    def read(*args, **kwargs):
+        invoked.append(True)
+        raise AssertionError("Forbidden storage connection")
+    monkeypatch.setattr(module, "observed_readback", read)
+    app = FastAPI()
+    app.include_router(
+        create_readback_router(trusted_binding=lambda: (Store(dsn), identity()))
+    )
+    response = TestClient(app).get("/api/analytics/readback", params=scope().model_dump())
+    assert response.status_code == 503
+    assert response.json()["detail"] == "trusted_storage_binding_unavailable"
+    assert invoked == []
