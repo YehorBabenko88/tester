@@ -298,6 +298,7 @@ def test_final_window_save_rollback_is_atomic_and_retryable(tmp_path):
         "WHEN (SELECT COUNT(*) FROM record_versions) >= 2 "
         "BEGIN SELECT RAISE(ABORT, 'synthetic_disk_write_failure'); END"
     )
+    j.db.commit()
     try:
         with pytest.raises(sqlite3.IntegrityError, match="synthetic_disk_write_failure"):
             Backfill(api_with({"list": [candle(START + 60000), candle(START + 120000)]}), j).run(
