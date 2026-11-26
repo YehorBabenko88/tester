@@ -147,6 +147,32 @@ class PipelineTests(unittest.TestCase):
                     API(transport).call("/kline", {})
         self.assertEqual(response_count[0], 0)
 
+    def test_canonical_rest_deadline_interrupts_durable_policy_wait(self):
+        """A stalled policy cannot hold a REST operation past its time budget."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        entered = [False]
+
+        class PendingPolicy:
+            def reserve(self, _endpoint):
+                entered[0] = True
+                return "PENDING", None
+
+        session = Mock()
+        transport = Transport(
+            session=session, policy_store=PendingPolicy(),
+            rate=1000000, sleep=Mock()
+        )
+        def monotonic():
+            return 2.0 if entered[0] else 0.0
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
+            with patch.object(rest.time, "monotonic", side_effect=monotonic):
+                with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
+                    API(transport).call("/kline", {})
+        self.assertTrue(entered[0])
+        session.request.assert_not_called()
+
     def test_canonical_rest_deadline_during_stream_closes_response(self):
         """A deadline crossed on the first streamed read closes the guarded lease."""
         from unittest.mock import patch
