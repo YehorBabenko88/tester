@@ -4,6 +4,7 @@ from decimal import Decimal, localcontext, ROUND_FLOOR
 from src.strategy.dsl import validate_strategy, evaluate, decimal, digest
 from .quality import validate_snapshot
 from .metrics import scorecard
+from src.analytics.simulation_economics import hypothetical_mark, CONTRACT as ECONOMICS_V2
 
 ENGINE_VERSION='strategy-bar-1.1.0'
 ZERO=Decimal(0)
@@ -24,6 +25,11 @@ class Backtest:
             self.snapshot,self.warnings,self.gaps=validate_snapshot(snapshot,self.strategy)
         self.strategy_hash=digest(self.strategy); self.market_hash=digest(self.snapshot)
         self.input_hash=digest({'strategy':self.strategy_hash,'market':self.market_hash,'engine':ENGINE_VERSION})
+        # Dispatch is explicitly versioned; existing admitted spot/linear runs
+        # continue the legacy engine path byte-for-byte. Inverse remains rejected
+        # by validate_snapshot until its execution, liquidation, evidence, and
+        # risk models are independently reviewed.
+        self.economics_contract = ECONOMICS_V2
         self.index=0; self.cash=decimal(self.snapshot['initial_equity']); self.position=None; self.pending=None
         self.orders=[]; self.fills=[]; self.signals=[]; self.trades=[]; self.brackets=[]
         self.curve=[{'timestamp_ms':self.snapshot['start_ms'],'cash':str(self.cash),'equity':str(self.cash),'margin':'0'}]
@@ -221,8 +227,16 @@ class Backtest:
                 self._order(side,'entry','entry_condition',o['type'],trigger)
         unreal=ZERO; margin=ZERO
         if self.position:
-            p=self.position; unreal=p['sign']*p['quantity']*(decimal(b['close'])-p['entry_price'])
-            margin=p['quantity']*p['entry_price']/decimal(self.strategy['risk']['leverage'])
+            p=self.position
+            # Category-aware canonical /2 economic projection, with exact
+            # fraction arithmetic. For legacy spot/linear, the formulas are
+            # mathematically identical to the frozen engine expressions.
+            projected=hypothetical_mark(
+                self.snapshot['category'],p['side'],str(p['quantity']),
+                str(p['entry_price']),b['close'],
+                leverage=str(self.strategy['risk']['leverage']))
+            unreal=Decimal(projected['unrealized_pnl'])
+            margin=Decimal(projected['initial_margin_estimate'])
         self.curve.append({'timestamp_ms':b['end_ms'],'cash':str(self.cash),'equity':str(self.cash+unreal),'margin':str(margin)})
         self.index+=1
         if self.index==len(self.snapshot['candles']) and self.pending:
