@@ -233,6 +233,7 @@ def _offline_pin_payload(authority):
     return {
         "schema": "tester-offline-scm-pin/v1",
         "installation_id": authority.installation_id,
+        "root": str(authority.root),
         "source_sha": authority.source_sha,
         "marker_sha256": authority.marker_sha256,
         "pg_system_identifier": authority.pg_system_identifier,
