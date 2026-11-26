@@ -216,6 +216,19 @@ def create_readback_router(*, trusted_binding=None):
         # Unexpected fields, including a client-supplied DSN/UUID, are refused.
         allowed = {"category", "symbol", "start_ms", "end_ms",
                    "interval_ms", "tick_size", "as_of_ms", "limit"}
+        # Unlike ordinary public market metadata, this optional source-backed
+        # read is explicitly denied to cross-site callers. The existing
+        # TrustedHostMiddleware checks host before this route in product app.
+        origin = request.headers.get("origin")
+        host_port = request.url.port
+        allowed_origins = {
+            f"http://127.0.0.1:{host_port}",
+            f"http://localhost:{host_port}",
+            f"http://[::1]:{host_port}",
+        }
+        if ((origin is not None and origin not in allowed_origins)
+                or request.headers.get("sec-fetch-site") == "cross-site"):
+            raise HTTPException(403, detail="analytics_cross_origin_denied")
         if (set(request.query_params) - allowed or
                 any(len(request.query_params.getlist(key)) != 1
                     for key in request.query_params)):
