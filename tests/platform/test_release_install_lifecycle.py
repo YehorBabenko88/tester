@@ -1296,3 +1296,71 @@ def test_provisioning_close_does_not_mark_closed_if_token_handle_close_fails(mon
         tx.close()
     assert calls == ["release_guards", "restore", "token.Close"]
     assert tx.closed is False
+
+
+def test_install_finally_close_error_does_not_mask_foreign_root_refusal(
+    tmp_path, monkeypatch
+):
+    """C1: the real finally close failure must preserve primary root-race error."""
+    from src.api import release_provision as rp
+
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=False
+    )
+    constructor = rp.ProvisioningTransaction
+
+    def injected_close(*args, **kwargs):
+        tx = constructor(*args, **kwargs)
+
+        def close():
+            raise OSError("injected token close failed")
+
+        tx.close = close
+        return tx
+
+    monkeypatch.setattr(rp, "ProvisioningTransaction", injected_close)
+    with pytest.raises(ValueError, match="Remove the empty folder and run Setup again") as info:
+        call()
+    assert any("transaction close failed (OSError)" in note for note in info.value.__notes__)
+    assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
+    assert probe.touched == []
+    # Original refusal is preserved and no unverified maintenance cleanup runs.
+    assert len(cleaned) == 1
+
+
+def test_install_combined_journal_and_close_failure_preserves_original(
+    tmp_path, monkeypatch
+):
+    """Even two secondary faults must not replace the primary provisioning error."""
+    from src.api import release_provision as rp
+
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=True
+    )
+    constructor = rp.ProvisioningTransaction
+
+    def injected_failures(*args, **kwargs):
+        tx = constructor(*args, **kwargs)
+        append = tx.append
+
+        def journal(row):
+            if row.get("event") == "phase" and row.get("phase") == "interrupted":
+                raise OSError("injected journal write failure")
+            return append(row)
+
+        tx.append = journal
+
+        def close():
+            raise OSError("injected token close failed")
+
+        tx.close = close
+        return tx
+
+    monkeypatch.setattr(rp, "ProvisioningTransaction", injected_failures)
+    with pytest.raises(RuntimeError, match="later provisioning failure") as info:
+        call()
+    assert any("interrupted journal append failed" in n for n in info.value.__notes__)
+    assert any("transaction close failed (OSError)" in n for n in info.value.__notes__)
+    assert root.is_dir() and probe.touched == [] and cleaned == []
+    (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
+    assert (maintenance / "provisioning.jsonl").is_file()
