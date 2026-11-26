@@ -745,6 +745,9 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         # to release. Retain authority records for an operator-reviewed retry.
         if not guards_released:
             raise original
+        # Missing journal evidence cannot authorize deletion of an owned root.
+        if not journal_valid:
+            raise original
         # Authenticated provisioning rollback must verify journal and FileIDs.
         # Any failure retains evidence and never permits deleting a foreign root.
         try:
