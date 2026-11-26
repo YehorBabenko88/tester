@@ -224,6 +224,73 @@ def release_transport_authority(*, root=None, allow_test=False):
         db_hostaddr="127.0.0.1",
     )
 
+
+_OFFLINE_PIN_CONTEXT = b"TESTER-OFFLINE-SCM-IDENTITY-v1\x00"
+
+
+def _offline_pin_payload(authority):
+    app, postgres, app_sid, postgres_sid = authority.service_identity
+    return {
+        "schema": "tester-offline-scm-pin/v1",
+        "installation_id": authority.installation_id,
+        "source_sha": authority.source_sha,
+        "marker_sha256": authority.marker_sha256,
+        "pg_system_identifier": authority.pg_system_identifier,
+        "hostaddr": authority.db_hostaddr,
+        "port": authority.db_identity[1],
+        "dbname": authority.db_identity[2],
+        "dbuser": authority.db_identity[3],
+        "app_service": app,
+        "app_sid": app_sid,
+        "postgres_service": postgres,
+        "postgres_sid": postgres_sid,
+    }
+
+
+def verify_offline_signed_pin(authority, envelope, *, pinned_public_key_sha256):
+    """Verify independently pinned owner key and exact STATIC identity bytes.
+
+    An owner-installed static pin identifies the installation; it cannot
+    authorize HTTP, prove fresh boot identity, or override PostgreSQL revocation.
+    No signing/private key generation happens in production code.
+    """
+    import hashlib
+    import hmac
+    import re
+
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    if not isinstance(authority, ReleaseTransportAuthority):
+        raise ReleaseSecurityError("Owner-authenticated installation authority required")
+    if not isinstance(envelope, dict) or set(envelope) != {
+        "payload", "public_key_hex", "signature_hex",
+    }:
+        raise ReleaseSecurityError("Offline identity pin envelope invalid")
+    if envelope["payload"] != _offline_pin_payload(authority):
+        raise ReleaseSecurityError("Offline identity pin installation mismatch")
+    public = envelope["public_key_hex"]
+    signature = envelope["signature_hex"]
+    if not (type(public) is str and re.fullmatch("[0-9a-f]{64}", public)
+            and type(signature) is str and re.fullmatch("[0-9a-f]{128}", signature)
+            and type(pinned_public_key_sha256) is str
+            and re.fullmatch("[0-9a-f]{64}", pinned_public_key_sha256)):
+        raise ReleaseSecurityError("Offline owner signature malformed")
+    raw_key = bytes.fromhex(public)
+    if not hmac.compare_digest(hashlib.sha256(raw_key).hexdigest(), pinned_public_key_sha256):
+        raise ReleaseSecurityError("Offline owner key fingerprint mismatch")
+    canonical = json.dumps(
+        envelope["payload"], sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    try:
+        Ed25519PublicKey.from_public_bytes(raw_key).verify(
+            bytes.fromhex(signature), _OFFLINE_PIN_CONTEXT + canonical
+        )
+    except (InvalidSignature, ValueError, TypeError):
+        raise ReleaseSecurityError("Offline owner signature invalid") from None
+    return True
+
+
 def _windows_current_service_sid(expected):
     """Read actual process TokenGroups; a computed name is never proof."""
     if os.name != "nt":
@@ -247,7 +314,8 @@ def _windows_current_service_sid(expected):
     return expected
 
 
-def verify_offline_service_identity(authority, *, token_checker=None, pg_checker=None):
+def verify_offline_service_identity(authority, *, pin=None, pinned_public_key_sha256=None,
+                                    token_checker=None, pg_checker=None):
     """Round7 OFFLINE/DISPOSABLE verification; never grants runtime HTTP.
 
     Caller supplies owner-verified authority, never caller UUID/DSN or an
@@ -261,6 +329,9 @@ def verify_offline_service_identity(authority, *, token_checker=None, pg_checker
         raise ReleaseSecurityError("Owner-authenticated installation authority required")
     if type(authority.installation_id) is not str or type(authority.source_sha) is not str:
         raise ReleaseSecurityError("Malformed owner installation identity")
+    verify_offline_signed_pin(
+        authority, pin, pinned_public_key_sha256=pinned_public_key_sha256,
+    )
     try:
         if str(UUID(authority.installation_id)) != authority.installation_id:
             raise ValueError
