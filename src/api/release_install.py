@@ -714,8 +714,8 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         # Failure handling is best-effort evidence collection, never a replacement
         # for the original provisioning/SCM exception. An interrupted journal or
         # guard release must not prevent a fail-closed authenticated rollback.
-        def record_secondary(stage, exc):
-            original.add_note(
+        def record_secondary(stage, exc, primary=original):
+            primary.add_note(
                 "TESTER: " + stage + " failed (" + type(exc).__name__
                 + "); maintenance metadata retained in " + str(maintenance)
             )
