@@ -38,31 +38,37 @@ class AuxiliaryRunnerTests(unittest.TestCase):
         # Before #105 run() built API() -> Transport() without policy_store,
         # bypassing installation-wide dispatch, 429 cooldown and 403 halt.
         store = Mock()
-        with self.assertRaisesRegex(ValueError, "durable public transport policy"):
+        with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
             run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", store=store)
         for unsafe in (API(), API(Transport()), API(Mock())):
             with self.subTest(api=unsafe), self.assertRaisesRegex(ValueError, "durable"):
                 run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", api=unsafe, store=store)
         store.ingest.assert_not_called()
-        with self.assertRaisesRegex(ValueError, "durable"):
+        with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
             policy_api(None, None)
 
-    def test_policy_api_binds_canonical_transport_to_postgres_policy(self):
+    def test_policy_api_rejects_caller_owned_database_and_installation_identity(self):
         policy_dsn = ("host=127.0.0.1 port=55480 dbname=tester user=tester_app "
                       "password=x require_auth=scram-sha-256")
-        api = policy_api(policy_dsn, str(uuid4()))
-        self.assertIsInstance(api, API)
-        self.assertIsInstance(api.transport, Transport)
-        self.assertEqual(type(api.transport.policy_store).__name__, "PostgresTransportPolicy")
-        with self.assertRaises(ValueError):
-            policy_api(policy_dsn.replace(" require_auth=scram-sha-256", ""), str(uuid4()))
+        with patch("src.api.transport_policy.PostgresTransportPolicy") as policy:
+            for supplied in (
+                (policy_dsn, str(uuid4())),
+                (policy_dsn.replace("55480", "5432"), str(uuid4())),
+                (policy_dsn, None),
+                (None, str(uuid4())),
+            ):
+                with self.subTest(supplied=supplied), self.assertRaisesRegex(
+                    ValueError, "trusted release transport identity"
+                ):
+                    policy_api(*supplied)
+            policy.assert_not_called()
 
-    def test_policy_bound_api_is_accepted(self):
+    def test_policy_bound_api_without_authenticated_release_is_denied(self):
         api = API(Transport(policy_store=Mock()))
-        with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest",
-                   return_value={"records": 1, "coverage": "UNKNOWN"}) as acquire:
-            run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", api=api, store=Mock())
-        self.assertIs(acquire.call_args.args[1], api)
+        with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest") as acquire:
+            with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
+                run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", api=api, store=Mock())
+        acquire.assert_not_called()
 
     def test_refuse_more_than_ten_duplicates_and_metrics_before_network(self):
         api, store = Mock(), Mock()
