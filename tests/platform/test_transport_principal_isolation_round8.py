@@ -138,8 +138,7 @@ def test_pg_concurrent_same_login_enrollment_serialized(enrolled):
 
 def test_pg_foreign_uuid_rejected_with_two_distinct_valid_logins(enrolled):
     """Two real enrolled scopes; App A cannot operate B's policy or leases."""
-    import psycopg
-    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    from psycopg.conninfo import conninfo_to_dict
 
     from src.api.db import connect
     from src.api.transport_policy import PostgresTransportPolicy, PublicPolicyUnavailable
