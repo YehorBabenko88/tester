@@ -44,6 +44,7 @@ export function inspectCapabilityPayload(data, scope) {
     state: "UNVERIFIED", reason,
     quantityUnit: "UNKNOWN", method: "UNKNOWN",
     historicalCoverage: "UNKNOWN", sourceObservation: "UNKNOWN",
+    observedEvents: null, sampleFingerprint: null,
     strategyAdmissionAllowed: false, requestAllowed: false,
   });
   if (!data || typeof data !== "object" || Array.isArray(data))
@@ -64,6 +65,12 @@ export function inspectCapabilityPayload(data, scope) {
     historicalCoverage: "UNKNOWN",
     sourceObservation: typeof source?.status === "string"
       ? source.status : "UNKNOWN",
+    observedEvents: Number.isSafeInteger(source?.observed_events) &&
+      source.observed_events >= 0 && source.observed_events < 100
+      ? source.observed_events : null,
+    sampleFingerprint: typeof source?.evidence_revision === "string" &&
+      /^sample:[0-9a-f]{64}$/.test(source.evidence_revision)
+      ? source.evidence_revision : null,
   };
 }
 
@@ -111,7 +118,7 @@ export function mountAnalyticsInspector(root, { getScope, fetchCapabilities }) {
       const result = inspectCapabilityPayload(response?.data, scope);
       render(
         `${result.state} · ${limited(result.reason)} · category ${scope.category} · ${scope.symbol} · ${scope.interval} · unit ${limited(result.quantityUnit)} · math ${limited(result.method)} · source ${limited(result.sourceObservation)} · historical coverage ${result.historicalCoverage} · strategy admission DENIED`,
-        `UTC [${scope.start_ms}, ${scope.end_ms}) · ${scope.metric} · ${result.requestAllowed ? "readback gated" : "NO analytics data request sent"} · missing != zero · simulated != source-backed`,
+        `UTC [${scope.start_ms}, ${scope.end_ms}) · ${scope.metric} · observed sample events ${result.observedEvents ?? "UNKNOWN"} · sample revision ${result.sampleFingerprint ?? "UNKNOWN"} · ${result.requestAllowed ? "readback gated" : "NO analytics data request sent"} · missing != zero · simulated != source-backed`,
       );
     } catch (error) {
       if (token === generation)
