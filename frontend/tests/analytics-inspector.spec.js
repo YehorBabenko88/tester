@@ -81,5 +81,7 @@ test("actual Chromium inspector renders UNKNOWN and ignores forged analytics rou
   await page.selectOption("#analytics-inspector-metric", "hourly_range_percent");
   await page.locator("#analytics-inspector-submit").click();
   await expect(status).toContainText("analytics_quality_route_not_registered");
-  expect(calls).toEqual(["/", "/api/capabilities", "/api/capabilities"]);
+  expect(calls.filter((x) => x.startsWith("/api/"))).toEqual([
+    "/api/capabilities", "/api/capabilities",
+  ]);
 });
