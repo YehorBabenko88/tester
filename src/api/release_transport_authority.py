@@ -278,12 +278,25 @@ def verify_offline_service_identity(authority, *, token_checker=None, pg_checker
         raise ReleaseSecurityError("Owner database role or name mismatch")
     if type(authority.db_identity[1]) is not int or not 1024 <= authority.db_identity[1] <= 65535 or authority.db_identity[1] == 5432:
         raise ReleaseSecurityError("Owner database port is forbidden")
+    dsn_values = conninfo_to_dict(authority.dsn)
+    if (dsn_values.get("host") != "127.0.0.1"
+            or dsn_values.get("hostaddr", "127.0.0.1") != "127.0.0.1"
+            or dsn_values.get("port") != str(authority.db_identity[1])
+            or dsn_values.get("dbname") != "tester"
+            or dsn_values.get("user") != "tester_app"
+            or dsn_values.get("require_auth") != "scram-sha-256"
+            or set(dsn_values) - {
+                "host", "hostaddr", "port", "dbname", "user", "password",
+                "sslmode", "sslrootcert", "connect_timeout", "require_auth",
+            }):
+        raise ReleaseSecurityError("Owner database DSN does not match signed scope")
     from .release_service import service_sid
 
     app, postgres, app_sid, postgres_sid = authority.service_identity
+    suffix = UUID(authority.installation_id).hex
     if (app_sid != service_sid(app) or postgres_sid != service_sid(postgres)
-            or not app.startswith("TesterReleaseApp_")
-            or not postgres.startswith("TesterReleasePG_")):
+            or app != "TesterReleaseApp_" + suffix
+            or postgres != "TesterReleasePG_" + suffix):
         raise ReleaseSecurityError("Owner SCM service identity mismatch")
     if token_checker is None:
         token_checker = _windows_current_service_sid
