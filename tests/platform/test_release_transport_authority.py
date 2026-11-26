@@ -171,3 +171,107 @@ def test_bounded_store_binding_requires_exact_owner_dsn(tmp_path):
         authority.checked_readback_binding(wrong)
     with pytest.raises(ReleaseSecurityError, match="Canonical storage"):
         authority.checked_readback_binding(object())
+
+
+def _offline_authority(tmp_path):
+    marker, config = _fixture(tmp_path)
+    from src.api.release_service import service_sid
+
+    return auth.ReleaseTransportAuthority(
+        installation_id=marker["installation_id"],
+        source_sha=marker["source_sha"],
+        root=marker["root"],
+        dsn=config["database_url"],
+        db_identity=("127.0.0.1", 55432, "tester", "tester_app"),
+        service_identity=(
+            marker["services"]["app"], marker["services"]["postgres"],
+            service_sid(marker["services"]["app"]),
+            service_sid(marker["services"]["postgres"]),
+        ),
+        policy_state_at_check="CLEAR",
+        marker_sha256="b" * 64,
+        pg_system_identifier="123456789012345",
+        db_hostaddr="127.0.0.1",
+    )
+
+
+def test_round7_offline_identity_never_authorizes_network(tmp_path):
+    scope = _offline_authority(tmp_path)
+    calls = []
+    def token_checker(sid):
+        calls.append("token")
+        return sid
+    def pg_checker(authority):
+        calls.append("pg")
+        return authority.installation_id == scope.installation_id
+    result = auth.verify_offline_service_identity(
+        scope, token_checker=token_checker, pg_checker=pg_checker,
+    )
+    assert calls == ["token", "pg"]
+    assert result["network_eligible"] is False
+    assert result["analytics_route_eligible"] is False
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("source_sha", "X" * 40),
+        ("marker_sha256", "X" * 64),
+        ("pg_system_identifier", "wrong"),
+        ("db_hostaddr", "127.0.0.2"),
+        ("db_identity", ("127.0.0.1", 5432, "tester", "tester_app")),
+        ("db_identity", ("127.0.0.1", 55432, "postgres", "tester_app")),
+        ("db_identity", ("127.0.0.1", 55432, "tester", "postgres")),
+    ],
+)
+def test_round7_offline_scope_forgery_rejected_before_pg(tmp_path, field, value):
+    from dataclasses import replace
+
+    forged = replace(_offline_authority(tmp_path), **{field: value})
+    calls = []
+    with pytest.raises(ReleaseSecurityError):
+        auth.verify_offline_service_identity(
+            forged,
+            token_checker=lambda sid: calls.append("token") or sid,
+            pg_checker=lambda scope: calls.append("pg") or True,
+        )
+    assert calls == []
+
+
+def test_round7_cross_install_sid_denied_without_pg(tmp_path):
+    from dataclasses import replace
+    original = _offline_authority(tmp_path)
+    app, pg, app_sid, pg_sid = original.service_identity
+    other = replace(original, service_identity=(app, pg, "S-1-5-80-0", pg_sid))
+    with pytest.raises(ReleaseSecurityError, match="SCM"):
+        auth.verify_offline_service_identity(
+            other, token_checker=lambda sid: sid, pg_checker=lambda _: True,
+        )
+
+
+@pytest.mark.parametrize("fault", ["missing_pg", "revoked", "stolen_token", "restart"])
+def test_round7_offline_revocation_restart_and_db_unavailable_denied(tmp_path, fault):
+    scope = _offline_authority(tmp_path)
+    def token_checker(sid):
+        return "S-1-5-80-0" if fault == "stolen_token" else sid
+    def pg_checker(authority):
+        if fault == "missing_pg":
+            raise ConnectionError("disposable database offline")
+        return fault != "revoked"
+    with pytest.raises((ReleaseSecurityError, ConnectionError)):
+        auth.verify_offline_service_identity(
+            scope, token_checker=token_checker,
+            pg_checker=None if fault == "restart" else pg_checker,
+        )
+
+
+def test_round7_reject_self_signed_verified_dict_and_non_windows(tmp_path):
+    scope = _offline_authority(tmp_path)
+    with pytest.raises(ReleaseSecurityError, match="Owner-authenticated"):
+        auth.verify_offline_service_identity(
+            {"verified": True, "installation_id": scope.installation_id},
+            token_checker=lambda sid: sid, pg_checker=lambda obj: True,
+        )
+    if auth.os.name != "nt":
+        with pytest.raises(ReleaseSecurityError, match="Windows SCM token"):
+            auth._windows_current_service_sid(scope.service_identity[2])
