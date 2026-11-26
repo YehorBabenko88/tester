@@ -263,7 +263,7 @@ def test_actual_pg_host_stop_replay_cannot_erase_a_new_run(authority):
     import psycopg
     from src.api.restart_budget import BudgetDenied
 
-    owner, app_dsn, ident, budget = authority
+    _, app_dsn, ident, budget = authority
     first = budget()
     first.admit("host")
     token = first.host_token
