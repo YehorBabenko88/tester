@@ -487,3 +487,63 @@ def test_round7_refuses_unauthorized_postgres_endpoint_without_a_read(monkeypatc
     assert response.status_code == 503
     assert response.json()["detail"] == "trusted_storage_binding_unavailable"
     assert invoked == []
+
+
+def test_round8_two_real_parallel_requests_hold_slots_third_denied_and_released(monkeypatch):
+    """Two blocked observations occupy both slots; the third never touches DATA.
+
+    This tests real concurrent FastAPI request handling, not just an exhausted
+    semaphore stub. The Event is released even if an assertion fails.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event, Lock
+    from src.api import analytics_readback as module
+
+    class StubStore:
+        def read_bounded(self, *args, **kwargs):
+            return []
+
+    entered = Event()
+    release = Event()
+    lock = Lock()
+    attempts = []
+
+    def blocked(*_args, **_kwargs):
+        with lock:
+            attempts.append(True)
+            if len(attempts) == 2:
+                entered.set()
+        if not release.wait(timeout=10):
+            raise TimeoutError("concurrent observation fixture not released")
+        return {"status": "UNVERIFIED", "admitted_to_f": False}
+
+    monkeypatch.setattr(module, "observed_readback", blocked)
+    app = FastAPI()
+    app.include_router(create_readback_router(
+        trusted_binding=lambda: (StubStore(), identity())
+    ))
+    params = scope().model_dump()
+
+    def request():
+        return TestClient(app).get("/api/analytics/readback", params=params)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        a = pool.submit(request)
+        b_future = pool.submit(request)
+        try:
+            assert entered.wait(timeout=5), "two active readbacks did not enter"
+            third = request()
+            assert third.status_code == 429
+            assert third.json()["detail"] == "analytics_readback_concurrency_limit"
+            with lock:
+                assert len(attempts) == 2  # no third source reader
+        finally:
+            release.set()
+        assert a.result(timeout=10).status_code == 503
+        assert b_future.result(timeout=10).status_code == 503
+
+    # The finally release of both occupied slots must admit the next request.
+    fourth = request()
+    assert fourth.status_code == 503  # returned source UNVERIFIED, not a 429
+    with lock:
+        assert len(attempts) == 3
