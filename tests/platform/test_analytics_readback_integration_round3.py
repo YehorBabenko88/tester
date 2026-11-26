@@ -290,3 +290,64 @@ def test_round7_actual_postgresql_cancels_bounded_store_statement():
             connection.execute("SELECT pg_sleep(2)")
     elapsed = time.monotonic() - start_time
     assert 0.1 <= elapsed < 2.0, f"measured SQL cancellation {elapsed:.3f}s"
+
+
+@pytest.mark.integration
+def test_round13_two_real_postgresql_readers_overlap_and_release():
+    """Two real SQL backend sessions overlap; a FastAPI mock alone is insufficient.
+
+    Dedicated CI-owned DB only. Both sessions execute pg_sleep on the same
+    PostgreSQL instance after a two-thread start barrier. Distinct backend
+    PIDs and overlapping observed SQL intervals are required, not merely
+    concurrent Python/HTTP threads.
+    """
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    dsn = os.getenv("TESTER_RESEARCH_DATA_TEST_DSN")
+    if not dsn:
+        pytest.fail("Mandatory real PostgreSQL concurrency DSN is absent")
+    info = conninfo_to_dict(dsn)
+    if (info.get("host") != "127.0.0.1"
+            or info.get("port") != "55479"
+            or info.get("dbname") != "tester_research_data_disposable"):
+        pytest.fail("Refusing non-disposable PostgreSQL concurrency target")
+    info["connect_timeout"] = "3"
+    info["options"] = "-c timezone=UTC -c statement_timeout=6000 -c lock_timeout=3000"
+    clean_dsn = make_conninfo(**info)
+    gate = threading.Barrier(2)
+
+    def concurrent_query(_):
+        with psycopg.connect(clean_dsn) as conn:
+            backend = conn.execute("SELECT pg_backend_pid()").fetchone()[0]
+            # Both independent sessions must read the real immutable DATA table,
+            # not a mocked query or merely a Python Event.
+            conn.execute("SELECT count(*) FROM tester_storage.raw_records").fetchone()
+            gate.wait(timeout=8)
+            before = time.monotonic()
+            conn.execute(
+                "SELECT pg_sleep(1.0), "
+                "(SELECT count(*) FROM tester_storage.raw_records)"
+            ).fetchone()
+            after = time.monotonic()
+            return (backend, before, after)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(concurrent_query, (0, 1)))
+    a, b = results
+    assert a[0] != b[0], "The fixture reused one PG backend, not parallel sessions"
+    assert min(a[2], b[2]) - max(a[1], b[1]) >= 0.35, (
+        "SQL executions did not overlap sufficiently on independent PG backends",
+        results,
+    )
+    assert all(0.7 <= end - start < 5.0 for _, start, end in results), results
+    # Both sessions must be gone, not just unblocked Python TestClient calls.
+    with psycopg.connect(clean_dsn) as observer:
+        assert observer.execute(
+            "SELECT count(*) FROM pg_stat_activity "
+            "WHERE pid=ANY(%s) AND datname=current_database()",
+            ([a[0], b[0]],),
+        ).fetchone()[0] == 0

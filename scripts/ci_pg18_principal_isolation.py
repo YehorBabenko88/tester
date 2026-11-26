@@ -9,13 +9,13 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from xml.etree import ElementTree
 
 import psycopg
 from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from src.api.db import migrate
+from ci_named_junit_gate import assert_ci_source, safe_artifact
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_FILE = "tests/platform/test_transport_principal_isolation_round8.py"
@@ -198,6 +198,7 @@ def check_legacy_upgrades(admin_dsn, owner_dsn, app_dsn):
 
 
 def main():
+    head_sha = assert_ci_source(os.environ.get("TESTER_EXPECT_HEAD_SHA"))
     raw = os.environ.get("TESTER_PG18_SECURITY_ADMIN_DSN", "")
     parts = conninfo_to_dict(raw)
     if (
@@ -266,53 +267,34 @@ def main():
         TEST_PUBLIC_POLICY_DSN=app_dsn,
         TEST_PUBLIC_POLICY_SECOND_APP_ROLE=USER_B,
     )
-    # JUnit XML is the machine-readable source of truth: never infer
-    # success from plain stdout lines which a test could print or forge.
+    # Preserve the original exact 10 A + 3 A/E PostgreSQL18 test inventory.
+    # One JUnit evidence artifact is always sanitized and anchored to source SHA.
     nodes = [TEST_FILE + "::" + test for test in TESTS] + list(EXTRA_CASES)
-    expected = set(TESTS) | {case.rsplit("::", 1)[1] for case in EXTRA_CASES}
+    evidence = ROOT / ".scratch" / "mandatory-evidence" / "pg18"
+    evidence.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="tester-pg18-security-") as temp:
         report = Path(temp) / "pytest-junit.xml"
         command = [
-            sys.executable,
-            "-m",
-            "pytest",
-            "-vv",
-            "-rs",
-            "--strict-markers",
-            "--timeout=40",
-            "-p",
-            "no:cacheprovider",
-            f"--junitxml={report}",
-            *nodes,
+            sys.executable, "-m", "pytest", "-vv", "-rs", "--strict-markers",
+            "-o", "xfail_strict=true", "--timeout=40", "-p", "no:cacheprovider",
+            f"--junitxml={report}", *nodes,
         ]
-        result = subprocess.run(
-            command, cwd=ROOT, env=env, text=True, capture_output=True, timeout=330
-        )
-        print(result.stdout, flush=True)
-        if result.stderr:
-            print(result.stderr, file=sys.stderr, flush=True)
+        result = subprocess.run(command, cwd=ROOT, env=env, text=True,
+                                capture_output=True, timeout=330)
+        for line in result.stdout.splitlines():
+            if "::test_" in line and any(t in line for t in
+                    (" PASSED", " FAILED", " SKIPPED", " XFAIL", " XPASS")):
+                print(line[:250], flush=True)
+        try:
+            safe_artifact(
+                report, evidence / "pg18-security-13.xml", tuple(nodes),
+                head_sha=head_sha, postgres_major="18",
+                suite_name="pg18-principal-security-13",
+            )
+        except ValueError as exc:
+            raise SystemExit(f"Mandatory PG18 JUnit rejected: {exc}") from None
         if result.returncode != 0:
-            raise SystemExit(
-                f"Mandatory PostgreSQL18 security pytest FAILED with code {result.returncode}"
-            )
-        if not report.is_file():
-            raise SystemExit("Mandatory PG18 JUnit evidence absent")
-        root = ElementTree.parse(report).getroot()
-        cases = root.findall(".//testcase")
-        names = [case.get("name") for case in cases]
-        if len(cases) != len(expected) or set(names) != expected:
-            raise SystemExit(
-                f"PG18 test inventory mismatch: expected={sorted(expected)}, got={names}"
-            )
-        if any(
-            case.find(tag) is not None
-            for case in cases
-            for tag in ("skipped", "failure", "error")
-        ):
-            raise SystemExit("Mandatory PG18 JUnit contains skipped/failed/error cases")
-        for suite in root.findall(".//testsuite"):
-            if any(int(suite.get(key, "0")) for key in ("skipped", "failures", "errors")):
-                raise SystemExit("Mandatory PG18 suite has non-PASS result")
+            raise SystemExit(f"Mandatory PostgreSQL18 pytest exited {result.returncode}")
     print(
         f"PASS: PostgreSQL {version} / {len(expected)} mandatory executed principal-isolation checks",
         flush=True,

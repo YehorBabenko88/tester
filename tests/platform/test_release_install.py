@@ -521,6 +521,90 @@ def test_full_native_installer_lifecycle(tmp_path):
             conn.execute(
                 "INSERT INTO tester_acceptance.lifecycle VALUES (%s)", ("durable-" + ident,)
             )
+            # ROUND14: real committed, disposable owner-database content to
+            # prove uninstall removes more than an empty schema / root.
+            # Do not create unowned NTFS files or touch any foreign cluster.
+            seed_symbol = "R14" + ident[:10].upper()
+            candle_key = hashlib.sha256(("candle-" + ident).encode()).hexdigest()
+            candle_digest = hashlib.sha256(("ohlcv-" + ident).encode()).hexdigest()
+            archive_digest = hashlib.sha256(("archive-" + ident).encode()).hexdigest()
+            seed_job = "r14-job-" + ident
+            conn.execute(
+                "INSERT INTO tester_storage.instruments(venue,category,symbol)"
+                " VALUES ('bybit','linear',%s)",
+                (seed_symbol,),
+            )
+            conn.execute(
+                "INSERT INTO tester_storage.raw_records("
+                "record_key,venue,category,symbol,dataset,interval,schema_version,"
+                "timestamp_ms,timestamp_precision,payload,content_hash)"
+                " VALUES (%s,'bybit','linear',%s,'candles','1','1.0',"
+                "1700000000000,'ms',%s::jsonb,%s)",
+                (candle_key, seed_symbol, json.dumps({
+                    "open": "1", "high": "2", "low": "1",
+                    "close": "1.5", "volume": "42", "turnover": "63",
+                }), candle_digest),
+            )
+            conn.execute(
+                "INSERT INTO tester_storage.source_archives("
+                "archive_id,scope_key,symbol,start_ms,end_ms,url,sha256,bytes,"
+                "row_count,format,storage_uri,manifest)"
+                " VALUES (%s,%s,%s,1700000000000,1700000060000,%s,%s,"
+                "512,1,'jsonl',%s,%s::jsonb)",
+                ("r14-archive-" + ident, "round14-disposable", seed_symbol,
+                 "https://example.invalid/disposable-candle.jsonl",
+                 archive_digest, "fixture://isolated/round14",
+                 json.dumps({"fixture": "round14", "source": "synthetic"})),
+            )
+            conn.execute(
+                "INSERT INTO tester_storage.download_jobs("
+                "job_key,scope_key,symbol,request,state)"
+                " VALUES (%s,'round14-disposable',%s,%s::jsonb,'committed')",
+                (seed_job, seed_symbol, json.dumps({"dataset": "candles"})),
+            )
+            conn.execute(
+                "INSERT INTO tester_storage.ingestion_checkpoints("
+                "job_key,checkpoint,commit_hash) VALUES(%s,%s::jsonb,%s)",
+                (seed_job, json.dumps({"synthetic_candle": candle_key}),
+                 hashlib.sha256(("checkpoint-" + ident).encode()).hexdigest()),
+            )
+            conn.execute(
+                "INSERT INTO tester_storage.derived_aggregates("
+                "aggregate_id,scope_key,symbol,start_ms,end_ms,algorithm_version,"
+                "source_fingerprint,payload)"
+                " VALUES (%s,'round14-disposable',%s,1700000000000,"
+                "1700000060000,'round14-fixture-v1',%s,%s::jsonb)",
+                ("r14-result-" + ident, seed_symbol, candle_digest,
+                 json.dumps({"kind": "synthetic_strategy_test_result",
+                             "status": "NOT_ADMITTED", "pnl": "0"})),
+            )
+            conn.execute(
+                "CREATE TABLE tester_acceptance.strategy_results "
+                "(result_id text PRIMARY KEY, payload jsonb NOT NULL)"
+            )
+            conn.execute(
+                "INSERT INTO tester_acceptance.strategy_results VALUES(%s,%s::jsonb)",
+                ("r14-test-" + ident, json.dumps({
+                    "kind": "synthetic_test_result", "admitted_to_f": False
+                })),
+            )
+            for table in ("raw_records", "source_archives", "download_jobs",
+                          "ingestion_checkpoints", "derived_aggregates"):
+                assert conn.execute(
+                    "SELECT count(*) FROM tester_storage." + table
+                ).fetchone()[0] >= 1, table
+            assert conn.execute(
+                "SELECT count(*) FROM tester_acceptance.strategy_results"
+            ).fetchone()[0] == 1
+            evidence["checks"].append(dict(
+                phase="populated-private-pg-candles-archives-checkpoints-results",
+                seed_sha256=hashlib.sha256((ident + candle_key).encode()).hexdigest(),
+                populated_classes=(
+                    "candles", "source_archives", "download_jobs",
+                    "ingestion_checkpoints", "derived_aggregates",
+                    "synthetic_strategy_test_results",
+                ),
+            ))
             assert conn.execute("SELECT count(*) FROM tester_platform.workers").fetchone()[0] >= 1
             assert (
                 conn.execute("SELECT count(*) FROM tester_storage.schema_migrations").fetchone()[0]
@@ -730,6 +814,22 @@ def test_full_native_installer_lifecycle(tmp_path):
         )
         owner2 = json.loads((root / "private/database-owner.json").read_text())
         with psycopg.connect(owner2["database_url"]) as conn:
+            # An entirely new private PG cluster must not expose any of the
+            # preceding installed system's candle/result fixtures.
+            assert conn.execute(
+                "SELECT count(*) FROM tester_storage.raw_records "
+                "WHERE symbol=%s", (seed_symbol,)
+            ).fetchone()[0] == 0
+            assert conn.execute(
+                "SELECT count(*) FROM tester_storage.derived_aggregates "
+                "WHERE symbol=%s", (seed_symbol,)
+            ).fetchone()[0] == 0
+            assert conn.execute(
+                "SELECT to_regclass('tester_acceptance.strategy_results')"
+            ).fetchone()[0] is None
+            evidence["checks"].append(dict(
+                phase="reinstall-new-private-db-excludes-old-candles-results"
+            ))
             conn.execute("CREATE SCHEMA tester_acceptance")
             conn.execute("CREATE TABLE tester_acceptance.lifecycle(value text PRIMARY KEY)")
             conn.execute(

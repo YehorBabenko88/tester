@@ -8,6 +8,8 @@ on:
       - 'tests/platform/test_transport_principal_isolation_round8.py'
       - 'tests/platform/test_public_transport_policy.py'
       - 'scripts/ci_pg18_principal_isolation.py'
+      - 'scripts/ci_named_junit_gate.py'
+      - 'tests/platform/test_ci_named_junit_gate_round14.py'
       - '.github/workflows/postgres18-principal-isolation.yml'
   workflow_dispatch:
 permissions:
@@ -31,6 +33,7 @@ jobs:
     env:
       TESTER_PG18_SECURITY_ADMIN_DSN: postgresql://tester_ci_admin:disposable-admin-only@127.0.0.1:55820/postgres?require_auth=scram-sha-256
       PYTHONUNBUFFERED: '1'
+      TESTER_EXPECT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,5 +46,16 @@ jobs:
         run: |
           python -m pip install 'pip>=26.2,<27'
           python -m pip install -e '.[dev]' -c requirements-platform.lock
+      - name: Reject forged JUnit identity, suite counters and skip status
+        run: |
+          mkdir -p .scratch/mandatory-evidence/pg18
+          python -m pytest -q -o xfail_strict=true --timeout=30 -p no:cacheprovider --junitxml=.scratch/mandatory-evidence/pg18/validator-negative.xml tests/platform/test_ci_named_junit_gate_round14.py
       - name: Mandatory REAL PostgreSQL18 principal isolation E2E (zero SKIP)
         run: python scripts/ci_pg18_principal_isolation.py
+      - name: Retain sanitized exact-source PG18 security JUnit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tester-pg18-security-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .scratch/mandatory-evidence/pg18/
+          if-no-files-found: error

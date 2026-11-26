@@ -31,6 +31,12 @@ on:
       - 'tests/platform/test_capability_data_bridge_issue104.py'
       - 'tests/platform/test_inverse_units_canonical.py'
       - 'tests/platform/test_runtime_privileges_issue114.py'
+      - 'scripts/ci_data_research_mandatory.py'
+      - 'scripts/ci_e_ingest_mandatory.py'
+      - 'scripts/ci_named_junit_gate.py'
+      - 'tests/platform/test_ci_named_junit_gate_round14.py'
+      - 'tests/ingest/test_pipeline.py'
+      - 'tests/api/test_analytics_readback_round3.py'
       - '.github/workflows/data-research.yml'
   workflow_dispatch:
 permissions:
@@ -39,7 +45,7 @@ jobs:
   contract:
     name: contract-pg${{ matrix.postgres }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -56,6 +62,8 @@ jobs:
           --health-cmd "pg_isready -U tester_aux_ci -d tester_aux_ci"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
+      TESTER_EXPECT_PG_MAJOR: ${{ matrix.postgres }}
+      TESTER_EXPECT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       TESTER_AUX_TEST_DSN: postgresql://tester_aux_ci:disposable-only@127.0.0.1:55479/tester_aux_ci
     steps:
       - uses: actions/checkout@v4
@@ -104,9 +112,26 @@ jobs:
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
           TESTER_RESEARCH_BROWSER_E2E=1 TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
             python -m pytest -vv -rs tests/platform/test_data_research_adapter_issue59.py tests/platform/test_analytics_readback_integration_round3.py
+      - name: Reject altered, incomplete, skipped or XPASS JUnit evidence
+        run: |
+          mkdir -p .scratch/mandatory-evidence/pg${{ matrix.postgres }}
+          python -m pytest -q -o xfail_strict=true --timeout=30 -p no:cacheprovider --junitxml=.scratch/mandatory-evidence/pg${{ matrix.postgres }}/validator-negative.xml tests/platform/test_ci_named_junit_gate_round14.py
+      - name: Strict mandatory PG16/18 research E2E and E rollback (JUnit exact inventory, NO SKIP)
+        run: |
+          python scripts/ci_data_research_mandatory.py
+      - name: Mandatory E REST slow-trickle/deadline/encoding six regressions
+        run: |
+          python scripts/ci_e_ingest_mandatory.py
       - name: Release grants, DATA paths and spot/linear/inverse units as NON-superuser tester_app (#104, #114)
         # provision_release_databases creates tester_owner-owned databases and the
         # restricted runtime role; every DATA/queue flow then runs as tester_app.
         env:
           TESTER_PRIVILEGE_TEST_ADMIN_DSN: host=127.0.0.1 port=55479 dbname=tester_aux_ci user=tester_aux_ci password=disposable-only
         run: python -m pytest -q -rs tests/platform/test_runtime_privileges_issue114.py
+      - name: Preserve sanitized exact-head PG${{ matrix.postgres }} JUnit and receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tester-data-research-pg${{ matrix.postgres }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .scratch/mandatory-evidence/pg${{ matrix.postgres }}/
+          if-no-files-found: error
