@@ -5,6 +5,7 @@ import json
 import os
 import re
 import socket
+import sys
 import uuid
 from pathlib import Path
 
@@ -765,7 +766,20 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         _cleanup_metadata(maintenance, marker["installation_id"])
         raise
     finally:
-        tx.close()
+        # A secondary native handle/token close may fail while a provisioning
+        # exception is already propagating. Keep the primary error authoritative
+        # and attach a bounded diagnostic; a successful install still fails if
+        # cleanup cannot complete. Never authorize deletion in this handler.
+        active_error = sys.exc_info()[1]
+        try:
+            tx.close()
+        except BaseException as close_error:
+            if active_error is None:
+                raise
+            active_error.add_note(
+                "TESTER: transaction close failed (" + type(close_error).__name__
+                + "); maintenance metadata retained in " + str(maintenance)
+            )
 
 
 def protect_external_bundle(bundle):

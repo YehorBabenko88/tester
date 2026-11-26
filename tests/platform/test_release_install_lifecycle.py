@@ -1087,7 +1087,7 @@ def test_failure_after_root_created_keeps_fail_closed_rollback(tmp_path, monkeyp
         call()
     assert isinstance(info.value.__cause__, ReleaseSecurityError)
     assert "foreign creator" in str(info.value.__cause__)
-    assert any("authenticated rollback failed" in n for n in info.value.__notes__)
+    assert any("authenticated rollback failed" in note for note in info.value.__notes__)
     assert probe.touched == ["_provisioning_entries"]
     assert root.is_dir() and cleaned == []
     (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
@@ -1209,3 +1209,161 @@ def test_guard_release_failure_does_not_hide_original_refusal(tmp_path, monkeypa
     # Abnormal guard failure retains the journal for separately authenticated retry.
     assert cleaned == []
     assert len(list(tmp_path.glob("TesterReleaseMaintenance_*"))) == 1
+
+
+def test_provisioning_guard_cleanup_attempts_all_handles_after_failure():
+    """Partial close failure never short-circuits independent guards."""
+    from src.api.release_provision import ProvisioningTransaction
+
+    class Handle:
+        def __init__(self, *, fails=False):
+            self.fails = fails
+            self.calls = 0
+
+        def Close(self):
+            self.calls += 1
+            if self.fails:
+                raise OSError("simulated pinned handle close failure")
+
+    tx = object.__new__(ProvisioningTransaction)
+    journal = Handle(fails=True)
+    external = Handle()
+    root_guard = Handle()
+    tx.journal = journal
+    tx.external_leases = {"owned-shortcut": external}
+    tx.root_guard = root_guard
+    with pytest.raises(OSError, match="simulated pinned handle"):
+        tx.release_guards()
+    assert journal.calls == external.calls == root_guard.calls == 1
+    # Successful independent guards were cleared, failed journal stays tracked.
+    assert tx.journal is journal
+    assert tx.external_leases == {}
+    assert tx.root_guard is None
+
+
+def test_provisioning_close_restores_token_after_guard_error(monkeypatch):
+    """Token rights are restored even if native guard release fails."""
+    from src.api.release_provision import ProvisioningTransaction
+
+    calls = []
+
+    class Token:
+        def Close(self):
+            calls.append("token.Close")
+
+    def restore(token, disable, privileges):
+        calls.append("restore")
+        assert disable is False and privileges == ["original"]
+
+    monkeypatch.setitem(
+        sys.modules, "win32security", types.SimpleNamespace(AdjustTokenPrivileges=restore)
+    )
+    tx = object.__new__(ProvisioningTransaction)
+    tx.closed = False
+    tx.token = Token()
+    tx.previous_privileges = ["original"]
+
+    def bad_guards():
+        calls.append("release_guards")
+        raise OSError("simulated guard failure")
+
+    tx.release_guards = bad_guards
+    with pytest.raises(OSError, match="simulated guard failure"):
+        tx.close()
+    assert calls == ["release_guards", "restore", "token.Close"]
+    assert tx.closed is True
+
+
+def test_provisioning_close_does_not_mark_closed_if_token_handle_close_fails(monkeypatch):
+    """A failed token close remains visible and retryable."""
+    from src.api.release_provision import ProvisioningTransaction
+
+    calls = []
+
+    class Token:
+        def Close(self):
+            calls.append("token.Close")
+            raise OSError("token close refused")
+
+    monkeypatch.setitem(
+        sys.modules,
+        "win32security",
+        types.SimpleNamespace(AdjustTokenPrivileges=lambda *args: calls.append("restore")),
+    )
+    tx = object.__new__(ProvisioningTransaction)
+    tx.closed = False
+    tx.token = Token()
+    tx.previous_privileges = []
+    tx.release_guards = lambda: calls.append("release_guards")
+    with pytest.raises(OSError, match="token close refused"):
+        tx.close()
+    assert calls == ["release_guards", "restore", "token.Close"]
+    assert tx.closed is False
+
+
+def test_install_finally_close_error_does_not_mask_foreign_root_refusal(
+    tmp_path, monkeypatch
+):
+    """C1: the real finally close failure must preserve primary root-race error."""
+    from src.api import release_provision as rp
+
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=False
+    )
+    constructor = rp.ProvisioningTransaction
+
+    def injected_close(*args, **kwargs):
+        tx = constructor(*args, **kwargs)
+
+        def close():
+            raise OSError("injected token close failed")
+
+        tx.close = close
+        return tx
+
+    monkeypatch.setattr(rp, "ProvisioningTransaction", injected_close)
+    with pytest.raises(ValueError, match="Remove the empty folder and run Setup again") as info:
+        call()
+    assert any("transaction close failed (OSError)" in note for note in info.value.__notes__)
+    assert (root / "FOREIGN-USER-DATA.txt").read_text() == "KEEP"
+    assert probe.touched == []
+    # Original refusal is preserved and no unverified maintenance cleanup runs.
+    assert len(cleaned) == 1
+
+
+def test_install_combined_journal_and_close_failure_preserves_original(
+    tmp_path, monkeypatch
+):
+    """Even two secondary faults must not replace the primary provisioning error."""
+    from src.api import release_provision as rp
+
+    root, call, probe, cleaned = _drive_fresh_install(
+        tmp_path, monkeypatch, record_root_created=True
+    )
+    constructor = rp.ProvisioningTransaction
+
+    def injected_failures(*args, **kwargs):
+        tx = constructor(*args, **kwargs)
+        append = tx.append
+
+        def journal(row):
+            if row.get("event") == "phase" and row.get("phase") == "interrupted":
+                raise OSError("injected journal write failure")
+            return append(row)
+
+        tx.append = journal
+
+        def close():
+            raise OSError("injected token close failed")
+
+        tx.close = close
+        return tx
+
+    monkeypatch.setattr(rp, "ProvisioningTransaction", injected_failures)
+    with pytest.raises(RuntimeError, match="later provisioning failure") as info:
+        call()
+    assert any("interrupted journal append failed" in n for n in info.value.__notes__)
+    assert any("transaction close failed (OSError)" in n for n in info.value.__notes__)
+    assert root.is_dir() and probe.touched == [] and cleaned == []
+    (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
+    assert (maintenance / "provisioning.jsonl").is_file()
