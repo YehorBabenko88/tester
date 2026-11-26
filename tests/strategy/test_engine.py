@@ -52,6 +52,30 @@ class EngineTests(unittest.TestCase):
         self.assertEqual({m['fill_id'] for m in r['overlays']}, {f['id'] for f in r['fills']})
         self.assertEqual(r['metrics']['trade_count'], 1)
 
+    def test_v2_mark_dispatch_preserves_spot_and_linear_legacy_replay(self):
+        # No widening of F admission. Existing canonical replay/digests for
+        # synthetic spot and linear inputs must remain frozen.
+        for category in ("spot", "linear"):
+            c=config()
+            if category == "linear":
+                c["costs"]["funding_policy"]="ignore_exploratory"
+            sample=snapshot()
+            sample["category"]=category
+            for bar in sample["candles"]:
+                bar["category"]=category
+            result=run(c,sample)
+            self.assertEqual(result["engine_version"], "strategy-bar-1.1.0")
+            self.assertTrue(result["replay_digest"])
+            self.assertEqual(result, run(c,sample))
+            # Existing inverse F gate remains fail-closed even if the
+            # standalone math helper can evaluate inverse hypothetical marks.
+        sample=snapshot()
+        sample["category"]="inverse"
+        for bar in sample["candles"]:
+            bar["category"]="inverse"
+        with self.assertRaisesRegex(ValueError, "only spot and linear payoff supported"):
+            run(config(),sample)
+
     def test_deterministic_resume_and_concurrency(self):
         c=config(); s=snapshot(); expected=run(c,s)
         b=Backtest(c,s); b.step(); checkpoint=json.loads(json.dumps(b.checkpoint()))
