@@ -116,13 +116,36 @@ class API:
             for attempt in range(6):
                 if cancel and cancel():
                     raise InterruptedError("Public request cancelled")
-                with self.transport.get(
-                    url, **({"cancel": cancel} if cancel is not None else {})
-                ) as r:
-                    wire_bytes = r.content
-                    if not isinstance(wire_bytes, bytes) or len(wire_bytes) > MAX_HTTP_BODY_BYTES:
-                        raise ValueError("REST HTTP body byte budget exceeded")
-                    body = r.json()
+                # The canonical Transport supports guarded response streaming.
+                # Never ask Requests to buffer an unbounded body before the
+                # application byte budget can be checked. Offline Mock
+                # transports retain their legacy response/content fixture seam.
+                streamed = isinstance(self.transport, Transport)
+                options = {"stream": True} if streamed else {}
+                if cancel is not None:
+                    options["cancel"] = cancel
+                with self.transport.get(url, **options) as r:
+                    if streamed:
+                        chunks = []
+                        byte_count = 0
+                        for chunk in r.iter_content(chunk_size=65536):
+                            if cancel and cancel():
+                                raise InterruptedError("Public request cancelled")
+                            if not isinstance(chunk, bytes):
+                                raise ValueError("Malformed REST HTTP body chunk")
+                            byte_count += len(chunk)
+                            if byte_count > MAX_HTTP_BODY_BYTES:
+                                raise ValueError("REST HTTP body byte budget exceeded")
+                            chunks.append(chunk)
+                        wire_bytes = b"".join(chunks)
+                    else:
+                        wire_bytes = r.content
+                        if not isinstance(wire_bytes, bytes) or len(wire_bytes) > MAX_HTTP_BODY_BYTES:
+                            raise ValueError("REST HTTP body byte budget exceeded")
+                    try:
+                        body = json.loads(wire_bytes)
+                    except (ValueError, UnicodeError):
+                        raise ValueError("Malformed Bybit JSON response") from None
                     if cancel and cancel():
                         raise InterruptedError("Public request cancelled")
                     if not isinstance(body, dict) or type(body.get("retCode")) is not int:
