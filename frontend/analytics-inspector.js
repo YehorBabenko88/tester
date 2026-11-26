@@ -10,7 +10,7 @@ const FAMILIES = new Set([
 const EXECUTION_PANELS = new Set(["vwap", "footprint", "delta", "cvd", "poc"]);
 const SOURCE_LIMIT_MS = 7 * 86400000;
 const MAX_TEXT = 240;
-const SAFE_REASONS = new Set(["invalid_capability_payload", "capability_contract_unverified", "analytics_quality_route_not_registered", "provider_unavailable", "source_unverified"]);
+const SAFE_REASONS = new Set(["invalid_capability_payload", "capability_contract_unverified", "analytics_quality_route_not_registered", "provider_unavailable", "source_unverified", "UNKNOWN", "UNVERIFIED", "base", "quote", "tester.execution-metrics/1", "tester.execution-metrics/2", "tester-public-execution/1", "HISTORICAL_READ_ONLY", "CURRENT"]);
 
 function limited(value) {
   if (typeof value !== "string" || !SAFE_REASONS.has(value)) return "UNKNOWN";
