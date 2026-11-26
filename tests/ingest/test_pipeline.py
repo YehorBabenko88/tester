@@ -111,6 +111,64 @@ class PipelineTests(unittest.TestCase):
         self.assertLessEqual(raw.read_bytes, MAX_HTTP_BODY_BYTES + 65536)
         self.assertTrue(raw.closed)
 
+    def test_canonical_rest_rejects_compressed_body_before_iteration(self):
+        """Identity encoding request does not authorize gzip/br response decoding."""
+        reply = response(b"not-json", headers={"Content-Encoding": "gzip"})
+        reply._content = False
+        raw = io.BytesIO(b"not-json")
+        reply.raw = raw
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        with self.assertRaisesRegex(ValueError, "Unsupported REST content encoding"):
+            API(transport).call("/kline", {})
+        self.assertTrue(raw.closed)
+        session.request.assert_called_once()
+        self.assertEqual(
+            session.request.call_args.kwargs["headers"]["accept-encoding"], "identity"
+        )
+
+    def test_canonical_rest_total_deadline_refuses_policy_wait_before_network(self):
+        """A monotonic expired budget is delivered to the existing transport."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        response_count = [0]
+        ticks = iter([0.0, 100.0, 100.0, 100.0])
+        session = Mock()
+        def unsafe_request(*args, **kwargs):
+            response_count[0] += 1
+            return response(b'{"retCode":0,"result":{"list":[]}}')
+        session.request.side_effect = unsafe_request
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        with patch.object(rest.time, "monotonic", side_effect=lambda: next(ticks, 100.0)):
+            with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1):
+                with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
+                    API(transport).call("/kline", {})
+        self.assertEqual(response_count[0], 0)
+
+    def test_canonical_rest_deadline_during_stream_closes_response(self):
+        """Slow response stream must release owned lease on deadline denial."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        reply = response()
+        reply._content = False
+        raw = io.BytesIO(b'{"retCode":0,"result":{"list":[]}}')
+        reply.raw = raw
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        clock = [0.0]
+        def monotonic():
+            clock[0] += 0.125
+            return clock[0]
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 0.01):
+            with patch.object(rest.time, "monotonic", side_effect=monotonic):
+                with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
+                    API(transport).call("/kline", {})
+        self.assertTrue(raw.closed)
+
     def test_calendar_month_spacing(self):
         self.assertEqual(list(expected_times(1704067200000,1711929600000,'M')),[1704067200000,1706745600000,1709251200000])
 
