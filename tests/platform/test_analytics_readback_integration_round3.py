@@ -203,6 +203,8 @@ process.stdout.write("PG_API_FRONTEND_CONTRACT_OK");
         starts = _dt.fromtimestamp(start / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M")
         ends = _dt.fromtimestamp((start + 60_000) / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M")
         html = html.replace('2020-09-13T12:38', starts).replace('2020-09-13T12:39', ends)
+        cutoff = datetime.fromtimestamp(args["as_of_ms"] / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M")
+        html = html.replace('value="2026-11-26T00:00"', f'value="{cutoff}"')
         # The fixture's original HTTP was observed after its event time and
         # before the UI's explicit 2026 cutoff. No history proof is implied.
         seen_paths = []
