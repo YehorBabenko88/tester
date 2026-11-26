@@ -79,6 +79,7 @@ MAX_DECODED_PAGE_BYTES = 4 * 1024 * 1024
 MAX_HTTP_BODY_BYTES = 4 * 1024 * 1024
 MAX_BACKFILL_WINDOW_MS = 7 * 86400000
 MAX_WINDOW_EVIDENCE_BYTES = 32 * 1024 * 1024
+MAX_REST_OPERATION_SECONDS = 90
 
 
 def bounded_result_hash(result, max_bytes=MAX_DECODED_PAGE_BYTES, *, return_size=False):
@@ -113,10 +114,19 @@ class API:
         url = "https://api.bybit.com/v5/market" + path + "?" + urlencode(params)
         from contextlib import nullcontext
 
+        # One monotonic budget covers policy admission, network headers, streamed
+        # body, application-level retry defer and final parsing. Unlike a socket
+        # timeout this also bounds slow trickle across successive reads.
+        deadline = time.monotonic() + MAX_REST_OPERATION_SECONDS
+        def bounded_cancel():
+            if time.monotonic() >= deadline:
+                return True
+            return bool(cancel and cancel())
+
         with self.transport.operation() if isinstance(self.transport, Transport) else nullcontext():
             for attempt in range(6):
-                if cancel and cancel():
-                    raise InterruptedError("Public request cancelled")
+                if bounded_cancel():
+                    raise InterruptedError("Public REST operation deadline/cancellation reached")
                 # The canonical Transport supports guarded response streaming.
                 # Never ask Requests to buffer an unbounded body before the
                 # application byte budget can be checked. Offline Mock
@@ -126,15 +136,22 @@ class API:
                 # exchange body cannot expand unexpectedly inside Requests.
                 # The decoded streaming cap remains mandatory if ignored.
                 options = {"stream": True, "headers": {"accept-encoding": "identity"}} if streamed else {}
-                if cancel is not None:
+                # The existing Transport polls this callback while it waits
+                # for durable policy/dispatch and during streaming.
+                if streamed:
+                    options["cancel"] = bounded_cancel
+                elif cancel is not None:
                     options["cancel"] = cancel
                 with self.transport.get(url, **options) as r:
                     if streamed:
+                        encoding = r.headers.get("Content-Encoding", "identity")
+                        if not isinstance(encoding, str) or encoding.strip().lower() not in ("", "identity"):
+                            raise ValueError("Unsupported REST content encoding")
                         chunks = []
                         byte_count = 0
                         for chunk in r.iter_content(chunk_size=65536):
-                            if cancel and cancel():
-                                raise InterruptedError("Public request cancelled")
+                            if bounded_cancel():
+                                raise InterruptedError("Public REST operation deadline/cancellation reached")
                             if not isinstance(chunk, bytes):
                                 raise ValueError("Malformed REST HTTP body chunk")
                             byte_count += len(chunk)
@@ -146,12 +163,14 @@ class API:
                         wire_bytes = r.content
                         if not isinstance(wire_bytes, bytes) or len(wire_bytes) > MAX_HTTP_BODY_BYTES:
                             raise ValueError("REST HTTP body byte budget exceeded")
+                    if bounded_cancel():
+                        raise InterruptedError("Public REST operation deadline/cancellation reached")
                     try:
                         body = json.loads(wire_bytes)
                     except (ValueError, UnicodeError):
                         raise ValueError("Malformed Bybit JSON response") from None
-                    if cancel and cancel():
-                        raise InterruptedError("Public request cancelled")
+                    if bounded_cancel():
+                        raise InterruptedError("Public REST operation deadline/cancellation reached")
                     if not isinstance(body, dict) or type(body.get("retCode")) is not int:
                         raise ValueError("Malformed Bybit response")
                     code = body["retCode"]
@@ -172,6 +191,8 @@ class API:
                     delay = max(2**attempt, float(reset) / 1000 - time.time() if reset else 0)
                 if attempt == 5:
                     raise RuntimeError(f"Bybit retry exhausted: {code}")
+                if bounded_cancel() or delay >= deadline - time.monotonic():
+                    raise InterruptedError("Public REST operation deadline/cancellation reached")
                 self.transport.defer(delay)
         raise RuntimeError("Unreachable")
 
