@@ -56,3 +56,32 @@ def test_no_f_or_source_upgrade():
     assert out["maintenance_margin"] is None
     assert out["liquidation_price"] is None
     assert not out["source_certified"] and not out["admitted_to_f"]
+
+
+def test_inverse_exact_reciprocal_pnl_is_not_decimal_multiplication():
+    # A 100 USD face long from 100 to 200 earns exactly 1/2 base coin,
+    # whereas a linear 100-base contract would earn 10_000 quote.
+    inverse = hypothetical_mark("inverse", "long", "100", "100", "200", leverage="10")
+    linear = hypothetical_mark("linear", "long", "100", "100", "200", leverage="10")
+    assert inverse["unrealized_pnl"] == "0.5"
+    assert inverse["initial_margin_estimate"] == "0.1"
+    assert inverse["settlement_unit"] == "base"
+    assert linear["unrealized_pnl"] == "10000"
+    assert linear["initial_margin_estimate"] == "1000"
+    assert linear["settlement_unit"] == "quote"
+    assert not inverse["admitted_to_f"] and not linear["admitted_to_f"]
+
+
+def test_inverse_positive_funding_and_fee_must_not_be_inferred_from_mark():
+    # Unrealized PnL is explicitly gross of cash funding and opening/closing
+    # fees; no optimizer may consume it as a net trade result.
+    from src.analytics.simulation_economics import hypothetical_fill
+    gross = hypothetical_mark("inverse", "long", "100", "100", "200", leverage="10")
+    settled = hypothetical_fill("inverse", "long", "100", "100", "200",
+                               fee_rate="0.001", entry_funding_rates=[("0.01", "100")])
+    assert gross["unrealized_pnl"] == settled["gross_pnl"] == "0.5"
+    assert settled["funding_cost"] == "0.01"
+    assert settled["entry_fee"] == "0.001"
+    assert settled["exit_fee"] == "0.0005"
+    assert settled["net_pnl"] == "0.4885"
+    assert settled["admitted_to_f"] is False
