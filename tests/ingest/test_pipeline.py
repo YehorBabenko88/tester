@@ -128,8 +128,8 @@ class PipelineTests(unittest.TestCase):
             session.request.call_args.kwargs["headers"]["accept-encoding"], "identity"
         )
 
-    def test_canonical_rest_total_deadline_refuses_policy_wait_before_network(self):
-        """A monotonic expired budget is delivered to the existing transport."""
+    def test_canonical_rest_expired_deadline_refuses_before_network(self):
+        """An expired operation cannot begin a network request."""
         from unittest.mock import patch
         import src.ingest.rest as rest
 
@@ -148,25 +148,34 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(response_count[0], 0)
 
     def test_canonical_rest_deadline_during_stream_closes_response(self):
-        """Slow response stream must release owned lease on deadline denial."""
+        """A deadline crossed on the first streamed read closes the guarded lease."""
         from unittest.mock import patch
         import src.ingest.rest as rest
 
+        expired = [False]
+
+        class TrackedBody(io.BytesIO):
+            def read(self, size=-1):
+                block = super().read(size)
+                expired[0] = True
+                return block
+
+        raw = TrackedBody(b'{"retCode":0,"result":{"list":[]}}')
         reply = response()
         reply._content = False
-        raw = io.BytesIO(b'{"retCode":0,"result":{"list":[]}}')
         reply.raw = raw
         session = Mock()
         session.request.return_value = reply
         transport = Transport(session=session, rate=1000000, sleep=Mock())
-        clock = [0.0]
+        # The shared monotonic clock is consulted by Transport as well. Hold
+        # steady until actual socket consumption, then cross the deadline.
         def monotonic():
-            clock[0] += 0.125
-            return clock[0]
-        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 0.01):
+            return 2.0 if expired[0] else 0.0
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
             with patch.object(rest.time, "monotonic", side_effect=monotonic):
                 with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
                     API(transport).call("/kline", {})
+        self.assertTrue(expired[0])
         self.assertTrue(raw.closed)
 
     def test_calendar_month_spacing(self):
