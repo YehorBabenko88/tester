@@ -4,7 +4,7 @@ from decimal import Decimal, localcontext, ROUND_FLOOR
 from src.strategy.dsl import validate_strategy, evaluate, decimal, digest
 from .quality import validate_snapshot
 from .metrics import scorecard
-from src.analytics.simulation_economics import hypothetical_mark, CONTRACT as ECONOMICS_V2
+from src.analytics.simulation_economics import hypothetical_mark
 
 ENGINE_VERSION='strategy-bar-1.1.0'
 ZERO=Decimal(0)
@@ -25,11 +25,8 @@ class Backtest:
             self.snapshot,self.warnings,self.gaps=validate_snapshot(snapshot,self.strategy)
         self.strategy_hash=digest(self.strategy); self.market_hash=digest(self.snapshot)
         self.input_hash=digest({'strategy':self.strategy_hash,'market':self.market_hash,'engine':ENGINE_VERSION})
-        # Dispatch is explicitly versioned; existing admitted spot/linear runs
-        # continue the legacy engine path byte-for-byte. Inverse remains rejected
-        # by validate_snapshot until its execution, liquidation, evidence, and
-        # risk models are independently reviewed.
-        self.economics_contract = ECONOMICS_V2
+        # Inverse remains rejected by validate_snapshot until its execution,
+        # liquidation, evidence, and risk models are independently reviewed.
         self.index=0; self.cash=decimal(self.snapshot['initial_equity']); self.position=None; self.pending=None
         self.orders=[]; self.fills=[]; self.signals=[]; self.trades=[]; self.brackets=[]
         self.curve=[{'timestamp_ms':self.snapshot['start_ms'],'cash':str(self.cash),'equity':str(self.cash),'margin':'0'}]
