@@ -387,6 +387,64 @@ def test_first_page_then_unexpected_crash_keeps_no_checkpoint(tmp_path):
         j.close()
 
 
+def test_oversized_decoded_rest_page_denied_without_staging_or_export(tmp_path):
+    """A large valid JSON page cannot exhaust unbounded provenance memory."""
+    from src.ingest.rest import MAX_DECODED_PAGE_BYTES, bounded_result_hash
+
+    too_big = {"list": [{"fundingRateTimestamp": str(START),
+                         "fundingRate": "1",
+                         "untrusted": "X" * MAX_DECODED_PAGE_BYTES}]}
+    with pytest.raises(ValueError, match="byte budget exceeded"):
+        bounded_result_hash(too_big)
+    j = Journal(tmp_path / "byte_budget.db")
+    try:
+        api = api_with(too_big)
+        with pytest.raises(ValueError, match="REST page rejected before publication"):
+            Backfill(api, j).run(
+                "linear", "BTCUSDT", "funding", "", START, START + 100
+            )
+        assert stored(j, "funding", "") == {}
+        assert j.task(key("funding", "", START, START + 100))["status"] == "failed"
+        export = tmp_path / "byte_budget_handoff.json"
+        j.export(export)
+        bundle = json.loads(export.read_text(encoding="utf-8"))
+        assert bundle["records"] == []
+        assert bundle["raw_record_versions"] == []
+        assert any(e.get("kind") == "rest_response_rejected"
+                   for e in bundle["evidence"].values())
+    finally:
+        j.close()
+
+
+def test_large_backfill_request_splits_into_bounded_seven_day_windows(journal):
+    """Explicit huge caller window must split, never silently truncate a tail."""
+    from src.ingest.rest import MAX_BACKFILL_WINDOW_MS
+
+    api = Mock()
+    calls = []
+    def page(path, params):
+        a = params["startTime"]
+        b = params["endTime"] + 1
+        calls.append((a, b))
+        return ({"list": [{"fundingRateTimestamp": str(a), "fundingRate": "0.001"}]}, URL)
+    api.call.side_effect = page
+    end = START + 20 * 86400000
+    result = Backfill(api, journal).run(
+        "linear", "BTCUSDT", "funding", "", START, end,
+        window_ms=365 * 86400000
+    )
+    assert calls == [
+        (START, START + MAX_BACKFILL_WINDOW_MS),
+        (START + MAX_BACKFILL_WINDOW_MS, START + 2 * MAX_BACKFILL_WINDOW_MS),
+        (START + 2 * MAX_BACKFILL_WINDOW_MS, end),
+    ]
+    assert result["status"] == "observed"
+    assert result["records"] == 3
+    assert len(result["observations"]) == 3
+    assert len(stored(journal, "funding", "")) == 3
+    assert all(o["end_ms"] <= end for o in result["observations"])
+
+
 def test_still_open_candle_may_change_between_requests(journal):
     # Open candles are never staged; a changed open candle on the gap re-query is
     # normal exchange behaviour, not a conflicting duplicate.
