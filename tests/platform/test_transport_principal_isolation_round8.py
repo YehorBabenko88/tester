@@ -297,7 +297,7 @@ def test_pg_private_guard_and_runtime_table_privileges(enrolled):
     with connect(owner) as conn:
         guard = conn.execute(
             "SELECT prosecdef,proowner=(SELECT oid FROM pg_roles WHERE rolname=current_user),"
-            "has_function_privilege('public',oid,'EXECUTE') "
+            "EXISTS(SELECT 1 FROM aclexplode(proacl) AS a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') "
             "FROM pg_proc WHERE oid='tester_platform._check_public_transport(uuid,text)'::regprocedure"
         ).fetchone()
         assert guard == (True, True, False)
