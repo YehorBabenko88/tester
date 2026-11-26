@@ -133,3 +133,29 @@ test("failed or mismatched capability versions cannot display verified data", as
     assert.equal(result.historicalCoverage, "UNKNOWN");
   }
 });
+
+test("observed source evidence is bounded, but never upgrades unknown history", () => {
+  const market = inspectorScope({ ...scope(), metric: "vwap" });
+  const data = payload().data;
+  data.execution_source_evidence = {
+    ...data.execution_source_evidence,
+    observed_events: 3,
+    evidence_revision: "sample:" + "a".repeat(64),
+    historical_coverage: "COMPLETE", // malicious promotion attempt
+  };
+  const good = inspectCapabilityPayload(data, market);
+  assert.equal(good.observedEvents, 3);
+  assert.equal(good.sampleFingerprint, "sample:" + "a".repeat(64));
+  assert.equal(good.historicalCoverage, "UNKNOWN");
+  assert.equal(good.requestAllowed, false);
+  assert.equal(good.strategyAdmissionAllowed, false);
+  for (const invalid of [-1, 100, 10000000, "3", null, Infinity]) {
+    data.execution_source_evidence.observed_events = invalid;
+    assert.equal(inspectCapabilityPayload(data, market).observedEvents, null);
+  }
+  data.execution_source_evidence.observed_events = 3;
+  for (const invalid of ["sample:fake", "http://private", "sample:" + "A".repeat(64)]) {
+    data.execution_source_evidence.evidence_revision = invalid;
+    assert.equal(inspectCapabilityPayload(data, market).sampleFingerprint, null);
+  }
+});
