@@ -289,14 +289,16 @@ def test_final_snapshot_detects_late_external_failure(monkeypatch, tmp_path):
     assert report["new_failed_ids"] == ["00000000-0000-0000-0000-000000000064"]
 
 
+@pytest.mark.parametrize("launch_index", [0, 1])
 @pytest.mark.parametrize(
     "scenario",
     ["valid", "missing_child_counter", "missing_creation", "wrong_image", "missing_supervisor"],
 )
-def test_batched_cim_template_scopes_and_fails_closed(monkeypatch, scenario):
+def test_batched_cim_template_scopes_and_fails_closed(monkeypatch, scenario, launch_index, record_property):
     import json
     import shutil
     import subprocess
+    import time
 
     m = module()
     monkeypatch.setattr(m, "is_windows", lambda: True)
@@ -363,6 +365,8 @@ function Get-CimInstance {
         return real_run([shell, *command[1:-1], prefix + "\n" + command[-1]], **kwargs)
 
     monkeypatch.setattr(m.subprocess, "run", synthetic_subprocess)
+    start = time.perf_counter()
+    record_property("cim_launch_index", launch_index)
     if scenario != "valid":
         with pytest.raises((ValueError, subprocess.CalledProcessError)):
             m.process_sample(root, {"services": names}, 11)
@@ -373,6 +377,7 @@ function Get-CimInstance {
         assert result["groups"]["app"]["process_count"] == 3
         assert {x["pid"] for x in result["bindings"]} == {10, 11, 12, 20, 21}
         assert "SECRET" not in json.dumps(result)
+    record_property("cim_elapsed_seconds", round(time.perf_counter() - start, 6))
 
 
 def test_cim_subprocess_keeps_bounded_fail_closed_contract(monkeypatch):
