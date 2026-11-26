@@ -42,13 +42,8 @@ def test_default_route_denies_without_trusted_binding():
     app.include_router(create_readback_router())
     client = TestClient(app)
     response = client.get("/api/analytics/readback", params=scope().model_dump())
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "UNVERIFIED"
-    assert body["admitted_to_f"] is False
-    assert body["quality"]["coverage"] == "UNKNOWN"
-    assert body["reason"] == "trusted_storage_binding_unavailable"
-    assert all(x not in body for x in ("bars", "metrics", "source"))
+    assert response.status_code == 503
+    assert response.json() == {"detail": "analytics_source_not_configured"}
 
 
 def test_route_refuses_client_owned_installation_scope():
@@ -65,10 +60,13 @@ def test_missing_bad_ownership_refuses_before_calculation(monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError("DATA backend must not be read without verified authority")
     monkeypatch.setattr(module, "read_verified_ui_observation", forbidden)
+    class StubStore:
+        def read_bounded(self, *args, **kwargs):
+            raise AssertionError("No read expected for untrusted identity")
     for supplied in [None, {}, identity(verified=False),
                      identity(installation_id="not-a-uuid"),
                      identity(source_sha="../bad")]:
-        result = observed_readback(scope(), trusted_store=object(), trusted_identity=supplied)
+        result = observed_readback(scope(), trusted_store=StubStore(), trusted_identity=supplied)
         assert result["status"] == "UNVERIFIED"
         assert result["admitted_to_f"] is False
 
@@ -90,7 +88,10 @@ def test_trusted_but_incomplete_canonical_readback_never_grants_f(monkeypatch):
                     bars=[{"start_ms": 0, "end_ms": 60_000,
                            "volume": "100", "vwap": "100"}])
     monkeypatch.setattr(module, "read_verified_ui_observation", source)
-    store = object()
+    class StubStore:
+        def read_bounded(self, *args, **kwargs):
+            return []
+    store = StubStore()
     result = observed_readback(scope(), trusted_store=store, trusted_identity=identity())
     assert result["status"] == "OBSERVED_UNVERIFIED"
     assert result["quality"]["coverage"] == "UNKNOWN"
@@ -127,7 +128,7 @@ def test_forged_readback_label_fails_closed(monkeypatch, tamper):
         result.update(tamper)
         return result
     monkeypatch.setattr(module, "read_verified_ui_observation", source)
-    assert observed_readback(scope(), trusted_store=object(),
+    assert observed_readback(scope(), trusted_store=type("Store", (), {"read_bounded": lambda self: []})(),
                              trusted_identity=identity())["status"] == "UNVERIFIED"
 
 
@@ -136,7 +137,53 @@ def test_backend_failure_does_not_leak_sources(monkeypatch):
     def broken(*args, **kwargs):
         raise ValueError("DB secret postgres://private:password@localhost")
     monkeypatch.setattr(module, "read_verified_ui_observation", broken)
-    result = observed_readback(scope(), trusted_store=object(), trusted_identity=identity())
+    result = observed_readback(scope(), trusted_store=type("Store", (), {"read_bounded": lambda self: []})(), trusted_identity=identity())
     assert result["status"] == "UNVERIFIED"
     assert "secret" not in repr(result)
     assert result["admitted_to_f"] is False
+
+def test_http_query_accepts_canonical_integer_strings_then_refuses_missing_binding():
+    app = FastAPI()
+    app.include_router(create_readback_router())
+    response = TestClient(app).get("/api/analytics/readback", params=scope().model_dump())
+    assert response.status_code == 503
+
+
+def test_valid_scoped_route_can_only_return_unverified_source_observation(monkeypatch):
+    from src.api import analytics_readback as module
+    class StubStore:
+        def read_bounded(self, *args, **kwargs):
+            return []
+    def canonical(store, **kwargs):
+        return {
+            "schema_version": "tester.research-ui-observation/1",
+            "status": "OBSERVED_UNVERIFIED",
+            "f_admission": "DENIED_UNKNOWN_COVERAGE",
+            "source_coverage": "UNKNOWN",
+            "publication_time": "UNKNOWN",
+            "method": "tester.execution-metrics/2",
+            "quantity_unit": "quote",
+            "source_quantity_unit": "source_native_inverse_contract",
+            "utc_window": {"start_ms": 0, "end_ms": 60_000},
+            "source_receipts_digest": "b" * 64,
+            "observed_sample_fingerprint": "c" * 64,
+            "bars": [{
+                "start_ms": 0, "end_ms": 60_000,
+                "volume": "100", "vwap": "100",
+            }],
+        }
+    monkeypatch.setattr(module, "read_verified_ui_observation", canonical)
+    app = FastAPI()
+    app.include_router(create_readback_router(
+        trusted_binding=lambda: (StubStore(), identity())
+    ))
+    res = TestClient(app).get("/api/analytics/readback", params=scope().model_dump())
+    assert res.status_code == 200
+    envelope = res.json()
+    assert envelope["schema_version"] == "1.0"
+    data = envelope["data"]
+    assert data["status"] == "OBSERVED_UNVERIFIED"
+    assert data["quality"]["coverage"] == "UNKNOWN"
+    assert data["metrics"]["admitted_to_f"] is False
+    assert data["admitted_to_f"] is False
+    assert data["method"] == "tester.execution-metrics/2"
