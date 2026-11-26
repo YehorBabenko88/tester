@@ -1083,8 +1083,11 @@ def test_failure_after_root_created_keeps_fail_closed_rollback(tmp_path, monkeyp
     root, call, probe, cleaned = _drive_fresh_install(
         tmp_path, monkeypatch, record_root_created=True
     )
-    with pytest.raises(ReleaseSecurityError, match="foreign creator"):
+    with pytest.raises(RuntimeError, match="later provisioning failure") as info:
         call()
+    assert isinstance(info.value.__cause__, ReleaseSecurityError)
+    assert "foreign creator" in str(info.value.__cause__)
+    assert any("authenticated rollback failed" in note for note in info.value.__notes__)
     assert probe.touched == ["_provisioning_entries"]
     assert root.is_dir() and cleaned == []
     (maintenance,) = tmp_path.glob("TesterReleaseMaintenance_*")
