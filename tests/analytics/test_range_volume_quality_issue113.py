@@ -281,6 +281,32 @@ class MinuteVolume(unittest.TestCase):
         self.assertEqual(status(reconcile([], [candle(0, volume='1')])), 'MISMATCH')
         self.assertEqual(status(reconcile([], [candle(0, volume='0')], coverage=[])), 'INCOMPLETE_TRADES')
 
+
+    def test_minute_volume_rejects_outside_window_evidence_instead_of_false_match(self):
+        # Previously, a tick outside [start,end) was silently omitted while
+        # its matching candle still returned MATCH.
+        in_window = trade(1, 5, '0.003')
+        extra = trade(2, M + 5, '8')
+        with self.assertRaisesRegex(ValueError, 'trade_outside_reconciliation_window'):
+            reconcile([in_window, extra], [candle(0, volume='0.003')])
+        with self.assertRaisesRegex(ValueError, 'candle_outside_reconciliation_window'):
+            reconcile([in_window], [candle(0, volume='0.003'), candle(M, volume='8')])
+
+    def test_minute_volume_future_trade_never_passes_as_of_gate(self):
+        # This timestamp is within the chosen window but the source is not
+        # known at as_of_ms.  Even equal sums cannot authorize MATCH.
+        t = [trade(1, M - 1, '0.003')]
+        report = reconcile(t, [candle(0, volume='0.003')], as_of=M-1)
+        self.assertEqual(status(report), 'INCOMPLETE_TRADES')
+        self.assertNotEqual(status(report), 'MATCH')
+
+    def test_minute_volume_shared_canonical_units(self):
+        from src.analytics.core import quantity_unit
+        from src.analytics.comparison import VOLUME_UNITS
+        for category, expected in [('spot','base_coin'),('linear','base_coin'),
+                                   ('inverse','quote_coin_contracts')]:
+            self.assertEqual(VOLUME_UNITS[quantity_unit(category)], expected)
+
     def test_minute_volume_window_summary_and_identity(self):
         trades = [trade(1, 5, '1'), trade(2, M + 5, '2'), trade(3, 3 * M + 1, '9')]
         candles = [candle(0, volume='1'), candle(M, volume='3'), candle(3 * M, volume='9')]
