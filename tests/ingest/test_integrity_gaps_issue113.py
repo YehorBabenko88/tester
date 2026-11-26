@@ -311,6 +311,7 @@ def test_final_window_save_rollback_is_atomic_and_retryable(tmp_path):
         assert j.db.execute("SELECT COUNT(*) FROM record_versions").fetchone()[0] == 1
         assert j.db.execute("SELECT COUNT(*) FROM record_links").fetchone()[0] == 1
         j.db.execute("DROP TRIGGER reject_second_version")
+        j.db.commit()
         j.close()
         j = Journal(path)
         assert stored(j, "kline", "1") == {START: old}
