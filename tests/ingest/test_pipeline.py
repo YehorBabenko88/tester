@@ -81,6 +81,33 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(t.get.call_count, 1)
         t.defer.assert_not_called()
 
+    def test_canonical_transport_streams_bounded_http_before_json_decode(self):
+        from src.ingest.rest import MAX_HTTP_BODY_BYTES
+
+        class TrackedBody(io.BytesIO):
+            def __init__(self, value):
+                super().__init__(value)
+                self.read_bytes = 0
+            def read(self, amount=-1):
+                piece = super().read(amount)
+                self.read_bytes += len(piece)
+                return piece
+
+        raw = TrackedBody(b"x" * (MAX_HTTP_BODY_BYTES + 512 * 1024))
+        reply = response()
+        reply._content = False  # Requests must not preload this payload.
+        reply.raw = raw
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        with self.assertRaisesRegex(ValueError, "REST HTTP body byte budget exceeded"):
+            API(transport).call("/kline", {})
+        self.assertTrue(session.request.call_args.kwargs["stream"])
+        # The client must stop consuming at the first over-budget chunk,
+        # rather than downloading and buffering the entire response.
+        self.assertLessEqual(raw.read_bytes, MAX_HTTP_BODY_BYTES + 65536)
+        self.assertTrue(raw.closed)
+
     def test_calendar_month_spacing(self):
         self.assertEqual(list(expected_times(1704067200000,1711929600000,'M')),[1704067200000,1706745600000,1709251200000])
 
