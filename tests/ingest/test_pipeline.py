@@ -111,6 +111,36 @@ class PipelineTests(unittest.TestCase):
         self.assertLessEqual(raw.read_bytes, MAX_HTTP_BODY_BYTES + 65536)
         self.assertTrue(raw.closed)
 
+    def test_canonical_rest_slow_trickle_stops_on_deadline_and_closes(self):
+        """Small HTTP chunks cannot reset the total monotonic operation budget."""
+        from unittest.mock import patch
+        import src.ingest.rest as rest
+
+        total_reads = [0]
+        raw_bytes = b'{"retCode":0,"result":{"list":[]}}'
+        class TrickleBody(io.BytesIO):
+            def read(self, amount=-1):
+                # Even if the caller asks for 64 KiB, a server may trickle
+                # individual bytes. After three reads the deadline has expired.
+                total_reads[0] += 1
+                return super().read(1 if amount != -1 else amount)
+        raw = TrickleBody(raw_bytes)
+        reply = response()
+        reply._content = False
+        reply.raw = raw
+        session = Mock()
+        session.request.return_value = reply
+        transport = Transport(session=session, rate=1000000, sleep=Mock())
+        def clock():
+            return 2.0 if total_reads[0] >= 3 else 0.0
+        with patch.object(rest, "MAX_REST_OPERATION_SECONDS", 1.0):
+            with patch.object(rest.time, "monotonic", side_effect=clock):
+                with self.assertRaisesRegex(InterruptedError, "deadline/cancellation"):
+                    API(transport).call("/kline", {})
+        self.assertEqual(total_reads[0], 3)
+        self.assertTrue(raw.closed)
+        self.assertLessEqual(total_reads[0], 4)
+
     def test_canonical_rest_rejects_compressed_body_before_iteration(self):
         """Identity encoding request does not authorize gzip/br response decoding."""
         reply = response(b"not-json", headers={"Content-Encoding": "gzip"})
