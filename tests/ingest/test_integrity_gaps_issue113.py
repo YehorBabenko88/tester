@@ -273,6 +273,115 @@ def test_rejected_window_preserves_rows_across_journal_reopen(tmp_path):
         j.close()
 
 
+def test_final_window_save_rollback_is_atomic_and_retryable(tmp_path):
+    """Simulate an actual SQLite statement failure midway through Journal.save.
+
+    The ingestion journal is SQLite; this test verifies its real transaction
+    boundary, not PostgreSQL or physical power-loss behavior.
+    """
+    import sqlite3
+    from src.ingest.journal import Journal
+
+    path = tmp_path / "atomic_journal.db"
+    j = Journal(path)
+    # Establish one previously completed window as a durable control.
+    Backfill(api_with({"list": [candle(START)]}), j).run(
+        "linear", "BTCUSDT", "kline", "1", START, START + 60000
+    )
+    old = stored(j, "kline", "1")[START]
+    previous_key = key("kline", "1", START, START + 60000)
+    failed_key = key("kline", "1", START + 60000, START + 180000)
+    # SQLite trigger fires on the SECOND record_versions insert. All writes
+    # earlier in that same Journal.save must roll back (not become visible).
+    j.db.execute(
+        "CREATE TRIGGER reject_second_version BEFORE INSERT ON record_versions "
+        "WHEN (SELECT COUNT(*) FROM record_versions) >= 2 "
+        "BEGIN SELECT RAISE(ABORT, 'synthetic_disk_write_failure'); END"
+    )
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="synthetic_disk_write_failure"):
+            Backfill(api_with({"list": [candle(START + 60000), candle(START + 120000)]}), j).run(
+                "linear", "BTCUSDT", "kline", "1",
+                START + 60000, START + 180000,
+            )
+        assert stored(j, "kline", "1") == {START: old}
+        assert j.task(previous_key)["status"] == "observed"
+        assert j.task(failed_key) is None or j.task(failed_key)["status"] == "failed"
+        # The incomplete transaction must not create a row/version/link.
+        assert j.db.execute("SELECT COUNT(*) FROM record_versions").fetchone()[0] == 1
+        assert j.db.execute("SELECT COUNT(*) FROM record_links").fetchone()[0] == 1
+        j.db.execute("DROP TRIGGER reject_second_version")
+        j.close()
+        j = Journal(path)
+        assert stored(j, "kline", "1") == {START: old}
+        # Retrying after reopening still publishes both complete rows.
+        resumed = Backfill(api_with({"list": [candle(START + 60000), candle(START + 120000)]}), j).run(
+            "linear", "BTCUSDT", "kline", "1",
+            START + 60000, START + 180000,
+        )
+        assert resumed["status"] == "observed"
+        assert set(stored(j, "kline", "1")) == {START, START + 60000, START + 120000}
+    finally:
+        j.close()
+
+
+def test_failure_after_first_page_exports_no_unverified_market_records(tmp_path):
+    from src.ingest.journal import Journal
+
+    j = Journal(tmp_path / "acquire.db")
+    export = tmp_path / "handoff.json"
+    first = {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "1"}],
+             "nextPageCursor": "page2"}
+    second = {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "2"}]}
+    try:
+        with pytest.raises(ValueError, match="Conflicting duplicate"):
+            Backfill(api_with(first, second), j).run(
+                "linear", "BTCUSDT", "funding", "", START, START + 100
+            )
+        j.export(export)
+        bundle = json.loads(export.read_text(encoding="utf-8"))
+        assert bundle["records"] == []
+        assert bundle["raw_record_versions"] == []
+        assert all(batch["records"] == [] for batch in bundle["storage_batches"])
+        assert any(v.get("kind") == "rest_response" for v in bundle["evidence"].values())
+        assert j.task(key("funding", "", START, START + 100))["status"] == "failed"
+    finally:
+        j.close()
+
+
+def test_first_page_then_unexpected_crash_keeps_no_checkpoint(tmp_path):
+    from src.ingest.journal import Journal
+
+    file = tmp_path / "crash.db"
+    j = Journal(file)
+    api = api_with({"list": [candle(START)], "nextPageCursor": "page2"})
+    try:
+        # A BaseException deliberately bypasses the regular failure path and
+        # models an abrupt termination after first-page evidence committed.
+        def crash_call(path, params):
+            if api.call.call_count >= 2:
+                raise KeyboardInterrupt("synthetic_crash_after_page_one")
+            return ({"list": [candle(START)], "nextPageCursor": "page2"}, URL)
+        api.call.side_effect = crash_call
+        with pytest.raises(KeyboardInterrupt, match="synthetic_crash_after_page_one"):
+            Backfill(api, j).run(
+                "linear", "BTCUSDT", "kline", "1", START, START + 60000
+            )
+        assert stored(j, "kline", "1") == {}
+        assert j.task(key("kline", "1", START, START + 60000)) is None
+    finally:
+        j.close()
+    j = Journal(file)
+    try:
+        assert stored(j, "kline", "1") == {}
+        replay = Backfill(api_with({"list": [candle(START)]}), j).run(
+            "linear", "BTCUSDT", "kline", "1", START, START + 60000
+        )
+        assert replay["status"] == "observed"
+    finally:
+        j.close()
+
+
 def test_still_open_candle_may_change_between_requests(journal):
     # Open candles are never staged; a changed open candle on the gap re-query is
     # normal exchange behaviour, not a conflicting duplicate.
