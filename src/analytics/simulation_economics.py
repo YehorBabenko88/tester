@@ -39,6 +39,8 @@ def hypothetical_fill(category, side, quantity, entry_price, exit_price,
     This does not compute risk-available equity, initial/maintenance margin,
     liquidation, fills from OHLC, or unrealized portfolio valuation.
     """
+    # Experimental calculations are not an executable simulator contract.
+    # The caller must separately prove historical funding and price knowledge.
     if category not in SETTLEMENT:
         raise ValueError("unsupported_category")
     sign = _signed(side)
