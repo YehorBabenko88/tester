@@ -9,6 +9,14 @@ from xml.etree import ElementTree as ET
 
 GUARD_CLASS = "tester.ci.evidence_gate"
 GUARD_NAME = "test_process_completed_and_verified"
+# Immutable contract, shared by the runner and the accepting manifest.
+CANONICAL_DATA_RESEARCH_NODES = (
+    "tests/test_public_auxiliary_postgres.py::AuxiliaryPostgresTests::test_store_transaction_fault_after_checkpoint_rolls_back_all_pg_publication",
+    "tests/platform/test_analytics_readback_integration_round3.py::test_disposable_pg_persisted_original_http_to_actual_api_and_no_f",
+    "tests/platform/test_analytics_readback_integration_round3.py::test_round7_actual_postgresql_cancels_bounded_store_statement",
+    "tests/platform/test_analytics_readback_integration_round3.py::test_round13_two_real_postgresql_readers_overlap_and_release",
+    "tests/api/test_analytics_readback_round3.py::test_round8_two_real_parallel_requests_hold_slots_third_denied_and_released",
+)
 
 
 def expected_case_identity(node):
@@ -83,131 +91,221 @@ def _write_json_atomic(path, payload):
 
 
 def validate_receipt(artifact):
-    """Compare retained sanitized XML, JSON, case identities, totals and SHA256."""
+    """Reparse retained evidence; UNKNOWN/NOT_EXECUTED are not successes."""
     artifact = Path(artifact)
     receipt = json.loads(artifact.with_suffix(".json").read_text(encoding="utf-8"))
-    xmlbytes = artifact.read_bytes()
-    if hashlib.sha256(xmlbytes).hexdigest() != receipt["sanitized_xml_sha256"]:
-        raise ValueError("Retained XML checksum does not match JSON receipt")
-    root = ET.fromstring(xmlbytes)
+    raw = artifact.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != receipt["sanitized_xml_sha256"]:
+        raise ValueError("Retained XML SHA256 disagrees with receipt")
+    root = ET.fromstring(raw)
     if root.tag != "testsuites" or len(root) != 1 or root[0].tag != "testsuite":
-        raise ValueError("Retained XML has invalid root/suite shape")
+        raise ValueError("Retained XML hierarchy invalid")
     suite = root[0]
     cases = list(suite)
-    if any(x.tag != "testcase" for x in cases) or len(cases) != len(list(root.iter("testcase"))):
-        raise ValueError("Retained XML case membership mismatch")
+    if any(c.tag != "testcase" for c in cases) or len(list(root.iter("testcase"))) != len(cases):
+        raise ValueError("Retained XML has detached/hidden case")
+    if suite.get("name") != receipt["suite"]:
+        raise ValueError("Suite identity differs between JSON and XML")
+    if suite.get("attempt_id") != (receipt.get("attempt_id") or ""):
+        raise ValueError("Attempt ID differs between JSON and XML")
+    if suite.get("repeat_ordinal") != (str(receipt.get("repeat_ordinal") or "")):
+        raise ValueError("Repeat ordinal differs between JSON and XML")
+    if receipt.get("attempt_id") is not None and not re.fullmatch(r"[0-9a-f]{32}", receipt["attempt_id"]):
+        raise ValueError("Invalid attempt identity")
+    if receipt.get("repeat_ordinal") not in (None, 1, 2):
+        raise ValueError("Invalid repeat identity")
+    statuses = ("PASS", "FAIL", "UNKNOWN", "NOT_EXECUTED")
     observed = []
-    statuses = {"PASS": 0, "FAIL": 0}
+    fail_count = 0
+    skipped_count = 0
     for case in cases:
-        classname, name, status = case.get("classname"), case.get("name"), case.get("status")
+        classname, name, status = (case.get("classname"), case.get("name"), case.get("status"))
         if not classname or not name or status not in statuses:
-            raise ValueError("Invalid sanitized testcase identity or status")
-        statuses[status] += 1
+            raise ValueError("Invalid case identity/status")
         children = list(case)
-        if status == "PASS" and children:
-            raise ValueError("PASS testcase contains failure marker")
-        if status == "FAIL" and (len(children) != 1 or children[0].tag != "failure"):
-            raise ValueError("FAIL testcase must have exactly one redacted failure")
+        if status == "FAIL":
+            if len(children) != 1 or children[0].tag != "failure":
+                raise ValueError("FAIL must have one redacted marker")
+            fail_count += 1
+        elif status in ("UNKNOWN", "NOT_EXECUTED"):
+            if (len(children) != 1 or children[0].tag != "skipped" or
+                    children[0].get("message") != "mandatory evidence not verified" or
+                    list(children[0])):
+                raise ValueError("Unverified case requires one redacted skipped marker")
+            skipped_count += 1
+        elif children:
+            raise ValueError("PASS case cannot have outcome children")
         observed.append([classname, name, status])
     if observed != receipt["observed"]:
-        raise ValueError("XML and JSON testcase inventory/status mismatch")
-    if any(suite.get(k) != str(v) for k, v in (("tests", len(cases)), ("failures", statuses["FAIL"]), ("errors", 0), ("skipped", 0))):
-        raise ValueError("Sanitized suite counters disagree with cases")
-    if any(root.get(k) != suite.get(k) for k in ("tests", "failures", "errors", "skipped")):
-        raise ValueError("Sanitized root counters disagree with suite")
-    is_complete = (receipt["status"] == "PASS" and statuses["FAIL"] == 0 and
-                   receipt["process_returncode"] == 0 and receipt["timed_out"] is False and
-                   len(cases) == len(receipt["expected"]) and
-                   [[a, b] for a, b, _ in observed] == receipt["expected"])
-    if receipt["status"] == "PASS" and not is_complete:
-        raise ValueError("False PASS in JSON receipt")
-    if receipt["status"] == "NOT_VERIFIED" and statuses["FAIL"] == 0:
-        raise ValueError("NOT_VERIFIED receipt lacks gate failure")
-    if receipt["status"] not in ("PASS", "NOT_VERIFIED"):
-        raise ValueError("Unknown receipt status")
-    if receipt.get("schema") != "tester.ci.named-junit.v2":
-        raise ValueError("Unknown evidence receipt schema")
+        raise ValueError("XML/JSON observed case mismatch")
+    for key, count in (("tests", len(cases)), ("failures", fail_count),
+                       ("errors", 0), ("skipped", skipped_count)):
+        if root.get(key) != str(count) or suite.get(key) != str(count):
+            raise ValueError("XML aggregate mismatch")
+    expected = receipt["expected"]
+    if (len(expected) == 0 or len(set(tuple(x) for x in expected)) != len(expected)
+            or [[a, b] for a, b, _ in observed[:len(expected)]] != expected):
+        raise ValueError("Expected cases and observed cases disagree")
+    complete = (type(receipt["process_returncode"]) is int and receipt["process_returncode"] == 0 and receipt["timed_out"] is False
+                and len(observed) == len(expected) and skipped_count == 0
+                and all(x[2] == "PASS" for x in observed))
+    if receipt["status"] == "PASS":
+        if not complete:
+            raise ValueError("False global PASS")
+    elif receipt["status"] == "NOT_VERIFIED":
+        if (len(observed) != len(expected) + 1 or
+                observed[-1] != [GUARD_CLASS, GUARD_NAME, "FAIL"] or
+                any(x[2] == "PASS" for x in observed[:len(expected)])):
+            raise ValueError("NOT_VERIFIED has unproven PASS or missing guard")
+    else:
+        raise ValueError("Unexpected overall evidence status")
+    if receipt.get("schema") != "tester.ci.named-junit.v3":
+        raise ValueError("Unrecognized receipt schema")
     if not re.fullmatch(r"[0-9a-f]{40}", receipt["head_sha"]):
-        raise ValueError("Missing source identity")
+        raise ValueError("Invalid checkout identity")
     if receipt["postgres_major"] not in ("16", "18"):
-        raise ValueError("Unverified database major")
+        raise ValueError("Unverified PostgreSQL major")
     return receipt
 
 
 def safe_artifact(xml_source, artifact, expected_nodes, *, head_sha, postgres_major,
-                  suite_name, process_returncode, timed_out):
-    """Write redacted evidence. PASS requires completed process exit 0 and valid XML."""
+                  suite_name, process_returncode, timed_out, attempt_id=None,
+                  repeat_ordinal=None):
+    """Only a clean completed JUnit run may assert named PASS; otherwise UNKNOWN."""
     reset_artifact(artifact)
     artifact = Path(artifact)
     expected = [list(expected_case_identity(node)) for node in expected_nodes]
-    if not expected:
-        raise ValueError("Empty mandatory inventory")
+    if not expected or len(set(map(tuple, expected))) != len(expected):
+        raise ValueError("Invalid expected inventory")
+    if attempt_id is not None and not re.fullmatch(r"[0-9a-f]{32}", attempt_id):
+        raise ValueError("Invalid attempt identity")
+    if repeat_ordinal not in (None, 1, 2):
+        raise ValueError("Invalid repeat ordinal")
     verified = False
-    reason = ""
     try:
         if not re.fullmatch(r"[0-9a-f]{40}", head_sha) or str(postgres_major) not in ("16", "18"):
-            raise ValueError("Invalid source SHA or actual PG major")
+            raise ValueError("Invalid source / actual PG major")
         if timed_out is not False:
-            raise ValueError("ProcessTimedOut")
+            raise ValueError("TimedOut")
         if type(process_returncode) is not int or process_returncode != 0:
-            raise ValueError("ProcessNonzeroOrNotCompleted")
+            raise ValueError("UnsuccessfulProcess")
         check_junit(ET.parse(xml_source).getroot(), expected_nodes)
         verified = True
-    except (ValueError, ET.ParseError, OSError, TypeError) as exc:
-        reason = type(exc).__name__ + ("_" + str(exc)[:60] if isinstance(exc, ValueError) else "")
-    rows = [[*identity, "PASS"] for identity in expected]
+    except (ValueError, ET.ParseError, OSError, TypeError):
+        verified = False
+    rows = [[*identity, "PASS" if verified else
+             ("NOT_EXECUTED" if process_returncode is None and timed_out is False else "UNKNOWN")]
+            for identity in expected]
     if not verified:
+        # Only explicit failing testcases become FAIL; all other outcomes remain unproven.
+        try:
+            raw = ET.parse(xml_source).getroot()
+            for case in raw.iter("testcase"):
+                ident = (case.get("classname"), case.get("name"))
+                if any(x.tag in ("failure", "error") for x in case):
+                    for row in rows:
+                        if tuple(row[:2]) == ident:
+                            row[2] = "FAIL"
+        except (OSError, ET.ParseError, TypeError):
+            pass
         rows.append([GUARD_CLASS, GUARD_NAME, "FAIL"])
-    fail_count = 0 if verified else 1
-    attrs = {"tests": str(len(rows)), "failures": str(fail_count), "errors": "0", "skipped": "0"}
+    failures = sum(row[2] == "FAIL" for row in rows)
+    skipped = sum(row[2] in ("UNKNOWN", "NOT_EXECUTED") for row in rows)
+    attrs = {"tests": str(len(rows)), "failures": str(failures), "errors": "0", "skipped": str(skipped)}
     root = ET.Element("testsuites", attrs)
-    suite = ET.SubElement(root, "testsuite", {"name": suite_name, **attrs})
+    suite = ET.SubElement(root, "testsuite", {
+        "name": suite_name, "attempt_id": attempt_id or "",
+        "repeat_ordinal": str(repeat_ordinal or ""), **attrs,
+    })
     for classname, name, status in rows:
         case = ET.SubElement(suite, "testcase", {"classname": classname, "name": name, "status": status})
         if status == "FAIL":
-            ET.SubElement(case, "failure", {"message": "mandatory CI evidence not verified; details redacted"})
-    artifact.write_bytes(ET.tostring(root, encoding="utf-8", xml_declaration=True))
+            ET.SubElement(case, "failure", {"message": "test or evidence check failed; details redacted"})
+        elif status in ("UNKNOWN", "NOT_EXECUTED"):
+            ET.SubElement(case, "skipped", {"message": "mandatory evidence not verified"})
+    xml_stage = artifact.with_name(artifact.name + ".pending")
+    xml_stage.write_bytes(ET.tostring(root, encoding="utf-8", xml_declaration=True))
+    os.replace(xml_stage, artifact)
     receipt = {
-        "schema": "tester.ci.named-junit.v2", "head_sha": head_sha,
+        "schema": "tester.ci.named-junit.v3", "head_sha": head_sha,
         "postgres_major": str(postgres_major), "suite": suite_name,
         "expected": expected, "observed": rows,
         "status": "PASS" if verified else "NOT_VERIFIED",
         "reason_class": "" if verified else "EvidenceNotVerified",
-        "process_returncode": process_returncode,
-        "timed_out": timed_out,
+        "attempt_id": attempt_id, "repeat_ordinal": repeat_ordinal,
+        "process_returncode": process_returncode, "timed_out": timed_out,
         "sanitized_xml_sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
     }
     _write_json_atomic(artifact.with_suffix(".json"), receipt)
     validate_receipt(artifact)
     if not verified:
-        raise ValueError(f"{suite_name}: mandatory evidence NOT_VERIFIED ({reason})")
+        raise ValueError(f"{suite_name}: mandatory evidence NOT_VERIFIED")
     return receipt
 
 
 def initialize_repetition_manifest(path, *, head_sha, postgres_major, expected_repetitions):
     if expected_repetitions != 2:
-        raise ValueError("Both mandatory DB repetitions required")
+        raise ValueError("Both database repetitions required")
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    _write_json_atomic(path, {"head_sha": head_sha, "postgres_major": str(postgres_major),
-                              "expected_repetitions": 2, "status": "NOT_VERIFIED", "repetitions": []})
+    _write_json_atomic(path, {"schema": "tester.ci.two-repetitions.v2",
+        "head_sha": head_sha, "postgres_major": str(postgres_major),
+        "expected_repetitions": 2, "expected": [list(expected_case_identity(n))
+                                                for n in CANONICAL_DATA_RESEARCH_NODES],
+        "status": "NOT_VERIFIED", "attempts": [], "repetitions": []})
+
+
+def begin_repetition_attempt(path, *, head_sha, postgres_major, repeat_ordinal, attempt_id):
+    """Reserve unique attempt identity DURABLY before launching pytest."""
+    path = Path(path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if (payload.get("status") != "NOT_VERIFIED" or payload.get("head_sha") != head_sha or
+            payload.get("postgres_major") != str(postgres_major) or
+            repeat_ordinal != len(payload.get("attempts", [])) + 1 or
+            repeat_ordinal not in (1, 2) or not re.fullmatch(r"[0-9a-f]{32}", attempt_id or "") or
+            any(x["attempt_id"] == attempt_id for x in payload["attempts"])):
+        raise ValueError("Invalid pre-run repetition reservation")
+    payload["attempts"].append({"repeat_ordinal": repeat_ordinal, "attempt_id": attempt_id,
+        "suite": f"data-research-pg{postgres_major}-repeat{repeat_ordinal}"})
+    _write_json_atomic(path, payload)
 
 
 def complete_repetition_manifest(path, artifacts, *, head_sha, postgres_major):
-    """Only a pair of independently validated retained XML+JSON can become PASS."""
+    """Accept exact canonical tests from two pre-reserved unique attempts."""
     path = Path(path)
     prior = json.loads(path.read_text(encoding="utf-8"))
-    if (prior.get("status") != "NOT_VERIFIED" or prior.get("head_sha") != head_sha or
-            prior.get("postgres_major") != str(postgres_major) or prior.get("expected_repetitions") != 2 or
-            len(artifacts) != 2 or len(set(map(str, artifacts))) != 2):
-        raise ValueError("Invalid two-repeat manifest transition")
-    rows = [validate_receipt(p) for p in artifacts]
-    if any(x["status"] != "PASS" or x["head_sha"] != head_sha or
-           x["postgres_major"] != str(postgres_major) or len(x["expected"]) != 5 for x in rows):
-        raise ValueError("One or more mandatory database repetitions not verified")
-    _write_json_atomic(path, {"head_sha": head_sha, "postgres_major": str(postgres_major),
-                              "expected_repetitions": 2, "status": "PASS",
-                              "repetitions": [{"suite": x["suite"], "sanitized_xml_sha256": x["sanitized_xml_sha256"]} for x in rows]})
+    expected = [list(expected_case_identity(n)) for n in CANONICAL_DATA_RESEARCH_NODES]
+    if (prior.get("schema") != "tester.ci.two-repetitions.v2" or
+            prior.get("status") != "NOT_VERIFIED" or prior.get("head_sha") != head_sha or
+            prior.get("postgres_major") != str(postgres_major) or
+            prior.get("expected") != expected or prior.get("expected_repetitions") != 2 or
+            len(prior.get("attempts", [])) != 2 or len(artifacts) != 2 or
+            len(set(map(str, artifacts))) != 2):
+        raise ValueError("Invalid aggregate identity")
+    rows = []
+    for ordinal, artifact in enumerate(artifacts, 1):
+        if Path(artifact).name != f"pg{postgres_major}-mandatory-{ordinal}.xml":
+            raise ValueError("Wrong required attempt filename")
+        receipt = validate_receipt(artifact)
+        reserved = prior["attempts"][ordinal - 1]
+        suite_name = f"data-research-pg{postgres_major}-repeat{ordinal}"
+        if (reserved.get("repeat_ordinal") != ordinal or reserved.get("suite") != suite_name or
+                receipt.get("repeat_ordinal") != ordinal or receipt.get("suite") != suite_name or
+                receipt.get("attempt_id") != reserved.get("attempt_id") or
+                receipt["status"] != "PASS" or receipt["expected"] != expected or
+                receipt["head_sha"] != head_sha or receipt["postgres_major"] != str(postgres_major) or
+                receipt["process_returncode"] != 0 or receipt["timed_out"] is not False):
+            raise ValueError("Incorrect canonical receipt/attempt identity")
+        rows.append(receipt)
+    if prior["attempts"][0]["attempt_id"] == prior["attempts"][1]["attempt_id"]:
+        raise ValueError("Repeated attempt identity")
+    # Do not require different output hashes: independent runs may be byte-equivalent.
+    prior["status"] = "PASS"
+    prior["repetitions"] = [
+        {"repeat_ordinal": x["repeat_ordinal"], "attempt_id": x["attempt_id"],
+         "suite": x["suite"], "sanitized_xml_sha256": x["sanitized_xml_sha256"]}
+        for x in rows]
+    _write_json_atomic(path, prior)
 
 
 def assert_ci_source(expected_head_sha):

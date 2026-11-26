@@ -5,6 +5,7 @@ Creates distinct owner and two restricted SCRAM LOGINs, upgrades migration
 012 and runs the actual integration test cases. Never touches port 5432.
 """
 import os
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -283,6 +284,7 @@ def main():
         reset_artifact(artifact)
         result = None
         timed_out = False
+        attempt_id = secrets.token_hex(16)
         try:
             result = subprocess.run(command, cwd=ROOT, env=env, text=True,
                                     capture_output=True, timeout=330)
@@ -298,7 +300,7 @@ def main():
                 head_sha=head_sha, postgres_major="18",
                 suite_name="pg18-principal-security-13",
                 process_returncode=(result.returncode if result else None),
-                timed_out=timed_out,
+                timed_out=timed_out, attempt_id=attempt_id,
             )
         except ValueError as exc:
             raise SystemExit(f"Mandatory PG18 JUnit rejected: {exc}") from None

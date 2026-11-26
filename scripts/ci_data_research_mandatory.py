@@ -4,6 +4,7 @@ No hosted/production DB or live exchange calls. Preserves separate FastAPI
 Mock admission and actual independent PostgreSQL backend overlap checks.
 """
 import os
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -15,17 +16,12 @@ from psycopg.conninfo import conninfo_to_dict
 from ci_named_junit_gate import (
     assert_ci_source, safe_artifact, reset_artifact,
     initialize_repetition_manifest, complete_repetition_manifest,
+    begin_repetition_attempt, CANONICAL_DATA_RESEARCH_NODES,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {"16", "18"}
-MANDATORY = (
-    "tests/test_public_auxiliary_postgres.py::AuxiliaryPostgresTests::test_store_transaction_fault_after_checkpoint_rolls_back_all_pg_publication",
-    "tests/platform/test_analytics_readback_integration_round3.py::test_disposable_pg_persisted_original_http_to_actual_api_and_no_f",
-    "tests/platform/test_analytics_readback_integration_round3.py::test_round7_actual_postgresql_cancels_bounded_store_statement",
-    "tests/platform/test_analytics_readback_integration_round3.py::test_round13_two_real_postgresql_readers_overlap_and_release",
-    "tests/api/test_analytics_readback_round3.py::test_round8_two_real_parallel_requests_hold_slots_third_denied_and_released",
-)
+MANDATORY = CANONICAL_DATA_RESEARCH_NODES
 
 
 def main():
@@ -51,6 +47,9 @@ def main():
     evidence = ROOT / ".scratch" / "mandatory-evidence" / f"pg{expected}"
     evidence.mkdir(parents=True, exist_ok=True)
     aggregate = evidence / f"pg{expected}-two-repetitions.json"
+    # A failed first attempt must never upload a stale second attempt receipt.
+    for ordinal in (1, 2):
+        reset_artifact(evidence / f"pg{expected}-mandatory-{ordinal}.xml")
     initialize_repetition_manifest(
         aggregate, head_sha=head_sha, postgres_major=str(actual),
         expected_repetitions=2,
@@ -67,6 +66,12 @@ def main():
                 "--strict-markers", "-o", "xfail_strict=true", "--timeout=60",
                 "-p", "no:cacheprovider", f"--junitxml={raw}", *MANDATORY,
             ]
+            # Reserve a random per-execution identity before launching the process.
+            attempt_id = secrets.token_hex(16)
+            begin_repetition_attempt(
+                aggregate, head_sha=head_sha, postgres_major=str(actual),
+                repeat_ordinal=repetition, attempt_id=attempt_id,
+            )
             artifact = evidence / f"pg{expected}-mandatory-{repetition}.xml"
             reset_artifact(artifact)
             timed_out = False
@@ -86,7 +91,8 @@ def main():
                     MANDATORY, head_sha=head_sha, postgres_major=str(actual),
                     suite_name=f"data-research-pg{expected}-repeat{repetition}",
                     process_returncode=(result.returncode if result else None),
-                    timed_out=timed_out,
+                    timed_out=timed_out, attempt_id=attempt_id,
+                    repeat_ordinal=repetition,
                 )
             except ValueError as exc:
                 raise SystemExit(f"Mandatory PG{expected} JUnit rejected: {exc}") from None

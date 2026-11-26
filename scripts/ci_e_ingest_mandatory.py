@@ -1,5 +1,6 @@
 """Six mandatory E REST negative streaming/deadline tests on each PG CI matrix job."""
 import os
+import secrets
 import subprocess
 import sys
 import tempfile
@@ -50,6 +51,7 @@ def main():
         reset_artifact(artifact)
         proc = None
         timed_out = False
+        attempt_id = secrets.token_hex(16)
         try:
             proc = subprocess.run(cmd, cwd=ROOT, env=dict(os.environ), text=True,
                                   capture_output=True, timeout=340)
@@ -66,7 +68,7 @@ def main():
                 head_sha=head_sha, postgres_major=major,
                 suite_name=f"e-rest-six-pg{major}",
                 process_returncode=(proc.returncode if proc else None),
-                timed_out=timed_out,
+                timed_out=timed_out, attempt_id=attempt_id,
             )
         except ValueError as exc:
             raise SystemExit(f"Six mandatory E JUnit cases rejected: {exc}") from None
