@@ -68,6 +68,8 @@ def hypothetical_fill(category, side, quantity, entry_price, exit_price,
         entry_fee = fee * qty * entry
         exit_fee = fee * qty * exit
     funding = 0
+    if not isinstance(entry_funding_rates, (tuple, list)):
+        raise ValueError("funding_events_collection_required")
     for record in entry_funding_rates:
         if not isinstance(record, (list, tuple)) or len(record) != 2:
             raise ValueError("funding_event_rate_and_mark_required")
