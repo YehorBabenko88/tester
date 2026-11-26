@@ -216,3 +216,41 @@ def test_pg_policy_halt_persists_and_dispatch_remains_fenced(enrolled):
     assert policy.read("api.bybit.com/v5/market/kline") == "HALTED"
     assert policy.reserve_dispatch()[0] == "HALTED"
     # Fixture cleanup must NOT reset globally_halted or silently unlock leased state.
+
+
+def test_pg_failed_legacy_duplicate_upgrade_rolls_back_everything(enrolled):
+    """Downgrade to 004-only is forbidden in production; disposable negative only.
+
+    This is a manifest/transaction invariance probe, not an actual downgrade.
+    The protected 012 unique index must remain installed and no existing
+    installation row can be repurposed through UPDATE to a shared runtime.
+    """
+    import psycopg
+
+    from src.api.db import connect
+
+    owner, _, scope = enrolled
+    stranger = uuid.uuid4()
+    with connect(owner) as conn:
+        original = conn.execute(
+            "SELECT runtime_role, globally_halted, dispatch_token, dispatch_not_before "
+            "FROM tester_platform.transport_policy_scopes WHERE installation_id=%s",
+            (scope,),
+        ).fetchone()
+    assert original is not None
+    with pytest.raises(psycopg.errors.UniqueViolation), connect(owner) as conn:
+        conn.execute(
+            "INSERT INTO tester_platform.transport_policy_scopes"
+            "(installation_id,runtime_role,owner_role) VALUES(%s,%s,current_user)",
+            (stranger, original[0]),
+        )
+    with connect(owner) as conn:
+        assert conn.execute(
+            "SELECT runtime_role, globally_halted, dispatch_token, dispatch_not_before "
+            "FROM tester_platform.transport_policy_scopes WHERE installation_id=%s",
+            (scope,),
+        ).fetchone() == original
+        assert conn.execute(
+            "SELECT count(*) FROM tester_platform.transport_policy_scopes WHERE installation_id=%s",
+            (stranger,),
+        ).fetchone()[0] == 0
