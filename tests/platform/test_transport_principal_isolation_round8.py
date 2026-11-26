@@ -145,11 +145,10 @@ def test_pg_foreign_uuid_rejected_with_two_distinct_valid_logins(enrolled):
 
     owner, app, own_scope = enrolled
     login = conninfo_to_dict(app)["user"]
-    # An existing separate low-privileged TEST role must be pre-provisioned
-    # by the disposable PG18 fixture, not invented with owner privileges here.
+    # A separate unprivileged role must be provisioned by the disposable
+    # PostgreSQL fixture. Omission is a failing required E2E gate, not SKIP.
     foreign_login = os.environ.get("TEST_PUBLIC_POLICY_SECOND_APP_ROLE")
-    if not foreign_login:
-        pytest.skip("Second disposable runtime LOGIN not provisioned")
+    assert foreign_login, "Second disposable runtime LOGIN not provisioned"
     assert foreign_login != login
     foreign_scope = uuid.uuid4()
     with connect(owner) as conn:
