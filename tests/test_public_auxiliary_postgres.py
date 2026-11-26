@@ -86,7 +86,7 @@ class AuxiliaryPostgresTests(unittest.TestCase):
                 # This is a real PostgreSQL statement exception, not a mock.
                 c.execute("SELECT 1 / 0")
 
-        with self.assertRaises(psycopg.DivisionByZero):
+        with self.assertRaises(psycopg.errors.DivisionByZero):
             InjectedSqlFaultStore(DSN).ingest(
                 [record(2), record(3)], evidence(2), key,
                 checkpoint={"sequence": 2},
