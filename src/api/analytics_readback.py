@@ -33,6 +33,14 @@ class ReadbackScope(BaseModel):
     as_of_ms: StrictInt = Field(ge=0, le=253402300799000)
     limit: StrictInt = Field(default=MAX_ROWS, ge=1, le=MAX_ROWS)
 
+    @model_validator(mode="before")
+    @classmethod
+    def deny_extra(cls, value):
+        if isinstance(value, dict) and any(k in value for k in (
+                "installation_id", "source_sha", "database_url", "dsn")):
+            raise ValueError("client_owned_source_authority_forbidden")
+        return value
+
     @model_validator(mode="after")
     def bounded(self):
         from decimal import Decimal
