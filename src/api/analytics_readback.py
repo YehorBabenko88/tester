@@ -6,18 +6,20 @@ validated ownership/DB binding. Until then a 503 response is required.
 """
 from __future__ import annotations
 
+import json
 import re
 from uuid import UUID
 from typing import Literal
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError, model_validator
 
 from src.integration.research_ui_projection import read_verified_ui_observation
 
 MAX_WINDOW_MS = 7 * 86_400_000
 MAX_ROWS = 99  # Below DATA's 100-row cap; exactly full page is not complete.
 MAX_INTERVAL_MS = 86_400_000
+MAX_RESPONSE_BYTES = 512 * 1024
 _HEX = re.compile(r"[0-9a-f]{40}\Z")
 
 
@@ -76,7 +78,7 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
     The identity must be injected by server-side owner-verified runtime code,
     never from the request; no ambient DSN or self-authentication fallback.
     """
-    if trusted_store is None or not isinstance(trusted_identity, dict):
+    if trusted_store is None or not callable(getattr(trusted_store, "read_bounded", None)) or not isinstance(trusted_identity, dict):
         return _not_ready("trusted_storage_binding_unavailable")
     if trusted_identity.get("verified") is not True:
         return _not_ready("trusted_storage_binding_unavailable")
@@ -87,7 +89,7 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
     except (TypeError, ValueError, AttributeError):
         return _not_ready("trusted_storage_binding_unavailable")
     if (ident != canonical_uuid or not isinstance(
-            source_sha, str) or not _HEX.fullmatch(source_sha):
+            source_sha, str) or not _HEX.fullmatch(source_sha)):
         return _not_ready("trusted_storage_binding_unavailable")
     try:
         observed = read_verified_ui_observation(
@@ -104,6 +106,9 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
                 or observed.get("method") != "tester.execution-metrics/2"
                 or observed.get("quantity_unit") != (
                     "quote" if scope.category == "inverse" else "base")
+                or observed.get("source_quantity_unit") != (
+                    "source_native_inverse_contract" if scope.category == "inverse"
+                    else "source_native_linear_size")
                 or observed.get("utc_window") != {
                     "start_ms": scope.start_ms, "end_ms": scope.end_ms
                 }):
@@ -113,7 +118,7 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
             raise ReadbackDenied()
         # Provider/DB values remain immutable exact strings. A source observation
         # is not complete history; client cannot turn it into strategy admission.
-        return {
+        result = {
             "schema_version": "tester.analytics-readback/1",
             "status": "OBSERVED_UNVERIFIED",
             "reason": "historical_completeness_not_proven",
@@ -136,9 +141,12 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
                         "bars": bars, "admitted_to_f": False},
             "admitted_to_f": False,
             "limits": {"max_rows": MAX_ROWS, "max_range_ms": MAX_WINDOW_MS,
-                       "max_bars": 100},
+                       "max_bars": 100, "max_response_bytes": MAX_RESPONSE_BYTES},
         }
-    except (ValueError, KeyError, TypeError, AttributeError, ReadbackDenied):
+        if len(json.dumps(result, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")) > MAX_RESPONSE_BYTES:
+            raise ReadbackDenied()
+        return result
+    except Exception:
         return _not_ready("source_readback_not_verified")
 
 
@@ -150,11 +158,34 @@ def create_readback_router(*, trusted_binding=None):
     router = APIRouter()
 
     @router.get("/api/analytics/readback", include_in_schema=False)
-    def readback(scope: ReadbackScope = Depends()):
-        binding = trusted_binding() if trusted_binding is not None else None
-        if binding is None:
-            return _not_ready("trusted_storage_binding_unavailable")
+    def readback(request: Request, category: str, symbol: str,
+                 start_ms: int, end_ms: int, interval_ms: int,
+                 tick_size: str, as_of_ms: int, limit: int = MAX_ROWS):
+        # FastAPI converts query integer strings before strict internal validation.
+        # Unexpected fields, including a client-supplied DSN/UUID, are refused.
+        allowed = {"category", "symbol", "start_ms", "end_ms",
+                   "interval_ms", "tick_size", "as_of_ms", "limit"}
+        if set(request.query_params) - allowed:
+            raise HTTPException(422, detail="invalid_readback_scope")
+        try:
+            scope = ReadbackScope(
+                category=category, symbol=symbol, start_ms=start_ms,
+                end_ms=end_ms, interval_ms=interval_ms,
+                tick_size=tick_size, as_of_ms=as_of_ms, limit=limit)
+        except (ValidationError, ValueError):
+            raise HTTPException(422, detail="invalid_readback_scope") from None
+        if trusted_binding is None:
+            raise HTTPException(503, detail="analytics_source_not_configured")
+        try:
+            binding = trusted_binding()
+        except Exception:
+            raise HTTPException(503, detail="trusted_storage_binding_unavailable") from None
+        if not isinstance(binding, tuple) or len(binding) != 2:
+            raise HTTPException(503, detail="trusted_storage_binding_unavailable")
         store, identity = binding
-        return observed_readback(scope, trusted_store=store, trusted_identity=identity)
+        result = observed_readback(scope, trusted_store=store, trusted_identity=identity)
+        if result["status"] != "OBSERVED_UNVERIFIED":
+            raise HTTPException(503, detail="source_readback_not_verified")
+        return {"schema_version": "1.0", "data": result}
 
     return router
