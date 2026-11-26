@@ -434,8 +434,18 @@ def test_e_round8_cancelled_stream_closes_real_pg_endpoint_and_dispatch_leases(d
     session.request.assert_called_once()
     assert policy.read(URL.removeprefix("https://")) == "CLEAR"
 
-    # A prior cancelled owner cannot strand the installation dispatch lease.
+    # A clean dispatch is intentionally followed by a >=0.5s SQL cooldown,
+    # so WAIT during that cooldown is safe. PENDING (stranded token) is NOT.
+    from time import sleep
+
     state, token, delay = policy.reserve_dispatch()
+    assert state in {"WAIT", "GRANTED"}, (
+        "Cancelled response left a pending or halted dispatch lease", state
+    )
+    if state == "WAIT":
+        assert token is None and 0 < delay <= 2.0
+        sleep(delay + 0.2)
+        state, token, delay = policy.reserve_dispatch()
     assert (state, delay) == ("GRANTED", 0)
     assert token
     policy.finish_dispatch(token, 0)
