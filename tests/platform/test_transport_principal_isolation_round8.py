@@ -15,10 +15,10 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
-def enrolled(tmp_path):
+def enrolled():
     from psycopg.conninfo import conninfo_to_dict
 
-    from src.api.db import connect
+    from src.api.db import connect, migrate
 
     owner_dsn = os.environ.get("TEST_PUBLIC_POLICY_OWNER_DSN")
     app_dsn = os.environ.get("TEST_PUBLIC_POLICY_DSN")
@@ -31,17 +31,19 @@ def enrolled(tmp_path):
         raise ValueError("Reserved disposable PG port 55820..55827 required")
     if own.get("dbname") != app.get("dbname"):
         raise ValueError("Owner and App must use same disposable database")
-    # Bootstrap only this explicitly reserved disposable fixture.
-    from src.api.db import migrate
-
+    # A module-scoped seed scope is intentionally absent: each test gets its
+    # own isolated owner-enrolled App scope, preventing same-role interference.
+    # The dedicated mandatory CI job provisions one disposable PG18 database
+    # with independent owner/App login credentials and unprivileged functions.
     migrate(owner_dsn)
     with connect(owner_dsn) as conn:
         record = conn.execute(
             "SELECT checksum FROM tester_platform.migrations WHERE version=%s",
             ("012_transport_installation_principal.sql",),
         ).fetchone()
-        # Missing migration is a failing E2E gate, not a skipped success.
         assert record is not None, "Migration 012 absent from disposable PG fixture"
+        role = conn.execute("SELECT current_user").fetchone()[0]
+        assert role != app["user"], "Owner and runtime PostgreSQL principals must differ"
     scope = uuid.uuid4()
     with connect(owner_dsn) as conn:
         conn.execute(
