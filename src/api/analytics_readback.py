@@ -10,8 +10,8 @@ import json
 import re
 import time
 from threading import BoundedSemaphore
-from uuid import UUID
 from typing import Literal
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError, model_validator
@@ -27,14 +27,17 @@ MAX_INTERVAL_MS = 86_400_000
 ALLOWED_INTERVALS_MS = (60_000, 180_000, 300_000, 900_000, 1_800_000,
                         3_600_000, 7_200_000, 14_400_000, 21_600_000,
                         43_200_000, 86_400_000)
-MAX_RESPONSE_BYTES = 512 * 1024
+MAX_RESPONSE_BYTES = 128 * 1024
 MAX_WALL_MS = 10_000
 MAX_CONCURRENT_READS = 2
 
 
 def _clock():
     return time.monotonic()
+
+
 _HEX = re.compile(r"[0-9a-f]{40}\Z")
+_SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 
 
 class ReadbackScope(BaseModel):
@@ -120,14 +123,30 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
                 or observed.get("publication_time") != "UNKNOWN"
                 or observed.get("method") != CURRENT_METHOD
                 or observed.get("quantity_unit") != quantity_unit(scope.category)
-                or observed.get("source_quantity_unit") != SOURCE_QUANTITY_UNITS[scope.category])
+                or observed.get("source_quantity_unit") != SOURCE_QUANTITY_UNITS[scope.category]
+                or observed.get("metrics_contract", {}).get("status") != "CURRENT"
+                or observed.get("g_e_execution") != "NOT_AUTHORIZED"
+                or observed.get("cvd_prior_history_known") is not False
+                or observed.get("http_route_status") != "NOT_REGISTERED"
                 or observed.get("utc_window") != {
                     "start_ms": scope.start_ms, "end_ms": scope.end_ms
                 }):
             raise ReadbackDenied()
         bars = observed.get("bars")
-        if not isinstance(bars, list) or len(bars) > 100:
+        expected_bars = (scope.end_ms - scope.start_ms) // scope.interval_ms
+        if not isinstance(bars, list) or len(bars) != expected_bars:
             raise ReadbackDenied()
+        for index, bar in enumerate(bars):
+            if (not isinstance(bar, dict)
+                    or type(bar.get("start_ms")) is not int
+                    or type(bar.get("end_ms")) is not int
+                    or bar["start_ms"] != scope.start_ms + index * scope.interval_ms
+                    or bar["end_ms"] != scope.start_ms + (index + 1) * scope.interval_ms):
+                raise ReadbackDenied()
+        for key in ("source_receipts_digest", "data_execution_digest",
+                    "metrics_digest", "observed_sample_fingerprint"):
+            if not isinstance(observed.get(key), str) or not _SHA256.fullmatch(observed[key]):
+                raise ReadbackDenied()
         # Provider/DB values remain immutable exact strings. A source observation
         # is not complete history; client cannot turn it into strategy admission.
         result = {
@@ -138,15 +157,29 @@ def observed_readback(scope: ReadbackScope, *, trusted_store=None, trusted_ident
                        "symbol": scope.symbol},
             "window": {"start_ms": scope.start_ms, "end_ms": scope.end_ms,
                        "interval_ms": scope.interval_ms, "as_of_ms": scope.as_of_ms},
+            "metric_kind": "execution_metrics",
+            "metric_method": CURRENT_METHOD,
+            "metric_method_version": "2",
             "method": observed["method"],
+            "historical_data_complete": False,
+            "strategy_admission": "DENIED",
+            "http_route_registered": False,
             "quantity_unit": observed["quantity_unit"],
             "source_quantity_unit": observed["source_quantity_unit"],
             "source": {"installation_id": ident, "source_sha": source_sha,
+                       "reader": "src.integration.research_ui_projection.read_verified_ui_observation",
                        "observed_sample_fingerprint": observed["observed_sample_fingerprint"],
+                       "sample_sha256": observed["observed_sample_fingerprint"],
                        "source_receipts_digest": observed["source_receipts_digest"],
+                       "receipts_sha256": observed["source_receipts_digest"],
+                       "data_sha256": observed["data_execution_digest"],
+                       "metrics_sha256": observed["metrics_digest"],
+                       "dataset_revision": None,
+                       "historical_coverage": "UNKNOWN",
                        "publication_time": "UNKNOWN"},
             "quality": {"status": "UNVERIFIED", "coverage": "UNKNOWN",
-                        "reasons": ["historical_completeness_not_proven"],
+                        "historical_data_complete": False,
+                        "reasons": ["historical_coverage_unknown", "publication_time_unknown"],
                         "admitted_to_f": False},
             "metrics": {"method": observed["method"], "status": "DERIVED_UNVERIFIED",
                         "quantity_unit": observed["quantity_unit"],
