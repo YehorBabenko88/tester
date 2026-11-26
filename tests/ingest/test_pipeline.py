@@ -103,6 +103,9 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "REST HTTP body byte budget exceeded"):
             API(transport).call("/kline", {})
         self.assertTrue(session.request.call_args.kwargs["stream"])
+        self.assertEqual(
+            session.request.call_args.kwargs["headers"]["accept-encoding"], "identity"
+        )
         # The client must stop consuming at the first over-budget chunk,
         # rather than downloading and buffering the entire response.
         self.assertLessEqual(raw.read_bytes, MAX_HTTP_BODY_BYTES + 65536)
