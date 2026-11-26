@@ -255,3 +255,34 @@ process.stdout.write("PG_API_FRONTEND_CONTRACT_OK");
             finally:
                 browser.close()
     # No mutation of source data/credentials, no F execute path.
+
+
+@pytest.mark.integration
+def test_round7_actual_postgresql_cancels_bounded_store_statement():
+    """Disposable real PostgreSQL verifies startup timeout: no fake SQL or SQLite."""
+    dsn = os.getenv("TESTER_RESEARCH_DATA_TEST_DSN")
+    if not dsn:
+        pytest.skip("explicit disposable PostgreSQL DSN not configured")
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+    from src.storage.store import Store
+    import time
+
+    endpoint = conninfo_to_dict(dsn)
+    if (
+        endpoint.get("host") != "127.0.0.1"
+        or endpoint.get("port") != "55479"
+        or endpoint.get("dbname") != "tester_research_data_disposable"
+    ):
+        raise ValueError("refuse non-disposable PostgreSQL timeout test")
+    endpoint["connect_timeout"] = "2"
+    endpoint["options"] = (
+        "-c timezone=UTC -c statement_timeout=250 -c lock_timeout=250"
+    )
+    store = Store(make_conninfo(**endpoint))
+    start_time = time.monotonic()
+    with pytest.raises(psycopg.errors.QueryCanceled):
+        with store.connect() as connection:
+            connection.execute("SELECT pg_sleep(2)")
+    elapsed = time.monotonic() - start_time
+    assert 0.1 <= elapsed < 2.0, f"measured SQL cancellation {elapsed:.3f}s"
