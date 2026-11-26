@@ -17,6 +17,7 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def enrolled(tmp_path):
     from psycopg.conninfo import conninfo_to_dict
+
     from src.api.db import connect
 
     owner_dsn = os.environ.get("TEST_PUBLIC_POLICY_OWNER_DSN")
@@ -65,6 +66,7 @@ def enrolled(tmp_path):
 def test_pg_runtime_principal_unique_and_scope_forgery_denied(enrolled):
     import psycopg
     from psycopg.conninfo import conninfo_to_dict
+
     from src.api.db import connect
     from src.api.transport_policy import PostgresTransportPolicy, PublicPolicyUnavailable
 
@@ -86,6 +88,7 @@ def test_pg_runtime_principal_unique_and_scope_forgery_denied(enrolled):
 
 def test_pg_runtime_cannot_delete_enrollment_or_reset_foreign_owner(enrolled):
     import psycopg
+
     from src.api.db import connect
     from src.api.transport_policy import PostgresTransportPolicy, PublicPolicyUnavailable
 
