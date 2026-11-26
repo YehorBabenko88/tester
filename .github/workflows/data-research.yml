@@ -20,6 +20,10 @@ on:
       - 'src/integration/research_preview.py'
       - 'src/integration/research_ui_projection.py'
       - 'src/api/capability_*.py'
+      - 'src/api/analytics_readback.py'
+      - 'src/api/main.py'
+      - 'tests/api/test_analytics_readback_round3.py'
+      - 'tests/platform/test_analytics_readback_integration_round3.py'
       - 'tests/test_execution_contract_*.py'
       - 'tests/test_public_auxiliary*.py'
       - 'tests/test_composed_data_research_postgres.py'
@@ -69,6 +73,8 @@ jobs:
           tests/platform/test_data_research_adapter_issue59.py
           tests/platform/test_capability_data_bridge_issue104.py
           tests/platform/test_inverse_units_canonical.py
+          tests/api/test_analytics_readback_round3.py
+          tests/platform/test_analytics_readback_integration_round3.py
       - name: PostgreSQL DATA roundtrip (dedicated database)
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_roundtrip"
@@ -83,7 +89,7 @@ jobs:
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
           TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
-            python -m pytest -q -rs tests/platform/test_data_research_adapter_issue59.py
+            python -m pytest -q -rs tests/platform/test_data_research_adapter_issue59.py tests/platform/test_analytics_readback_integration_round3.py
       - name: Release grants, DATA paths and spot/linear/inverse units as NON-superuser tester_app (#104, #114)
         # provision_release_databases creates tester_owner-owned databases and the
         # restricted runtime role; every DATA/queue flow then runs as tester_app.
