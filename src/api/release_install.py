@@ -761,10 +761,8 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         except Exception as rollback_error:
             record_secondary("authenticated rollback", rollback_error)
             raise original from rollback_error
-        # If a journal/guard operation failed, retain metadata for diagnosis,
-        # even if the authenticated rollback removed every owned root object.
-        if journal_valid:
-            _cleanup_metadata(maintenance, marker["installation_id"])
+        # Metadata is deleted only after a verified authenticated rollback.
+        _cleanup_metadata(maintenance, marker["installation_id"])
         raise
     finally:
         tx.close()
