@@ -160,6 +160,12 @@ def test_bounded_store_binding_requires_exact_owner_dsn(tmp_path):
         "installation_id": marker["installation_id"],
         "source_sha": marker["source_sha"],
     }
+    # Only the exact pinned loopback alias may be normalized.
+    explicit = Store(config["database_url"] + " hostaddr=127.0.0.1")
+    assert authority.checked_readback_binding(explicit)[0] is explicit
+    foreign = Store(config["database_url"] + " hostaddr=127.0.0.2")
+    with pytest.raises(ReleaseSecurityError, match="hostaddr"):
+        authority.checked_readback_binding(foreign)
     wrong = Store(config["database_url"].replace("port=55432", "port=55433"))
     with pytest.raises(ReleaseSecurityError, match="owner-bound"):
         authority.checked_readback_binding(wrong)
