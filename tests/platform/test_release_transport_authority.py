@@ -397,3 +397,77 @@ def test_round7_offline_pg_unreachable_denies_before_network(tmp_path, monkeypat
             token_checker=lambda sid: sid,
             pg_checker=auth._offline_pg_policy_read,
         )
+
+
+def _round8_pg_evidence(scope):
+    return {
+        "system_identifier": scope.pg_system_identifier,
+        "host": scope.db_hostaddr,
+        "port": scope.db_identity[1],
+        "database": scope.db_identity[2],
+        "session_user": scope.db_identity[3],
+        "installation_id": scope.installation_id,
+        "scope_count": 1,
+    }
+
+
+def test_round8_offline_pg_attestation_denies_when_probe_unavailable(tmp_path):
+    scope = _offline_authority(tmp_path)
+    with pytest.raises(ReleaseSecurityError, match="attestation unavailable"):
+        auth._offline_fresh_pg_identity(scope)
+    assert auth._offline_fresh_pg_identity(
+        scope, cluster_probe=_round8_pg_evidence,
+    ) is True
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("system_identifier", "999999999999999"),
+        ("host", "127.0.0.2"),
+        ("port", 5432),
+        ("port", 55433),
+        ("database", "postgres"),
+        ("session_user", "postgres"),
+        ("installation_id", str(uuid.UUID(int=42))),
+        ("scope_count", 0),
+        ("scope_count", 2),
+        ("scope_count", True),
+    ],
+)
+def test_round8_offline_pg_rejects_foreign_cluster_role_and_ambiguous_scope(
+    tmp_path, field, value,
+):
+    scope = _offline_authority(tmp_path)
+    evidence = _round8_pg_evidence(scope)
+    evidence[field] = value
+    with pytest.raises(ReleaseSecurityError, match="physical or principal"):
+        auth._offline_fresh_pg_identity(scope, cluster_probe=lambda _: evidence)
+
+
+def test_round8_offline_pg_rejects_forged_or_incomplete_evidence(tmp_path):
+    scope = _offline_authority(tmp_path)
+    with pytest.raises(ReleaseSecurityError, match="Unexpected"):
+        auth._offline_fresh_pg_identity(
+            scope, cluster_probe=lambda _: {"verified": True},
+        )
+    evidence = _round8_pg_evidence(scope)
+    del evidence["scope_count"]
+    with pytest.raises(ReleaseSecurityError, match="Unexpected"):
+        auth._offline_fresh_pg_identity(scope, cluster_probe=lambda _: evidence)
+
+
+def test_round8_owner_static_pin_remains_network_disabled_even_with_pg_attestation(
+    tmp_path,
+):
+    scope = _offline_authority(tmp_path)
+    pin, fingerprint = _signed_offline_pin(scope)
+    assert auth._offline_fresh_pg_identity(
+        scope, cluster_probe=_round8_pg_evidence,
+    )
+    output = auth.verify_offline_service_identity(
+        scope, pin=pin, pinned_public_key_sha256=fingerprint,
+        token_checker=lambda sid: sid, pg_checker=lambda _: True,
+    )
+    assert output["network_eligible"] is False
+    assert output["analytics_route_eligible"] is False
