@@ -52,9 +52,9 @@ class EngineTests(unittest.TestCase):
         self.assertEqual({m['fill_id'] for m in r['overlays']}, {f['id'] for f in r['fills']})
         self.assertEqual(r['metrics']['trade_count'], 1)
 
-    def test_v2_mark_dispatch_preserves_spot_and_linear_legacy_replay(self):
-        # No widening of F admission. Existing canonical replay/digests for
-        # synthetic spot and linear inputs must remain frozen.
+    def test_v2_mark_isolated_from_legacy_spot_linear_replay(self):
+        # No widening of F admission. The frozen bar engine keeps its
+        # exact Decimal formulae. /2 rational marks are isolated.
         for category in ("spot", "linear"):
             c=config()
             if category == "linear":
