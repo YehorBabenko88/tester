@@ -75,6 +75,28 @@ def payload_identity(row):
     return json.dumps(row, sort_keys=True, separators=(",", ":"))
 
 
+MAX_DECODED_PAGE_BYTES = 4 * 1024 * 1024
+MAX_BACKFILL_WINDOW_MS = 7 * 86400000
+
+
+def bounded_result_hash(result, max_bytes=MAX_DECODED_PAGE_BYTES):
+    """Hash canonical decoded JSON with a strict serialized byte ceiling.
+
+    The HTTP Transport must enforce its own raw-body limit before JSON
+    decoding; this guards retained response evidence and staging memory.
+    """
+    size = 0
+    digest = hashlib.sha256()
+    encoder = json.JSONEncoder(sort_keys=True, separators=(",", ":"))
+    for fragment in encoder.iterencode(result):
+        chunk = fragment.encode("utf-8")
+        size += len(chunk)
+        if size > max_bytes:
+            raise ValueError("Decoded REST page byte budget exceeded")
+        digest.update(chunk)
+    return digest.hexdigest()
+
+
 class API:
     def __init__(self, transport=None):
         self.transport = transport or Transport()
@@ -146,6 +168,10 @@ class Backfill:
             raise ValueError("Dataset unavailable for category")
         if start < 0 or end <= start or window_ms <= 0:
             raise ValueError("Invalid range")
+        # A caller may request a year, but each independently validated
+        # publication window is bounded. Never drop a tail or publish a
+        # partially checked oversized interval.
+        window_ms = min(window_ms, MAX_BACKFILL_WINDOW_MS)
         path, maxlimit, field, periodkey = SPECS[kind]
         if periodkey == "interval" and interval not in INTERVALS:
             raise ValueError("Invalid candle interval")
@@ -247,7 +273,22 @@ class Backfill:
                     evidence_refs.append(ref)
                     raise
                 stamp = utcnow()
-                response_count = len(result.get("list", []))
+                try:
+                    if not isinstance(result, dict) or not isinstance(result.get("list"), list):
+                        raise ValueError("Malformed REST page")
+                    raw_hash = bounded_result_hash(result)
+                except (ValueError, TypeError, OverflowError) as exc:
+                    evidence_refs.append(self.journal.add_evidence({
+                        "kind": "rest_response_rejected",
+                        "ingestion_run": run_id,
+                        "request_params": p,
+                        "cursor_in": token,
+                        "start_ms": a,
+                        "end_ms": b,
+                        "reason": "page_budget_or_format",
+                    }))
+                    raise ValueError("REST page rejected before publication") from exc
+                response_count = len(result["list"])
                 terminal = (
                     "PARTIAL"
                     if result.get("nextPageCursor") or response_count >= limit
@@ -276,9 +317,7 @@ class Backfill:
                     "pagination": pagination,
                     "cursor_out_field_present": "nextPageCursor" in result,
                     "raw_response": result,
-                    "raw_hash": hashlib.sha256(
-                        json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
-                    ).hexdigest(),
+                    "raw_hash": raw_hash,
                     "hash_scope": "canonical_result_json",
                 }
                 if isinstance(original, dict):
