@@ -134,7 +134,143 @@ def test_conflict_across_pages_of_one_window_is_not_overwritten(journal):
     api = api_with({**first, "nextPageCursor": "c1"}, second)
     with pytest.raises(ValueError, match="Conflicting duplicate"):
         Backfill(api, journal).run("linear", "BTCUSDT", "funding", "", START, START + 100)
-    assert stored(journal, "funding", "")[START]["payload"]["fundingRate"] == "1"
+    assert stored(journal, "funding", "") == {}
+    assert journal.task(key("funding", "", START, START + 100))["status"] == "failed"
+    # The HTTP receipts remain auditable without publishing the rejected rows.
+    assert journal.db.execute("SELECT COUNT(*) FROM evidence").fetchone()[0] >= 2
+
+
+@pytest.mark.parametrize("kind, interval", [("kline", "1"), ("open_interest", "5min")])
+def test_failed_later_page_never_exposes_earlier_valid_rows(journal, kind, interval):
+    if kind == "kline":
+        first = {"list": [candle(START)]}
+        second = {"list": [candle(START, h="12")]}
+    else:
+        first = {"list": [{"timestamp": str(START), "openInterest": "1"}]}
+        second = {"list": [{"timestamp": str(START), "openInterest": "2"}]}
+    api = api_with({**first, "nextPageCursor": "page2"}, second)
+    with pytest.raises(ValueError, match="Conflicting duplicate"):
+        Backfill(api, journal).run(
+            "linear", "BTCUSDT", kind, interval, START,
+            START + (60000 if kind == "kline" else 300000),
+        )
+    assert stored(journal, kind, interval) == {}
+    assert journal.db.execute("SELECT COUNT(*) FROM record_versions").fetchone()[0] == 0
+
+
+def test_cancel_after_first_page_leaves_only_request_evidence(journal):
+    api = api_with({"list": [candle(START)], "nextPageCursor": "next"})
+    def cancel():
+        # After first page is fetched, block further pagination.
+        return api.call.call_count >= 1
+
+    result = Backfill(api, journal).run(
+        "linear", "BTCUSDT", "kline", "1", START, START + 60000,
+        cancel=cancel,
+    )
+    assert result["status"] == "paused"
+    assert result["records"] == 0
+    assert stored(journal, "kline", "1") == {}
+    assert journal.task(key("kline", "1", START, START + 60000))["status"] == "paused"
+
+
+def test_later_window_failure_preserves_previously_committed_window(journal):
+    earlier = api_with({"list": [candle(START)]})
+    first = Backfill(earlier, journal).run(
+        "linear", "BTCUSDT", "kline", "1", START, START + 60000
+    )
+    assert first["status"] == "observed"
+    saved = stored(journal, "kline", "1")[START]
+    conflict = api_with(
+        {"list": [candle(START + 60000)], "nextPageCursor": "repeat"},
+        {"list": [candle(START + 60000, h="15")]},
+    )
+    with pytest.raises(ValueError, match="Conflicting duplicate"):
+        Backfill(conflict, journal).run(
+            "linear", "BTCUSDT", "kline", "1", START + 60000, START + 120000
+        )
+    assert stored(journal, "kline", "1") == {START: saved}
+    assert journal.task(key("kline", "1", START, START + 60000))["status"] == "observed"
+    assert journal.task(key("kline", "1", START + 60000, START + 120000))["status"] == "failed"
+
+
+def test_retry_after_failed_page_rebuilds_window_without_leaked_prefix(journal):
+    original = api_with(
+        {"list": [candle(START)], "nextPageCursor": "p2"},
+        {"list": [candle(START, h="12")]},
+    )
+    with pytest.raises(ValueError, match="Conflicting duplicate"):
+        Backfill(original, journal).run(
+            "linear", "BTCUSDT", "kline", "1", START, START + 60000
+        )
+    assert stored(journal, "kline", "1") == {}
+    replay = api_with({"list": [candle(START)]})
+    result = Backfill(replay, journal).run(
+        "linear", "BTCUSDT", "kline", "1", START, START + 60000
+    )
+    assert result["status"] == "observed"
+    assert result["records"] == 1
+    assert stored(journal, "kline", "1")[START]["payload"] == candle(START)
+
+
+def test_failure_keeps_cursor_evidence_and_no_staged_records(journal):
+    api = api_with(
+        {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "1"}],
+         "nextPageCursor": "p2"},
+        {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "2"}]},
+    )
+    with pytest.raises(ValueError, match="Conflicting duplicate"):
+        Backfill(api, journal).run(
+            "linear", "BTCUSDT", "funding", "", START, START + 100
+        )
+    assert journal.db.execute("SELECT COUNT(*) FROM records").fetchone()[0] == 0
+    assert journal.db.execute("SELECT COUNT(*) FROM record_versions").fetchone()[0] == 0
+    entries = [json.loads(v[0]) for v in journal.db.execute("SELECT body FROM evidence")]
+    pages = [v for v in entries if v.get("kind") == "rest_response"]
+    assert len(pages) == 2
+    assert pages[0]["pagination"]["cursor_out"] == "p2"
+    assert pages[1]["pagination"]["cursor_in"] == "p2"
+
+
+def test_paginated_window_page_budget_fails_closed(journal):
+    page = {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "1"}],
+            "nextPageCursor": "next"}
+    api = Mock()
+    api.call.side_effect = lambda path, params: (dict(page, nextPageCursor="p" + str(api.call.call_count)), URL)
+    with pytest.raises(ValueError, match="pagination budget exceeded"):
+        Backfill(api, journal).run(
+            "linear", "BTCUSDT", "funding", "", START, START + 100
+        )
+    assert api.call.call_count == 500
+    assert stored(journal, "funding", "") == {}
+    assert journal.task(key("funding", "", START, START + 100))["status"] == "failed"
+
+
+def test_rejected_window_preserves_rows_across_journal_reopen(tmp_path):
+    from src.ingest.journal import Journal
+
+    path = tmp_path / "persistent.db"
+    j = Journal(path)
+    try:
+        Backfill(api_with({"list": [candle(START)]}), j).run(
+            "linear", "BTCUSDT", "kline", "1", START, START + 60000
+        )
+        conflicting = api_with(
+            {"list": [candle(START + 60000)], "nextPageCursor": "p2"},
+            {"list": [candle(START + 60000, h="20")]},
+        )
+        with pytest.raises(ValueError, match="Conflicting duplicate"):
+            Backfill(conflicting, j).run(
+                "linear", "BTCUSDT", "kline", "1", START + 60000, START + 120000
+            )
+    finally:
+        j.close()
+    j = Journal(path)
+    try:
+        assert set(j.window_records("linear", "BTCUSDT", "kline", "1", 0, START + 120000)) == {START}
+        assert j.task(key("kline", "1", START + 60000, START + 120000))["status"] == "failed"
+    finally:
+        j.close()
 
 
 def test_still_open_candle_may_change_between_requests(journal):
