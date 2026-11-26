@@ -21,6 +21,9 @@ from src.integration.research_ui_projection import read_verified_ui_observation
 MAX_WINDOW_MS = 7 * 86_400_000
 MAX_ROWS = 99  # Below DATA's 100-row cap; exactly full page is not complete.
 MAX_INTERVAL_MS = 86_400_000
+ALLOWED_INTERVALS_MS = (60_000, 180_000, 300_000, 900_000, 1_800_000,
+                        3_600_000, 7_200_000, 14_400_000, 21_600_000,
+                        43_200_000, 86_400_000)
 MAX_RESPONSE_BYTES = 512 * 1024
 MAX_WALL_MS = 10_000
 MAX_CONCURRENT_READS = 2
@@ -54,7 +57,8 @@ class ReadbackScope(BaseModel):
     @model_validator(mode="after")
     def bounded(self):
         from decimal import Decimal
-        if not (0 < self.end_ms - self.start_ms <= MAX_WINDOW_MS
+        if not (self.interval_ms in ALLOWED_INTERVALS_MS
+                and 0 < self.end_ms - self.start_ms <= MAX_WINDOW_MS
                 and self.start_ms % self.interval_ms == 0
                 and self.end_ms % self.interval_ms == 0
                 and self.end_ms <= self.as_of_ms
