@@ -174,6 +174,45 @@ def test_actual_pg_crash_restarts_are_windowed_and_exhaustion_is_policy(authorit
 
 
 @pytest.mark.integration
+def test_actual_pg_backward_clock_jump_preserves_crash_slots(authority):
+    """No crash-budget bypass when wall time moves backwards by several hours.
+
+    Owner injects persisted future timestamps, the equivalent of setting the
+    system clock backwards after three crashes. The runtime App role must see
+    those entries and deny a fourth crash restart. Old 008 dropped the entries.
+    """
+    import psycopg
+    from src.api.restart_budget import BudgetDenied
+
+    owner, app_dsn, ident, budget = authority
+    previous = budget()
+    previous.admit("host")
+    _owner(
+        owner,
+        "UPDATE tester_platform.restart_budgets SET "
+        "host_crashes=ARRAY[now()+interval '3 hours',now()+interval '4 hours',"
+        "now()+interval '5 hours'] "
+        "WHERE installation_id=%s RETURNING 1",
+        ident,
+    )
+    assert budget().counts()["host"] == 3
+    with pytest.raises(BudgetDenied):
+        budget().admit("host")
+    assert budget().counts()["host"] == 3
+    with psycopg.connect(app_dsn) as conn:
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            conn.execute("SELECT tester_platform.restart_window_recent('{}')")
+    # Clean-stop still releases this active run without burning additional
+    # crash slots, but does not reset the protected historical receipts.
+    previous.record_clean_stop()
+    assert budget().counts()["host"] == 3
+    fresh = budget()
+    fresh.admit("host")
+    fresh.record_clean_stop()
+    assert budget().counts()["host"] == 3
+
+
+@pytest.mark.integration
 def test_actual_pg_child_restarts_windowed_initial_launches_free(authority):
     from src.api.restart_budget import BudgetDenied
 
