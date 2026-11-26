@@ -122,7 +122,7 @@ def test_disposable_pg_persisted_original_http_to_actual_api_and_no_f(tmp_path):
     start = stamp // 60_000 * 60_000
     args = dict(category="linear", symbol=symbol,
                 start_ms=start, end_ms=start + 60_000,
-                interval_ms=60_000, as_of_ms=1795000000000,
+                interval_ms=60_000, as_of_ms=1794999960000,  # exactly UTC-minute aligned for Chromium input
                 tick_size="0.5", limit=10)
     found = client.get("/api/analytics/readback", params=args)
     assert found.status_code == 200, found.text
