@@ -218,13 +218,8 @@ def test_pg_policy_halt_persists_and_dispatch_remains_fenced(enrolled):
     # Fixture cleanup must NOT reset globally_halted or silently unlock leased state.
 
 
-def test_pg_failed_legacy_duplicate_upgrade_rolls_back_everything(enrolled):
-    """Downgrade to 004-only is forbidden in production; disposable negative only.
-
-    This is a manifest/transaction invariance probe, not an actual downgrade.
-    The protected 012 unique index must remain installed and no existing
-    installation row can be repurposed through UPDATE to a shared runtime.
-    """
+def test_pg_duplicate_enrollment_rolls_back_without_mutating_existing_scope(enrolled):
+    """Duplicate INSERT must fail without changing prior halt or leases."""
     import psycopg
 
     from src.api.db import connect
