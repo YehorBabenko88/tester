@@ -10,16 +10,17 @@ const FAMILIES = new Set([
 const EXECUTION_PANELS = new Set(["vwap", "footprint", "delta", "cvd", "poc"]);
 const SOURCE_LIMIT_MS = 7 * 86400000;
 const MAX_TEXT = 240;
+const SAFE_REASONS = new Set(["invalid_capability_payload", "capability_contract_unverified", "analytics_quality_route_not_registered", "provider_unavailable", "source_unverified"]);
 
 function limited(value) {
-  if (typeof value !== "string" || !value) return "UNKNOWN";
-  return value.length <= MAX_TEXT ? value : value.slice(0, MAX_TEXT) + "…";
+  if (typeof value !== "string" || !SAFE_REASONS.has(value)) return "UNKNOWN";
+  return value;
 }
 export function inspectorScope(raw) {
   if (!raw || !["linear", "inverse", "spot"].includes(raw.category))
     throw Error("Select a supported market category");
   const symbol = raw.symbol?.trim().toUpperCase();
-  if (!symbol || !/^[A-Z0-9_-]{1,40}$/.test(symbol))
+  if (!symbol || !/^[A-Z0-9]{2,40}$/.test(symbol))
     throw Error("Select a valid market instrument");
   if (!FAMILIES.has(raw.metric)) throw Error("Unsupported analytics metric");
   if (!/^(1|3|5|15|30|60|120|240|360|720|D|W|M)$/.test(raw.interval ?? ""))
@@ -122,7 +123,7 @@ export function mountAnalyticsInspector(root, { getScope, fetchCapabilities }) {
       );
     } catch (error) {
       if (token === generation)
-        render("DATA_UNAVAILABLE · " + limited(error?.message) + " · no analytics request sent.");
+        render("DATA_UNAVAILABLE · source_unverified · no analytics request sent.");
     } finally {
       if (token === generation) {
         abort = null;
