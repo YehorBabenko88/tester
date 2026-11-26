@@ -89,6 +89,35 @@ class EnvelopeTests(unittest.TestCase):
         with self.assertRaisesRegex(ReadbackRefused, "readback_response_bytes_exceeded"):
             package_observation(obj, scope=SCOPE)
 
+    def test_existing_reader_called_once_for_bounded_scope(self):
+        from unittest.mock import patch
+        from src.integration.analytics_readback_envelope import read_observed_execution_envelope
+
+        store = object()
+        with patch("src.integration.research_ui_projection.read_verified_ui_observation",
+                   return_value=observation()) as reader:
+            result = read_observed_execution_envelope(
+                store, **{**SCOPE, "tick_size": "0.01"}
+            )
+        reader.assert_called_once_with(
+            store, category="linear", symbol="BTCUSDT", start_ms=60000,
+            end_ms=120000, interval_ms=60000, tick_size="0.01",
+            as_of_ms=120000, limit=50,
+        )
+        self.assertFalse(result["admitted_to_f"])
+        self.assertEqual(result["quality"]["status"], "UNVERIFIED")
+
+    def test_invalid_scope_stops_before_existing_reader(self):
+        from unittest.mock import patch
+        from src.integration.analytics_readback_envelope import read_observed_execution_envelope
+
+        with patch("src.integration.research_ui_projection.read_verified_ui_observation") as reader:
+            with self.assertRaises(ReadbackRefused):
+                read_observed_execution_envelope(
+                    object(), **{**SCOPE, "symbol": "BTC-USDT", "tick_size": "0.01"}
+                )
+        reader.assert_not_called()
+
     def test_missing_is_never_zero(self):
         obj = observation()
         obj["bars"] = []
