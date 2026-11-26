@@ -24,6 +24,10 @@ MAX_INTERVAL_MS = 86_400_000
 MAX_RESPONSE_BYTES = 512 * 1024
 MAX_WALL_MS = 10_000
 MAX_CONCURRENT_READS = 2
+
+
+def _clock():
+    return time.monotonic()
 _HEX = re.compile(r"[0-9a-f]{40}\Z")
 
 
@@ -185,7 +189,7 @@ def create_readback_router(*, trusted_binding=None):
             raise HTTPException(503, detail="analytics_source_not_configured")
         if not slots.acquire(blocking=False):
             raise HTTPException(429, detail="analytics_readback_concurrency_limit")
-        started = time.monotonic()
+        started = _clock()
         try:
             try:
                 binding = trusted_binding()
@@ -195,7 +199,7 @@ def create_readback_router(*, trusted_binding=None):
                 raise HTTPException(503, detail="trusted_storage_binding_unavailable")
             store, identity = binding
             result = observed_readback(scope, trusted_store=store, trusted_identity=identity)
-            if (time.monotonic() - started) * 1000 > MAX_WALL_MS:
+            if (_clock() - started) * 1000 > MAX_WALL_MS:
                 raise HTTPException(503, detail="analytics_readback_timeout")
             if result["status"] != "OBSERVED_UNVERIFIED":
                 raise HTTPException(503, detail="source_readback_not_verified")
