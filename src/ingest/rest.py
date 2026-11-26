@@ -137,8 +137,15 @@ class API:
                 # The decoded streaming cap remains mandatory if ignored.
                 options = {"stream": True, "headers": {"accept-encoding": "identity"}} if streamed else {}
                 # The existing Transport polls this callback while it waits
-                # for durable policy/dispatch and during streaming.
+                # for durable policy/dispatch and during streaming. Cap each
+                # blocking socket phase by the remaining operation budget too:
+                # a time-limited stream must not retain the default 60s read
+                # timeout when its caller has only a short budget left.
                 if streamed:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise InterruptedError("Public REST operation deadline/cancellation reached")
+                    options["timeout"] = (min(15, remaining), min(60, remaining))
                     options["cancel"] = bounded_cancel
                 elif cancel is not None:
                     options["cancel"] = cancel
