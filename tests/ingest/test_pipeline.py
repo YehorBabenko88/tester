@@ -71,6 +71,16 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(API(t).call('/kline',{})[0],{'list':[]})
         t.defer.assert_called_once()
 
+    def test_api_http_body_byte_budget_precedes_json_parse_and_evidence(self):
+        from src.ingest.rest import MAX_HTTP_BODY_BYTES
+
+        t = Mock()
+        t.get.return_value = response(b"x" * (MAX_HTTP_BODY_BYTES + 1))
+        with self.assertRaisesRegex(ValueError, "HTTP body byte budget exceeded"):
+            API(t).call("/kline", {})
+        self.assertEqual(t.get.call_count, 1)
+        t.defer.assert_not_called()
+
     def test_calendar_month_spacing(self):
         self.assertEqual(list(expected_times(1704067200000,1711929600000,'M')),[1704067200000,1706745600000,1709251200000])
 
