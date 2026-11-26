@@ -375,6 +375,30 @@ function Get-CimInstance {
         assert "SECRET" not in json.dumps(result)
 
 
+def test_cim_subprocess_keeps_bounded_fail_closed_contract(monkeypatch):
+    """A successful process return cannot invent missing CIM rows or zero usage."""
+    import types
+
+    m = module()
+    monkeypatch.setattr(m, "is_windows", lambda: True)
+    calls = []
+    def missing_rows(command, **kwargs):
+        calls.append(kwargs)
+        return types.SimpleNamespace(stdout=b'{"rows":[],"bindings":[]}', stderr=b"")
+    monkeypatch.setattr(m.subprocess, "run", missing_rows)
+    with pytest.raises(ValueError, match="process"):
+        m.process_sample(
+            Path("C:/synthetic probe"),
+            {"services": {"app": "TesterLabApp_" + "a" * 32,
+                          "postgres": "TesterLabPG_" + "a" * 32}},
+            11,
+        )
+    assert len(calls) == 1
+    assert calls[0]["timeout"] == 30
+    assert calls[0]["check"] is True
+    assert calls[0]["capture_output"] is True
+
+
 def test_cim_subprocess_timeout_is_propagated_and_never_returns_zero(monkeypatch):
     import subprocess
 
