@@ -160,8 +160,6 @@ def test_failed_later_page_never_exposes_earlier_valid_rows(journal, kind, inter
 
 def test_cancel_after_first_page_leaves_only_request_evidence(journal):
     api = api_with({"list": [candle(START)], "nextPageCursor": "next"})
-    cancelled = [False]
-
     def cancel():
         # After first page is fetched, block further pagination.
         return api.call.call_count >= 1
