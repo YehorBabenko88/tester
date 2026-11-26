@@ -219,6 +219,9 @@ def test_round7_offline_identity_never_authorizes_network(tmp_path):
         ("marker_sha256", "X" * 64),
         ("pg_system_identifier", "wrong"),
         ("db_hostaddr", "127.0.0.2"),
+        ("installation_id", str(uuid.UUID(int=3))),
+        ("dsn", "host=127.0.0.1 port=55433 dbname=tester user=tester_app require_auth=scram-sha-256"),
+        ("dsn", "host=127.0.0.1 hostaddr=127.0.0.2 port=55432 dbname=tester user=tester_app require_auth=scram-sha-256"),
         ("db_identity", ("127.0.0.1", 5432, "tester", "tester_app")),
         ("db_identity", ("127.0.0.1", 55432, "postgres", "tester_app")),
         ("db_identity", ("127.0.0.1", 55432, "tester", "postgres")),
@@ -275,3 +278,18 @@ def test_round7_reject_self_signed_verified_dict_and_non_windows(tmp_path):
     if auth.os.name != "nt":
         with pytest.raises(ReleaseSecurityError, match="Windows SCM token"):
             auth._windows_current_service_sid(scope.service_identity[2])
+
+def test_round7_offline_clone_of_signed_identity_cannot_use_other_service_name(tmp_path):
+    from dataclasses import replace
+
+    original = _offline_authority(tmp_path)
+    app, pg, app_sid, pg_sid = original.service_identity
+    foreign_id = str(uuid.UUID(int=4))
+    # Merely copying the signed marker/DSN but changing the UUID must never
+    # borrow the old Windows service SID or any other installation scope.
+    cloned = replace(original, installation_id=foreign_id)
+    with pytest.raises(ReleaseSecurityError, match="SCM"):
+        auth.verify_offline_service_identity(
+            cloned, token_checker=lambda sid: sid, pg_checker=lambda _: True,
+        )
+    assert app_sid != pg_sid
