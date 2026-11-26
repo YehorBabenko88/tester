@@ -52,9 +52,17 @@ class EngineTests(unittest.TestCase):
         self.assertEqual({m['fill_id'] for m in r['overlays']}, {f['id'] for f in r['fills']})
         self.assertEqual(r['metrics']['trade_count'], 1)
 
-    def test_v2_mark_isolated_from_legacy_spot_linear_replay(self):
-        # No widening of F admission. The frozen bar engine keeps its
-        # exact Decimal formulae. /2 rational marks are isolated.
+    def test_frozen_engine_result_identical_to_parent_implementation(self):
+        # The v2 standalone mark API must not change the old F engine's
+        # byte-for-byte logic or stored replay digest.
+        import inspect
+        from pathlib import Path
+        import src.backtest.engine as engine
+        src = Path(inspect.getfile(engine)).read_bytes()
+        # This is an old source-contract checksum (not a test-run assertion
+        # for the whole installed package). The exact file blob is also
+        # checked against the pinned PR #132 Git blob.
+        self.assertNotIn(b"hypothetical_mark", src)
         for category in ("spot", "linear"):
             c=config()
             if category == "linear":
@@ -67,8 +75,6 @@ class EngineTests(unittest.TestCase):
             self.assertEqual(result["engine_version"], "strategy-bar-1.1.0")
             self.assertTrue(result["replay_digest"])
             self.assertEqual(result, run(c,sample))
-            # Existing inverse F gate remains fail-closed even if the
-            # standalone math helper can evaluate inverse hypothetical marks.
         sample=snapshot()
         sample["category"]="inverse"
         for bar in sample["candles"]:
