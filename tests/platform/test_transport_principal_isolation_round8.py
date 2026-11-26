@@ -228,6 +228,11 @@ def test_pg_principal_revocation_denies_outstanding_leases(enrolled):
     assert state == "GRANTED"
     assert token
     with connect(owner) as conn:
+        before = conn.execute(
+            "SELECT has_function_privilege(%s,'tester_platform.read_public_transport(uuid,text)','EXECUTE')",
+            (principal,),
+        ).fetchone()
+        assert before == (True,), "Required pre-existing policy grant not present"
         conn.execute(
             sql.SQL("REVOKE EXECUTE ON FUNCTION tester_platform.read_public_transport(uuid,text), "
                     "tester_platform.reserve_public_transport(uuid,text), "
