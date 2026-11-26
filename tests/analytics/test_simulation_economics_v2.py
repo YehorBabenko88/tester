@@ -10,14 +10,14 @@ from src.analytics.simulation_economics import hypothetical_fill, CONTRACT
     ("spot", "long", "100", "quote"),
     ("linear", "long", "100", "quote"),
     ("linear", "short", "-100", "quote"),
-    ("inverse", "long", "1/1100", "base"),
-    ("inverse", "short", "-1/1100", "base"),
+    ("inverse", "long", "1/110", "base"),
+    ("inverse", "short", "-1/110", "base"),
 ])
 def test_exact_long_short_realized_pnl(category, side, gross, unit):
     r = hypothetical_fill(category, side, "10", "100", "110")
     if category == "inverse":
-        # 10 * (1/100 - 1/110) = 1/1100 (base settlement).
-        expected = Fraction(1, 1100) * (1 if side == "long" else -1)
+        # 10 * (1/100 - 1/110) = 1/110 BTC (base settlement).
+        expected = Fraction(1, 110) * (1 if side == "long" else -1)
         assert abs(number(r["gross_pnl"]) - expected) < Fraction(1, 10**48)
     else:
         assert r["gross_pnl"] == gross
