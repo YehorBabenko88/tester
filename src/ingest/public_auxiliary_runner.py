@@ -60,6 +60,10 @@ def _require_policy(api):
     # Never trust a caller-constructed Transport solely because a policy_store
     # is present: its DSN/installation_id may identify another installation.
     # Non-API injected objects are a test-only offline seam, never public HTTP.
+    if isinstance(api, API) and (
+        not isinstance(api.transport, Transport) or api.transport.policy_store is None
+    ):
+        raise ValueError("durable public transport policy required before any network request")
     if isinstance(api, API):
         raise ValueError("trusted release transport identity required before network")
 
