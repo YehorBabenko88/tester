@@ -47,21 +47,21 @@ def isolated_dsn(value):
 
 
 def policy_api(policy_dsn, installation_id):
-    """Canonical API over Transport bound to the durable public policy."""
-    if not policy_dsn or not installation_id:
-        raise ValueError("durable public transport policy required before any network request")
-    from src.api.transport_policy import PostgresTransportPolicy
+    """Reject legacy caller-controlled identity before constructing any Transport.
 
-    return API(Transport(policy_store=PostgresTransportPolicy(policy_dsn, installation_id)))
+    A DSN and UUID from environment/CLI are not sufficient evidence of an
+    authenticated release installation. D owns the trusted runtime resolver;
+    this legacy entrypoint must remain offline until that verifier is bound.
+    """
+    raise ValueError("trusted release transport identity required before network")
 
 
 def _require_policy(api):
-    # A real API must never run on a Transport without the durable policy; an
-    # injected non-API replay object is an offline test seam with no network.
-    if isinstance(api, API) and (
-        not isinstance(api.transport, Transport) or api.transport.policy_store is None
-    ):
-        raise ValueError("durable public transport policy required before any network request")
+    # Never trust a caller-constructed Transport solely because a policy_store
+    # is present: its DSN/installation_id may identify another installation.
+    # Non-API injected objects are a test-only offline seam, never public HTTP.
+    if isinstance(api, API):
+        raise ValueError("trusted release transport identity required before network")
 
 
 def run(*, dsn, symbols, category, kind="trades", policy_dsn=None,
