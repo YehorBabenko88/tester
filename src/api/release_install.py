@@ -725,9 +725,11 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         except Exception as journal_error:
             journal_valid = False
             record_secondary("interrupted journal append", journal_error)
+        guards_released = True
         try:
             tx.release_guards()
         except Exception as guard_error:
+            guards_released = False
             journal_valid = False
             record_secondary("provisioning guard release", guard_error)
         if exposed:
@@ -739,6 +741,10 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
             except Exception as stop_error:
                 record_secondary("exposed service stop", stop_error)
             raise
+        # Never delete while a protection handle may still be live or unsafe
+        # to release. Retain authority records for an operator-reviewed retry.
+        if not guards_released:
+            raise original
         # Authenticated provisioning rollback must verify journal and FileIDs.
         # Any failure retains evidence and never permits deleting a foreign root.
         try:
