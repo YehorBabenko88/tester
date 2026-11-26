@@ -135,6 +135,58 @@ def test_pg_concurrent_same_login_enrollment_serialized(enrolled):
     assert outcomes == ["DENIED", "DENIED"]
 
 
+
+def test_pg_foreign_uuid_rejected_with_two_distinct_valid_logins(enrolled):
+    """Two real enrolled scopes; App A cannot operate B's policy or leases."""
+    import psycopg
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    from src.api.db import connect
+    from src.api.transport_policy import PostgresTransportPolicy, PublicPolicyUnavailable
+
+    owner, app, own_scope = enrolled
+    login = conninfo_to_dict(app)["user"]
+    # An existing separate low-privileged TEST role must be pre-provisioned
+    # by the disposable PG18 fixture, not invented with owner privileges here.
+    foreign_login = os.environ.get("TEST_PUBLIC_POLICY_SECOND_APP_ROLE")
+    if not foreign_login:
+        pytest.skip("Second disposable runtime LOGIN not provisioned")
+    assert foreign_login != login
+    foreign_scope = uuid.uuid4()
+    with connect(owner) as conn:
+        conn.execute(
+            "INSERT INTO tester_platform.transport_policy_scopes"
+            "(installation_id,runtime_role,owner_role) VALUES(%s,%s,current_user)",
+            (foreign_scope, foreign_login),
+        )
+    try:
+        other = PostgresTransportPolicy(app, foreign_scope)
+        endpoint = "api.bybit.com/v5/market/kline"
+        with pytest.raises(PublicPolicyUnavailable):
+            other.read(endpoint)
+        with pytest.raises(PublicPolicyUnavailable):
+            other.reserve(endpoint)
+        with pytest.raises(PublicPolicyUnavailable):
+            other.reserve_dispatch()
+        with pytest.raises(PublicPolicyUnavailable):
+            other.finish(endpoint, uuid.uuid4(), "allow")
+        with pytest.raises(PublicPolicyUnavailable):
+            other.finish_dispatch(uuid.uuid4(), 0)
+        with pytest.raises(PublicPolicyUnavailable):
+            other.reset(endpoint)
+        assert PostgresTransportPolicy(app, own_scope).read(endpoint) == "CLEAR"
+    finally:
+        with connect(owner) as conn:
+            conn.execute(
+                "DELETE FROM tester_platform.transport_policy_entries WHERE installation_id=%s",
+                (foreign_scope,),
+            )
+            conn.execute(
+                "DELETE FROM tester_platform.transport_policy_scopes WHERE installation_id=%s",
+                (foreign_scope,),
+            )
+
+
 def test_pg_policy_halt_persists_and_dispatch_remains_fenced(enrolled):
     from src.api.db import connect
     from src.api.transport_policy import PostgresTransportPolicy
