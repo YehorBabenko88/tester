@@ -7,6 +7,9 @@ import base64
 import hashlib
 import json
 import os
+import shutil
+import subprocess
+from pathlib import Path
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -129,6 +132,34 @@ def test_disposable_pg_persisted_original_http_to_actual_api_and_no_f(tmp_path):
     assert data["quality"]["coverage"] == "UNKNOWN"
     assert data["source"]["publication_time"] == "UNKNOWN"
     assert data["admitted_to_f"] is False
+
+    # Pass the *actual persisted PG -> DATA -> C -> FastAPI response* to the
+    # real ESM terminal validator. Do not use a second hand-built JSON fixture.
+    # Chromium route rendering is covered by the separate Playwright suite;
+    # this check proves the producer-to-consumer wire contract end to end.
+    node = shutil.which("node")
+    assert node, "Node.js is required to verify the real frontend consumer"
+    script = """
+import { readFileSync } from "node:fs";
+import { validatedObservedReadback } from "./frontend/analytics-readback.js";
+const { payload, scope } = JSON.parse(readFileSync(0, "utf8"));
+const result = validatedObservedReadback(payload, scope);
+if (result.status !== "OBSERVED_UNVERIFIED" ||
+    result.admitted_to_f !== false ||
+    result.quality.coverage !== "UNKNOWN" ||
+    result.metrics.bars[0].volume !== "2" ||
+    result.metrics.bars[0].vwap !== "1.5") process.exit(3);
+process.stdout.write("PG_API_FRONTEND_CONTRACT_OK");
+"""
+    consumer = subprocess.run(
+        [node, "--input-type=module", "-e", script],
+        input=json.dumps({"payload": found.json(), "scope": args}),
+        text=True, capture_output=True, check=False, timeout=10,
+        cwd=Path(__file__).resolve().parents[2],
+    )
+    assert consumer.returncode == 0, consumer.stderr
+    assert consumer.stdout == "PG_API_FRONTEND_CONTRACT_OK"
+
     late = client.get("/api/analytics/readback", params={**args, "as_of_ms": start + 60_000})
     assert late.status_code == 503
     assert late.json()["detail"] == "source_readback_not_verified"
