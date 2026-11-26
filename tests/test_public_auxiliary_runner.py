@@ -70,6 +70,65 @@ class AuxiliaryRunnerTests(unittest.TestCase):
                 run(dsn=GOOD, symbols=["BTCUSDT"], category="linear", api=api, store=Mock())
         acquire.assert_not_called()
 
+    def test_cross_install_cloned_pin_and_replayed_identity_fail_before_http(self):
+        """E-owned NO_HTTP seam: claimed static owner data is never authority.
+
+        PostgreSQL principal isolation is independently A-owned. This test
+        ensures that runner cannot be opened using a copied signed marker,
+        a foreign UUID or a replayed callback / offline identity dictionary.
+        """
+        from types import SimpleNamespace
+
+        foreign_id, own_id = str(uuid4()), str(uuid4())
+        policy = Mock()
+        policy.installation_id = foreign_id
+        transport = Transport(policy_store=policy, session=Mock())
+        foreign = API(transport)
+        copied = SimpleNamespace(
+            installation_id=foreign_id, source_sha="a" * 40,
+            marker_sha256="b" * 64, pg_system_identifier="12345",
+            service_identity=("foreign-app", "foreign-pg", "S-1-5-80-1", "S-1-5-80-2"),
+            policy_state_at_check="CLEAR",
+        )
+        # A copied/replayed attribute or arbitrary verified=True payload does
+        # not represent a Windows process token or authenticated PG session.
+        foreign.release_authority = copied
+        foreign.trusted_identity = {"verified": True,
+                                    "installation_id": own_id,
+                                    "source_sha": "a" * 40}
+        store = Mock()
+        with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest") as ingest:
+            with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
+                run(dsn=GOOD, symbols=["BTCUSDT"], category="linear",
+                    api=foreign, store=store,
+                    policy_dsn=GOOD, installation_id=own_id)
+        ingest.assert_not_called()
+        transport.session.request.assert_not_called()
+        store.ingest.assert_not_called()
+        policy.reserve.assert_not_called()
+        policy.reserve_dispatch.assert_not_called()
+
+    def test_denial_survives_restart_and_revoked_policy_claims(self):
+        """Neither an old service instance nor policy-clear string permits HTTP."""
+        for status in ("CLEAR", "PENDING", "HALTED", "REVOKED"):
+            with self.subTest(policy_status=status):
+                fake_policy = Mock()
+                fake_policy.policy_state_at_check = status
+                fake_policy.installation_id = str(uuid4())
+                session = Mock()
+                api = API(Transport(policy_store=fake_policy, session=session))
+                api.release_authority = {
+                    "verified": True, "boot_id": "previous-boot",
+                    "signed_static_installation": "copied", "policy_status": status,
+                }
+                with patch("src.ingest.public_auxiliary_runner.fetch_and_ingest") as ingest:
+                    with self.assertRaisesRegex(ValueError, "trusted release transport identity"):
+                        run(dsn=GOOD, symbols=["BTCUSDT"], category="linear",
+                            api=api, store=Mock())
+                ingest.assert_not_called()
+                session.request.assert_not_called()
+                fake_policy.reserve.assert_not_called()
+
     def test_refuse_more_than_ten_duplicates_and_metrics_before_network(self):
         api, store = Mock(), Mock()
         with self.assertRaises(ValueError):
