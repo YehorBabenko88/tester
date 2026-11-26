@@ -28,7 +28,7 @@ BEGIN
     END IF;
     -- Blocks concurrent scope insertion/enrollment changes during the validation
     -- and index creation. Existing grants and policy entries are untouched.
-    LOCK TABLE tester_platform.transport_policy_scopes IN SHARE ROW EXCLUSIVE MODE;
+    EXECUTE 'LOCK TABLE tester_platform.transport_policy_scopes IN SHARE ROW EXCLUSIVE MODE';
     IF EXISTS (
         SELECT 1 FROM tester_platform.transport_policy_scopes AS s
         LEFT JOIN pg_catalog.pg_roles AS r ON r.rolname = s.runtime_role
