@@ -65,7 +65,8 @@ VOLUME_POLICY = ('exact equality of sum(trade size) and official 1m kline volume
     'MATCH only when the minute is closed, explicit COMPLETE trade coverage with evidence covers it, '
     'every trade is AVAILABLE with an exchange trade ID, the official_trade candle is closed, '
     'AVAILABLE and COMPLETE with evidence, and all quantities lie on qty_step. '
-    'Status precedence: UNIT_UNSUPPORTED, INCOMPLETE_TRADES, INCOMPLETE_CANDLES, OFF_STEP, MATCH/MISMATCH.')
+    'Status precedence: UNIT_UNSUPPORTED, INCOMPLETE_TRADES, INCOMPLETE_CANDLES, OFF_STEP, MATCH/MISMATCH. '
+    'MATCH is a numeric consistency finding only; no proof that a trade was known at as_of_ms.')
 
 
 def _covered(spans, start, end):
@@ -99,9 +100,10 @@ def reconcile_minute_volume(trades, candles, *, category, symbol, start_ms, end_
     if any((t['venue'],t['category'],t['symbol']) != market for t in rows) or \
             any((c['venue'],c['category'],c['symbol']) != market for c in candles):
         raise ValueError('Trade/candle market identity mismatch')
-    # Only the requested bounded interval may influence a comparison.  Silent
-    # dropping of a future/out-of-scope tick could produce a false MATCH.
-    # This is a quality-control contract, not proof of archive completeness.
+    # Out-of-window rows fail closed. A trade's event timestamp is NOT its
+    # availability/observation timestamp: canonical Trade has no known_at_ms.
+    # Consequently MATCH is equality of two sourced values, never historical
+    # visibility, no-lookahead proof or completeness certification.
     for t in rows:
         ts = integer(t['timestamp_ms'])
         if not start_ms <= ts < end_ms:
@@ -141,8 +143,7 @@ def reconcile_minute_volume(trades, candles, *, category, symbol, start_ms, end_
         if e > as_of_ms: reasons['INCOMPLETE_TRADES'].append('Minute not closed at as_of_ms')
         if not _covered(spans, m, e):
             reasons['INCOMPLETE_TRADES'].append('No COMPLETE trade coverage evidence for the whole minute')
-        if any(t['availability']['status'] != 'AVAILABLE' or t['id_origin'] != 'exchange'
-               or t.get('timestamp_ms', e) >= as_of_ms for t in ts):
+        if any(t['availability']['status'] != 'AVAILABLE' or t['id_origin'] != 'exchange' for t in ts):
             reasons['INCOMPLETE_TRADES'].append('Trade without AVAILABLE status or exchange trade ID')
         candle_volume = None
         if c is None: reasons['INCOMPLETE_CANDLES'].append('No official 1m candle')
@@ -186,4 +187,8 @@ def reconcile_minute_volume(trades, candles, *, category, symbol, start_ms, end_
             d = abs(number(r['difference']))
             if s['largest_abs_difference'] is None or d > number(s['largest_abs_difference']):
                 s['largest_abs_difference'] = decimal(d)
-    return dict(policy=VOLUME_POLICY, unit=unit, minutes=out, summary=summary)
+    return dict(policy=VOLUME_POLICY, unit=unit, minutes=out, summary=summary,
+                historical_visibility='UNKNOWN',
+                historical_completeness_certified=False,
+                strategy_admission=False,
+                knowledge_time_status='NOT_PROVEN')
