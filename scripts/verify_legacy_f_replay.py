@@ -18,8 +18,11 @@ HISTORICAL_COMMIT = "998c5bc89d1b35c9ad3047b1e50dcb1295120e31"
 PIN = ROOT / "src/integration/F_SOURCE_PIN.json"
 RUNNER = """
 import json
+from pathlib import Path
 from src.backtest import Backtest, restore, run
 from src.backtest.engine import ENGINE_VERSION
+import src.backtest.engine as engine
+assert Path(engine.__file__).resolve().is_relative_to(Path.cwd().resolve())
 payload = json.load(__import__('sys').stdin)
 result = run(payload['strategy'], payload['snapshot'])
 assert ENGINE_VERSION == 'strategy-bar-1.1.0'
@@ -38,8 +41,12 @@ print(json.dumps(result, sort_keys=True, separators=(',', ':'), allow_nan=False)
 def git_blob_at_old_commit(relative):
     command = ["git", "show", f"{HISTORICAL_COMMIT}:{relative}"]
     return subprocess.run(
-        command, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        check=True, timeout=20,
+        command,
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+        timeout=20,
     ).stdout
 
 
@@ -72,9 +79,14 @@ def run_f(source_root, payload):
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["PYTHONHASHSEED"] = "0"
     output = subprocess.run(
-        [sys.executable, "-c", RUNNER], cwd=source_root, env=env,
-        input=json.dumps(payload, sort_keys=True), text=True,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30,
+        [sys.executable, "-c", RUNNER],
+        cwd=source_root,
+        env=env,
+        input=json.dumps(payload, sort_keys=True),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
         check=True,
     )
     return json.loads(output.stdout)
@@ -88,8 +100,10 @@ def main():
         raise AssertionError("F pin manifest must remain complete")
 
     spot = {}
-    for name, key in (("strategy", "example.strategy.json"),
-                      ("snapshot", "example.snapshot.json")):
+    for name, key in (
+        ("strategy", "example.strategy.json"),
+        ("snapshot", "example.snapshot.json"),
+    ):
         relative = f"src/integration/fixtures/f998/{key}"
         entry = pin["files"][relative]
         historical_bytes = git_blob_at_old_commit(entry["producer_path"])
@@ -101,8 +115,13 @@ def main():
 
     linear_root = ROOT / "src/integration/fixtures/pc4-terminal-linear-v1"
     manifest = json.loads((linear_root / "manifest.json").read_text(encoding="utf-8"))
-    if manifest["engine_source_sha"] != HISTORICAL_COMMIT or manifest["real_market_coverage"] != "NOT_PROVEN":
-        raise AssertionError("linear fixture is not the independently pinned synthetic fixture")
+    if (
+        manifest["engine_source_sha"] != HISTORICAL_COMMIT
+        or manifest["real_market_coverage"] != "NOT_PROVEN"
+    ):
+        raise AssertionError(
+            "linear fixture is not the independently pinned synthetic fixture"
+        )
     linear = {}
     for name in ("strategy", "snapshot"):
         raw = (linear_root / f"{name}.json").read_bytes()
@@ -117,21 +136,33 @@ def main():
             older = run_f(old_root, payload)
             current = run_f(ROOT, payload)
             if older != current or older["replay_digest"] != current["replay_digest"]:
-                raise AssertionError(f"archived historical F/full output/replay mismatch: {label}")
+                raise AssertionError(
+                    f"archived historical F/full output/replay mismatch: {label}"
+                )
             if older["engine_version"] != "strategy-bar-1.1.0":
                 raise AssertionError("legacy engine version unexpectedly moved")
-            print(json.dumps({
-                "fixture": label,
-                "baseline_commit": HISTORICAL_COMMIT,
-                "engine_version": older["engine_version"],
-                "archived_replay_digest": older["replay_digest"],
-                "current_replay_digest": current["replay_digest"],
-                "full_output_sha256": sha256(json.dumps(
-                    older, sort_keys=True, separators=(",", ":"), allow_nan=False
-                ).encode()),
-                "result": "CROSS_VERSION_FULL_OUTPUT_EQUAL",
-                "historical_source": "SYNTHETIC_ONLY",
-            }, sort_keys=True))
+            print(
+                json.dumps(
+                    {
+                        "fixture": label,
+                        "baseline_commit": HISTORICAL_COMMIT,
+                        "engine_version": older["engine_version"],
+                        "archived_replay_digest": older["replay_digest"],
+                        "current_replay_digest": current["replay_digest"],
+                        "full_output_sha256": sha256(
+                            json.dumps(
+                                older,
+                                sort_keys=True,
+                                separators=(",", ":"),
+                                allow_nan=False,
+                            ).encode()
+                        ),
+                        "result": "CROSS_VERSION_FULL_OUTPUT_EQUAL",
+                        "historical_source": "SYNTHETIC_ONLY",
+                    },
+                    sort_keys=True,
+                )
+            )
 
 
 if __name__ == "__main__":
