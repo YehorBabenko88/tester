@@ -5,10 +5,11 @@ Creates distinct owner and two restricted SCRAM LOGINs, upgrades migration
 012 and runs the actual integration test cases. Never touches port 5432.
 """
 import os
-import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+from xml.etree import ElementTree
 
 import psycopg
 from psycopg import sql
@@ -262,24 +263,53 @@ def main():
         TEST_PUBLIC_POLICY_DSN=app_dsn,
         TEST_PUBLIC_POLICY_SECOND_APP_ROLE=USER_B,
     )
+    # JUnit XML is the machine-readable source of truth: never infer
+    # success from plain stdout lines which a test could print or forge.
     nodes = [TEST_FILE + "::" + test for test in TESTS] + [EXTRA_CASE]
-    command = [
-        sys.executable, "-m", "pytest", "-vv", "-rs", "--strict-markers",
-        "--timeout=40", "-p", "no:cacheprovider", *nodes,
-    ]
-    result = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, timeout=330)
-    print(result.stdout, flush=True)
-    if result.stderr:
-        print(result.stderr, file=sys.stderr, flush=True)
-    if result.returncode != 0:
-        raise SystemExit(f"Mandatory PostgreSQL18 security pytest FAILED with code {result.returncode}")
-    passed = set(re.findall(r"::(test_[A-Za-z0-9_]+)\s+PASSED", result.stdout))
-    # Explicit nodes are selected, and a skipped/xfail result cannot pass.
     expected = set(TESTS) | {EXTRA_CASE.rsplit("::", 1)[1]}
-    if passed != expected:
-        raise SystemExit(f"Mandatory PG18 cases did not all PASS: expected={sorted(expected)}, got={sorted(passed)}")
-    if re.search(r"\b(?:SKIPPED|XFAIL|XPASS|ERROR|FAILED)\b", result.stdout):
-        raise SystemExit("Non-PASS status in mandatory PostgreSQL18 security suite")
+    with tempfile.TemporaryDirectory(prefix="tester-pg18-security-") as temp:
+        report = Path(temp) / "pytest-junit.xml"
+        command = [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-vv",
+            "-rs",
+            "--strict-markers",
+            "--timeout=40",
+            "-p",
+            "no:cacheprovider",
+            f"--junitxml={report}",
+            *nodes,
+        ]
+        result = subprocess.run(
+            command, cwd=ROOT, env=env, text=True, capture_output=True, timeout=330
+        )
+        print(result.stdout, flush=True)
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, flush=True)
+        if result.returncode != 0:
+            raise SystemExit(
+                f"Mandatory PostgreSQL18 security pytest FAILED with code {result.returncode}"
+            )
+        if not report.is_file():
+            raise SystemExit("Mandatory PG18 JUnit evidence absent")
+        root = ElementTree.parse(report).getroot()
+        cases = root.findall(".//testcase")
+        names = [case.get("name") for case in cases]
+        if len(cases) != len(expected) or set(names) != expected:
+            raise SystemExit(
+                f"PG18 test inventory mismatch: expected={sorted(expected)}, got={names}"
+            )
+        if any(
+            case.find(tag) is not None
+            for case in cases
+            for tag in ("skipped", "failure", "error")
+        ):
+            raise SystemExit("Mandatory PG18 JUnit contains skipped/failed/error cases")
+        for suite in root.findall(".//testsuite"):
+            if any(int(suite.get(key, "0")) for key in ("skipped", "failures", "errors")):
+                raise SystemExit("Mandatory PG18 suite has non-PASS result")
     print(
         f"PASS: PostgreSQL {version} / {len(expected)} mandatory executed principal-isolation checks",
         flush=True,
