@@ -223,3 +223,84 @@ def release_transport_authority(*, root=None, allow_test=False):
         pg_system_identifier=proof[1],
         db_hostaddr="127.0.0.1",
     )
+
+def _windows_current_service_sid(expected):
+    """Read actual process TokenGroups; a computed name is never proof."""
+    if os.name != "nt":
+        raise ReleaseSecurityError("Windows SCM token required")
+    import win32api
+    import win32con
+    import win32security
+
+    token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), win32con.TOKEN_QUERY)
+    try:
+        groups = win32security.GetTokenInformation(token, win32security.TokenGroups)
+        actual = {
+            win32security.ConvertSidToStringSid(sid)
+            for sid, attributes in groups
+            if attributes & win32con.SE_GROUP_ENABLED
+        }
+    finally:
+        token.Close()
+    if expected not in actual:
+        raise ReleaseSecurityError("Current process has no expected SCM service SID")
+    return expected
+
+
+def verify_offline_service_identity(authority, *, token_checker=None, pg_checker=None):
+    """Round7 OFFLINE/DISPOSABLE verification; never grants runtime HTTP.
+
+    Caller supplies owner-verified authority, never caller UUID/DSN or an
+    arbitrary verified:true dictionary. A static pin alone does not authorize
+    network operations across reboot or revocation. Checkers are test seams:
+    never source them from HTTP, environment variables or untrusted CLI input.
+    """
+    from uuid import UUID
+
+    if not isinstance(authority, ReleaseTransportAuthority):
+        raise ReleaseSecurityError("Owner-authenticated installation authority required")
+    if type(authority.installation_id) is not str or type(authority.source_sha) is not str:
+        raise ReleaseSecurityError("Malformed owner installation identity")
+    try:
+        if str(UUID(authority.installation_id)) != authority.installation_id:
+            raise ValueError
+    except (ValueError, AttributeError):
+        raise ReleaseSecurityError("Noncanonical owner installation identity") from None
+    if len(authority.source_sha) != 40 or any(c not in "0123456789abcdef" for c in authority.source_sha):
+        raise ReleaseSecurityError("Invalid owner release source digest")
+    if len(authority.marker_sha256) != 64 or any(c not in "0123456789abcdef" for c in authority.marker_sha256):
+        raise ReleaseSecurityError("Invalid signed installation marker digest")
+    if type(authority.pg_system_identifier) is not str or not authority.pg_system_identifier.isdecimal():
+        raise ReleaseSecurityError("Invalid owner PostgreSQL system identifier")
+    if authority.db_hostaddr != "127.0.0.1":
+        raise ReleaseSecurityError("Owner database hostaddr is not loopback")
+    if authority.db_identity[0] != authority.db_hostaddr or authority.db_identity[2:] != ("tester", "tester_app"):
+        raise ReleaseSecurityError("Owner database role or name mismatch")
+    if type(authority.db_identity[1]) is not int or not 1024 <= authority.db_identity[1] <= 65535 or authority.db_identity[1] == 5432:
+        raise ReleaseSecurityError("Owner database port is forbidden")
+    from .release_service import service_sid
+
+    app, postgres, app_sid, postgres_sid = authority.service_identity
+    if (app_sid != service_sid(app) or postgres_sid != service_sid(postgres)
+            or not app.startswith("TesterReleaseApp_")
+            or not postgres.startswith("TesterReleasePG_")):
+        raise ReleaseSecurityError("Owner SCM service identity mismatch")
+    if token_checker is None:
+        token_checker = _windows_current_service_sid
+    if token_checker(app_sid) != app_sid:
+        raise ReleaseSecurityError("Current SCM service token mismatch")
+    if pg_checker is None:
+        raise ReleaseSecurityError("Fresh owner-bound PostgreSQL identity probe required")
+    if pg_checker(authority) is not True:
+        raise ReleaseSecurityError("Owner PostgreSQL identity or revocation check denied")
+    return {
+        "installation_id": authority.installation_id,
+        "source_sha": authority.source_sha,
+        "marker_sha256": authority.marker_sha256,
+        "pg_system_identifier": authority.pg_system_identifier,
+        "service_sid_verified": True,
+        "database_scope_verified": True,
+        "network_eligible": False,
+        "analytics_route_eligible": False,
+        "reason": "offline_identity_only_no_revocable_handoff",
+    }
