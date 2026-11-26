@@ -88,6 +88,21 @@ BEGIN
  ) <> 1 THEN
     RAISE EXCEPTION 'transport session principal ambiguous';
  END IF;
+ -- Owner-only changes made AFTER initial enrollment must also revoke access
+ -- immediately: migration-time role validation alone is not durable policy.
+ IF session_user <> s.owner_role AND (
+     NOT EXISTS (
+         SELECT 1 FROM pg_catalog.pg_roles AS r
+         WHERE r.rolname=session_user AND r.rolcanlogin AND NOT r.rolsuper
+           AND NOT r.rolcreatedb AND NOT r.rolcreaterole
+           AND NOT r.rolreplication AND NOT r.rolbypassrls
+     )
+     OR EXISTS (
+         SELECT 1 FROM pg_catalog.pg_auth_members AS m
+         JOIN pg_catalog.pg_roles AS r ON r.oid=m.member
+         WHERE r.rolname=session_user
+     )
+ ) THEN RAISE EXCEPTION 'transport session role revoked or escalated'; END IF;
  IF p_key IS NOT NULL AND (length(p_key) NOT BETWEEN 1 AND 2048 OR
     p_key !~ '^(api[.]bybit[.]com/v5/market/|public[.]bybit[.]com/)[A-Za-z0-9_./-]*$' OR
     p_key ~ '(^|/)[.][.]?(/|$)') THEN RAISE EXCEPTION 'public transport identity invalid'; END IF;
