@@ -215,6 +215,37 @@
           </div>
           <span class="badge">EVIDENCE FIRST</span>
         </div>
+        <section id="analytics-inspector" aria-label="Analytics contract inspector">
+          <h3>Canonical analytics contract · read-only inspector</h3>
+          <p class="muted">
+            Inspect the selected instrument's UTC range and declared math contract.
+            This is source metadata, not historical completeness or a trading admission.
+            Missing observations remain UNKNOWN, never zero.
+          </p>
+          <form id="analytics-inspector-form" class="toolbar">
+            <label>Metric
+              <select id="analytics-inspector-metric" aria-label="Analytics inspection metric">
+                <option value="hourly_range_percent">Hourly High–Low range %</option>
+                <option value="rolling_60_minute_range_percent">Rolling 60-minute range %</option>
+                <option value="realized_volatility">Realized volatility</option>
+                <option value="reconcile_minute_volume">GAP-5 minute-volume reconciliation</option>
+                <option value="compare_candles">Derived vs official candles</option>
+                <option value="vwap">VWAP v2</option>
+                <option value="footprint">Footprint</option>
+                <option value="delta">Delta</option>
+                <option value="cvd">Cumulative volume delta</option>
+                <option value="poc">Volume point of control</option>
+              </select>
+            </label>
+            <button id="analytics-inspector-submit" type="submit">
+              Inspect contract (read-only)
+            </button>
+          </form>
+          <p id="analytics-inspector-status" role="status">
+            UNVERIFIED · No verified analytics readback selected.
+          </p>
+          <p id="analytics-inspector-evidence"></p>
+        </section>
         <div id="quality-data">
           Select an instrument to inspect coverage. Raw records, derived
           aggregates and verified coverage are distinct.

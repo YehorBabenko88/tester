@@ -11,6 +11,7 @@ import { request } from "./api.js";
 import { progress, connectionNotice, validateSeries, PANELS } from "./model.js";
 import { PanelChart } from "./charts.js";
 import { classifyPanelCapability } from "./capabilities.js";
+import { mountAnalyticsInspector } from "./analytics-inspector.js";
 const $ = (s) => document.querySelector(s);
 const el = (tag, text, className) => {
   const n = document.createElement(tag);
@@ -77,6 +78,23 @@ state.ids = new Set(
     .filter((x) => typeof x === "string" && x.length <= 64)
     .slice(-100),
 );
+// Reuse the terminal's selected instrument, UTC window and timeframe.
+const analyticsInspector = mountAnalyticsInspector(document, {
+  getScope: () => ({
+    category: state.active?.category || $("#category").value,
+    symbol: state.active?.symbol || $("#manual-symbol").value,
+    interval: $("#interval").value,
+    start: $("#start").value,
+    end: $("#end").value,
+  }),
+  fetchCapabilities: (params, signal) =>
+    request("/api/capabilities", params, { signal }),
+});
+// Any change to selected scope invalidates previously inspected source metadata.
+for (const id of ["#category", "#manual-symbol", "#interval", "#start", "#end"])
+  for (const event of ["input", "change"])
+    $(id).addEventListener(event, () => analyticsInspector.reset());
+
 const jobVersions = new Map(),
   jobControls = new Set();
 let polling = false;
@@ -889,6 +907,7 @@ function setRange(a, b) {
   rangeTimer = setTimeout(loadCharts, 120);
 }
 async function loadCharts(options = {}) {
+  analyticsInspector.reset();
   if (!state.active) {
     $("#chart-status").textContent = "Select an instrument from the screener.";
     return;
