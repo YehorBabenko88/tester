@@ -416,6 +416,36 @@ def test_oversized_decoded_rest_page_denied_without_staging_or_export(tmp_path):
         j.close()
 
 
+def test_window_cumulative_evidence_budget_rejects_late_page_without_publication(
+    tmp_path, monkeypatch
+):
+    """Two individually valid pages cannot exceed the total window budget."""
+    import src.ingest.rest as rest
+
+    first = {"list": [{"fundingRateTimestamp": str(START), "fundingRate": "0.001"}],
+             "nextPageCursor": "next"}
+    second = {"list": [{"fundingRateTimestamp": str(START + 1), "fundingRate": "0.002"}]}
+    _, first_bytes = rest.bounded_result_hash(first, return_size=True)
+    monkeypatch.setattr(rest, "MAX_WINDOW_EVIDENCE_BYTES", first_bytes + 10)
+    j = Journal(tmp_path / "cum_evidence.db")
+    try:
+        with pytest.raises(ValueError, match="REST page rejected before publication"):
+            Backfill(api_with(first, second), j).run(
+                "linear", "BTCUSDT", "funding", "", START, START + 100
+            )
+        assert stored(j, "funding", "") == {}
+        assert j.task(key("funding", "", START, START + 100))["status"] == "failed"
+        export = tmp_path / "evidence-rejection.json"
+        j.export(export)
+        bundle = json.loads(export.read_text(encoding="utf-8"))
+        assert bundle["records"] == []
+        assert bundle["raw_record_versions"] == []
+        assert any(value.get("kind") == "rest_response_rejected"
+                   for value in bundle["evidence"].values())
+    finally:
+        j.close()
+
+
 def test_large_backfill_request_splits_into_bounded_seven_day_windows(journal):
     """Explicit huge caller window must split, never silently truncate a tail."""
     from src.ingest.rest import MAX_BACKFILL_WINDOW_MS
