@@ -50,7 +50,14 @@ class ReleaseTransportAuthority:
 
         if not isinstance(store, Store) or not isinstance(getattr(store, "_dsn", None), str):
             raise ReleaseSecurityError("Canonical storage binding required")
-        if conninfo_to_dict(store._dsn) != conninfo_to_dict(self.dsn):
+        actual = conninfo_to_dict(store._dsn)
+        expected = conninfo_to_dict(self.dsn)
+        # Hostaddr may be absent on an otherwise equivalent owner-generated
+        # DSN, but it must never point outside the pinned loopback endpoint.
+        if actual.get("hostaddr", actual.get("host")) != "127.0.0.1":
+            raise ReleaseSecurityError("Readback Store hostaddr outside owned loopback")
+        actual["hostaddr"] = "127.0.0.1"
+        if actual != expected:
             raise ReleaseSecurityError("Readback Store must use owner-bound PostgreSQL DSN")
         return store, {
             "verified": True,
