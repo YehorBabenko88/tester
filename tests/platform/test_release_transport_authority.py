@@ -195,8 +195,31 @@ def _offline_authority(tmp_path):
     )
 
 
+
+def _signed_offline_pin(scope):
+    """Disposable in-memory Ed25519 key; never release or authorize network."""
+    import hashlib
+    import json
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+    key = Ed25519PrivateKey.generate()
+    pub = key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    payload = auth._offline_pin_payload(scope)
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return (
+        {
+            "payload": payload,
+            "public_key_hex": pub.hex(),
+            "signature_hex": key.sign(auth._OFFLINE_PIN_CONTEXT + canonical).hex(),
+        },
+        hashlib.sha256(pub).hexdigest(),
+    )
+
+
 def test_round7_offline_identity_never_authorizes_network(tmp_path):
     scope = _offline_authority(tmp_path)
+    pin, fingerprint = _signed_offline_pin(scope)
     calls = []
     def token_checker(sid):
         calls.append("token")
@@ -205,7 +228,8 @@ def test_round7_offline_identity_never_authorizes_network(tmp_path):
         calls.append("pg")
         return authority.installation_id == scope.installation_id
     result = auth.verify_offline_service_identity(
-        scope, token_checker=token_checker, pg_checker=pg_checker,
+        scope, pin=pin, pinned_public_key_sha256=fingerprint,
+        token_checker=token_checker, pg_checker=pg_checker,
     )
     assert calls == ["token", "pg"]
     assert result["network_eligible"] is False
@@ -230,11 +254,13 @@ def test_round7_offline_identity_never_authorizes_network(tmp_path):
 def test_round7_offline_scope_forgery_rejected_before_pg(tmp_path, field, value):
     from dataclasses import replace
 
-    forged = replace(_offline_authority(tmp_path), **{field: value})
+    base = _offline_authority(tmp_path)
+    pin, fingerprint = _signed_offline_pin(base)
+    forged = replace(base, **{field: value})
     calls = []
     with pytest.raises(ReleaseSecurityError):
         auth.verify_offline_service_identity(
-            forged,
+            forged, pin=pin, pinned_public_key_sha256=fingerprint,
             token_checker=lambda sid: calls.append("token") or sid,
             pg_checker=lambda scope: calls.append("pg") or True,
         )
@@ -246,15 +272,18 @@ def test_round7_cross_install_sid_denied_without_pg(tmp_path):
     original = _offline_authority(tmp_path)
     app, pg, app_sid, pg_sid = original.service_identity
     other = replace(original, service_identity=(app, pg, "S-1-5-80-0", pg_sid))
+    pin, fingerprint = _signed_offline_pin(other)
     with pytest.raises(ReleaseSecurityError, match="SCM"):
         auth.verify_offline_service_identity(
-            other, token_checker=lambda sid: sid, pg_checker=lambda _: True,
+            other, pin=pin, pinned_public_key_sha256=fingerprint,
+            token_checker=lambda sid: sid, pg_checker=lambda _: True,
         )
 
 
 @pytest.mark.parametrize("fault", ["missing_pg", "revoked", "stolen_token", "restart"])
 def test_round7_offline_revocation_restart_and_db_unavailable_denied(tmp_path, fault):
     scope = _offline_authority(tmp_path)
+    pin, fingerprint = _signed_offline_pin(scope)
     def token_checker(sid):
         return "S-1-5-80-0" if fault == "stolen_token" else sid
     def pg_checker(authority):
@@ -263,7 +292,8 @@ def test_round7_offline_revocation_restart_and_db_unavailable_denied(tmp_path, f
         return fault != "revoked"
     with pytest.raises((ReleaseSecurityError, ConnectionError)):
         auth.verify_offline_service_identity(
-            scope, token_checker=token_checker,
+            scope, pin=pin, pinned_public_key_sha256=fingerprint,
+            token_checker=token_checker,
             pg_checker=None if fault == "restart" else pg_checker,
         )
 
@@ -288,8 +318,41 @@ def test_round7_offline_clone_of_signed_identity_cannot_use_other_service_name(t
     # Merely copying the signed marker/DSN but changing the UUID must never
     # borrow the old Windows service SID or any other installation scope.
     cloned = replace(original, installation_id=foreign_id)
+    pin, fingerprint = _signed_offline_pin(cloned)
     with pytest.raises(ReleaseSecurityError, match="SCM"):
         auth.verify_offline_service_identity(
-            cloned, token_checker=lambda sid: sid, pg_checker=lambda _: True,
+            cloned, pin=pin, pinned_public_key_sha256=fingerprint,
+            token_checker=lambda sid: sid, pg_checker=lambda _: True,
         )
     assert app_sid != pg_sid
+
+
+def test_round7_offline_signed_pin_rejects_wrong_key_and_forged_signature(tmp_path):
+    scope = _offline_authority(tmp_path)
+    pin, fingerprint = _signed_offline_pin(scope)
+    assert auth.verify_offline_signed_pin(
+        scope, pin, pinned_public_key_sha256=fingerprint,
+    ) is True
+    with pytest.raises(ReleaseSecurityError, match="fingerprint"):
+        auth.verify_offline_signed_pin(
+            scope, pin, pinned_public_key_sha256="0" * 64,
+        )
+    forged = dict(pin, signature_hex="0" * 128)
+    with pytest.raises(ReleaseSecurityError, match="signature invalid"):
+        auth.verify_offline_signed_pin(
+            scope, forged, pinned_public_key_sha256=fingerprint,
+        )
+    with pytest.raises(ReleaseSecurityError, match="envelope"):
+        auth.verify_offline_signed_pin(
+            scope, {"verified": True}, pinned_public_key_sha256=fingerprint,
+        )
+
+
+def test_round7_offline_signed_pin_alone_is_not_a_network_permission(tmp_path):
+    scope = _offline_authority(tmp_path)
+    pin, fingerprint = _signed_offline_pin(scope)
+    with pytest.raises(ReleaseSecurityError, match="Fresh owner-bound"):
+        auth.verify_offline_service_identity(
+            scope, pin=pin, pinned_public_key_sha256=fingerprint,
+            token_checker=lambda sid: sid,
+        )
