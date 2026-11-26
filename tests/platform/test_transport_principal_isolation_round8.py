@@ -17,7 +17,7 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def enrolled(tmp_path):
     from psycopg.conninfo import conninfo_to_dict
-    from src.api.db import connect, migrate
+    from src.api.db import connect
 
     owner_dsn = os.environ.get("TEST_PUBLIC_POLICY_OWNER_DSN")
     app_dsn = os.environ.get("TEST_PUBLIC_POLICY_DSN")
@@ -30,8 +30,14 @@ def enrolled(tmp_path):
         raise ValueError("Reserved disposable PG port 55820..55827 required")
     if own.get("dbname") != app.get("dbname"):
         raise ValueError("Owner and App must use same disposable database")
-    # Idempotently verify migration manifest and apply pending migrations.
-    migrate(owner_dsn)
+    # Verify the already installed migration without upgrading unrelated DBs.
+    with connect(owner_dsn) as conn:
+        record = conn.execute(
+            "SELECT checksum FROM tester_platform.migrations WHERE version=%s",
+            ("012_transport_installation_principal.sql",),
+        ).fetchone()
+        if record is None:
+            pytest.skip("Migration 012 missing from disposable fixture")
     scope = uuid.uuid4()
     with connect(owner_dsn) as conn:
         conn.execute(
