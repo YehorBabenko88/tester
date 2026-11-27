@@ -83,6 +83,9 @@ jobs:
         run: |
           python -m pip install playwright==1.56.0
           python -m playwright install --with-deps chromium
+      - name: Initialize fail-closed PG evidence directory
+        run: |
+          mkdir -p .scratch/mandatory-evidence/pg${{ matrix.postgres }}
       - name: Offline DATA and RESEARCH contracts
         run: >-
           python -m pytest -q
@@ -98,6 +101,9 @@ jobs:
           tests/platform/test_inverse_units_canonical.py
           tests/api/test_analytics_readback_round3.py
           tests/platform/test_analytics_readback_integration_round3.py
+      - name: Offline/required PostgreSQL phase regressions (mandatory negative cases)
+        run: |
+          python -m pytest -q -rs tests/platform/test_data_pg_phase_round35.py -k 'not test_required_pg_disposable_dsn_executes_real_backend_overlap'
       - name: PostgreSQL DATA roundtrip (dedicated database)
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_roundtrip"
@@ -111,13 +117,17 @@ jobs:
       - name: RESEARCH adapter against real PostgreSQL (dedicated database)
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
-          TESTER_RESEARCH_BROWSER_E2E=1 TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
+          TESTER_REQUIRE_RESEARCH_PG=1 TESTER_RESEARCH_BROWSER_E2E=1 TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
             python -m pytest -vv -rs tests/platform/test_data_research_adapter_issue59.py tests/platform/test_analytics_readback_integration_round3.py
+          TESTER_REQUIRE_RESEARCH_PG=1 TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
+            python -m pytest -q -rs tests/platform/test_data_pg_phase_round35.py -k test_required_pg_disposable_dsn_executes_real_backend_overlap
       - name: Reject altered, incomplete, skipped or XPASS JUnit evidence
         run: |
           mkdir -p .scratch/mandatory-evidence/pg${{ matrix.postgres }}
           python -m pytest -q -o xfail_strict=true --timeout=30 -p no:cacheprovider --junitxml=${RUNNER_TEMP}/validator-negative-pg${{ matrix.postgres }}.xml tests/platform/test_ci_named_junit_gate_round14.py tests/platform/test_ci_named_junit_gate_round19.py
       - name: Strict mandatory PG16/18 research E2E and E rollback (JUnit exact inventory, NO SKIP)
+        env:
+          TESTER_REQUIRE_RESEARCH_PG: '1'
         run: |
           python scripts/ci_data_research_mandatory.py
       - name: Mandatory E REST slow-trickle/deadline/encoding six regressions
@@ -129,6 +139,28 @@ jobs:
         env:
           TESTER_PRIVILEGE_TEST_ADMIN_DSN: host=127.0.0.1 port=55479 dbname=tester_aux_ci user=tester_aux_ci password=disposable-only
         run: python -m pytest -q -rs tests/platform/test_runtime_privileges_issue114.py
+      - name: Preserve failure-phase evidence without PASS fabrication
+        if: failure()
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          major = os.environ["TESTER_EXPECT_PG_MAJOR"]
+          location = Path(".scratch/mandatory-evidence") / f"pg{major}"
+          location.mkdir(parents=True, exist_ok=True)
+          report = location / "ci-failure-phase.json"
+          report.write_text(json.dumps({
+              "schema": "tester.data.ci-failure-phase/1",
+              "head_sha": os.environ["TESTER_EXPECT_HEAD_SHA"],
+              "expected_pg_major": major,
+              "status": "NOT_VERIFIED",
+              "canonical_postgresql_credit": 0,
+              "canonical_data20_credit": 0,
+              "note": "Failure marker only; inspect original job logs for the failed step",
+          }, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+          PY
       - name: Preserve sanitized exact-head PG${{ matrix.postgres }} JUnit and receipts
         if: always()
         uses: actions/upload-artifact@v4
