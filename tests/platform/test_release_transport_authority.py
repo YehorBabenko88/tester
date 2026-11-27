@@ -200,6 +200,7 @@ def _signed_offline_pin(scope):
     """Disposable in-memory Ed25519 key; never release or authorize network."""
     import hashlib
     import json
+
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
     from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
