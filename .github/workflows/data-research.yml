@@ -101,6 +101,9 @@ jobs:
           tests/platform/test_inverse_units_canonical.py
           tests/api/test_analytics_readback_round3.py
           tests/platform/test_analytics_readback_integration_round3.py
+      - name: Offline/required PostgreSQL phase regressions (mandatory negative cases)
+        run: |
+          python -m pytest -q -rs tests/platform/test_data_pg_phase_round35.py -k 'not test_required_pg_disposable_dsn_executes_real_backend_overlap'
       - name: PostgreSQL DATA roundtrip (dedicated database)
         run: |
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_aux_roundtrip"
@@ -116,6 +119,8 @@ jobs:
           psql "$TESTER_AUX_TEST_DSN" -c "CREATE DATABASE tester_research_data_disposable"
           TESTER_REQUIRE_RESEARCH_PG=1 TESTER_RESEARCH_BROWSER_E2E=1 TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
             python -m pytest -vv -rs tests/platform/test_data_research_adapter_issue59.py tests/platform/test_analytics_readback_integration_round3.py
+          TESTER_REQUIRE_RESEARCH_PG=1 TESTER_RESEARCH_DATA_TEST_DSN="${TESTER_AUX_TEST_DSN%/*}/tester_research_data_disposable" \
+            python -m pytest -q -rs tests/platform/test_data_pg_phase_round35.py -k test_required_pg_disposable_dsn_executes_real_backend_overlap
       - name: Reject altered, incomplete, skipped or XPASS JUnit evidence
         run: |
           mkdir -p .scratch/mandatory-evidence/pg${{ matrix.postgres }}
