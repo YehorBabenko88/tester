@@ -716,8 +716,12 @@ def _install_locked(bundle, root, release, *, trusted_public_key_sha256, mode, d
         # guard release must not prevent a fail-closed authenticated rollback.
         def record_secondary(stage, exc, primary=original):
             primary.add_note(
-                "TESTER: " + stage + " failed (" + type(exc).__name__
-                + "); maintenance metadata retained in " + str(maintenance)
+                "TESTER: "
+                + stage
+                + " failed ("
+                + type(exc).__name__
+                + "); maintenance metadata retained in "
+                + str(maintenance)
             )
 
         journal_valid = True

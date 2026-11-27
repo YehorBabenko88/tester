@@ -75,12 +75,13 @@ def _trusted_release_context(root, *, allow_test):
     """
     if os.name != "nt":
         raise ReleaseSecurityError("Windows owner-bound release authority required")
-    from .release_install import (
-        CANONICAL_ROOT, load_marker, maintenance_parent,
-    )
+    from .release_install import CANONICAL_ROOT, load_marker, maintenance_parent
     from .release_service import preflight, validate_resources
     from .release_uninstall import (
-        _WindowsObject, _load_ledger, _preflight, _security_record,
+        _WindowsObject,
+        _load_ledger,
+        _preflight,
+        _security_record,
         _validate_admin_security,
     )
 
