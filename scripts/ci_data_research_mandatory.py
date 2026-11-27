@@ -44,6 +44,7 @@ def main():
     env["TESTER_AUX_TEST_DSN"] = admin_dsn.rsplit("/", 1)[0] + "/tester_aux_roundtrip"
     env["TESTER_RESEARCH_DATA_TEST_DSN"] = admin_dsn.rsplit("/", 1)[0] + "/tester_research_data_disposable"
     env["TESTER_RESEARCH_BROWSER_E2E"] = "1"
+    env["TESTER_REQUIRE_RESEARCH_PG"] = "1"
     evidence = ROOT / ".scratch" / "mandatory-evidence" / f"pg{expected}"
     evidence.mkdir(parents=True, exist_ok=True)
     aggregate = evidence / f"pg{expected}-two-repetitions.json"
