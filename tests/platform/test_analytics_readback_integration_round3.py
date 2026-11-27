@@ -9,8 +9,8 @@ import json
 import os
 import shutil
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -79,9 +79,9 @@ def test_disposable_pg_persisted_original_http_to_actual_api_and_no_f(tmp_path):
             or endpoint.get("dbname") != "tester_research_data_disposable"):
         raise ValueError("refuse non-disposable PG analytics readback")
     import psycopg
+    from src.ingest.public_auxiliary import fetch_and_ingest
     from src.storage.migrations import migrate
     from src.storage.store import Store
-    from src.ingest.public_auxiliary import fetch_and_ingest
 
     stamp = 1600000680000
     symbol = "ADAUSDT"
@@ -110,7 +110,7 @@ def test_disposable_pg_persisted_original_http_to_actual_api_and_no_f(tmp_path):
             store, RecordedHttp(),
             kind="trades", category="linear", symbol=symbol,
             run_id="B-r3-source-run-1", job_key="B-r3-source-job-1",
-            observed_at=datetime(2026, 11, 13, 20, tzinfo=timezone.utc),
+            observed_at=datetime(2026, 11, 13, 20, tzinfo=UTC),
         )
         assert receipt["count"] == 1
     app = create_app(
@@ -215,8 +215,8 @@ process.stdout.write("PG_API_FRONTEND_CONTRACT_OK");
             try:
                 page = browser.new_page()
                 def route_request(route):
-                    from urllib.parse import urlsplit
                     from pathlib import Path as _Path
+                    from urllib.parse import urlsplit
                     target = urlsplit(route.request.url)
                     if target.path == "/":
                         return route.fulfill(status=200, content_type="text/html", body=html)
@@ -267,10 +267,12 @@ def test_round7_actual_postgresql_cancels_bounded_store_statement():
     dsn = os.getenv("TESTER_RESEARCH_DATA_TEST_DSN")
     if not dsn:
         pytest.skip("explicit disposable PostgreSQL DSN not configured")
+    import time
+
     import psycopg
     from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
     from src.storage.store import Store
-    import time
 
     endpoint = conninfo_to_dict(dsn)
     if (
