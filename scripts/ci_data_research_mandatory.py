@@ -11,7 +11,6 @@ import tempfile
 from pathlib import Path
 
 import psycopg
-
 from ci_named_junit_gate import (
     CANONICAL_DATA_RESEARCH_NODES,
     assert_ci_source,
