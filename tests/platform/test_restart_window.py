@@ -182,6 +182,7 @@ def test_actual_pg_backward_clock_jump_preserves_crash_slots(authority):
     those entries and deny a fourth crash restart. Old 008 dropped the entries.
     """
     import psycopg
+
     from src.api.restart_budget import BudgetDenied
 
     owner, app_dsn, ident, budget = authority
@@ -261,7 +262,6 @@ def test_actual_pg_clean_stop_lost_ack_retry_is_idempotent_and_token_bound(autho
 def test_actual_pg_host_stop_replay_cannot_erase_a_new_run(authority):
     """A committed clean stop can be retried but cannot end the next run."""
     import psycopg
-    from src.api.restart_budget import BudgetDenied
 
     _, app_dsn, ident, budget = authority
     first = budget()
@@ -294,6 +294,7 @@ def test_actual_pg_concurrent_host_reservations_are_charged_under_lock(authority
     """Two distinct tokens racing to start must charge one crash restart."""
     from concurrent.futures import ThreadPoolExecutor
     from threading import Barrier
+
     from src.api.restart_budget import BudgetDenied
 
     owner, _, ident, budget = authority
