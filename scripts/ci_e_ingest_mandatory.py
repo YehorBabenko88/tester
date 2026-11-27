@@ -7,9 +7,8 @@ import tempfile
 from pathlib import Path
 
 import psycopg
+from ci_named_junit_gate import assert_ci_source, reset_artifact, safe_artifact
 from psycopg.conninfo import conninfo_to_dict
-
-from ci_named_junit_gate import assert_ci_source, safe_artifact, reset_artifact
 
 ROOT = Path(__file__).resolve().parents[1]
 FILE = "tests/ingest/test_pipeline.py::PipelineTests::"

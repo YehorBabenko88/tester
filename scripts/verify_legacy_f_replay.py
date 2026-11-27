@@ -43,8 +43,7 @@ def git_blob_at_old_commit(relative):
     return subprocess.run(
         command,
         cwd=ROOT,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=True,
         timeout=20,
     ).stdout
@@ -84,8 +83,7 @@ def run_f(source_root, payload):
         env=env,
         input=json.dumps(payload, sort_keys=True),
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         timeout=30,
         check=True,
     )

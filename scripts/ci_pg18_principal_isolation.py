@@ -12,11 +12,11 @@ import tempfile
 from pathlib import Path
 
 import psycopg
+from ci_named_junit_gate import assert_ci_source, reset_artifact, safe_artifact
 from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from src.api.db import migrate
-from ci_named_junit_gate import assert_ci_source, safe_artifact, reset_artifact
 
 ROOT = Path(__file__).resolve().parents[1]
 TEST_FILE = "tests/platform/test_transport_principal_isolation_round8.py"

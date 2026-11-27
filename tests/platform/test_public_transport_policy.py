@@ -380,10 +380,11 @@ def test_e_round8_foreign_scope_never_gets_dispatch_lease_or_network(durable_pol
     enrollment must fail; on any upgrade where enrollment succeeds, the foreign
     dispatch must still be denied by policy before any HTTP/network activity.
     """
-    from src.api.db import connect
-    from src.api.transport_policy import PostgresTransportPolicy
     from psycopg.conninfo import conninfo_to_dict
     from psycopg.errors import UniqueViolation
+
+    from src.api.db import connect
+    from src.api.transport_policy import PostgresTransportPolicy
 
     policy, owner, scope = durable_policy
     foreign_scope = uuid4()
@@ -435,6 +436,7 @@ def test_e_round8_cancelled_stream_closes_real_pg_endpoint_and_dispatch_leases(d
     foreign installation or activate the production runner.
     """
     import io
+
     from src.ingest.rest import API
 
     policy, owner, scope = durable_policy

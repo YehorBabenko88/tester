@@ -11,13 +11,17 @@ import tempfile
 from pathlib import Path
 
 import psycopg
-from psycopg.conninfo import conninfo_to_dict
 
 from ci_named_junit_gate import (
-    assert_ci_source, safe_artifact, reset_artifact,
-    initialize_repetition_manifest, complete_repetition_manifest,
-    begin_repetition_attempt, CANONICAL_DATA_RESEARCH_NODES,
+    CANONICAL_DATA_RESEARCH_NODES,
+    assert_ci_source,
+    begin_repetition_attempt,
+    complete_repetition_manifest,
+    initialize_repetition_manifest,
+    reset_artifact,
+    safe_artifact,
 )
+from psycopg.conninfo import conninfo_to_dict
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {"16", "18"}

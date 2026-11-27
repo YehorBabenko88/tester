@@ -9,9 +9,13 @@ from xml.etree import ElementTree as ET
 import pytest
 
 from scripts.ci_named_junit_gate import (
-    check_junit, expected_case_identity, safe_artifact,
-    validate_receipt, reset_artifact, initialize_repetition_manifest,
+    check_junit,
     complete_repetition_manifest,
+    expected_case_identity,
+    initialize_repetition_manifest,
+    reset_artifact,
+    safe_artifact,
+    validate_receipt,
 )
 
 NODE = "tests/ingest/test_pipeline.py::PipelineTests::test_canonical_rest_deadline_during_stream_closes_response"

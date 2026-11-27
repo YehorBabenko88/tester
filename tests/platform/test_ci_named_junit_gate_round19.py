@@ -5,7 +5,9 @@ import secrets
 import shutil
 from pathlib import Path
 from xml.etree import ElementTree as ET
+
 import pytest
+
 from scripts import ci_named_junit_gate as g
 
 HEAD='1270015bdbcaf2208bb419a45be87d118141e3c0'
@@ -13,24 +15,28 @@ NODES=g.CANONICAL_DATA_RESEARCH_NODES
 FAKE=tuple(f'tests/unrelated/test_fake.py::test_spoof_{i}' for i in range(5))
 
 def rawxml(path, nodes=NODES, fail_index=None):
-    root=ET.Element('testsuites');s=ET.SubElement(root,'testsuite',tests=str(len(nodes)),skipped='0',failures=str(1 if fail_index is not None else 0),errors='0')
+    root=ET.Element('testsuites')
+    s=ET.SubElement(root,'testsuite',tests=str(len(nodes)),skipped='0',failures=str(1 if fail_index is not None else 0),errors='0')
     for i,n in enumerate(nodes):
         cls,name=g.expected_case_identity(n)
         case=ET.SubElement(s,'testcase',classname=cls,name=name)
-        if i==fail_index:ET.SubElement(case,'failure',message='RAW SECRET DISPOSABLE')
+        if i==fail_index:
+            ET.SubElement(case,'failure',message='RAW SECRET DISPOSABLE')
     ET.ElementTree(root).write(path)
 
 def receipt(tmp_path, ordinal, nodes=NODES, *, attempt=None, suite=None, rc=0, timed_out=False, raw_exists=True, fail_index=None):
     attempt=attempt or secrets.token_hex(16)
     raw=tmp_path/f'raw-{ordinal}.xml'
-    if raw_exists:rawxml(raw,nodes,fail_index)
+    if raw_exists:
+        rawxml(raw,nodes,fail_index)
     target=tmp_path/f'pg16-mandatory-{ordinal}.xml'
     try:
         g.safe_artifact(raw,target,nodes,head_sha=HEAD,postgres_major='16',
            suite_name=suite or f'data-research-pg16-repeat{ordinal}',
            process_returncode=rc,timed_out=timed_out,attempt_id=attempt,
            repeat_ordinal=ordinal)
-    except ValueError:pass
+    except ValueError:
+        pass
     return target,g.validate_receipt(target)
 
 def reserve(tmp_path,attempts):
@@ -61,7 +67,8 @@ def test_actual_junit_failure_marked_fail_but_rest_unknown(tmp_path):
 def test_foreign_five_rejected_by_final_manifest(tmp_path):
     ids=[secrets.token_hex(16),secrets.token_hex(16)]
     m=reserve(tmp_path,ids)
-    a,_=receipt(tmp_path,1,FAKE,attempt=ids[0]);b,_=receipt(tmp_path,2,FAKE,attempt=ids[1])
+    a,_=receipt(tmp_path,1,FAKE,attempt=ids[0])
+    b,_=receipt(tmp_path,2,FAKE,attempt=ids[1])
     with pytest.raises(ValueError,match='canonical'):
         g.complete_repetition_manifest(m,[a,b],head_sha=HEAD,postgres_major='16')
     assert json.loads(m.read_text())['status']=='NOT_VERIFIED'
@@ -69,20 +76,24 @@ def test_foreign_five_rejected_by_final_manifest(tmp_path):
 def test_copied_report_under_new_name_rejected(tmp_path):
     ids=[secrets.token_hex(16),secrets.token_hex(16)]
     m=reserve(tmp_path,ids)
-    a,_=receipt(tmp_path,1,attempt=ids[0]);b=tmp_path/'pg16-mandatory-2.xml'
-    shutil.copyfile(a,b);shutil.copyfile(a.with_suffix('.json'),b.with_suffix('.json'))
+    a,_=receipt(tmp_path,1,attempt=ids[0])
+    b=tmp_path/'pg16-mandatory-2.xml'
+    shutil.copyfile(a,b)
+    shutil.copyfile(a.with_suffix('.json'),b.with_suffix('.json'))
     with pytest.raises(ValueError,match='identity'):
         g.complete_repetition_manifest(m,[a,b],head_sha=HEAD,postgres_major='16')
 
 def test_swapped_attempts_rejected(tmp_path):
     ids=[secrets.token_hex(16),secrets.token_hex(16)]
     m=reserve(tmp_path,ids)
-    a,_=receipt(tmp_path,1,attempt=ids[1]);b,_=receipt(tmp_path,2,attempt=ids[0])
+    a,_=receipt(tmp_path,1,attempt=ids[1])
+    b,_=receipt(tmp_path,2,attempt=ids[0])
     with pytest.raises(ValueError,match='identity'):
         g.complete_repetition_manifest(m,[a,b],head_sha=HEAD,postgres_major='16')
 
 def test_duplicate_attempt_id_cannot_be_reserved(tmp_path):
-    q=secrets.token_hex(16);m=tmp_path/'pg16-two-repetitions.json'
+    q=secrets.token_hex(16)
+    m=tmp_path/'pg16-two-repetitions.json'
     g.initialize_repetition_manifest(m,head_sha=HEAD,postgres_major='16',expected_repetitions=2)
     g.begin_repetition_attempt(m,head_sha=HEAD,postgres_major='16',repeat_ordinal=1,attempt_id=q)
     with pytest.raises(ValueError,match='reservation'):
@@ -91,7 +102,8 @@ def test_duplicate_attempt_id_cannot_be_reserved(tmp_path):
 def test_two_real_attempt_ids_same_results_accepted(tmp_path):
     ids=[secrets.token_hex(16),secrets.token_hex(16)]
     m=reserve(tmp_path,ids)
-    a,qa=receipt(tmp_path,1,attempt=ids[0]);b,qb=receipt(tmp_path,2,attempt=ids[1])
+    a,qa=receipt(tmp_path,1,attempt=ids[0])
+    b,qb=receipt(tmp_path,2,attempt=ids[1])
     assert [x[:2] for x in qa['observed']]==[x[:2] for x in qb['observed']]
     g.complete_repetition_manifest(m,[a,b],head_sha=HEAD,postgres_major='16')
     aggregate=json.loads(m.read_text())
@@ -101,7 +113,8 @@ def test_two_real_attempt_ids_same_results_accepted(tmp_path):
 def test_same_raw_xml_bytes_not_rejected_by_sha_gate(tmp_path):
     ids=[secrets.token_hex(16),secrets.token_hex(16)]
     m=reserve(tmp_path,ids)
-    a,qa=receipt(tmp_path,1,attempt=ids[0]);b,qb=receipt(tmp_path,2,attempt=ids[1])
+    a,qa=receipt(tmp_path,1,attempt=ids[0])
+    b,qb=receipt(tmp_path,2,attempt=ids[1])
     assert hashlib.sha256((tmp_path/'raw-1.xml').read_bytes()).hexdigest()==hashlib.sha256((tmp_path/'raw-2.xml').read_bytes()).hexdigest()
     g.complete_repetition_manifest(m,[a,b],head_sha=HEAD,postgres_major='16')
     assert json.loads(m.read_text())['status']=='PASS'
@@ -120,8 +133,10 @@ def test_tampered_receipt_attempt_rejected(tmp_path):
         g.validate_receipt(a)
 
 def test_missing_attempt_reservation_rejected(tmp_path):
-    m=tmp_path/'pg16-two-repetitions.json';g.initialize_repetition_manifest(m,head_sha=HEAD,postgres_major='16',expected_repetitions=2)
-    a,_=receipt(tmp_path,1);b,_=receipt(tmp_path,2)
+    m=tmp_path/'pg16-two-repetitions.json'
+    g.initialize_repetition_manifest(m,head_sha=HEAD,postgres_major='16',expected_repetitions=2)
+    a,_=receipt(tmp_path,1)
+    b,_=receipt(tmp_path,2)
     with pytest.raises(ValueError,match='aggregate'):
         g.complete_repetition_manifest(m,[a,b],head_sha=HEAD,postgres_major='16')
 
@@ -184,24 +199,33 @@ def test_round20_standard_skipped_for_unverified_case(tmp_path,kind,expected):
 def test_round20_reject_tampered_standard_junit_markers(tmp_path,mutation):
     target,_ = receipt(tmp_path,1,rc=1)
     root=ET.parse(target).getroot()
-    suite=root[0]; case=suite[0]
-    if mutation=='removed_skipped': case.remove(case[0])
-    elif mutation=='extra_skipped': ET.SubElement(case,'skipped',message='mandatory evidence not verified')
-    elif mutation=='skipped_count': suite.set('skipped','0')
-    elif mutation=='skipped_message': case[0].set('message','injected')
-    elif mutation=='status_changed': case.set('status','PASS')
-    elif mutation=='extra_child': ET.SubElement(case[0],'error')
+    suite=root[0]
+    case=suite[0]
+    if mutation=='removed_skipped':
+        case.remove(case[0])
+    elif mutation=='extra_skipped':
+        ET.SubElement(case,'skipped',message='mandatory evidence not verified')
+    elif mutation=='skipped_count':
+        suite.set('skipped','0')
+    elif mutation=='skipped_message':
+        case[0].set('message','injected')
+    elif mutation=='status_changed':
+        case.set('status','PASS')
+    elif mutation=='extra_child':
+        ET.SubElement(case[0],'error')
     target.write_bytes(ET.tostring(root,encoding='utf-8',xml_declaration=True))
     data=json.loads(target.with_suffix('.json').read_text())
     data['sanitized_xml_sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
     target.with_suffix('.json').write_text(json.dumps(data))
-    with pytest.raises(ValueError):g.validate_receipt(target)
+    with pytest.raises(ValueError):
+        g.validate_receipt(target)
 
 def test_round20_raw_skipped_is_never_mandatory_pass(tmp_path):
     raw=tmp_path/'raw.xml'
     rawxml(raw)
     tree=ET.parse(raw)
-    s=tree.getroot()[0];s.set('skipped','1')
+    s=tree.getroot()[0]
+    s.set('skipped','1')
     ET.SubElement(s[0],'skipped',message='skipped by pytest')
     tree.write(raw)
     target=tmp_path/'mandatory.xml'
