@@ -41,8 +41,11 @@ def _invoke(*, required, dsn=None):
 def test_offline_without_dsn_is_explicit_skip_not_success():
     result = _invoke(required=False)
     output = result.stdout + result.stderr
-    assert result.returncode == 5
+    # Pytest treats a deliberately skipped collected node as process rc0;
+    # its skip outcome must never be counted as mandatory PG execution.
+    assert result.returncode == 0
     assert "1 skipped" in output
+    assert "1 passed" not in output
     assert "PostgreSQL concurrency requires a disposable DSN in the PG phase" in output
 
 
