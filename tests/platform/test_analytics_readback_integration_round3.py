@@ -202,10 +202,10 @@ process.stdout.write("PG_API_FRONTEND_CONTRACT_OK");
         # Keep page's UTC scope *exact* to the persisted epoch fixture. Derive
         # the HTML from the already-validated DB timestamps rather than hardcoding.
         from datetime import datetime as _dt
-        starts = _dt.fromtimestamp(start / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M")
-        ends = _dt.fromtimestamp((start + 60_000) / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M")
+        starts = _dt.fromtimestamp(start / 1000, UTC).strftime("%Y-%m-%dT%H:%M")
+        ends = _dt.fromtimestamp((start + 60_000) / 1000, UTC).strftime("%Y-%m-%dT%H:%M")
         html = html.replace('2020-09-13T12:38', starts).replace('2020-09-13T12:39', ends)
-        cutoff = datetime.fromtimestamp(args["as_of_ms"] / 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M")
+        cutoff = datetime.fromtimestamp(args["as_of_ms"] / 1000, UTC).strftime("%Y-%m-%dT%H:%M")
         html = html.replace('value="2026-11-26T00:00"', f'value="{cutoff}"')
         # The fixture's original HTTP was observed after its event time and
         # before the UI's explicit 2026 cutoff. No history proof is implied.
